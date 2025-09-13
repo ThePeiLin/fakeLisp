@@ -26,7 +26,6 @@ PRs welcome.
 To let the compiling of the project more easy, source files of dependences are contained into the repository. No configuration is needed before compiling.  
 
 Dependences that be contained into the repository:  
-- [replxx](https://github.com/AmokHuginnsson/replxx.git), for `repl`
 - [argtable3](https://github.com/argtable/argtable3.git), for command-line options parsing
 - [libuv](https://github.com/libuv/libuv.git), provide asynchronous io, multi-thread and some system calls
 
@@ -57,7 +56,7 @@ Since the project use `stdatomic.h`, the version of `visual studio` should at le
 
 ### print `hello, world`
 
-```
+```scheme
 (define (f n)
   (when (< n 3)
     (println "hello, world")
@@ -82,7 +81,7 @@ Assume that we have such some file as follows.
 The single file is a module, and the directory with a `main` file is a package. Contents of files is as follws.
 
 `test.fkl`
-```
+```scheme
 ;; import package `pac`
 (import (pac))
 ;; It is enable to import module `mod1` only by `(import (pac mod1))`.
@@ -107,24 +106,24 @@ The single file is a module, and the directory with a `main` file is a package. 
 ```
 
 `mod.fkl`
-```
+```scheme
 ;; export definition with special form `export`
 (export (define foobar 'foobar))
 ```
 
 `pac/main.fkl`
-```
+```scheme
 ;; export module `mod1` and module `mod2` with special form `export`
 (export (import (mod1) (mod2)))
 ```
 
 `pac/mod1.fkl`
-```
+```scheme
 (export (define foobar1 'foobar1))
 ```
 
 `pac/mod2.fkl`
-```
+```scheme
 (export (define foobar2 'foobar2))
 ```
 
@@ -143,13 +142,12 @@ foobar2
 ```
 
 ### Simple macros
-```
+```scheme
 (defmacro ~(assert ~exp)
   `(unless ~exp
      (throw 'assert-fail
-            ~(append! "expression "
-                      (stringify (stringify exp))
-                      " failed"))))
+            ~(format "expression %S failed"
+                     (stringify exp)))))
 
 ;; Macro `assert`, let the program raises error when the expression
 ;; is false.
@@ -165,9 +163,8 @@ foobar2
 ;; Reader macro, this macro defines another syntactic sugar for
 ;; special form `quote`.
 
-(defmacro
-  #[() #["#quote'" *s-exp*] builtin quote]
-  ())
+(defmacro #&()
+  #[() #["#quote'" *s-exp*] builtin quote])
 
 (println #quote'foobar)
 ```

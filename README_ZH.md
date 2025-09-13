@@ -26,7 +26,6 @@ fakeLisp是一个用c语言编写的轻量的LISP解释器。
 为了方便编译，部分依赖的源码直接储存在仓库中，编译前不需要进行任何配置  
 
 被内置在仓库的依赖：  
-- [replxx](https://github.com/AmokHuginnsson/replxx.git)，提供`repl`
 - [argtable3](https://github.com/argtable/argtable3.git)，提供命令行参数解析
 - [libuv](https://github.com/libuv/libuv.git)，提供异步io，多线程以及一些系统调用
 
@@ -58,7 +57,7 @@ make
 
 ### 打印`hello, world`
 
-```
+```scheme
 (define (f n)
   (when (< n 3)
     (println "hello, world")
@@ -83,7 +82,7 @@ make
 其中，单个文件的为模块，带有一个`main`文件的为包。文件的内容分别如下
 
 `test.fkl`
-```
+```scheme
 ;; 导入包`pac`
 (import (pac))
 ;; 实际上通过`(import (pac mod1))`可以只导入模块`mod1`，
@@ -107,24 +106,24 @@ make
 ```
 
 `mod.fkl`
-```
+```scheme
 ;; 使用特殊形式`export`导出定义
 (export (define foobar 'foobar))
 ```
 
 `pac/main.fkl`
-```
+```scheme
 ;; 使用特殊形式`export`导出模块`mod1`和`mod2`
 (export (import (mod1) (mod2)))
 ```
 
 `pac/mod1.fkl`
-```
+```scheme
 (export (define foobar1 'foobar1))
 ```
 
 `pac/mod2.fkl`
-```
+```scheme
 (export (define foobar2 'foobar2))
 ```
 
@@ -142,13 +141,12 @@ foobar2
 ```
 
 ### 简单的宏
-```
+```scheme
 (defmacro ~(assert ~exp)
   `(unless ~exp
      (throw 'assert-fail
-            ~(append! "expression "
-                      (stringify (stringify exp))
-                      " failed"))))
+            ~(format "expression %S failed"
+                     (stringify exp)))))
 
 ;; 断言宏，在断言失败时会报错
 (assert (eq 'foobar 'barfoo))
@@ -160,9 +158,8 @@ foobar2
 (println foo)
 
 ;; 读取器宏，该宏定义了特殊形式`quote`的一个语法糖
-(defmacro
-  #[() #["#quote'" *s-exp*] builtin quote]
-  ())
+(defmacro #&()
+  #[() #["#quote'" *s-exp*] builtin quote])
 
 (println #quote'foobar)
 ```

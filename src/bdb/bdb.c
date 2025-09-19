@@ -94,7 +94,7 @@ static void B_int3(FklVM *exe, const FklInstruction *ins) {
         const FklLineNumberTableItem *ln = debug_ctx->stepping_ctx.ln;
         unsetStepping(debug_ctx);
 
-        FklInstruction *pc = FKL_REMOVE_CONST(FklInstruction, ins);
+        FklInstruction *pc = FKL_TYPE_CAST(FklInstruction *, ins);
         if (stepping_type == STEP_INS) {
             FklInstruction *cur = exe->top_frame->c.pc;
             exe->top_frame->c.pc = pc;

@@ -490,8 +490,7 @@ static inline const char *parse_builtin_args(FklGrammerSym *s,
                 &len);
         FklString const *arg_str =
                 fklAddStringCharBuf(&arg->g->terminals, str, len);
-        fklStringVectorPushBack2(&str_vec,
-                FKL_REMOVE_CONST(FklString, arg_str));
+        fklStringVectorPushBack2(&str_vec, FKL_TYPE_CAST(FklString *, arg_str));
         fklZfree(str);
 
         token = next_token(arg, err, &buf, end);

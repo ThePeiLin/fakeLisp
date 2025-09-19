@@ -25,7 +25,7 @@ int fklPatternMatch(const FklNastNode *pattern,
             if (ht != NULL)
                 fklPmatchHashMapAdd2(ht,
                         n0->sym,
-                        FKL_REMOVE_CONST(FklNastNode, n1));
+                        FKL_TYPE_CAST(FklNastNode *, n1));
         } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
             fklNastImmPairVectorPushBack(&s,
                     &(FklNastImmPair){ .car = n0->pair->cdr,

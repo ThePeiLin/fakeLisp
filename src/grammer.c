@@ -2731,17 +2731,16 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer *g,
                             || x->allow_ignore == is_at_delim_v
                             || item.prod != i.prod) {
                         if (i.la.t == FKL_TERM_NONE) {
-                            add_lookahead_spread(itemset,
-                                    &item,
-                                    // 这些操作可能需要重新计算哈希值
-                                    FKL_REMOVE_CONST(FklLalrItemHashSet,
-                                            &x->dst->k),
-                                    &i);
+                            FklLalrItemHashSet *k =
+                                    FKL_TYPE_CAST(FklLalrItemHashSet *,
+                                            &x->dst->k);
+                            // 这些操作可能需要重新计算哈希值
+                            add_lookahead_spread(itemset, &item, k, &i);
                         } else {
-                            fklLalrItemHashSetPut(
-                                    FKL_REMOVE_CONST(FklLalrItemHashSet,
-                                            &x->dst->k),
-                                    &i);
+                            FklLalrItemHashSet *k =
+                                    FKL_TYPE_CAST(FklLalrItemHashSet *,
+                                            &x->dst->k);
+                            fklLalrItemHashSetPut(k, &i);
                         }
                     }
                 }
@@ -2783,7 +2782,7 @@ static inline void init_lalr_look_ahead(FklLalrItemSetHashMap *lr0,
     for (FklLalrItemHashSetNode *il = isl->k.first; il; il = il->next) {
         FklLalrItem item = il->k;
         item.la = FKL_LALR_MATCH_EOF_INIT;
-        fklLalrItemHashSetPut(FKL_REMOVE_CONST(FklLalrItemHashSet, &isl->k),
+        fklLalrItemHashSetPut(FKL_TYPE_CAST(FklLalrItemHashSet *, &isl->k),
                 &item);
     }
 }
@@ -2810,7 +2809,7 @@ static inline void add_look_ahead_for_all_item_set(FklLalrItemSetHashMap *lr0,
         FklGrammer *g,
         GraLaFirstSetCacheHashMap *cache) {
     for (FklLalrItemSetHashMapNode *isl = lr0->first; isl; isl = isl->next) {
-        add_look_ahead_to_items(FKL_REMOVE_CONST(FklLalrItemHashSet, &isl->k),
+        add_look_ahead_to_items(FKL_TYPE_CAST(FklLalrItemHashSet *, &isl->k),
                 g,
                 cache);
     }

@@ -154,7 +154,7 @@ uint32_t fklAddStrConst(FklConstTable *kt, const FklString *k) {
     FklConstStrTable *kstrt = &kt->kstrt;
     uint32_t idx = kstrt->count;
     FklKstrHashMapElm *i = fklKstrHashMapInsert2(&kstrt->ht,
-            FKL_REMOVE_CONST(FklString, k),
+            FKL_TYPE_CAST(FklString *, k),
             idx);
     if (i->v == kstrt->count) {
         REALLOC_CONST_TABLE_BASE(kstrt, FklString *);
@@ -168,7 +168,7 @@ uint32_t fklAddBvecConst(FklConstTable *kt, const FklBytevector *k) {
     FklConstBvecTable *kbvect = &kt->kbvect;
     uint32_t idx = kbvect->count;
     FklKbvecHashMapElm *i = fklKbvecHashMapInsert2(&kbvect->ht,
-            FKL_REMOVE_CONST(FklBytevector, k),
+            FKL_TYPE_CAST(FklBytevector *, k),
             idx);
     if (i->v == kbvect->count) {
         REALLOC_CONST_TABLE_BASE(kbvect, FklBytevector *);

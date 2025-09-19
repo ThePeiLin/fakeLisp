@@ -419,7 +419,7 @@ FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
         case FKL_TAG_FIX:
         case FKL_TAG_SYM:
         case FKL_TAG_CHR:
-            *root1 = FKL_REMOVE_CONST(FklVMvalue, root);
+            *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
             break;
         case FKL_TAG_PTR: {
             FklValueType type = root->type;
@@ -434,7 +434,7 @@ FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
                             .slot = &FKL_VM_CDR(*root1) });
                 break;
             default:
-                *root1 = FKL_REMOVE_CONST(FklVMvalue, root);
+                *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
                 break;
             }
         } break;
@@ -516,7 +516,7 @@ FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
     case FKL_TAG_FIX:
     case FKL_TAG_SYM:
     case FKL_TAG_CHR:
-        tmp = FKL_REMOVE_CONST(FklVMvalue, obj);
+        tmp = FKL_TYPE_CAST(FklVMvalue *, obj);
         break;
     case FKL_TAG_PTR: {
         FklValueType type = obj->type;
@@ -594,8 +594,8 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
 nested_equal:
     fklVMpairVectorInit(&s, 8);
     fklVMpairVectorPushBack2(&s,
-            (FklVMpair){ .car = FKL_REMOVE_CONST(FklVMvalue, fir),
-                .cdr = FKL_REMOVE_CONST(FklVMvalue, sec) });
+            (FklVMpair){ .car = FKL_TYPE_CAST(FklVMvalue *, fir),
+                .cdr = FKL_TYPE_CAST(FklVMvalue *, sec) });
     int r = 1;
     while (!fklVMpairVectorIsEmpty(&s)) {
         const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
@@ -1147,7 +1147,7 @@ int fklVMhashTableDel(FklVMhash *ht,
             if (pv)
                 *pv = (*pp)->v;
             fklVMvalueHashMapDelNode(&ht->ht,
-                    FKL_REMOVE_CONST(FklVMvalueHashMapNode *, pp));
+                    FKL_TYPE_CAST(FklVMvalueHashMapNode **, pp));
             return 1;
         }
     }

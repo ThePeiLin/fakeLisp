@@ -3434,7 +3434,7 @@ static inline int cfg_check_defined(const FklNastNode *exp,
     if (value->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
     return fklFindSymbolDefByIdAndScope(value->sym, scope, curEnv) != NULL;
@@ -3452,7 +3452,7 @@ static inline int cfg_check_importable(const FklNastNode *exp,
             || !fklIsNastNodeListAndHasSameType(value, FKL_NAST_SYM)) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
     char *filename = combineFileNameFromListAndCheckPrivate(value,
@@ -3528,7 +3528,7 @@ static inline int cfg_check_macro_defined(const FklNastNode *exp,
     } else {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
 }
@@ -3547,7 +3547,7 @@ static inline int cfg_check_eq(const FklNastNode *exp,
     if (arg0->type != FKL_NAST_SYM) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
     FklNastNode *node =
@@ -3574,7 +3574,7 @@ static inline int cfg_check_matched(const FklNastNode *exp,
     if (arg0->type != FKL_NAST_SYM || !is_valid_compile_check_pattern(arg1)) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
     FklNastNode *node =
@@ -3781,7 +3781,7 @@ check_nested_sub_pattern:
                 } else {
                     errorState->type = FKL_ERR_SYNTAXERROR;
                     errorState->place = fklMakeNastNodeRef(
-                            FKL_REMOVE_CONST(FklNastNode, exp));
+                            FKL_TYPE_CAST(FklNastNode *, exp));
                     goto exit;
                 }
             } else if (fklPatternMatch(outer_ctx->builtin_sub_pattern_node
@@ -3802,13 +3802,13 @@ check_nested_sub_pattern:
                 } else {
                     errorState->type = FKL_ERR_SYNTAXERROR;
                     errorState->place = fklMakeNastNodeRef(
-                            FKL_REMOVE_CONST(FklNastNode, exp));
+                            FKL_TYPE_CAST(FklNastNode *, exp));
                     goto exit;
                 }
             } else {
                 errorState->type = FKL_ERR_SYNTAXERROR;
                 errorState->place =
-                        fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, exp));
+                        fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
                 goto exit;
             }
             break;
@@ -9125,11 +9125,11 @@ static inline FklCodegenQuestContext *createAddingProductionCtx(
     ctx->sid = sid;
     ctx->group_id = group_id;
     ctx->add_extra = add_extra;
-    ctx->vec = fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, vec));
+    ctx->vec = fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, vec));
     ctx->type = type;
     if (type != FKL_CODEGEN_PROD_CUSTOM)
         ctx->action =
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, action_ast));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, action_ast));
     return createCodegenQuestContext(ctx, &AddingProductionCtxMethodTable);
 }
 
@@ -9435,7 +9435,7 @@ static inline NastToGrammerSymErr nast_vector_to_production(
                 codegen,
                 args->codegenQuestStack);
         fklNastNodeQueuePush2(queue,
-                fklMakeNastNodeRef(FKL_REMOVE_CONST(FklNastNode, action_ast)));
+                fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, action_ast)));
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_QUEST(_reader_macro_bc_process,
                 createReaderMacroQuestContext(ctx, macroCodegen->pts),
                 createMustHasRetvalQueueNextExpression(queue),
@@ -9516,7 +9516,7 @@ static inline int process_add_production(FklSid_t group_id,
         if (err) {
             errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
             errorState->place = fklMakeNastNodeRef(
-                    FKL_REMOVE_CONST(FklNastNode, args.err_node));
+                    FKL_TYPE_CAST(FklNastNode *, args.err_node));
             errorState->msg = get_nast_to_grammer_sym_err_msg(err);
             return 1;
         }
@@ -9614,7 +9614,7 @@ static inline int process_add_production(FklSid_t group_id,
                 args.err_node = base[2];
             errorState->type = FKL_ERR_GRAMMER_CREATE_FAILED;
             errorState->place = fklMakeNastNodeRef(
-                    FKL_REMOVE_CONST(FklNastNode, args.err_node));
+                    FKL_TYPE_CAST(FklNastNode *, args.err_node));
             errorState->msg = get_nast_to_grammer_sym_err_msg(err);
             return 1;
         }
@@ -9835,7 +9835,7 @@ static FklByteCodelnt *gen_push_literal_code(const FklNastNode *node,
 
     FklNastNodeVector stack;
     fklNastNodeVectorInit(&stack, 32);
-    fklNastNodeVectorPushBack2(&stack, FKL_REMOVE_CONST(FklNastNode, node));
+    fklNastNodeVectorPushBack2(&stack, FKL_TYPE_CAST(FklNastNode *, node));
     FklByteCodelnt *r = fklCreateByteCodelnt(0);
     FklByteCode *retval = &r->bc;
     FklSymbolTable *pst = &info->outer_ctx->public_symbol_table;
@@ -10934,10 +10934,10 @@ void fklRecomputeSidForNamedProdGroups(FklGraProdGroupHashMap *ht,
     if (ht && ht->buckets) {
         for (FklGraProdGroupHashMapNode *list = ht->first; list;
                 list = list->next) {
-            replace_sid(FKL_REMOVE_CONST(FklSid_t, &list->k),
+            replace_sid(FKL_TYPE_CAST(FklSid_t *, &list->k),
                     origin_st,
                     target_st);
-            *FKL_REMOVE_CONST(uintptr_t, &list->hashv) =
+            *FKL_TYPE_CAST(uintptr_t *, &list->hashv) =
                     fklGraProdGroupHashMap__hashv(&list->k);
 
             for (FklProdHashMapNode *cur = list->v.g.productions.first; cur;

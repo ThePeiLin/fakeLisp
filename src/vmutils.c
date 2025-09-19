@@ -364,8 +364,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
         const FklVMvalue *first_value) {
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
-    fklVMvalueVectorPushBack2(&stack,
-            FKL_REMOVE_CONST(FklVMvalue, first_value));
+    fklVMvalueVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
     while (!fklVMvalueVectorIsEmpty(&stack)) {
         FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
         if (FKL_IS_PAIR(v)) {
@@ -402,7 +401,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
             }
         }
     }
-    dec_value_degree(ht, FKL_REMOVE_CONST(FklVMvalue, first_value));
+    dec_value_degree(ht, FKL_TYPE_CAST(FklVMvalue *, first_value));
 
     // remove value not in circle
 
@@ -509,8 +508,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
     FklVMvalueVector stack;
     fklVMvalueVectorInit(&stack, 16);
 
-    fklVMvalueVectorPushBack2(&stack,
-            FKL_REMOVE_CONST(FklVMvalue, first_value));
+    fklVMvalueVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
     while (!fklVMvalueVectorIsEmpty(&stack)) {
         FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
         if (FKL_IS_PAIR(v)) {
@@ -543,7 +541,7 @@ int fklHasCircleRef(const FklVMvalue *first_value) {
             }
         }
     }
-    dec_value_degree(&degree_table, FKL_REMOVE_CONST(FklVMvalue, first_value));
+    dec_value_degree(&degree_table, FKL_TYPE_CAST(FklVMvalue *, first_value));
     fklVMvalueHashSetUninit(&value_set);
 
     // remove value not in circle

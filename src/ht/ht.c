@@ -519,7 +519,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
             FklVMvalue *val = i->v;
 
             fklVMvalueHashMapDelNode(&ht->ht,
-                    FKL_REMOVE_CONST(FklVMvalueHashMapNode *, node));
+                    FKL_TYPE_CAST(FklVMvalueHashMapNode **, node));
 
             FKL_CPROC_RETURN(exe, ctx, fklCreateVMvaluePair(exe, key, val));
             return 0;
@@ -576,7 +576,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        loc[i] = FKL_REMOVE_CONST(FklVMvalue, exports_and_func[i].v);
+        loc[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
     }
     return loc;
 }

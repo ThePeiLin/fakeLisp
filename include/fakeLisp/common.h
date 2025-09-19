@@ -94,7 +94,6 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
     } while (0)
 #endif
 
-#define FKL_REMOVE_CONST(T, V) ((T *)(V))
 #define FKL_TYPE_CAST(T, V) ((T)(V))
 
 #define FKL_CONTAINER_OF(ptr, type, member)                                    \

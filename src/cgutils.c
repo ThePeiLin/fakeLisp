@@ -926,7 +926,7 @@ static inline void recompute_sid_for_prototypes(FklFuncPrototypes *pts,
 
         for (uint32_t i = 0; i < cur->rcount; i++) {
             if (cur->refs[i].k.id) {
-                replace_sid(FKL_REMOVE_CONST(FklSid_t, &cur->refs[i].k.id),
+                replace_sid(FKL_TYPE_CAST(FklSid_t *, &cur->refs[i].k.id),
                         origin_table,
                         target_table);
             }
@@ -940,7 +940,7 @@ static inline void recompute_sid_for_export_sid_index(
         FklSymbolTable *target_table) {
     for (FklCgExportSidIdxHashMapNode *sid_idx_list = t->first; sid_idx_list;
             sid_idx_list = sid_idx_list->next) {
-        replace_sid(FKL_REMOVE_CONST(FklSid_t, &sid_idx_list->k),
+        replace_sid(FKL_TYPE_CAST(FklSid_t *, &sid_idx_list->k),
                 origin_table,
                 target_table);
     }
@@ -970,7 +970,7 @@ static inline void recompute_sid_for_replacements(FklReplacementHashMap *t,
         return;
     for (FklReplacementHashMapNode *rep_list = t->first; rep_list;
             rep_list = rep_list->next) {
-        replace_sid(FKL_REMOVE_CONST(FklSid_t, &rep_list->k),
+        replace_sid(FKL_TYPE_CAST(FklSid_t *, &rep_list->k),
                 origin_table,
                 target_table);
         fklRecomputeSidForNastNode(rep_list->v,
@@ -1114,9 +1114,9 @@ static inline void recompute_sid_for_sid_set(FklSidHashSet *ht,
         const FklSymbolTable *ost,
         FklSymbolTable *tst) {
     for (FklSidHashSetNode *l = ht->first; l; l = l->next) {
-        FklSid_t *id = FKL_REMOVE_CONST(FklSid_t, &l->k);
+        FklSid_t *id = FKL_TYPE_CAST(FklSid_t *, &l->k);
         replace_sid(id, ost, tst);
-        *FKL_REMOVE_CONST(uintptr_t, &l->hashv) =
+        *FKL_TYPE_CAST(uintptr_t *, &l->hashv) =
                 fklGraProdGroupHashMap__hashv(id);
     }
     fklSidHashSetRehash(ht);

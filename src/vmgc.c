@@ -535,6 +535,7 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList *l) {
 }
 
 void fklUninitVMgc(FklVMgc *gc) {
+    fklMoveThreadObjectsToGc(&gc->gcvm, gc);
     fklDestroyFuncPrototypes(gc->pts);
     uv_rwlock_destroy(&gc->st_lock);
     uv_mutex_destroy(&gc->workq_lock);

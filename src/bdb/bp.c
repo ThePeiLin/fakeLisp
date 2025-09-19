@@ -195,5 +195,5 @@ Breakpoint *createBreakpoint(FklSid_t fid,
 
 BdbCodepoint *getBreakpointHashItem(DebugCtx *dctx, const FklInstruction *ins) {
     return bdbBpInsHashMapGet2(&dctx->bt.ins_ht,
-            FKL_REMOVE_CONST(FklInstruction, ins));
+            FKL_TYPE_CAST(FklInstruction *, ins));
 }

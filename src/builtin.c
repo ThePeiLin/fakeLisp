@@ -3116,7 +3116,7 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
     fklSidHashSetInit(&symbolTable);
     FklVMvalueVector exe;
     fklVMvalueVectorInit(&exe, 32);
-    fklVMvalueVectorPushBack2(&exe, FKL_REMOVE_CONST(FklVMvalue, body));
+    fklVMvalueVectorPushBack2(&exe, FKL_TYPE_CAST(FklVMvalue *, body));
     while (!fklVMvalueVectorIsEmpty(&exe)) {
         const FklVMvalue *c = *fklVMvalueVectorPopBackNonNull(&exe);
         FklVMvalue *slotV = isSlot(head, c);
@@ -5221,8 +5221,7 @@ static inline FklVMvalue **init_builtin_refs(void) {
         fklInitVMvalueFp(&StderrUserDataValue, stderr, FKL_VM_FP_W);
 
         for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
-            FklVMvalue *v =
-                    FKL_REMOVE_CONST(FklVMvalue, builtInSymbolList[i].v);
+            FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, builtInSymbolList[i].v);
             fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[i], v);
             builtin_refs[i] =
                     FKL_TYPE_CAST(FklVMvalue *, &builtin_symbol_var_refs[i]);

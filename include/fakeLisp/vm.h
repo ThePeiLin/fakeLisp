@@ -413,6 +413,8 @@ typedef struct FklVM {
     FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
     FklVMlocvList *old_locv_list;
 
+    FklVMstate volatile state;
+
     // op stack
     uint32_t last;
     uint32_t tp;
@@ -433,8 +435,6 @@ typedef struct FklVM {
 
     FklFuncPrototypes *pts;
     FklVMlib *importing_lib;
-
-    FklVMstate volatile state;
 
     FklVMinsFunc dummy_ins_func;
 

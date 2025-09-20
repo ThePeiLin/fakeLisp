@@ -383,12 +383,12 @@ typedef struct {
     void (*__put_bcl)(void *, FklByteCodelnt *bcl);
     void (*__finalizer)(void *);
     FklByteCodelntVector *(*__get_bcl_stack)(void *);
-} FklCodegenQuestContextMethodTable;
+} FklCodegenActionContextMethodTable;
 
-typedef struct FklCodegenQuestContext {
+typedef struct FklCodegenActionContext {
     void *data;
-    const FklCodegenQuestContextMethodTable *t;
-} FklCodegenQuestContext;
+    const FklCodegenActionContextMethodTable *t;
+} FklCodegenActionContext;
 
 typedef struct FklCodegenErrorState {
     FklBuiltinErrorType type;
@@ -403,7 +403,7 @@ typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklCodegenInfo *,
         FklCodegenEnv *,
         uint32_t scope,
         FklCodegenMacroScope *,
-        FklCodegenQuestContext *context,
+        FklCodegenActionContext *context,
         FklSid_t,
         uint64_t,
         FklCodegenErrorState *errorState,
@@ -420,17 +420,17 @@ typedef struct {
     uint8_t must_has_retval;
 } FklCodegenNextExpression;
 
-typedef struct FklCodegenQuest {
+typedef struct FklCodegenAction {
     FklByteCodeProcesser processer;
-    FklCodegenQuestContext *context;
+    FklCodegenActionContext *context;
     FklCodegenEnv *env;
     uint32_t scope;
     FklCodegenMacroScope *macroScope;
     uint64_t curline;
     FklCodegenInfo *codegen;
-    struct FklCodegenQuest *prev;
+    struct FklCodegenAction *prev;
     FklCodegenNextExpression *nextExpression;
-} FklCodegenQuest;
+} FklCodegenAction;
 
 typedef struct {
     const FklSymbolTable *runtime_st;
@@ -462,9 +462,9 @@ typedef struct FklReadCodeFileArgs {
     void *libs;
 } FklReadCodeFileArgs;
 
-// FklCodegenQuestVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenQuest *
-#define FKL_VECTOR_ELM_TYPE_NAME CodegenQuest
+// FklCodegenActionVector
+#define FKL_VECTOR_ELM_TYPE FklCodegenAction *
+#define FKL_VECTOR_ELM_TYPE_NAME CodegenAction
 #include "cont/vector.h"
 
 FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
@@ -476,14 +476,14 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         FklCodegenInfoEnvWorkCb evn_work_cb,
         void *ctx);
 
-FklCodegenQuest *fklCreateCodegenQuest(FklByteCodeProcesser f,
-        FklCodegenQuestContext *context,
+FklCodegenAction *fklCreateCodegenAction(FklByteCodeProcesser f,
+        FklCodegenActionContext *context,
         FklCodegenNextExpression *nextExpression,
         uint32_t scope,
         FklCodegenMacroScope *macroScope,
         FklCodegenEnv *env,
         uint64_t curline,
-        FklCodegenQuest *prev,
+        FklCodegenAction *prev,
         FklCodegenInfo *codegen);
 
 void fklInitCodegenInfo(FklCodegenInfo *codegen,
@@ -514,7 +514,7 @@ void fklUninitCodegenOuterCtx(FklCodegenOuterCtx *ctx);
 FklByteCodelnt *fklGenExpressionCode(FklNastNode *exp,
         FklCodegenEnv *cur_env,
         FklCodegenInfo *codegen);
-FklByteCodelnt *fklGenExpressionCodeWithQuest(FklCodegenQuest *,
+FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *,
         FklCodegenInfo *codegen);
 FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *,
         FklCodegenInfo *codegen,

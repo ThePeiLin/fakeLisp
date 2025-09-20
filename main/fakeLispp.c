@@ -231,8 +231,8 @@ int main(int argc, char **argv) {
             FklCodegenLibVector macroScriptLibStack;
             fklCodegenLibVectorInit(&macroScriptLibStack, 8);
 
-            FklCodegenOuterCtx ctx;
-            fklInitCodegenOuterCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
+            FklCodegenCtx ctx;
+            fklInitCodegenCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
 
             char *rp = fklRealpath(filename);
             char *errorStr = NULL;

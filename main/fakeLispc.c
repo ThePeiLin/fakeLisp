@@ -21,7 +21,7 @@ static inline int pre_compile(const char *main_file_name,
         const char *output_dir,
         int argc,
         char *argv[],
-        FklCodegenOuterCtx *outer_ctx) {
+        FklCodegenCtx *outer_ctx) {
     FklSymbolTable *pst = &outer_ctx->public_st;
     fklAddSymbolCstr(main_file_name, pst);
     FILE *fp = fopen(main_file_name, "r");
@@ -29,7 +29,7 @@ static inline int pre_compile(const char *main_file_name,
         .fid = 0,
     };
     char *rp = fklRealpath(main_file_name);
-    fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
+    fklSetCodegenCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
     const char *main_dir = outer_ctx->main_file_real_path_dir;
     fklChdir(outer_ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
@@ -88,7 +88,7 @@ static inline int compile(const char *filename,
         const char *cwd,
         int argc,
         char *argv[],
-        FklCodegenOuterCtx *outer_ctx) {
+        FklCodegenCtx *outer_ctx) {
     FklSymbolTable *pst = &outer_ctx->public_st;
     fklAddSymbolCstr(filename, pst);
     FILE *fp = fopen(filename, "r");
@@ -96,7 +96,7 @@ static inline int compile(const char *filename,
         .fid = 0,
     };
     char *rp = fklRealpath(filename);
-    fklSetCodegenOuterCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
+    fklSetCodegenCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
     fklChdir(outer_ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
@@ -169,10 +169,10 @@ int main(int argc, char **argv) {
     argv = uv_setup_args(argc, argv);
     const char *progname = argv[0];
 
-    FklCodegenOuterCtx outer_ctx;
+    FklCodegenCtx outer_ctx;
     FklSymbolTable *st = fklCreateSymbolTable();
     FklConstTable *kt = fklCreateConstTable();
-    fklInitCodegenOuterCtx(&outer_ctx, NULL, st, kt);
+    fklInitCodegenCtx(&outer_ctx, NULL, st, kt);
 
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
 
 exit:
     fklZfree(cwd);
-    fklUninitCodegenOuterCtx(&outer_ctx);
+    fklUninitCodegenCtx(&outer_ctx);
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     return exitcode;
 }

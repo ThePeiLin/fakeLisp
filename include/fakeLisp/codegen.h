@@ -323,7 +323,7 @@ typedef struct {
     FklSid_t builtin_prod_action_id[FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM];
     FklSid_t simple_prod_action_id[FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM];
 
-} FklCodegenOuterCtx;
+} FklCodegenCtx;
 
 struct FklCodegenInfo;
 typedef void (*FklCodegenInfoWorkCb)(struct FklCodegenInfo *self, void *);
@@ -332,7 +332,7 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklCodegenInfo *self,
         void *);
 
 typedef struct FklCodegenInfo {
-    FklCodegenOuterCtx *outer_ctx;
+    FklCodegenCtx *ctx;
 
     struct FklCodegenInfo *prev;
 
@@ -407,7 +407,7 @@ typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklCodegenInfo *,
         FklSid_t,
         uint64_t,
         FklCodegenErrorState *errorState,
-        FklCodegenOuterCtx *outer_ctx);
+        FklCodegenCtx *ctx);
 
 typedef struct {
     FklNastNode *(*getNextExpression)(void *, FklCodegenErrorState *);
@@ -471,7 +471,7 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         const char *rp,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
-        FklCodegenOuterCtx *outer_ctx,
+        FklCodegenCtx *outer_ctx,
         FklCodegenInfoWorkCb work_cb,
         FklCodegenInfoEnvWorkCb evn_work_cb,
         void *ctx);
@@ -494,23 +494,23 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen,
         int destroyAbleMark,
         int libMark,
         int macroMark,
-        FklCodegenOuterCtx *outer_ctx);
+        FklCodegenCtx *ctx);
 
 void fklUninitCodegenInfo(FklCodegenInfo *codegen);
 void fklDestroyCodegenInfo(FklCodegenInfo *codegen);
 
-void fklInitCodegenOuterCtx(FklCodegenOuterCtx *ctx,
+void fklInitCodegenCtx(FklCodegenCtx *ctx,
         char *main_file_real_path_dir,
         FklSymbolTable *st,
         FklConstTable *kt);
-void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx *outerCtx,
+void fklInitCodegenCtxExceptPattern(FklCodegenCtx *outerCtx,
         FklSymbolTable *st,
         FklConstTable *kt);
 
-void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx *ctx,
+void fklSetCodegenCtxMainFileRealPathDir(FklCodegenCtx *ctx,
         char *main_file_real_path_dir);
 
-void fklUninitCodegenOuterCtx(FklCodegenOuterCtx *ctx);
+void fklUninitCodegenCtx(FklCodegenCtx *ctx);
 FklByteCodelnt *fklGenExpressionCode(FklNastNode *exp,
         FklCodegenEnv *cur_env,
         FklCodegenInfo *codegen);
@@ -645,7 +645,7 @@ FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
         FklCodegenMacroScope *macros,
         FklCodegenErrorState *);
 
-FklVM *fklInitMacroExpandVM(FklCodegenOuterCtx *outer_ctx,
+FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
         FklByteCodelnt *bcl,
         FklFuncPrototypes *pts,
         uint32_t prototype_id,
@@ -702,7 +702,7 @@ void fklRecomputeSidForNamedProdGroups(FklGraProdGroupHashMap *ht,
 
 void fklInitPreLibReaderMacros(FklCodegenLibVector *libStack,
         FklSymbolTable *st,
-        FklCodegenOuterCtx *outer_ctx,
+        FklCodegenCtx *ctx,
         FklFuncPrototypes *pts,
         FklCodegenLibVector *macroLibStack);
 
@@ -712,7 +712,7 @@ int fklLoadPreCompile(FklFuncPrototypes *info_pts,
         FklCodegenLibVector *info_macroScriptLibStack,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
-        FklCodegenOuterCtx *outer_ctx,
+        FklCodegenCtx *ctx,
         const char *rp,
         FILE *fp,
         char **errorStr);
@@ -737,7 +737,7 @@ void fklPrintReaderMacroAction(FILE *fp,
 
 void fklLoadNamedProds(FklGraProdGroupHashMap *ht,
         FklSymbolTable *st,
-        FklCodegenOuterCtx *outer_ctx,
+        FklCodegenCtx *ctx,
         FILE *fp);
 
 void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
@@ -746,10 +746,8 @@ void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
         uint32_t pts_count,
         uint32_t macro_pts_count);
 
-FklGrammerProduction *fklCreateExtraStartProduction(
-        FklCodegenOuterCtx *outer_ctx,
-        FklSid_t group,
-        FklSid_t sid);
+FklGrammerProduction *
+fklCreateExtraStartProduction(FklCodegenCtx *ctx, FklSid_t group, FklSid_t sid);
 
 void fklWriteExportNamedProds(const FklSidHashSet *export_named_prod_groups,
         const FklGraProdGroupHashMap *named_prod_groups,

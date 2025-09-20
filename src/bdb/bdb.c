@@ -144,9 +144,9 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
         const char *filename) {
     FILE *fp = fopen(filename, "r");
     char *rp = fklRealpath(filename);
-    FklCodegenOuterCtx *outer_ctx = &ctx->outer_ctx;
+    FklCodegenCtx *outer_ctx = &ctx->outer_ctx;
     FklCodegenInfo codegen = { .fid = 0 };
-    fklInitCodegenOuterCtx(outer_ctx, fklGetDir(rp), NULL, NULL);
+    fklInitCodegenCtx(outer_ctx, fklGetDir(rp), NULL, NULL);
     FklSymbolTable *pst = &outer_ctx->public_st;
     FklConstTable *pkt = &outer_ctx->public_kt;
     fklAddSymbolCstr(filename, pst);
@@ -164,7 +164,7 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
     if (mainByteCode == NULL) {
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
-        fklUninitCodegenOuterCtx(outer_ctx);
+        fklUninitCodegenCtx(outer_ctx);
         return 1;
     }
     fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
@@ -412,7 +412,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
     ctx->gc.pts = NULL;
     fklUninitVMgc(&ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
-    fklUninitCodegenOuterCtx(&ctx->outer_ctx);
+    fklUninitCodegenCtx(&ctx->outer_ctx);
     fklDestroyCodegenEnv(ctx->glob_env);
     ctx->inited = 0;
 }

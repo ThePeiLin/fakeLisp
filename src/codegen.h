@@ -10,7 +10,7 @@ struct CustomActionCtx {
     FklByteCodelnt *bcl;
     FklFuncPrototypes *pts;
     FklCodegenLibVector *macro_libraries;
-    FklCodegenOuterCtx *codegen_outer_ctx;
+    FklCodegenCtx *ctx;
     FklSymbolTable *pst;
     uint32_t prototype_id;
     uint8_t is_recomputed;

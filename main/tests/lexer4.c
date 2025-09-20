@@ -70,9 +70,8 @@ int main() {
     fputs("\nparse with custom parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
         FklParseError err = 0;
-        FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(&st);
-        FklNastNode *node =
-                fklParseWithTableForCstr(g, *pexp, &outerCtx, &st, &err);
+        FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(&st);
+        FklNastNode *node = fklParseWithTableForCstr(g, *pexp, &ctx, &st, &err);
         FKL_ASSERT(node && err == 0);
         fklPrintNastNode(node, stderr, &st);
         fputc('\n', stderr);

@@ -21,10 +21,9 @@ FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
 
     FklParseError err = 0;
     size_t errLine = 0;
-    FklGrammerMatchOuterCtx outerCtx =
-            FKL_NAST_PARSE_OUTER_CTX_INIT(publicSymbolTable);
+    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(publicSymbolTable);
     FklNastNode *node = fklDefaultParseForCstr(cStr,
-            &outerCtx,
+            &ctx,
             &err,
             &errLine,
             &symbolStack,
@@ -57,8 +56,8 @@ char *fklReadWithBuiltinParser(FILE *fp,
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
     FklNastNode *ast = NULL;
-    FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(st);
-    outerCtx.line = line;
+    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
+    ctx.line = line;
     size_t offset = 0;
     for (;;) {
         size_t restLen = buf.index - offset;
@@ -66,21 +65,21 @@ char *fklReadWithBuiltinParser(FILE *fp,
         ast = fklDefaultParseForCharBuf(buf.buf + offset,
                 restLen,
                 &restLen,
-                &outerCtx,
+                &ctx,
                 &err,
                 errLine,
                 symbolStack,
                 lineStack,
                 stateStack);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            *errLine = outerCtx.line;
+            *errLine = ctx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
                 *errLine = fklUintVectorIsEmpty(lineStack)
-                                 ? outerCtx.line
+                                 ? ctx.line
                                  : *fklUintVectorBack(lineStack);
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
                 fklStringBufferClear(&buf);
@@ -109,7 +108,7 @@ char *fklReadWithBuiltinParser(FILE *fp,
         offset = buf.index - restLen;
         fklGetDelim(fp, &buf, '\n');
     }
-    *pline = outerCtx.line;
+    *pline = ctx.line;
     *psize = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
     fklUninitStringBuffer(&buf);
@@ -132,8 +131,8 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
     FklNastNode *ast = NULL;
-    FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(st);
-    outerCtx.line = line;
+    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
+    ctx.line = line;
     size_t offset = 0;
     for (;;) {
         size_t restLen = buf.index - offset;
@@ -142,7 +141,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
                 buf.buf + offset,
                 restLen,
                 &restLen,
-                &outerCtx,
+                &ctx,
                 st,
                 &err,
                 errLine,
@@ -150,14 +149,14 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
                 lineStack,
                 stateStack);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            *errLine = outerCtx.line;
+            *errLine = ctx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
                 *errLine = fklUintVectorIsEmpty(lineStack)
-                                 ? outerCtx.line
+                                 ? ctx.line
                                  : *fklUintVectorBack(lineStack);
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
                 buf.index = 0;
@@ -186,7 +185,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         offset = buf.index - restLen;
         fklGetDelim(fp, &buf, '\n');
     }
-    *pline = outerCtx.line;
+    *pline = ctx.line;
     *psize = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
     fklUninitStringBuffer(&buf);

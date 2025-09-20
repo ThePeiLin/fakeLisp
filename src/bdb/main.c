@@ -150,8 +150,8 @@ static inline void debug_repl_parse_ctx_and_buf_reset(CmdReadCtx *cc,
 
 typedef struct {
     FklVM *exe;
-    CmdReadCtx *ctx;
-    FklGrammerMatchOuterCtx *outerCtx;
+    CmdReadCtx *read_ctx;
+    FklGrammerMatchCtx *ctx;
     size_t offset;
     FklVMvalue *ast;
 
@@ -172,8 +172,8 @@ static int read_expression_end_cb(const char *str,
 
     ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *, vargs);
     FklVM *exe = args->exe;
-    CmdReadCtx *ctx = args->ctx;
-    FklGrammerMatchOuterCtx *outerCtx = args->outerCtx;
+    CmdReadCtx *read_ctx = args->read_ctx;
+    FklGrammerMatchCtx *ctx = args->ctx;
 
     size_t restLen = str_len - args->offset;
     size_t errLine = 0;
@@ -184,12 +184,12 @@ static int read_expression_end_cb(const char *str,
         FklVMvalue *ast = fklDefaultParseForCharBuf(str + args->offset,
                 restLen,
                 &restLen,
-                outerCtx,
+                ctx,
                 &err,
                 &errLine,
-                &ctx->symbolStack,
-                &ctx->lineStack,
-                &ctx->stateStack);
+                &read_ctx->symbolStack,
+                &read_ctx->lineStack,
+                &read_ctx->stateStack);
 
         args->offset = str_len - restLen;
 
@@ -230,13 +230,13 @@ static inline int debug_ctx_read_expression_in_string_buffer(
 
 static inline FklVMvalue *
 debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
-    CmdReadCtx *ctx = &dctx->read_ctx;
-    FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
-    FklStringBuffer *s = &ctx->buf;
+    CmdReadCtx *read_ctx = &dctx->read_ctx;
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe);
+    FklStringBuffer *s = &read_ctx->buf;
     ReadExpressionEndArgs args = {
         .exe = exe,
-        .ctx = ctx,
-        .outerCtx = &outerCtx,
+        .read_ctx = read_ctx,
+        .ctx = &ctx,
     };
 
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
@@ -244,7 +244,7 @@ debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
     }
 
     if (args.ast == NULL && args.err) {
-        debug_repl_parse_ctx_and_buf_reset(ctx, s);
+        debug_repl_parse_ctx_and_buf_reset(read_ctx, s);
         if (args.err == READ_ERROR_UNEXPETED_EOF)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
         else if (args.err == READ_ERROR_INVALIDEXPR)
@@ -252,7 +252,7 @@ debug_ctx_read_expression(FklVM *exe, DebugCtx *dctx, const char *prompt) {
     } else if (args.ast) {
         fklStoreHistoryInStringBuffer(s, args.offset);
 
-        debug_repl_parse_ctx_and_buf_reset(ctx, NULL);
+        debug_repl_parse_ctx_and_buf_reset(read_ctx, NULL);
         return args.ast;
     }
 
@@ -458,7 +458,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
             fklZfree(rp);
         } else {
             char *filename_with_dir = fklStrCat(
-                    fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
+                    fklZstrdup(dctx->codegen_ctx.main_file_real_path_dir),
                     str->str);
             if (fklIsAccessibleRegFile(str->str))
                 fid = fklAddSymbolCstr(filename_with_dir, dctx->st);
@@ -669,7 +669,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
         fklZfree(rp);
     } else {
         char *filename_with_dir =
-                fklStrCat(fklZstrdup(dctx->outer_ctx.main_file_real_path_dir),
+                fklStrCat(fklZstrdup(dctx->codegen_ctx.main_file_real_path_dir),
                         str->str);
         if (fklIsAccessibleRegFile(str->str))
             fid = fklAddSymbolCstr(filename_with_dir, dctx->st);

@@ -43,7 +43,7 @@ static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
             0,
             0,
             0,
-            &ctx->outer_ctx);
+            &ctx->codegen_ctx);
     ++info->refcount;
     info->pts = ctx->gc.pts;
     *penv = env;

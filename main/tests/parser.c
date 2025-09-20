@@ -43,7 +43,7 @@ int main() {
 
     FklParseError retval = 0;
     for (const char **exp = &exps[0]; *exp; exp++) {
-        FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(st);
+        FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
 
         FklParseStateVector stateStack;
         FklAnalysisSymbolVector symbolStack;
@@ -55,7 +55,7 @@ int main() {
         fklUintVectorInit(&lineStack, 8);
         size_t errLine = 0;
         FklNastNode *ast = fklDefaultParseForCstr(*exp,
-                &outerCtx,
+                &ctx,
                 &retval,
                 &errLine,
                 &symbolStack,

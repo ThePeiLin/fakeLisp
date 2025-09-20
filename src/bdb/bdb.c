@@ -140,31 +140,31 @@ static void B_int33(FklVM *exe, const FklInstruction *ins) {
     fklVMexecuteInstruction(exe, oins->op, oins, exe->top_frame);
 }
 
-static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
+static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
         const char *filename) {
     FILE *fp = fopen(filename, "r");
     char *rp = fklRealpath(filename);
-    FklCodegenCtx *outer_ctx = &ctx->outer_ctx;
+    FklCodegenCtx *ctx = &dctx->codegen_ctx;
     FklCodegenInfo codegen = { .fid = 0 };
-    fklInitCodegenCtx(outer_ctx, fklGetDir(rp), NULL, NULL);
-    FklSymbolTable *pst = &outer_ctx->public_st;
-    FklConstTable *pkt = &outer_ctx->public_kt;
+    fklInitCodegenCtx(ctx, fklGetDir(rp), NULL, NULL);
+    FklSymbolTable *pst = &ctx->public_st;
+    FklConstTable *pkt = &ctx->public_kt;
     fklAddSymbolCstr(filename, pst);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
             pst,
             pkt,
-            outer_ctx,
+            ctx,
             info_work_cb,
             create_env_work_cb,
-            ctx);
+            dctx);
     fklZfree(rp);
     FklByteCodelnt *mainByteCode =
             fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
-        fklUninitCodegenCtx(outer_ctx);
+        fklUninitCodegenCtx(ctx);
         return 1;
     }
     fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
@@ -172,9 +172,9 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
     fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     FklCodegenLibVector *script_libraries = codegen.libraries;
-    fklInitVMgc(&ctx->gc, codegen.st, codegen.kt, codegen.pts, 0, NULL);
+    fklInitVMgc(&dctx->gc, codegen.st, codegen.kt, codegen.pts, 0, NULL);
 
-    FklVM *anotherVM = fklCreateVMwithByteCode2(mainByteCode, &ctx->gc, 1, 0);
+    FklVM *anotherVM = fklCreateVMwithByteCode2(mainByteCode, &dctx->gc, 1, 0);
     mainByteCode = NULL;
 
     codegen.st = NULL;
@@ -199,16 +199,16 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
             fklInitMainProcRefs(anotherVM, curVMlib->proc);
     }
     fklUninitCodegenInfo(&codegen);
-    fklChdir(outer_ctx->cwd);
+    fklChdir(ctx->cwd);
 
-    ctx->st = &outer_ctx->public_st;
-    ctx->kt = &outer_ctx->public_kt;
-    ctx->reached_thread = anotherVM;
+    dctx->st = &ctx->public_st;
+    dctx->kt = &ctx->public_kt;
+    dctx->reached_thread = anotherVM;
 
     anotherVM->dummy_ins_func = B_int3;
 
     gc->main_thread = anotherVM;
-    fklVMpushInterruptHandler(gc, dbgInterruptHandler, NULL, NULL, ctx);
+    fklVMpushInterruptHandler(gc, dbgInterruptHandler, NULL, NULL, dctx);
     fklVMthreadStart(anotherVM, &gc->q);
     return 0;
 }
@@ -412,7 +412,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
     ctx->gc.pts = NULL;
     fklUninitVMgc(&ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
-    fklUninitCodegenCtx(&ctx->outer_ctx);
+    fklUninitCodegenCtx(&ctx->codegen_ctx);
     fklDestroyCodegenEnv(ctx->glob_env);
     ctx->inited = 0;
 }

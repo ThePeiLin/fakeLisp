@@ -471,10 +471,10 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         const char *rp,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
-        FklCodegenCtx *outer_ctx,
+        FklCodegenCtx *ctx,
         FklCodegenInfoWorkCb work_cb,
         FklCodegenInfoEnvWorkCb evn_work_cb,
-        void *ctx);
+        void *args);
 
 FklCodegenAction *fklCreateCodegenAction(FklByteCodeProcesser f,
         FklCodegenActionContext *context,
@@ -503,7 +503,7 @@ void fklInitCodegenCtx(FklCodegenCtx *ctx,
         char *main_file_real_path_dir,
         FklSymbolTable *st,
         FklConstTable *kt);
-void fklInitCodegenCtxExceptPattern(FklCodegenCtx *outerCtx,
+void fklInitCodegenCtxExceptPattern(FklCodegenCtx *ctx,
         FklSymbolTable *st,
         FklConstTable *kt);
 

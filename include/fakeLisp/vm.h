@@ -1278,7 +1278,7 @@ FklVMvalue *fklVMvalueEof(void);
 // vmparser
 
 void fklVMvaluePushState0ToStack(FklParseStateVector *stateStack);
-#define FKL_VMVALUE_PARSE_OUTER_CTX_INIT(EXE)                                  \
+#define FKL_VMVALUE_PARSE_CTX_INIT(EXE)                                  \
     { .maxNonterminalLen = 0,                                                  \
         .line = 1,                                                             \
         .start = NULL,                                                         \

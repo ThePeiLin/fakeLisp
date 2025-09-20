@@ -19,7 +19,7 @@
                 lineStack,                                                     \
                 action->prod,                                                  \
                 action->actual_len,                                            \
-                outerCtx,                                                      \
+                ctx,                                                           \
                 st,                                                            \
                 errLine)) {                                                    \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
@@ -32,7 +32,7 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
         const char *cstr,
         size_t len,
         size_t *restLen,
-        FklGrammerMatchOuterCtx *outerCtx,
+        FklGrammerMatchCtx *ctx,
         FklSymbolTable *st,
         FklParseError *err,
         size_t *errLine,
@@ -54,7 +54,7 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
         for (; action; action = action->next)
             if (fklIsStateActionMatch(&action->match,
                         g,
-                        outerCtx,
+                        ctx,
                         start,
                         cstr,
                         *restLen,
@@ -66,7 +66,7 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
             FKL_ASSERT(action->match.t != FKL_TERM_EOF || action->next == NULL);
             switch (action->action) {
             case FKL_ANALYSIS_IGNORE:
-                outerCtx->line += fklCountCharInBuf(cstr,
+                ctx->line += fklCountCharInBuf(cstr,
                         match_args.matchLen + match_args.skip_ignore_len,
                         '\n');
                 cstr += match_args.matchLen + match_args.skip_ignore_len;
@@ -80,10 +80,10 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
                         fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
                         cstr + match_args.skip_ignore_len,
                         match_args.matchLen,
-                        outerCtx,
+                        ctx,
                         match_args.skip_ignore_len > 0);
-                fklUintVectorPushBack2(lineStack, outerCtx->line);
-                outerCtx->line += fklCountCharInBuf(cstr,
+                fklUintVectorPushBack2(lineStack, ctx->line);
+                ctx->line += fklCountCharInBuf(cstr,
                         match_args.matchLen + match_args.skip_ignore_len,
                         '\n');
                 cstr += match_args.matchLen + match_args.skip_ignore_len;

@@ -135,7 +135,7 @@ typedef struct {
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;
     FklCodegenEnv *glob_env;
-    FklCodegenCtx outer_ctx;
+    FklCodegenCtx codegen_ctx;
 
     FklSidHashSet file_sid_set;
     FklSymbolTable *st;

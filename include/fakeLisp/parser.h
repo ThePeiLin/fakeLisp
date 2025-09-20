@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define FKL_NAST_PARSE_OUTER_CTX_INIT(CTX)                                     \
+#define FKL_NAST_PARSE_CTX_INIT(CTX)                                           \
     { .maxNonterminalLen = 0,                                                  \
         .line = 1,                                                             \
         .start = NULL,                                                         \

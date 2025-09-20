@@ -78,7 +78,7 @@ int main() {
     };
 
     FklParseError retval = 0;
-    FklGrammerMatchOuterCtx outerCtx = { .maxNonterminalLen = 0,
+    FklGrammerMatchCtx ctx = { .maxNonterminalLen = 0,
         .line = 1,
         .start = NULL,
         .cur = NULL,
@@ -88,8 +88,7 @@ int main() {
 
     for (const char **exp = &exps[0]; *exp; exp++) {
 
-        FklNastNode *ast =
-                fklParseWithTableForCstr(g, *exp, &outerCtx, st, &retval);
+        FklNastNode *ast = fklParseWithTableForCstr(g, *exp, &ctx, st, &retval);
 
         if (retval)
             break;

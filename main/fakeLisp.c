@@ -46,13 +46,13 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
-    FklCodegenCtx outer_ctx;
+    FklCodegenCtx ctx;
     char *rp = fklRealpath(filename);
     FklSymbolTable *st = fklCreateSymbolTable();
     FklConstTable *kt = fklCreateConstTable();
-    fklInitCodegenCtx(&outer_ctx, fklGetDir(rp), st, kt);
+    fklInitCodegenCtx(&ctx, fklGetDir(rp), st, kt);
 
-    FklSymbolTable *pst = &outer_ctx.public_st;
+    FklSymbolTable *pst = &ctx.public_st;
     fklAddSymbolCstr(filename, pst);
     FklCodegenInfo codegen = {
         .fid = 0,
@@ -61,7 +61,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             rp,
             st,
             kt,
-            &outer_ctx,
+            &ctx,
             NULL,
             NULL,
             NULL);
@@ -71,13 +71,13 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     if (mainByteCode == NULL) {
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
-        fklUninitCodegenCtx(&outer_ctx);
+        fklUninitCodegenCtx(&ctx);
         return FKL_EXIT_FAILURE;
     }
-    FklFuncPrototypes *pts = outer_ctx.pts;
-    outer_ctx.runtime_kt = NULL;
-    outer_ctx.runtime_st = NULL;
-    outer_ctx.pts = NULL;
+    FklFuncPrototypes *pts = ctx.pts;
+    ctx.runtime_kt = NULL;
+    ctx.runtime_st = NULL;
+    ctx.pts = NULL;
 
     fklUpdatePrototype(pts, main_env, st, pst);
     fklDestroyCodegenEnv(main_env);
@@ -105,8 +105,8 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
 
     fklUninitCodegenInfo(&codegen);
 
-    fklChdir(outer_ctx.cwd);
-    fklUninitCodegenCtx(&outer_ctx);
+    fklChdir(ctx.cwd);
+    fklUninitCodegenCtx(&ctx);
 
     fklInitVMargs(gc, argc, argv);
     int r = fklRunVMidleLoop(anotherVM);
@@ -535,16 +535,16 @@ int main(int argc, char *argv[]) {
         goto interactive;
     } else if (rest->count == 0) {
     interactive:;
-        FklCodegenCtx outer_ctx;
+        FklCodegenCtx ctx;
         FklCodegenInfo codegen = {
             .fid = 0,
         };
-        fklInitCodegenCtx(&outer_ctx, NULL, NULL, NULL);
+        fklInitCodegenCtx(&ctx, NULL, NULL, NULL);
         FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
                 NULL,
-                &outer_ctx.public_st,
-                &outer_ctx.public_kt,
-                &outer_ctx,
+                &ctx.public_st,
+                &ctx.public_kt,
+                &ctx,
                 NULL,
                 NULL,
                 NULL);
@@ -561,7 +561,7 @@ int main(int argc, char *argv[]) {
         }
         fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
-        fklUninitCodegenCtx(&outer_ctx);
+        fklUninitCodegenCtx(&ctx);
     } else {
         const char *filename = rest->sval[0];
         int argc = rest->count;
@@ -1056,7 +1056,7 @@ static int read_expression_end_cb(const char *str,
 
     cc->err = 0;
 
-    FklGrammerMatchOuterCtx outerCtx = FKL_NAST_PARSE_OUTER_CTX_INIT(gc->st);
+    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(gc->st);
 
     FklParseError err = 0;
     size_t restLen = str_len - cc->offset;
@@ -1067,7 +1067,7 @@ static int read_expression_end_cb(const char *str,
                     str + cc->offset,
                     restLen,
                     &restLen,
-                    &outerCtx,
+                    &ctx,
                     gc->st,
                     &err,
                     &args->errline,
@@ -1078,7 +1078,7 @@ static int read_expression_end_cb(const char *str,
             cc->node = fklDefaultParseForCharBuf(str + cc->offset,
                     restLen,
                     &restLen,
-                    &outerCtx,
+                    &ctx,
                     &err,
                     &args->errline,
                     &cc->symbolStack,
@@ -1088,7 +1088,7 @@ static int read_expression_end_cb(const char *str,
     }
 
     cc->offset = str_len - restLen;
-    codegen->curline = outerCtx.line;
+    codegen->curline = ctx.line;
 
     if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
         cc->err = READ_ERROR_INVALIDEXPR;
@@ -1470,9 +1470,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
     FklCodegenEnv *main_env = ctx->main_env;
     FklSymbolTable *pst = &codegen->ctx->public_st;
     FklNastNode *ast = NULL;
-    FklGrammerMatchOuterCtx outerCtx =
-            FKL_NAST_PARSE_OUTER_CTX_INIT(exe->gc->st);
-    outerCtx.line = codegen->curline;
+    FklGrammerMatchCtx gctx = FKL_NAST_PARSE_CTX_INIT(exe->gc->st);
+    gctx.line = codegen->curline;
 
     const char *eval_expression_str = fklStringBufferBody(&ctx->c->buf);
     size_t restLen = fklStringBufferLen(&ctx->c->buf);
@@ -1485,7 +1484,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
             ast = fklDefaultParseForCharBuf(eval_expression_str,
                     restLen,
                     &restLen,
-                    &outerCtx,
+                    &gctx,
                     &err,
                     &errLine,
                     &cc->symbolStack,
@@ -1494,7 +1493,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         }
 
         cc->offset = strlen(eval_expression_str) - restLen;
-        codegen->curline = outerCtx.line;
+        codegen->curline = gctx.line;
         if (err == FKL_PARSE_WAITING_FOR_MORE
                 || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen)
                 || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen)

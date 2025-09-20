@@ -28,7 +28,7 @@ typedef struct {
     void *ctx;
     void *(*create)(const char *s, size_t len, size_t line, void *ctx);
     void (*destroy)(void *s);
-} FklGrammerMatchOuterCtx;
+} FklGrammerMatchCtx;
 
 typedef enum FklBuiltinTerminalInitError {
     FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY = 0,
@@ -48,7 +48,7 @@ typedef struct {
             const char *str,
             size_t restLen,
             size_t *matchLen,
-            FklGrammerMatchOuterCtx *outerCtx,
+            FklGrammerMatchCtx *ctx,
             int *is_waiting_for_more);
 
     FklBuiltinTerminalInitError (*ctx_create)(size_t len,
@@ -509,7 +509,7 @@ FklLalrItemSetHashMap *fklGenerateLr0Items(FklGrammer *grammer);
 
 int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
         const FklGrammer *g,
-        FklGrammerMatchOuterCtx *outerCtx,
+        FklGrammerMatchCtx *ctx,
         const char *start,
         const char *cstr,
         size_t restLen,
@@ -519,9 +519,9 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
 static inline void fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym,
         const char *s,
         size_t len,
-        FklGrammerMatchOuterCtx *outerCtx,
+        FklGrammerMatchCtx *ctx,
         uint8_t start_with_ignore) {
-    void *ast = outerCtx->create(s, len, outerCtx->line, outerCtx->ctx);
+    void *ast = ctx->create(s, len, ctx->line, ctx->ctx);
     sym->nt.group = 0;
     sym->nt.sid = 0;
     sym->ast = ast;
@@ -626,14 +626,14 @@ typedef enum {
 
 void *fklParseWithTableForCstr(const FklGrammer *,
         const char *str,
-        FklGrammerMatchOuterCtx *,
+        FklGrammerMatchCtx *,
         FklSymbolTable *st,
         FklParseError *err);
 
 void *fklParseWithTableForCharBuf(const FklGrammer *,
         const char *str,
         size_t len,
-        FklGrammerMatchOuterCtx *,
+        FklGrammerMatchCtx *,
         FklSymbolTable *st,
         FklParseError *err);
 
@@ -656,7 +656,7 @@ typedef int (*FklStateFuncPtr)(struct FklParseStateVector *states,
         const char *start,
         const char **in,
         size_t *rest_len,
-        FklGrammerMatchOuterCtx *ctx,
+        FklGrammerMatchCtx *ctx,
         int *accept,
         size_t *errLine);
 
@@ -674,7 +674,7 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *,
         const char *str,
         size_t len,
         size_t *restLen,
-        FklGrammerMatchOuterCtx *,
+        FklGrammerMatchCtx *,
         FklSymbolTable *st,
         FklParseError *err,
         size_t *errLine,
@@ -683,7 +683,7 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *,
         FklParseStateVector *states);
 
 void *fklDefaultParseForCstr(const char *str,
-        FklGrammerMatchOuterCtx *,
+        FklGrammerMatchCtx *,
         FklParseError *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbols,
@@ -693,7 +693,7 @@ void *fklDefaultParseForCstr(const char *str,
 void *fklDefaultParseForCharBuf(const char *str,
         size_t len,
         size_t *restLen,
-        FklGrammerMatchOuterCtx *,
+        FklGrammerMatchCtx *,
         FklParseError *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbols,

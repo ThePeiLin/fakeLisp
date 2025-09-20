@@ -1683,7 +1683,7 @@ static int read_frame_step(void *d, FklVM *exe) {
     FklVMfp *vfp = FKL_VM_FP(rctx->vfp);
     struct ParseCtx *pctx = rctx->pctx;
     FklStringBuffer *s = &rctx->buf;
-    FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe);
 
     FklParseError err = 0;
     size_t restLen = fklStringBufferLen(s) - pctx->offset;
@@ -1693,7 +1693,7 @@ static int read_frame_step(void *d, FklVM *exe) {
             fklDefaultParseForCharBuf(fklStringBufferBody(s) + pctx->offset,
                     restLen,
                     &restLen,
-                    &outerCtx,
+                    &ctx,
                     &err,
                     &errLine,
                     &pctx->symbolStack,
@@ -1778,7 +1778,7 @@ static inline int do_custom_parser_reduce_action(
         FklUintVector *lineStack,
         const FklGrammerProduction *prod,
         size_t len,
-        FklGrammerMatchOuterCtx *outerCtx,
+        FklGrammerMatchCtx *ctx,
         uint8_t *start_with_ignore,
         size_t *errLine) {
     stateStack->size -= len;
@@ -1798,11 +1798,11 @@ static inline int do_custom_parser_reduce_action(
     if (!state)
         return 1;
     *start_with_ignore = len && base[0].start_with_ignore;
-    size_t line = fklGetFirstNthLine(lineStack, len, outerCtx->line);
+    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
     lineStack->size -= len;
-    prod->func(prod->ctx, outerCtx->ctx, base, len, line);
+    prod->func(prod->ctx, ctx->ctx, base, len, line);
     for (size_t i = 0; i < len; i++) {
-        outerCtx->destroy(base[i].ast);
+        ctx->destroy(base[i].ast);
         base[i].ast = NULL;
     }
     fklUintVectorPushBack2(lineStack, line);
@@ -1814,7 +1814,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
         const char *cstr,
         size_t len,
         size_t *restLen,
-        FklGrammerMatchOuterCtx *outerCtx,
+        FklGrammerMatchCtx *ctx,
         int *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbolStack,
@@ -1837,7 +1837,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
                 lineStack,                                                     \
                 action->prod,                                                  \
                 action->actual_len,                                            \
-                outerCtx,                                                      \
+                ctx,                                                           \
                 start_with_ignore,                                             \
                 errLine))                                                      \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
@@ -1868,7 +1868,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     FKL_DECL_VM_UD_DATA(g, FklGrammer, rctx->parser);
 
-    FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe);
 
     int err = 0;
     int accept = 0;
@@ -1879,7 +1879,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
             fklStringBufferBody(s) + pctx->offset,
             restLen,
             &restLen,
-            &outerCtx,
+            &ctx,
             &err,
             &errLine,
             &pctx->symbolStack,
@@ -1967,13 +1967,13 @@ static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
     }
 }
 
-static void *custom_parser_prod_action(void *ctx,
-        void *outerCtx,
+static void *custom_parser_prod_action(void *action_ctx,
+        void *ctx,
         const FklAnalysisSymbol asts[],
         size_t num,
         size_t line) {
-    FklVMvalue *proc = (FklVMvalue *)ctx;
-    FklVM *exe = (FklVM *)outerCtx;
+    FklVMvalue *proc = (FklVMvalue *)action_ctx;
+    FklVM *exe = (FklVM *)ctx;
     FklVMvalue *line_value = line > FKL_FIX_INT_MAX
                                    ? fklCreateVMvalueBigIntWithU64(exe, line)
                                    : FKL_MAKE_VM_FIX(line);
@@ -2486,9 +2486,9 @@ static void custom_parse_frame_finalizer(void *data) {
 }
 
 static int custom_parse_frame_step(void *d, FklVM *exe) {
-    CustomParseCtx *ctx = (CustomParseCtx *)d;
-    struct ParseCtx *pctx = ctx->pctx;
-    if (ctx->state == PARSE_REDUCING) {
+    CustomParseCtx *parse_ctx = (CustomParseCtx *)d;
+    struct ParseCtx *pctx = parse_ctx->pctx;
+    if (parse_ctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
         fklInitNontermAnalysisSymbol(
                 fklAnalysisSymbolVectorPushBack(&pctx->symbolStack, NULL),
@@ -2496,21 +2496,21 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
                 pctx->reducing_sid,
                 ast,
                 pctx->start_with_ignore);
-        ctx->state = PARSE_CONTINUE;
+        parse_ctx->state = PARSE_CONTINUE;
     }
-    FKL_DECL_VM_UD_DATA(g, FklGrammer, ctx->parser);
-    FklString *str = FKL_VM_STR(ctx->str);
+    FKL_DECL_VM_UD_DATA(g, FklGrammer, parse_ctx->parser);
+    FklString *str = FKL_VM_STR(parse_ctx->str);
     int err = 0;
     uint64_t errLine = 0;
     int accept = 0;
-    FklGrammerMatchOuterCtx outerCtx = FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe);
     size_t restLen = str->size - pctx->offset;
 
     parse_with_custom_parser_for_char_buf(g,
             str->str + pctx->offset,
             restLen,
             &restLen,
-            &outerCtx,
+            &ctx,
             &err,
             &errLine,
             &pctx->symbolStack,
@@ -2518,7 +2518,7 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
             &pctx->stateStack,
             exe,
             &accept,
-            &ctx->state,
+            &parse_ctx->state,
             &pctx->reducing_sid,
             &pctx->start_with_ignore);
 
@@ -2531,15 +2531,15 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     }
     if (accept) {
         FKL_CPROC_RETURN(exe,
-                ctx,
+                parse_ctx,
                 fklAnalysisSymbolVectorPopBackNonNull(&pctx->symbolStack)->ast);
-        if (ctx->box) {
+        if (parse_ctx->box) {
             uint64_t offset = pctx->offset = str->size - restLen;
             if (offset > FKL_FIX_INT_MAX)
-                FKL_VM_BOX(ctx->box) =
+                FKL_VM_BOX(parse_ctx->box) =
                         fklCreateVMvalueBigIntWithU64(exe, offset);
             else
-                FKL_VM_BOX(ctx->box) = FKL_MAKE_VM_FIX(offset);
+                FKL_VM_BOX(parse_ctx->box) = FKL_MAKE_VM_FIX(offset);
         }
         return 0;
     } else
@@ -2695,13 +2695,12 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         fklVMvaluePushState0ToStack(&stateStack);
 
         size_t restLen = ss->size;
-        FklGrammerMatchOuterCtx outerCtx =
-                FKL_VMVALUE_PARSE_OUTER_CTX_INIT(exe);
+        FklGrammerMatchCtx gctx = FKL_VMVALUE_PARSE_CTX_INIT(exe);
 
         FklVMvalue *node = fklDefaultParseForCharBuf(ss->str,
                 restLen,
                 &restLen,
-                &outerCtx,
+                &gctx,
                 &err,
                 &errorLine,
                 &symbolStack,

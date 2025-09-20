@@ -21,22 +21,22 @@ static inline int pre_compile(const char *main_file_name,
         const char *output_dir,
         int argc,
         char *argv[],
-        FklCodegenCtx *outer_ctx) {
-    FklSymbolTable *pst = &outer_ctx->public_st;
+        FklCodegenCtx *ctx) {
+    FklSymbolTable *pst = &ctx->public_st;
     fklAddSymbolCstr(main_file_name, pst);
     FILE *fp = fopen(main_file_name, "r");
     FklCodegenInfo codegen = {
         .fid = 0,
     };
     char *rp = fklRealpath(main_file_name);
-    fklSetCodegenCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
-    const char *main_dir = outer_ctx->main_file_real_path_dir;
-    fklChdir(outer_ctx->main_file_real_path_dir);
+    fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
+    const char *main_dir = ctx->main_file_real_path_dir;
+    fklChdir(ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
-            &outer_ctx->public_st,
-            &outer_ctx->public_kt,
-            outer_ctx,
+            &ctx->public_st,
+            &ctx->public_kt,
+            ctx,
             NULL,
             NULL,
             NULL);
@@ -88,21 +88,21 @@ static inline int compile(const char *filename,
         const char *cwd,
         int argc,
         char *argv[],
-        FklCodegenCtx *outer_ctx) {
-    FklSymbolTable *pst = &outer_ctx->public_st;
+        FklCodegenCtx *ctx) {
+    FklSymbolTable *pst = &ctx->public_st;
     fklAddSymbolCstr(filename, pst);
     FILE *fp = fopen(filename, "r");
     FklCodegenInfo codegen = {
         .fid = 0,
     };
     char *rp = fklRealpath(filename);
-    fklSetCodegenCtxMainFileRealPathDir(outer_ctx, fklGetDir(rp));
-    fklChdir(outer_ctx->main_file_real_path_dir);
+    fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
+    fklChdir(ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
-            outer_ctx->runtime_st,
-            outer_ctx->runtime_kt,
-            outer_ctx,
+            ctx->runtime_st,
+            ctx->runtime_kt,
+            ctx,
             NULL,
             NULL,
             NULL);
@@ -169,10 +169,10 @@ int main(int argc, char **argv) {
     argv = uv_setup_args(argc, argv);
     const char *progname = argv[0];
 
-    FklCodegenCtx outer_ctx;
+    FklCodegenCtx ctx;
     FklSymbolTable *st = fklCreateSymbolTable();
     FklConstTable *kt = fklCreateConstTable();
-    fklInitCodegenCtx(&outer_ctx, NULL, st, kt);
+    fklInitCodegenCtx(&ctx, NULL, st, kt);
 
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
                                                      FKL_PATH_SEPARATOR_STR),
                                            dir->filename[0])
                                  : NULL;
-        if (pre_compile(buffer.buf, output_dir, argc, argv, &outer_ctx)) {
+        if (pre_compile(buffer.buf, output_dir, argc, argv, &ctx)) {
             fklZfree(output_dir);
             fklUninitStringBuffer(&buffer);
             goto compile_error;
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
                         cwd,
                         argc,
                         argv,
-                        &outer_ctx)) {
+                        &ctx)) {
             compile_error:
                 exitcode = 255;
                 goto exit;
@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
                         cwd,
                         argc,
                         argv,
-                        &outer_ctx)) {
+                        &ctx)) {
                 fklUninitStringBuffer(&buffer);
                 goto compile_error;
             }
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
 
 exit:
     fklZfree(cwd);
-    fklUninitCodegenCtx(&outer_ctx);
+    fklUninitCodegenCtx(&ctx);
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     return exitcode;
 }

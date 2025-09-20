@@ -22,7 +22,7 @@ static inline int pre_compile(const char *main_file_name,
         int argc,
         char *argv[],
         FklCodegenOuterCtx *outer_ctx) {
-    FklSymbolTable *pst = &outer_ctx->public_symbol_table;
+    FklSymbolTable *pst = &outer_ctx->public_st;
     fklAddSymbolCstr(main_file_name, pst);
     FILE *fp = fopen(main_file_name, "r");
     FklCodegenInfo codegen = {
@@ -34,9 +34,8 @@ static inline int pre_compile(const char *main_file_name,
     fklChdir(outer_ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
-            &outer_ctx->public_symbol_table,
+            &outer_ctx->public_st,
             &outer_ctx->public_kt,
-            0,
             outer_ctx,
             NULL,
             NULL,
@@ -49,12 +48,9 @@ static inline int pre_compile(const char *main_file_name,
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts,
-            main_env,
-            codegen.runtime_symbol_table,
-            pst);
+    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
     fklDestroyCodegenEnv(main_env);
-    fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
+    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
     FKL_ASSERT(outputname);
@@ -93,7 +89,7 @@ static inline int compile(const char *filename,
         int argc,
         char *argv[],
         FklCodegenOuterCtx *outer_ctx) {
-    FklSymbolTable *pst = &outer_ctx->public_symbol_table;
+    FklSymbolTable *pst = &outer_ctx->public_st;
     fklAddSymbolCstr(filename, pst);
     FILE *fp = fopen(filename, "r");
     FklCodegenInfo codegen = {
@@ -104,9 +100,8 @@ static inline int compile(const char *filename,
     fklChdir(outer_ctx->main_file_real_path_dir);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
-            fklCreateSymbolTable(),
-            fklCreateConstTable(),
-            0,
+            outer_ctx->runtime_st,
+            outer_ctx->runtime_kt,
             outer_ctx,
             NULL,
             NULL,
@@ -119,12 +114,9 @@ static inline int compile(const char *filename,
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts,
-            main_env,
-            codegen.runtime_symbol_table,
-            pst);
+    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
     fklDestroyCodegenEnv(main_env);
-    fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
+    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     char *outputname = NULL;
     if (output) {
@@ -147,8 +139,8 @@ static inline int compile(const char *filename,
 
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
-                .runtime_st = codegen.runtime_symbol_table,
-                .runtime_kt = codegen.runtime_kt,
+                .runtime_st = codegen.st,
+                .runtime_kt = codegen.kt,
                 .pts = codegen.pts,
                 .main_func = mainByteCode,
                 .libs = codegen.libraries,
@@ -178,7 +170,9 @@ int main(int argc, char **argv) {
     const char *progname = argv[0];
 
     FklCodegenOuterCtx outer_ctx;
-    fklInitCodegenOuterCtx(&outer_ctx, NULL);
+    FklSymbolTable *st = fklCreateSymbolTable();
+    FklConstTable *kt = fklCreateConstTable();
+    fklInitCodegenOuterCtx(&outer_ctx, NULL, st, kt);
 
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),

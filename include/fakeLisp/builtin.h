@@ -17,12 +17,12 @@ typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[],
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 
 struct FklCodegenEnv;
-struct FklVM;
+struct FklVMgc;
 struct FklVMframe;
 struct FklVMproc;
 
 void fklInitGlobCodegenEnv(struct FklCodegenEnv *, FklSymbolTable *pst);
-void fklInitGlobalVMclosureForGC(struct FklVM *);
+void fklInitGlobalVMclosureForGC(struct FklVMgc *);
 
 #define FKL_VM_STDIN_IDX (0)
 #define FKL_VM_STDOUT_IDX (1)

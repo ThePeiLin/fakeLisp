@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
             fklCodegenLibVectorInit(&macroScriptLibStack, 8);
 
             FklCodegenOuterCtx ctx;
-            fklInitCodegenOuterCtxExceptPattern(&ctx);
+            fklInitCodegenOuterCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
 
             char *rp = fklRealpath(filename);
             char *errorStr = NULL;
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
             }
 
             printf("file: %s\n\n", filename);
-            FklSymbolTable *pst = &ctx.public_symbol_table;
+            FklSymbolTable *pst = &ctx.public_st;
             FklConstTable *pkt = &ctx.public_kt;
             uint32_t num = scriptLibStack.size;
             for (size_t i = 0; i < num; i++) {
@@ -343,7 +343,7 @@ int main(int argc, char **argv) {
             fklPrintSymbolTable(&runtime_st, stdout);
 
             puts("\npublic symbol table:");
-            fklPrintSymbolTable(&ctx.public_symbol_table, stdout);
+            fklPrintSymbolTable(&ctx.public_st, stdout);
 
             puts("\npublic const table:");
             fklPrintConstTable(&ctx.public_kt, stdout);
@@ -366,7 +366,7 @@ int main(int argc, char **argv) {
 
             fklUninitSymbolTable(&runtime_st);
             fklUninitConstTable(&runtime_kt);
-            fklUninitSymbolTable(&ctx.public_symbol_table);
+            fklUninitSymbolTable(&ctx.public_st);
             fklUninitConstTable(&ctx.public_kt);
             fklUninitGrammer(&ctx.builtin_g);
 

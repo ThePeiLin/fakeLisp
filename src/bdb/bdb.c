@@ -34,8 +34,7 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
 }
 
 static inline void replace_info_fid_with_realpath(FklCodegenInfo *info) {
-    FklSid_t rpsid =
-            fklAddSymbolCstr(info->realpath, info->runtime_symbol_table);
+    FklSid_t rpsid = fklAddSymbolCstr(info->realpath, info->st);
     info->fid = rpsid;
 }
 
@@ -147,15 +146,14 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
     char *rp = fklRealpath(filename);
     FklCodegenOuterCtx *outer_ctx = &ctx->outer_ctx;
     FklCodegenInfo codegen = { .fid = 0 };
-    fklInitCodegenOuterCtx(outer_ctx, fklGetDir(rp));
-    FklSymbolTable *pst = &outer_ctx->public_symbol_table;
+    fklInitCodegenOuterCtx(outer_ctx, fklGetDir(rp), NULL, NULL);
+    FklSymbolTable *pst = &outer_ctx->public_st;
     FklConstTable *pkt = &outer_ctx->public_kt;
     fklAddSymbolCstr(filename, pst);
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
             pst,
             pkt,
-            0,
             outer_ctx,
             info_work_cb,
             create_env_work_cb,
@@ -169,25 +167,17 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
         fklUninitCodegenOuterCtx(outer_ctx);
         return 1;
     }
-    fklUpdatePrototype(codegen.pts,
-            main_env,
-            codegen.runtime_symbol_table,
-            pst);
+    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
     fklDestroyCodegenEnv(main_env);
-    fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
+    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     FklCodegenLibVector *script_libraries = codegen.libraries;
-    fklInitVMgc(&ctx->gc,
-            codegen.runtime_symbol_table,
-            codegen.runtime_kt,
-            codegen.pts,
-            0,
-            NULL);
+    fklInitVMgc(&ctx->gc, codegen.st, codegen.kt, codegen.pts, 0, NULL);
 
     FklVM *anotherVM = fklCreateVMwithByteCode2(mainByteCode, &ctx->gc, 1, 0);
     mainByteCode = NULL;
 
-    codegen.runtime_symbol_table = NULL;
+    codegen.st = NULL;
     codegen.pts = NULL;
 
     FklVMgc *gc = anotherVM->gc;
@@ -211,7 +201,7 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *ctx,
     fklUninitCodegenInfo(&codegen);
     fklChdir(outer_ctx->cwd);
 
-    ctx->st = &outer_ctx->public_symbol_table;
+    ctx->st = &outer_ctx->public_st;
     ctx->kt = &outer_ctx->public_kt;
     ctx->reached_thread = anotherVM;
 
@@ -419,6 +409,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
     bdbThreadVectorUninit(&ctx->threads);
     bdbFrameVectorUninit(&ctx->reached_thread_frames);
 
+    ctx->gc.pts = NULL;
     fklUninitVMgc(&ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
     fklUninitCodegenOuterCtx(&ctx->outer_ctx);

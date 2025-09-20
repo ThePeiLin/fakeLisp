@@ -280,8 +280,19 @@ typedef struct {
     char *main_file_real_path_dir;
     const char *cur_file_dir;
 
-    FklSymbolTable public_symbol_table;
+    FklCodegenLibVector libraries;
+
+    FklCodegenLibVector macro_libraries;
+
+    FklSymbolTable public_st;
     FklConstTable public_kt;
+
+    FklSymbolTable *runtime_st;
+    FklConstTable *runtime_kt;
+
+    FklFuncPrototypes *pts;
+    FklFuncPrototypes *macro_pts;
+
     FklVMgc *gc;
 
     uint64_t ki64_count;
@@ -343,8 +354,8 @@ typedef struct FklCodegenInfo {
 
     FklCodegenEnv *global_env;
     uint64_t epc;
-    FklSymbolTable *runtime_symbol_table;
-    FklConstTable *runtime_kt;
+    FklSymbolTable *st;
+    FklConstTable *kt;
 
     FklCgExportSidIdxHashMap exports;
 
@@ -355,12 +366,8 @@ typedef struct FklCodegenInfo {
 
     FklCodegenLibVector *libraries;
 
-    FklCodegenLibVector *macro_libraries;
-
     FklFuncPrototypes *pts;
-    FklFuncPrototypes *macro_pts;
 
-    unsigned int is_destroyable : 1;
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
     uint64_t refcount : 61;
@@ -464,7 +471,6 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         const char *rp,
         FklSymbolTable *runtime_st,
         FklConstTable *runtime_kt,
-        int destroyAbleMark,
         FklCodegenOuterCtx *outer_ctx,
         FklCodegenInfoWorkCb work_cb,
         FklCodegenInfoEnvWorkCb evn_work_cb,
@@ -494,8 +500,12 @@ void fklUninitCodegenInfo(FklCodegenInfo *codegen);
 void fklDestroyCodegenInfo(FklCodegenInfo *codegen);
 
 void fklInitCodegenOuterCtx(FklCodegenOuterCtx *ctx,
-        char *main_file_real_path_dir);
-void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx *outerCtx);
+        char *main_file_real_path_dir,
+        FklSymbolTable *st,
+        FklConstTable *kt);
+void fklInitCodegenOuterCtxExceptPattern(FklCodegenOuterCtx *outerCtx,
+        FklSymbolTable *st,
+        FklConstTable *kt);
 
 void fklSetCodegenOuterCtxMainFileRealPathDir(FklCodegenOuterCtx *ctx,
         char *main_file_real_path_dir);

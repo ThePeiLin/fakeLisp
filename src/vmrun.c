@@ -201,7 +201,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->gc = fklCreateVMgc(runtime_st, runtime_kt, pts, 0, NULL);
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    fklInitGlobalVMclosureForGC(exe);
+    fklInitGlobalVMclosureForGC(exe->gc);
     vm_stack_init(exe);
     if (mainCode != NULL) {
         FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
@@ -235,7 +235,7 @@ FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
     exe->gc = gc;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    fklInitGlobalVMclosureForGC(exe);
+    fklInitGlobalVMclosureForGC(exe->gc);
     vm_stack_init(exe);
     if (mainCode != NULL) {
         FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);

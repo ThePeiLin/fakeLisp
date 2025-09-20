@@ -5233,7 +5233,6 @@ static inline FklVMvalue **init_builtin_refs(void) {
     return builtin_refs;
 }
 
-void fklInitGlobalVMclosureForGC(FklVM *exe) {
-    FklVMgc *gc = exe->gc;
+void fklInitGlobalVMclosureForGC(FklVMgc *gc) {
     gc->builtin_refs = init_builtin_refs();
 }

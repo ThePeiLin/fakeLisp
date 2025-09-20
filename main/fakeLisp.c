@@ -48,17 +48,19 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     }
     FklCodegenOuterCtx outer_ctx;
     char *rp = fklRealpath(filename);
-    fklInitCodegenOuterCtx(&outer_ctx, fklGetDir(rp));
-    FklSymbolTable *pst = &outer_ctx.public_symbol_table;
+    FklSymbolTable *st = fklCreateSymbolTable();
+    FklConstTable *kt = fklCreateConstTable();
+    fklInitCodegenOuterCtx(&outer_ctx, fklGetDir(rp), st, kt);
+
+    FklSymbolTable *pst = &outer_ctx.public_st;
     fklAddSymbolCstr(filename, pst);
     FklCodegenInfo codegen = {
         .fid = 0,
     };
     FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
-            fklCreateSymbolTable(),
-            fklCreateConstTable(),
-            0,
+            st,
+            kt,
             &outer_ctx,
             NULL,
             NULL,
@@ -72,23 +74,18 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         fklUninitCodegenOuterCtx(&outer_ctx);
         return FKL_EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts,
-            main_env,
-            codegen.runtime_symbol_table,
-            pst);
+    FklFuncPrototypes *pts = outer_ctx.pts;
+    outer_ctx.runtime_kt = NULL;
+    outer_ctx.runtime_st = NULL;
+    outer_ctx.pts = NULL;
+
+    fklUpdatePrototype(pts, main_env, st, pst);
     fklDestroyCodegenEnv(main_env);
-    fklPrintUndefinedRef(codegen.global_env, codegen.runtime_symbol_table, pst);
+    fklPrintUndefinedRef(codegen.global_env, st, pst);
 
     FklCodegenLibVector *scriptLibStack = codegen.libraries;
-    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
-            codegen.runtime_symbol_table,
-            codegen.runtime_kt,
-            codegen.pts,
-            1,
-            0);
-    codegen.runtime_symbol_table = NULL;
-    codegen.runtime_kt = NULL;
-    codegen.pts = NULL;
+    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode, st, kt, pts, 1, 0);
+
     FklVMgc *gc = anotherVM->gc;
     gc->lib_num = scriptLibStack->size;
     gc->libs = (FklVMlib *)fklZcalloc((gc->lib_num + 1), sizeof(FklVMlib));
@@ -226,11 +223,6 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     FklConstTable runtime_kt;
     fklInitConstTable(&runtime_kt);
 
-    FklFuncPrototypes *pts = fklCreateFuncPrototypes(0);
-
-    FklFuncPrototypes macro_pts;
-    fklInitFuncPrototypes(&macro_pts, 0);
-
     FklCodegenLibVector scriptLibStack;
     fklCodegenLibVectorInit(&scriptLibStack, 8);
 
@@ -238,12 +230,12 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     fklCodegenLibVectorInit(&macroScriptLibStack, 8);
 
     FklCodegenOuterCtx ctx;
-    fklInitCodegenOuterCtxExceptPattern(&ctx);
+    fklInitCodegenOuterCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
 
     char *errorStr = NULL;
     char *rp = fklRealpath(filename);
-    int load_result = fklLoadPreCompile(pts,
-            &macro_pts,
+    int load_result = fklLoadPreCompile(ctx.pts,
+            ctx.macro_pts,
             &scriptLibStack,
             &macroScriptLibStack,
             &runtime_st,
@@ -252,16 +244,17 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
             rp,
             fp,
             &errorStr);
-    fklUninitFuncPrototypes(&macro_pts);
     while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
         fklUninitCodegenLib(
                 fklCodegenLibVectorPopBackNonNull(&macroScriptLibStack));
     fklCodegenLibVectorUninit(&macroScriptLibStack);
     fklZfree(rp);
     fclose(fp);
-    fklUninitSymbolTable(&ctx.public_symbol_table);
-    fklUninitConstTable(&ctx.public_kt);
-    fklUninitGrammer(&ctx.builtin_g);
+    FklFuncPrototypes *pts = ctx.pts;
+    ctx.runtime_kt = NULL;
+    ctx.runtime_st = NULL;
+    ctx.pts = NULL;
+    fklUninitCodegenOuterCtx(&ctx);
     if (load_result) {
         fklUninitSymbolTable(&runtime_st);
         fklDestroyFuncPrototypes(pts);
@@ -546,12 +539,11 @@ int main(int argc, char *argv[]) {
         FklCodegenInfo codegen = {
             .fid = 0,
         };
-        fklInitCodegenOuterCtx(&outer_ctx, NULL);
+        fklInitCodegenOuterCtx(&outer_ctx, NULL, NULL, NULL);
         FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
                 NULL,
-                &outer_ctx.public_symbol_table,
+                &outer_ctx.public_st,
                 &outer_ctx.public_kt,
-                0,
                 &outer_ctx,
                 NULL,
                 NULL,
@@ -560,7 +552,7 @@ int main(int argc, char *argv[]) {
                 main_env,
                 eval->count > 0 ? eval->sval[0] : NULL,
                 interactive->count > 0);
-        codegen.runtime_symbol_table = NULL;
+        codegen.st = NULL;
         FklCodegenLibVector *loadedLibStack = codegen.libraries;
         while (!fklCodegenLibVectorIsEmpty(loadedLibStack)) {
             FklCodegenLib *lib =
@@ -694,8 +686,8 @@ static int runRepl(FklCodegenInfo *codegen,
         const char *eval_expression,
         int8_t interactive) {
     FklVM *anotherVM = fklCreateVMwithByteCode(NULL,
-            codegen->runtime_symbol_table,
-            codegen->runtime_kt,
+            codegen->st,
+            codegen->kt,
             codegen->pts,
             1,
             0);
@@ -711,9 +703,9 @@ static int runRepl(FklCodegenInfo *codegen,
 
     int err = fklRunVMidleLoop(anotherVM);
 
+    gc->pts = NULL;
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);
-    codegen->pts = NULL;
     return err;
 }
 
@@ -1215,7 +1207,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
     FklCodegenInfo *codegen = ctx->codegen;
     FklCodegenEnv *main_env = ctx->main_env;
-    FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
+    FklSymbolTable *pst = &codegen->outer_ctx->public_st;
     FklStringBuffer *s = &fctx->buf;
     int is_eof = ctx->eof;
 
@@ -1232,7 +1224,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         fklMakeNastNodeRef(ast);
         size_t libs_count = codegen->libraries->size;
 
-        FklConstTable *kt = codegen->runtime_kt;
+        FklConstTable *kt = codegen->kt;
         struct ConstArrayCount const_count = {
             .i64_count = kt->ki64t.count,
             .f64_count = kt->kf64t.count,
@@ -1280,10 +1272,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
             uint32_t lcount = 0;
             FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-                fklUpdatePrototypeRef(codegen->pts,
-                        main_env,
-                        codegen->runtime_symbol_table,
-                        pst);
+                fklUpdatePrototypeRef(codegen->pts, main_env, codegen->st, pst);
 
                 lcount = codegen->pts->pa[1].lcount;
             }
@@ -1479,7 +1468,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
     FklCodegenInfo *codegen = ctx->codegen;
     FklCodegenEnv *main_env = ctx->main_env;
-    FklSymbolTable *pst = &codegen->outer_ctx->public_symbol_table;
+    FklSymbolTable *pst = &codegen->outer_ctx->public_st;
     FklNastNode *ast = NULL;
     FklGrammerMatchOuterCtx outerCtx =
             FKL_NAST_PARSE_OUTER_CTX_INIT(exe->gc->st);
@@ -1522,7 +1511,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
     size_t libs_count = codegen->libraries->size;
 
-    FklConstTable *kt = codegen->runtime_kt;
+    FklConstTable *kt = codegen->kt;
     struct ConstArrayCount const_count = {
         .i64_count = kt->ki64t.count,
         .f64_count = kt->kf64t.count,
@@ -1567,10 +1556,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
         uint32_t lcount = 0;
         FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-            fklUpdatePrototypeRef(codegen->pts,
-                    main_env,
-                    codegen->runtime_symbol_table,
-                    pst);
+            fklUpdatePrototypeRef(codegen->pts, main_env, codegen->st, pst);
 
             lcount = codegen->pts->pa[1].lcount;
         }

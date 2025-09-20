@@ -99,7 +99,7 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info,
     cpt->refs = NULL;
     cpt->rcount = 0;
     FKL_ASSERT(cpt == &info->pts->pa[env->prototypeId]);
-    fklUpdatePrototypeRef(info->pts, env, info->runtime_symbol_table, pst);
+    fklUpdatePrototypeRef(info->pts, env, info->st, pst);
 
     cpt->sid = sid;
     cpt->fid = fid;

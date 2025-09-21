@@ -362,7 +362,7 @@ int initDebugCtx(DebugCtx *ctx,
     ctx->curlist_ins_pc = 0;
     ctx->curlist_bytecode = ctx->reached_thread->top_frame->c.proc;
 
-    ctx->glob_env = fklCreateCodegenEnv(NULL, 1, NULL);
+    ctx->glob_env = fklCreateCodegenEnv(&ctx->codegen_ctx, NULL, 1, NULL);
     fklInitGlobCodegenEnv(ctx->glob_env, ctx->st);
     ctx->glob_env->refcount++;
 

@@ -357,6 +357,7 @@ void fklInitVMgc(FklVMgc *gc,
         FklFuncPrototypes *pts,
         uint64_t lib_num,
         FklVMlib *libs) {
+    memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_rwlock_init(&gc->st_lock);
     uv_mutex_init(&gc->extra_mark_lock);
@@ -378,8 +379,9 @@ void fklInitVMgc(FklVMgc *gc,
     gc->seek_cur = fklAddSymbolCstr("cur", st);
     gc->seek_end = fklAddSymbolCstr("end", st);
 
-    memset(&gc->gcvm, 0, sizeof(FklVM));
     gc->gcvm.gc = gc;
+    gc->gcvm.next = &gc->gcvm;
+    gc->gcvm.prev = &gc->gcvm;
 }
 
 FklVMgc *fklCreateVMgc(FklSymbolTable *st,
@@ -387,7 +389,7 @@ FklVMgc *fklCreateVMgc(FklSymbolTable *st,
         FklFuncPrototypes *pts,
         uint64_t lib_num,
         FklVMlib *libs) {
-    FklVMgc *gc = (FklVMgc *)fklZcalloc(1, sizeof(FklVMgc));
+    FklVMgc *gc = (FklVMgc *)fklZmalloc(sizeof(FklVMgc));
     FKL_ASSERT(gc);
     fklInitVMgc(gc, st, kt, pts, lib_num, libs);
     return gc;
@@ -554,15 +556,19 @@ void fklUninitVMgc(FklVMgc *gc) {
     fklZfree(gc->kstr);
     fklZfree(gc->kbvec);
     fklZfree(gc->kbi);
-    if (gc->alloced_size) {
-        fprintf(stderr, "still has %zu bytes not freed\n", gc->alloced_size);
-        abort();
-    }
-
     uninit_all_vm_lib(gc->libs, gc->lib_num);
     gc->lib_num = 0;
     fklZfree(gc->libs);
     gc->libs = NULL;
+
+    if (gc->alloced_size) {
+        fprintf(stderr,
+                "[WARNING %s: %d] still has %zu bytes not freed\n",
+                __REL_FILE__,
+                __LINE__,
+                gc->alloced_size);
+    }
+
     memset(gc, 0, sizeof(FklVMgc));
 }
 

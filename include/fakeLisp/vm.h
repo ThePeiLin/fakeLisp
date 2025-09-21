@@ -198,7 +198,7 @@ typedef struct {
 } FklVMvalueUd;
 
 #define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
-    typedef struct {                                                           \
+    typedef struct NAME {                                                      \
         FKL_VM_VALUE_COMMON_HEADER;                                            \
         alignas(FklVMud) struct {                                              \
             FKL_VM_UD_COMMON_HEADER;                                           \
@@ -1278,7 +1278,7 @@ FklVMvalue *fklVMvalueEof(void);
 // vmparser
 
 void fklVMvaluePushState0ToStack(FklParseStateVector *stateStack);
-#define FKL_VMVALUE_PARSE_CTX_INIT(EXE)                                  \
+#define FKL_VMVALUE_PARSE_CTX_INIT(EXE)                                        \
     { .maxNonterminalLen = 0,                                                  \
         .line = 1,                                                             \
         .start = NULL,                                                         \

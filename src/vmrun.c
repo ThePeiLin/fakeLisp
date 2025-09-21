@@ -714,6 +714,8 @@ void fklCheckAndGC(FklVM *exe) {
     FklVMgc *gc = exe->gc;
     if (atomic_load(&gc->alloced_size) > gc->threshold) {
         fklMoveThreadObjectsToGc(exe, gc);
+        if (exe == &gc->gcvm)
+            return;
         fklVMgcMoveLocvCache(exe, gc);
         remove_thread_frame_cache(exe);
         fklVMgcMarkAllRootToGray(exe);

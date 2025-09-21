@@ -33,7 +33,8 @@ static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
         return NULL;
     *origin_outer_env = env->prev;
     env->prev = NULL;
-    FklCodegenEnv *new_env = fklCreateCodegenEnv(env, ln->scope, NULL);
+    FklCodegenEnv *new_env =
+            fklCreateCodegenEnv(&ctx->codegen_ctx, env, ln->scope, NULL);
     new_env->is_debugging = 1;
     fklInitCodegenInfo(info,
             NULL,

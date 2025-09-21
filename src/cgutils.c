@@ -1,3 +1,4 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/codegen.h>
@@ -8,9 +9,9 @@
 #include <fakeLisp/regex.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 
 #include "codegen.h"
-#include "fakeLisp/base.h"
 
 #include <inttypes.h>
 
@@ -56,7 +57,7 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
     codegen->is_macro = 0;
     codegen->curline = 1;
     codegen->prev = NULL;
-    codegen->global_env = fklCreateCodegenEnv(NULL, 0, NULL);
+    codegen->global_env = fklCreateCodegenEnv(codegen->ctx, NULL, 0, NULL);
     fklInitGlobCodegenEnv(codegen->global_env, &ctx->public_st);
     codegen->global_env->refcount++;
     codegen->refcount = 1;
@@ -78,9 +79,9 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
     if (work_cb)
         work_cb(codegen, work_ctx);
 
-    FklCodegenEnv *main_env = fklCreateCodegenEnv(codegen->global_env,
-            1,
-            codegen->global_env->macros);
+    FklVMvalueCodegenMacroScope *macros = codegen->global_env->macros;
+    FklCodegenEnv *main_env =
+            fklCreateCodegenEnv(codegen->ctx, codegen->global_env, 1, macros);
     create_and_insert_to_pool(codegen, 0, main_env, 0, 1, &ctx->public_st);
     main_env->refcount++;
     return main_env;
@@ -136,7 +137,7 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen,
         codegen->libraries = prev->libraries;
         codegen->pts = prev->pts;
     } else {
-        codegen->global_env = fklCreateCodegenEnv(NULL, 1, NULL);
+        codegen->global_env = fklCreateCodegenEnv(codegen->ctx, NULL, 1, NULL);
         fklInitGlobCodegenEnv(codegen->global_env, &ctx->public_st);
         codegen->global_env->refcount++;
 
@@ -151,6 +152,11 @@ void fklInitCodegenInfo(FklCodegenInfo *codegen,
 
     if (codegen->work.work_cb)
         codegen->work.work_cb(codegen, codegen->work.work_ctx);
+}
+
+static void fklDestroyCodegenMacro(FklCodegenMacro *macro) {
+    uninit_codegen_macro(macro);
+    fklZfree(macro);
 }
 
 void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
@@ -2150,13 +2156,13 @@ static inline void get_macro_pts_and_lib(FklCodegenInfo *info,
 }
 
 static FklCodegenMacro *find_macro(FklNastNode *exp,
-        FklCodegenMacroScope *macros,
+        FklVMvalueCodegenMacroScope *macros,
         FklPmatchHashMap *pht) {
     if (!exp)
         return NULL;
     FklCodegenMacro *r = NULL;
-    for (; !r && macros; macros = macros->prev) {
-        for (FklCodegenMacro *cur = macros->head; cur; cur = cur->next) {
+    for (; !r && macros; macros = _cms(macros)->prev) {
+        for (FklCodegenMacro *cur = _cms(macros)->head; cur; cur = cur->next) {
             if (pht->buckets == NULL)
                 fklPmatchHashMapInit(pht);
             if (fklPatternMatch(cur->pattern, exp, pht)) {
@@ -2169,7 +2175,7 @@ static FklCodegenMacro *find_macro(FklNastNode *exp,
     return r;
 }
 
-void fklDestroyCodegenMacroList(FklCodegenMacro *cur) {
+static void fklDestroyCodegenMacroList(FklCodegenMacro *cur) {
     while (cur) {
         FklCodegenMacro *t = cur;
         cur = cur->next;
@@ -2221,45 +2227,23 @@ FklCodegenMacro *fklCreateCodegenMacroMove(FklNastNode *pattern,
     return r;
 }
 
-void fklDestroyCodegenMacro(FklCodegenMacro *macro) {
-    uninit_codegen_macro(macro);
-    fklZfree(macro);
-}
+static void uninit_macoro_scope(FklCodegenMacroScope *ms) {
+    for (FklCodegenMacro *cur = ms->head; cur;) {
+        FklCodegenMacro *t = cur;
+        cur = cur->next;
+        fklDestroyCodegenMacro(t);
+    }
 
-FklCodegenMacroScope *fklCreateCodegenMacroScope(FklCodegenMacroScope *prev) {
-    FklCodegenMacroScope *r =
-            (FklCodegenMacroScope *)fklZmalloc(sizeof(FklCodegenMacroScope));
-    FKL_ASSERT(r);
-    r->head = NULL;
-    r->replacements = fklReplacementHashMapCreate();
-    r->refcount = 0;
-    r->prev = make_macro_scope_ref(prev);
-    return r;
-}
-
-void fklDestroyCodegenMacroScope(FklCodegenMacroScope *macros) {
-    while (macros) {
-        macros->refcount--;
-        if (macros->refcount)
-            return;
-        else {
-            FklCodegenMacroScope *prev = macros->prev;
-            for (FklCodegenMacro *cur = macros->head; cur;) {
-                FklCodegenMacro *t = cur;
-                cur = cur->next;
-                fklDestroyCodegenMacro(t);
-            }
-            if (macros->replacements)
-                fklReplacementHashMapDestroy(macros->replacements);
-            fklZfree(macros);
-            macros = prev;
-        }
+    ms->head = NULL;
+    if (ms->replacements) {
+        fklReplacementHashMapDestroy(ms->replacements);
+        ms->replacements = NULL;
     }
 }
 
 FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
         FklCodegenInfo *codegen,
-        FklCodegenMacroScope *macros,
+        FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *errorState) {
     FklSymbolTable *pst = &codegen->ctx->public_st;
     FklConstTable *pkt = &codegen->ctx->public_kt;
@@ -2333,7 +2317,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(MacroExpandCtx);
 static int macro_expand_frame_step(void *data, FklVM *exe) {
     MacroExpandCtx *ctx = (MacroExpandCtx *)data;
     FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        *(ctx->retval) = fklCreateNastNodeFromVMvalue(fklGetTopValue(exe),
+        *(ctx->retval) = fklCreateNastNodeFromVMvalue(FKL_VM_GET_TOP_VALUE(exe),
                 ctx->curline,
                 ctx->lineHash,
                 exe->gc);
@@ -2469,4 +2453,45 @@ void fklDestroyCodegenInfo(FklCodegenInfo *codegen) {
         } else
             break;
     }
+}
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(macro_scope_as_print, "macro-scope")
+
+static void macro_scope_atomic(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(ms, FklCodegenMacroScope, ud);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ms->prev), gc);
+}
+
+static int macro_scope_finalizer(FklVMud *ud) {
+    FKL_DECL_UD_DATA(ms, FklCodegenMacroScope, ud);
+    uninit_macoro_scope(ms);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable MacroScopeUserDataMetaTable = {
+    .size = sizeof(FklCodegenMacroScope),
+    .__as_princ = macro_scope_as_print,
+    .__as_prin1 = macro_scope_as_print,
+    .__atomic = macro_scope_atomic,
+    .__finalizer = macro_scope_finalizer,
+};
+
+int fklIsVMvalueCodegenMacroScope(FklVMvalue *v) {
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->t == &MacroScopeUserDataMetaTable;
+}
+
+FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
+        FklVMvalueCodegenMacroScope *prev) {
+    FKL_ASSERT(
+            prev == NULL || fklIsVMvalueCodegenMacroScope((FklVMvalue *)prev));
+    FklVMvalue *r = fklCreateVMvalueUd(&c->gc->gcvm,
+            &MacroScopeUserDataMetaTable,
+            NULL);
+
+    FklCodegenMacroScope *ms = macro_scope(r);
+    ms->head = NULL;
+    ms->replacements = fklReplacementHashMapCreate();
+    ms->prev = prev;
+    return FKL_TYPE_CAST(FklVMvalueCodegenMacroScope *, r);
 }

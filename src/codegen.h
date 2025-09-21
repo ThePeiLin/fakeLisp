@@ -64,13 +64,6 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
     fklMergeGrammer(&group->g, &other->g, args);
 }
 
-static inline FklCodegenMacroScope *make_macro_scope_ref(
-        FklCodegenMacroScope *s) {
-    if (s)
-        s->refcount++;
-    return s;
-}
-
 static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
     fklDestroyNastNode(macro->pattern);
     macro->pattern = NULL;
@@ -107,6 +100,16 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info,
 
     if (info->work.env_work_cb)
         info->work.env_work_cb(info, env, info->work.work_ctx);
+}
+
+static inline FklCodegenMacroScope *macro_scope(FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueCodegenMacroScope(v));
+    return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
+}
+
+static inline FklCodegenMacroScope *_cms(FklVMvalueCodegenMacroScope *v) {
+    FKL_ASSERT(fklIsVMvalueCodegenMacroScope(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
 }
 
 #endif

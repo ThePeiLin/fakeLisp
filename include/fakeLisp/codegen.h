@@ -59,8 +59,8 @@ typedef struct FklCodegenEnv {
     uint32_t prototypeId;
 
     struct FklCodegenEnv *prev;
+    struct FklVMvalueCodegenMacroScope *macros;
     FklSymDefHashMap refs;
-    struct FklCodegenMacroScope *macros;
 
     FklPredefHashMap pdef;
     struct FklPreDefRefVector ref_pdef;
@@ -115,11 +115,15 @@ typedef struct FklCodegenMacro {
 #include "cont/hash.h"
 
 typedef struct FklCodegenMacroScope {
-    uint32_t refcount;
-    struct FklCodegenMacroScope *prev;
+    struct FklVMvalueCodegenMacroScope *prev;
     FklReplacementHashMap *replacements;
     FklCodegenMacro *head;
 } FklCodegenMacroScope;
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope,
+        { //
+            FklCodegenMacroScope ms;
+        });
 
 typedef enum FklCodegenLibType {
     FKL_CODEGEN_LIB_SCRIPT = 0,
@@ -276,6 +280,7 @@ typedef enum {
 #define FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM (11)
 
 typedef struct {
+    struct FklCodegenActionVector *action_vector;
     char *cwd;
     char *main_file_real_path_dir;
     const char *cur_file_dir;
@@ -383,6 +388,7 @@ typedef struct {
     void (*__put_bcl)(void *, FklByteCodelnt *bcl);
     void (*__finalizer)(void *);
     FklByteCodelntVector *(*__get_bcl_stack)(void *);
+    void (*__atomic)(FklVMgc *, void *);
 } FklCodegenActionContextMethodTable;
 
 typedef struct FklCodegenActionContext {
@@ -425,7 +431,7 @@ typedef struct FklCodegenAction {
     FklCodegenActionContext *context;
     FklCodegenEnv *env;
     uint32_t scope;
-    FklCodegenMacroScope *macroScope;
+    FklVMvalueCodegenMacroScope *macros;
     uint64_t curline;
     FklCodegenInfo *codegen;
     struct FklCodegenAction *prev;
@@ -480,7 +486,7 @@ FklCodegenAction *fklCreateCodegenAction(FklByteCodeProcesser f,
         FklCodegenActionContext *context,
         FklCodegenNextExpression *nextExpression,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         FklCodegenEnv *env,
         uint64_t curline,
         FklCodegenAction *prev,
@@ -585,9 +591,10 @@ int fklIsReplacementDefined(FklSid_t sid, FklCodegenEnv *);
 
 FklNastNode *fklGetReplacement(FklSid_t sid, const FklReplacementHashMap *);
 
-FklCodegenEnv *fklCreateCodegenEnv(FklCodegenEnv *prev,
+FklCodegenEnv *fklCreateCodegenEnv(FklCodegenCtx *ctx,
+        FklCodegenEnv *prev,
         uint32_t pscope,
-        FklCodegenMacroScope *);
+        FklVMvalueCodegenMacroScope *);
 void fklCreateFuncPrototypeAndInsertToPool(FklCodegenInfo *info,
         uint32_t p,
         FklCodegenEnv *env,
@@ -634,15 +641,13 @@ FklCodegenMacro *fklCreateCodegenMacroMove(FklNastNode *pattern,
         FklCodegenMacro *next,
         uint32_t prototype_id);
 
-void fklDestroyCodegenMacro(FklCodegenMacro *macro);
-void fklDestroyCodegenMacroList(FklCodegenMacro *macro);
-
-FklCodegenMacroScope *fklCreateCodegenMacroScope(FklCodegenMacroScope *prev);
-void fklDestroyCodegenMacroScope(FklCodegenMacroScope *c);
+int fklIsVMvalueCodegenMacroScope(FklVMvalue *v);
+FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
+        FklVMvalueCodegenMacroScope *prev);
 
 FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
         FklCodegenInfo *,
-        FklCodegenMacroScope *macros,
+        FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *);
 
 FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,

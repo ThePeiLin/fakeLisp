@@ -385,9 +385,7 @@ typedef struct FklCodegenInfo {
 } FklCodegenInfo;
 
 typedef struct {
-    void (*__put_bcl)(void *, FklByteCodelnt *bcl);
     void (*__finalizer)(void *);
-    FklByteCodelntVector *(*__get_bcl_stack)(void *);
     void (*__atomic)(FklVMgc *, void *);
 } FklCodegenActionContextMethodTable;
 
@@ -410,6 +408,7 @@ typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklCodegenInfo *,
         uint32_t scope,
         FklCodegenMacroScope *,
         FklCodegenActionContext *context,
+        FklByteCodelntVector *bcl_vec,
         FklSid_t,
         uint64_t,
         FklCodegenErrorState *errorState,
@@ -427,15 +426,18 @@ typedef struct {
 } FklCodegenNextExpression;
 
 typedef struct FklCodegenAction {
+    struct FklCodegenAction *prev;
     FklByteCodeProcesser processer;
     FklCodegenActionContext *context;
     FklCodegenEnv *env;
-    uint32_t scope;
     FklVMvalueCodegenMacroScope *macros;
-    uint64_t curline;
     FklCodegenInfo *codegen;
-    struct FklCodegenAction *prev;
     FklCodegenNextExpression *nextExpression;
+
+    uint32_t scope;
+    uint64_t curline;
+
+    FklByteCodelntVector bcl_vector;
 } FklCodegenAction;
 
 typedef struct {

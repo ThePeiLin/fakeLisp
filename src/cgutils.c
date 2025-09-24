@@ -1669,7 +1669,7 @@ static inline void write_codegen_lib(const FklCodegenLib *lib,
     }
 }
 
-static inline void write_lib_stack(FklCodegenLibVector *loaded_libraries,
+static inline void write_lib_vector(FklCodegenLibVector *loaded_libraries,
         const FklSymbolTable *st,
         const char *main_dir,
         const char *target_dir,
@@ -1735,7 +1735,7 @@ void fklWritePreCompile(FklCodegenInfo *codegen,
     fklWriteConstTable(&target_kt, outfp);
 
     fklWriteFuncPrototypes(codegen->pts, outfp);
-    write_lib_stack(codegen->libraries,
+    write_lib_vector(codegen->libraries,
             &target_st,
             main_dir,
             target_dir,
@@ -1744,7 +1744,7 @@ void fklWritePreCompile(FklCodegenInfo *codegen,
 
     FklFuncPrototypes *macro_pts = codegen->ctx->macro_pts;
     fklWriteFuncPrototypes(macro_pts, outfp);
-    write_lib_stack(macro_libs, &target_st, main_dir, target_dir, outfp);
+    write_lib_vector(macro_libs, &target_st, main_dir, target_dir, outfp);
 
     fklUninitSymbolTable(&target_st);
     fklUninitConstTable(&target_kt);

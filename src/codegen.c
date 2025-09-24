@@ -9476,6 +9476,15 @@ BC_PROCESS(pre_compile_main_bc_process) {
     return bclnt;
 }
 
+BC_PROCESS(last_bc_process) {
+    FklByteCodelnt *r = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    FklInstruction r_ins = create_op_ins(FKL_OP_RET);
+    fklByteCodeLntPushBackIns(r, &r_ins, codegen->fid, codegen->curline, 1);
+    if (!env->e.is_debugging)
+        fklPeepholeOptimize(r);
+    return r;
+}
+
 #undef BC_PROCESS
 #undef CODEGEN_ARGS
 #undef CODEGEN_FUNC
@@ -9954,7 +9963,19 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
     fklCodegenActionVectorPushBack2(&codegen_action_vector, initial_action);
     info->ctx->action_vector = &codegen_action_vector;
 
-    int is_debugging = initial_action->env->e.is_debugging;
+    FklCodegenAction *action1 = create_cg_action(last_bc_process,
+            createDefaultStackContext(),
+            initial_action->expressions,
+            initial_action->scope,
+            initial_action->macros,
+            initial_action->env,
+            initial_action->curline,
+            initial_action,
+            initial_action->codegen);
+
+    initial_action->expressions = NULL;
+    fklCodegenActionVectorPushBack2(&codegen_action_vector, action1);
+
     while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
         FklCodegenAction *cur_action =
                 *fklCodegenActionVectorBackNonNull(&codegen_action_vector);
@@ -10126,12 +10147,6 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
         retval = *fklByteCodelntVectorPopBackNonNull(&resultStack);
     fklByteCodelntVectorUninit(&resultStack);
     fklCodegenActionVectorUninit(&codegen_action_vector);
-    if (retval) {
-        FklInstruction ret = create_op_ins(FKL_OP_RET);
-        fklByteCodeLntPushBackIns(retval, &ret, info->fid, info->curline, 1);
-        if (!is_debugging)
-            fklPeepholeOptimize(retval);
-    }
     return retval;
 }
 

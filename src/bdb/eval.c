@@ -6,36 +6,37 @@
 
 static inline void replace_func_prototype(FklCodegenInfo *info,
         uint32_t p,
-        FklCodegenEnv *env,
+        FklVMvalueCodegenEnv *env,
         FklSid_t sid,
         uint32_t line,
         FklSymbolTable *pst,
         uint32_t replaced_prototype_id) {
     FklFuncPrototype *pt = &info->pts->pa[replaced_prototype_id];
     fklUninitFuncPrototype(pt);
-    env->prototypeId = replaced_prototype_id;
+    env->e.prototypeId = replaced_prototype_id;
     fklInitFuncPrototypeWithEnv(pt, info, env, sid, line, pst);
 }
 
-static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
+static inline FklVMvalueCodegenEnv *init_codegen_info_common_helper(
+        DebugCtx *ctx,
         FklCodegenInfo *info,
-        FklCodegenEnv **origin_outer_env,
+        FklVMvalueCodegenEnv **origin_outer_env,
         FklVMframe *f,
-        FklCodegenEnv **penv) {
+        FklVMvalueCodegenEnv **penv) {
     FklVMproc *proc = FKL_VM_PROC(f->c.proc);
     FklByteCodelnt *code = FKL_VM_CO(proc->codeObj);
     const FklLineNumberTableItem *ln =
             getCurLineNumberItemWithCp(f->c.pc, code);
     if (ln->scope == 0)
         return NULL;
-    FklCodegenEnv *env = getEnv(ctx, proc->protoId);
+    FklVMvalueCodegenEnv *env = getEnv(ctx, proc->protoId);
     if (env == NULL)
         return NULL;
-    *origin_outer_env = env->prev;
-    env->prev = NULL;
-    FklCodegenEnv *new_env =
-            fklCreateCodegenEnv(&ctx->codegen_ctx, env, ln->scope, NULL);
-    new_env->is_debugging = 1;
+    *origin_outer_env = env->e.prev;
+    env->e.prev = NULL;
+    FklVMvalueCodegenEnv *new_env =
+            fklCreateVMvalueCodegenEnv(&ctx->codegen_ctx, env, ln->scope, NULL);
+    new_env->e.is_debugging = 1;
     fklInitCodegenInfo(info,
             NULL,
             NULL,
@@ -48,16 +49,17 @@ static inline FklCodegenEnv *init_codegen_info_common_helper(DebugCtx *ctx,
     ++info->refcount;
     info->pts = ctx->gc.pts;
     *penv = env;
-    ++new_env->refcount;
+    ctx->eval_env = new_env;
     return new_env;
 }
 
-static inline FklCodegenEnv *init_codegen_info_with_debug_ctx(DebugCtx *ctx,
+static inline FklVMvalueCodegenEnv *init_codegen_info_with_debug_ctx(
+        DebugCtx *ctx,
         FklCodegenInfo *info,
-        FklCodegenEnv **origin_outer_env,
+        FklVMvalueCodegenEnv **origin_outer_env,
         FklVMframe *f) {
-    FklCodegenEnv *env = NULL;
-    FklCodegenEnv *new_env = init_codegen_info_common_helper(ctx,
+    FklVMvalueCodegenEnv *env = NULL;
+    FklVMvalueCodegenEnv *new_env = init_codegen_info_common_helper(ctx,
             info,
             origin_outer_env,
             f,
@@ -65,7 +67,7 @@ static inline FklCodegenEnv *init_codegen_info_with_debug_ctx(DebugCtx *ctx,
 
     if (new_env) {
         replace_func_prototype(info,
-                env->prototypeId,
+                env->e.prototypeId,
                 new_env,
                 0,
                 ctx->curline,
@@ -76,14 +78,14 @@ static inline FklCodegenEnv *init_codegen_info_with_debug_ctx(DebugCtx *ctx,
     return NULL;
 }
 
-static inline void set_back_origin_prev_env(FklCodegenEnv *new_env,
-        FklCodegenEnv *origin_outer_env) {
-    FklCodegenEnv *env = new_env->prev;
-    env->prev = origin_outer_env;
+static inline void set_back_origin_prev_env(FklVMvalueCodegenEnv *new_env,
+        FklVMvalueCodegenEnv *origin_outer_env) {
+    FklVMvalueCodegenEnv *env = new_env->e.prev;
+    env->e.prev = origin_outer_env;
 }
 
 static inline void resolve_reference(DebugCtx *ctx,
-        FklCodegenEnv *env,
+        FklVMvalueCodegenEnv *env,
         FklVM *vm,
         FklFuncPrototype *pt,
         FklVMvalue *proc_obj,
@@ -94,7 +96,7 @@ static inline void resolve_reference(DebugCtx *ctx,
     proc->closure = (FklVMvalue **)fklZcalloc(rcount, sizeof(FklVMvalue *));
     FKL_ASSERT(proc->closure);
     fklCreateVMvalueClosureFrom(vm, proc->closure, cur_frame, 0, pt);
-    FklUnReSymbolRefVector *urefs = &env->prev->uref;
+    FklUnReSymbolRefVector *urefs = &env->e.prev->e.uref;
     FklVMvalue **builtin_refs = vm->gc->builtin_refs;
     while (!fklUnReSymbolRefVectorIsEmpty(urefs)) {
         FklUnReSymbolRef *uref = fklUnReSymbolRefVectorPopBackNonNull(urefs);
@@ -115,9 +117,9 @@ static inline int has_import_op_code(const FklByteCodelnt *lnt) {
 
 static inline FklVMvalue *compile_expression_common_helper(DebugCtx *ctx,
         FklCodegenInfo *info,
-        FklCodegenEnv *tmp_env,
+        FklVMvalueCodegenEnv *tmp_env,
         FklNastNode *exp,
-        FklCodegenEnv *origin_outer_env,
+        FklVMvalueCodegenEnv *origin_outer_env,
         FklVM *vm,
         FklVMframe *cur_frame,
         EvalCompileErr *err) {
@@ -134,10 +136,10 @@ static inline FklVMvalue *compile_expression_common_helper(DebugCtx *ctx,
         FklFuncPrototypes *pts = info->pts;
         fklUpdatePrototype(pts, tmp_env, ctx->st, ctx->st);
 
-        FklFuncPrototype *pt = &pts->pa[tmp_env->prototypeId];
+        FklFuncPrototype *pt = &pts->pa[tmp_env->e.prototypeId];
         FklVMvalue *code_obj = fklCreateVMvalueCodeObjMove(vm, code);
         fklDestroyByteCodelnt(code);
-        proc = fklCreateVMvalueProc(vm, code_obj, tmp_env->prototypeId);
+        proc = fklCreateVMvalueProc(vm, code_obj, tmp_env->e.prototypeId);
         resolve_reference(ctx, tmp_env, vm, pt, proc, cur_frame);
         fklVMgcUpdateConstArray(vm->gc, vm->gc->kt);
     }
@@ -150,8 +152,8 @@ FklVMvalue *compileEvalExpression(DebugCtx *ctx,
         FklVMframe *cur_frame,
         EvalCompileErr *err) {
     FklCodegenInfo info;
-    FklCodegenEnv *origin_outer_env = NULL;
-    FklCodegenEnv *tmp_env = init_codegen_info_with_debug_ctx(ctx,
+    FklVMvalueCodegenEnv *origin_outer_env = NULL;
+    FklVMvalueCodegenEnv *tmp_env = init_codegen_info_with_debug_ctx(ctx,
             &info,
             &origin_outer_env,
             cur_frame);
@@ -172,18 +174,17 @@ FklVMvalue *compileEvalExpression(DebugCtx *ctx,
             err);
 
     info.pts = NULL;
-    fklDestroyCodegenEnv(tmp_env);
     fklUninitCodegenInfo(&info);
     return proc;
 }
 
-static inline FklCodegenEnv *init_codegen_info_for_cond_bp_with_debug_ctx(
-        DebugCtx *ctx,
+static inline FklVMvalueCodegenEnv *
+init_codegen_info_for_cond_bp_with_debug_ctx(DebugCtx *ctx,
         FklCodegenInfo *info,
-        FklCodegenEnv **origin_outer_env,
+        FklVMvalueCodegenEnv **origin_outer_env,
         FklVMframe *f) {
-    FklCodegenEnv *env = NULL;
-    FklCodegenEnv *new_env = init_codegen_info_common_helper(ctx,
+    FklVMvalueCodegenEnv *env = NULL;
+    FklVMvalueCodegenEnv *new_env = init_codegen_info_common_helper(ctx,
             info,
             origin_outer_env,
             f,
@@ -192,7 +193,7 @@ static inline FklCodegenEnv *init_codegen_info_for_cond_bp_with_debug_ctx(
     if (new_env) {
         if (fklUintVectorIsEmpty(&ctx->bt.unused_prototype_id_for_cond_bp))
             fklCreateFuncPrototypeAndInsertToPool(info,
-                    env->prototypeId,
+                    env->e.prototypeId,
                     new_env,
                     0,
                     ctx->curline,
@@ -201,7 +202,7 @@ static inline FklCodegenEnv *init_codegen_info_for_cond_bp_with_debug_ctx(
             uint32_t pid = *fklUintVectorPopBackNonNull(
                     &ctx->bt.unused_prototype_id_for_cond_bp);
             replace_func_prototype(info,
-                    env->prototypeId,
+                    env->e.prototypeId,
                     new_env,
                     0,
                     ctx->curline,
@@ -219,11 +220,12 @@ FklVMvalue *compileConditionExpression(DebugCtx *ctx,
         FklVMframe *cur_frame,
         EvalCompileErr *err) {
     FklCodegenInfo info;
-    FklCodegenEnv *origin_outer_env = NULL;
-    FklCodegenEnv *tmp_env = init_codegen_info_for_cond_bp_with_debug_ctx(ctx,
-            &info,
-            &origin_outer_env,
-            cur_frame);
+    FklVMvalueCodegenEnv *origin_outer_env = NULL;
+    FklVMvalueCodegenEnv *tmp_env =
+            init_codegen_info_for_cond_bp_with_debug_ctx(ctx,
+                    &info,
+                    &origin_outer_env,
+                    cur_frame);
     if (tmp_env == NULL) {
         *err = EVAL_COMP_UNABLE;
         fklDestroyNastNode(exp);
@@ -242,9 +244,8 @@ FklVMvalue *compileConditionExpression(DebugCtx *ctx,
 
     if (!proc)
         fklUintVectorPushBack2(&ctx->bt.unused_prototype_id_for_cond_bp,
-                tmp_env->prototypeId);
+                tmp_env->e.prototypeId);
     info.pts = NULL;
-    fklDestroyCodegenEnv(tmp_env);
     fklUninitCodegenInfo(&info);
     return proc;
 }
@@ -271,12 +272,12 @@ FklVMvalue *callEvalProc(DebugCtx *ctx,
     return retval;
 }
 
-void putEnv(DebugCtx *ctx, FklCodegenEnv *env) {
-    bdbEnvHashMapPut2(&ctx->envs, env->prototypeId, env);
+void putEnv(DebugCtx *ctx, FklVMvalueCodegenEnv *env) {
+    bdbEnvHashMapPut2(&ctx->envs, env->e.prototypeId, env);
 }
 
-FklCodegenEnv *getEnv(DebugCtx *ctx, uint32_t id) {
-    FklCodegenEnv **i = bdbEnvHashMapGet2(&ctx->envs, id);
+FklVMvalueCodegenEnv *getEnv(DebugCtx *ctx, uint32_t id) {
+    FklVMvalueCodegenEnv **i = bdbEnvHashMapGet2(&ctx->envs, id);
     if (i)
         return *i;
     return NULL;

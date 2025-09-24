@@ -16,6 +16,23 @@ struct CustomActionCtx {
     uint8_t is_recomputed;
 };
 
+static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
+    uint32_t r = ++env->e.sc;
+    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklZrealloc(env->e.scopes,
+            r * sizeof(FklCodegenEnvScope));
+    FKL_ASSERT(scopes);
+    env->e.scopes = scopes;
+    FklCodegenEnvScope *newScope = &scopes[r - 1];
+    newScope->p = p;
+    fklSymDefHashMapInit(&newScope->defs);
+    newScope->start = 0;
+    newScope->end = 0;
+    if (p)
+        newScope->start = scopes[p - 1].start + scopes[p - 1].end;
+    newScope->empty = newScope->start;
+    return r;
+}
+
 static inline FklGrammerProdGroupItem *add_production_group(
         FklGraProdGroupHashMap *named_prod_groups,
         FklSymbolTable *st,
@@ -75,7 +92,7 @@ static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
 
 static inline void create_and_insert_to_pool(FklCodegenInfo *info,
         uint32_t p,
-        FklCodegenEnv *env,
+        FklVMvalueCodegenEnv *env,
         FklSid_t sid,
         uint32_t line,
         FklSymbolTable *pst) {
@@ -87,11 +104,11 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info,
     FKL_ASSERT(pts);
     cp->pa = pts;
     FklFuncPrototype *cpt = &pts[cp->count];
-    env->prototypeId = cp->count;
-    cpt->lcount = env->lcount;
+    env->e.prototypeId = cp->count;
+    cpt->lcount = env->e.lcount;
     cpt->refs = NULL;
     cpt->rcount = 0;
-    FKL_ASSERT(cpt == &info->pts->pa[env->prototypeId]);
+    FKL_ASSERT(cpt == &info->pts->pa[env->e.prototypeId]);
     fklUpdatePrototypeRef(info->pts, env, info->st, pst);
 
     cpt->sid = sid;
@@ -102,14 +119,12 @@ static inline void create_and_insert_to_pool(FklCodegenInfo *info,
         info->work.env_work_cb(info, env, info->work.work_ctx);
 }
 
-static inline FklCodegenMacroScope *macro_scope(FklVMvalue *v) {
+static inline FklCodegenMacroScope *fklms(FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueCodegenMacroScope(v));
     return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
 }
 
-static inline FklCodegenMacroScope *_cms(FklVMvalueCodegenMacroScope *v) {
-    FKL_ASSERT(fklIsVMvalueCodegenMacroScope(FKL_TYPE_CAST(FklVMvalue *, v)));
+static inline FklCodegenMacroScope *fklms1(FklVMvalueCodegenMacroScope *v) {
     return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
 }
-
 #endif

@@ -787,7 +787,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMframe *frame);
 
 // check and gc in single thread
-void fklCheckAndGC(FklVM *exe);
+void fklCheckAndGC(FklVM *exe, int forced);
 
 void fklVMthreadStart(FklVM *, FklVMqueue *q);
 

@@ -5196,7 +5196,7 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum) {
     return builtInSymbolList[idx].inlfunc[argNum];
 }
 
-void fklInitGlobCodegenEnv(FklCodegenEnv *curEnv, FklSymbolTable *pst) {
+void fklInitGlobCodegenEnv(FklVMvalueCodegenEnv *curEnv, FklSymbolTable *pst) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
             list->name != NULL;
             list++) {

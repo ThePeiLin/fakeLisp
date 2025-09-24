@@ -112,21 +112,7 @@ typedef struct {
 #define FKL_HASH_TYPE_PREFIX Bdb
 #define FKL_HASH_METHOD_PREFIX bdb
 #define FKL_HASH_KEY_TYPE uint32_t
-#define FKL_HASH_VAL_TYPE FklCodegenEnv *
-#define FKL_HASH_VAL_INIT(V, X)                                                \
-    {                                                                          \
-        FklCodegenEnv *old_v = *(V);                                           \
-        FklCodegenEnv *new_v = *(X);                                           \
-        if (old_v != NULL)                                                     \
-            fklDestroyCodegenEnv(old_v);                                       \
-        if (new_v != NULL)                                                     \
-            ++new_v->refcount;                                                 \
-        *(V) = new_v;                                                          \
-    }
-#define FKL_HASH_VAL_UNINIT(V)                                                 \
-    {                                                                          \
-        fklDestroyCodegenEnv(*(V));                                            \
-    }
+#define FKL_HASH_VAL_TYPE FklVMvalueCodegenEnv *
 #define FKL_HASH_ELM_NAME Env
 #include <fakeLisp/cont/hash.h>
 
@@ -134,7 +120,8 @@ typedef struct {
 
 typedef struct DebugCtx {
     CmdReadCtx read_ctx;
-    FklCodegenEnv *glob_env;
+    FklVMvalueCodegenEnv *glob_env;
+    FklVMvalueCodegenEnv *eval_env;
     FklCodegenCtx codegen_ctx;
 
     FklSidHashSet file_sid_set;
@@ -216,8 +203,8 @@ getCurLineNumberItemWithCp(const FklInstruction *cp, FklByteCodelnt *code);
 
 void initBreakpointTable(BreakpointTable *);
 void uninitBreakpointTable(BreakpointTable *);
-void putEnv(DebugCtx *ctx, FklCodegenEnv *env);
-FklCodegenEnv *getEnv(DebugCtx *, uint32_t id);
+void putEnv(DebugCtx *ctx, FklVMvalueCodegenEnv *env);
+FklVMvalueCodegenEnv *getEnv(DebugCtx *, uint32_t id);
 
 void markBreakpointCondExpObj(DebugCtx *ctx, FklVMgc *gc);
 

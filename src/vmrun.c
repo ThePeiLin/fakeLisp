@@ -710,12 +710,10 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
                                                   : &exe->frame_cache_head;
 }
 
-void fklCheckAndGC(FklVM *exe) {
+void fklCheckAndGC(FklVM *exe, int forced) {
     FklVMgc *gc = exe->gc;
-    if (atomic_load(&gc->alloced_size) > gc->threshold) {
+    if (forced || atomic_load(&gc->alloced_size) > gc->threshold) {
         fklMoveThreadObjectsToGc(exe, gc);
-        if (exe == &gc->gcvm)
-            return;
         fklVMgcMoveLocvCache(exe, gc);
         remove_thread_frame_cache(exe);
         fklVMgcMarkAllRootToGray(exe);
@@ -725,6 +723,8 @@ void fklCheckAndGC(FklVM *exe) {
         fklVMgcCollect(gc, &white);
         fklVMgcSweep(white);
         fklVMgcUpdateThreshold(gc);
+        if (exe == &gc->gcvm)
+            return;
 
         fklVMstackShrink(exe);
     }

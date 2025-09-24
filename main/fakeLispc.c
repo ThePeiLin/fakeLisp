@@ -32,7 +32,7 @@ static inline int pre_compile(const char *main_file_name,
     fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
     const char *main_dir = ctx->main_file_real_path_dir;
     fklChdir(ctx->main_file_real_path_dir);
-    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
             &ctx->public_st,
             &ctx->public_kt,
@@ -44,12 +44,10 @@ static inline int pre_compile(const char *main_file_name,
             fklGenExpressionCodeWithFpForPrecompile(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
     fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
@@ -98,7 +96,7 @@ static inline int compile(const char *filename,
     char *rp = fklRealpath(filename);
     fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
     fklChdir(ctx->main_file_real_path_dir);
-    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
             ctx->runtime_st,
             ctx->runtime_kt,
@@ -110,12 +108,10 @@ static inline int compile(const char *filename,
             fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
     fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     char *outputname = NULL;

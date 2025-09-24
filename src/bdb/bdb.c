@@ -47,10 +47,10 @@ static void info_work_cb(FklCodegenInfo *info, void *ctx) {
 }
 
 static void
-create_env_work_cb(FklCodegenInfo *info, FklCodegenEnv *env, void *ctx) {
+create_env_work_cb(FklCodegenInfo *info, FklVMvalueCodegenEnv *env, void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
-        env->is_debugging = 1;
+        env->e.is_debugging = 1;
         putEnv(dctx, env);
     }
 }
@@ -140,6 +140,15 @@ static void B_int33(FklVM *exe, const FklInstruction *ins) {
     fklVMexecuteInstruction(exe, oins->op, oins, exe->top_frame);
 }
 
+static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, void *arg) {
+    DebugCtx *ctx = (DebugCtx *)arg;
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->glob_env), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->eval_env), gc);
+    for (const BdbEnvHashMapNode *cur = ctx->envs.first; cur; cur = cur->next) {
+        fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, cur->v), gc);
+    }
+}
+
 static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
         const char *filename) {
     FILE *fp = fopen(filename, "r");
@@ -150,7 +159,10 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
     FklSymbolTable *pst = &ctx->public_st;
     FklConstTable *pkt = &ctx->public_kt;
     fklAddSymbolCstr(filename, pst);
-    FklCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+
+    fklVMpushExtraMarkFunc(ctx->gc, dbg_codegen_ctx_extra_mark, NULL, dctx);
+
+    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
             rp,
             pst,
             pkt,
@@ -162,13 +174,11 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
     FklByteCodelnt *mainByteCode =
             fklGenExpressionCodeWithFp(fp, &codegen, main_env);
     if (mainByteCode == NULL) {
-        fklDestroyCodegenEnv(main_env);
         fklUninitCodegenInfo(&codegen);
         fklUninitCodegenCtx(ctx);
         return 1;
     }
     fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklDestroyCodegenEnv(main_env);
     fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
 
     FklCodegenLibVector *script_libraries = codegen.libraries;
@@ -301,7 +311,7 @@ static inline void get_all_code_objs(DebugCtx *ctx) {
     }
 }
 
-static inline void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
+static void internal_dbg_extra_mark(DebugCtx *ctx, FklVMgc *gc) {
     fklVMgcToGray(ctx->main_proc, gc);
 
     FklVMvalue **base = (FklVMvalue **)ctx->code_objs.base;
@@ -362,9 +372,9 @@ int initDebugCtx(DebugCtx *ctx,
     ctx->curlist_ins_pc = 0;
     ctx->curlist_bytecode = ctx->reached_thread->top_frame->c.proc;
 
-    ctx->glob_env = fklCreateCodegenEnv(&ctx->codegen_ctx, NULL, 1, NULL);
+    ctx->glob_env =
+            fklCreateVMvalueCodegenEnv(&ctx->codegen_ctx, NULL, 1, NULL);
     fklInitGlobCodegenEnv(ctx->glob_env, ctx->st);
-    ctx->glob_env->refcount++;
 
     set_argv_with_list(&ctx->gc, argv);
     init_cmd_read_ctx(&ctx->read_ctx);
@@ -413,7 +423,7 @@ void uninitDebugCtx(DebugCtx *ctx) {
     fklUninitVMgc(&ctx->gc);
     uninit_cmd_read_ctx(&ctx->read_ctx);
     fklUninitCodegenCtx(&ctx->codegen_ctx);
-    fklDestroyCodegenEnv(ctx->glob_env);
+    ctx->glob_env = NULL;
     ctx->inited = 0;
 }
 
@@ -511,11 +521,11 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     if (scope == 0)
         return NULL;
     uint32_t prototype_id = FKL_VM_PROC(frame->c.proc)->protoId;
-    FklCodegenEnv *env = getEnv(ctx, prototype_id);
+    FklVMvalueCodegenEnv *env = getEnv(ctx, prototype_id);
     if (env == NULL)
         return NULL;
     const FklSymDefHashMapElm *def =
-            fklFindSymbolDefByIdAndScope(id, scope, env);
+            fklFindSymbolDefByIdAndScope(id, scope, env->e.scopes);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
     return NULL;

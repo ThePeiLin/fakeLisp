@@ -385,13 +385,14 @@ typedef struct FklCodegenInfo {
 } FklCodegenInfo;
 
 typedef struct {
+    size_t size;
     void (*__finalizer)(void *);
     void (*__atomic)(FklVMgc *, void *);
 } FklCodegenActionContextMethodTable;
 
 typedef struct FklCodegenActionContext {
-    void *data;
     const FklCodegenActionContextMethodTable *t;
+    alignas(void *) uint8_t d[];
 } FklCodegenActionContext;
 
 typedef struct FklCodegenErrorState {
@@ -407,7 +408,7 @@ typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklCodegenInfo *,
         FklCodegenEnv *,
         uint32_t scope,
         FklCodegenMacroScope *,
-        FklCodegenActionContext *context,
+        void *data,
         FklByteCodelntVector *bcl_vec,
         FklSid_t,
         uint64_t,
@@ -432,7 +433,7 @@ typedef struct FklCodegenAction {
     FklCodegenEnv *env;
     FklVMvalueCodegenMacroScope *macros;
     FklCodegenInfo *codegen;
-    FklCodegenNextExpression *nextExpression;
+    FklCodegenNextExpression *expressions;
 
     uint32_t scope;
     uint64_t curline;
@@ -483,16 +484,6 @@ FklCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
         FklCodegenInfoWorkCb work_cb,
         FklCodegenInfoEnvWorkCb evn_work_cb,
         void *args);
-
-FklCodegenAction *fklCreateCodegenAction(FklByteCodeProcesser f,
-        FklCodegenActionContext *context,
-        FklCodegenNextExpression *nextExpression,
-        uint32_t scope,
-        FklVMvalueCodegenMacroScope *macroScope,
-        FklCodegenEnv *env,
-        uint64_t curline,
-        FklCodegenAction *prev,
-        FklCodegenInfo *codegen);
 
 void fklInitCodegenInfo(FklCodegenInfo *codegen,
         const char *filename,

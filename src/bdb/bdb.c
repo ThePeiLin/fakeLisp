@@ -33,12 +33,12 @@ static inline void init_cmd_read_ctx(CmdReadCtx *ctx) {
     fklVMvaluePushState0ToStack(&ctx->stateStack);
 }
 
-static inline void replace_info_fid_with_realpath(FklCodegenInfo *info) {
+static inline void replace_info_fid_with_realpath(FklVMvalueCodegenInfo *info) {
     FklSid_t rpsid = fklAddSymbolCstr(info->realpath, info->st);
     info->fid = rpsid;
 }
 
-static void info_work_cb(FklCodegenInfo *info, void *ctx) {
+static void info_work_cb(FklVMvalueCodegenInfo *info, void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
         replace_info_fid_with_realpath(info);
@@ -46,8 +46,9 @@ static void info_work_cb(FklCodegenInfo *info, void *ctx) {
     }
 }
 
-static void
-create_env_work_cb(FklCodegenInfo *info, FklVMvalueCodegenEnv *env, void *ctx) {
+static void create_env_work_cb(FklVMvalueCodegenInfo *info,
+        FklVMvalueCodegenEnv *env,
+        void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
         env->e.is_debugging = 1;
@@ -144,6 +145,7 @@ static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, void *arg) {
     DebugCtx *ctx = (DebugCtx *)arg;
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->glob_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->eval_env), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->eval_info), gc);
     for (const BdbEnvHashMapNode *cur = ctx->envs.first; cur; cur = cur->next) {
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, cur->v), gc);
     }
@@ -154,7 +156,6 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
     FILE *fp = fopen(filename, "r");
     char *rp = fklRealpath(filename);
     FklCodegenCtx *ctx = &dctx->codegen_ctx;
-    FklCodegenInfo codegen = { .fid = 0 };
     fklInitCodegenCtx(ctx, fklGetDir(rp), NULL, NULL);
     FklSymbolTable *pst = &ctx->public_st;
     FklConstTable *pkt = &ctx->public_kt;
@@ -162,33 +163,35 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
 
     fklVMpushExtraMarkFunc(ctx->gc, dbg_codegen_ctx_extra_mark, NULL, dctx);
 
-    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
+            NULL,
             rp,
-            pst,
-            pkt,
-            ctx,
-            info_work_cb,
-            create_env_work_cb,
-            dctx);
+            &(FklCodegenInfoArgs){
+                .is_lib = 1,
+                .is_global = 1,
+                .st = pst,
+                .kt = pkt,
+                .work_cb = info_work_cb,
+                .env_work_cb = create_env_work_cb,
+                .work_ctx = dctx,
+            });
+
+    FklVMvalueCodegenEnv *main_env = ctx->global_env;
     fklZfree(rp);
     FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, codegen, main_env);
     if (mainByteCode == NULL) {
-        fklUninitCodegenInfo(&codegen);
         fklUninitCodegenCtx(ctx);
         return 1;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
+    fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
+    fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
 
-    FklCodegenLibVector *script_libraries = codegen.libraries;
-    fklInitVMgc(&dctx->gc, codegen.st, codegen.kt, codegen.pts, 0, NULL);
+    FklCodegenLibVector *script_libraries = codegen->libraries;
+    fklInitVMgc(&dctx->gc, codegen->st, codegen->kt, codegen->pts, 0, NULL);
 
     FklVM *anotherVM = fklCreateVMwithByteCode2(mainByteCode, &dctx->gc, 1, 0);
     mainByteCode = NULL;
-
-    codegen.st = NULL;
-    codegen.pts = NULL;
 
     FklVMgc *gc = anotherVM->gc;
     gc->lib_num = script_libraries->size;
@@ -208,7 +211,6 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
         if (type == FKL_CODEGEN_LIB_SCRIPT)
             fklInitMainProcRefs(anotherVM, curVMlib->proc);
     }
-    fklUninitCodegenInfo(&codegen);
     fklChdir(ctx->cwd);
 
     dctx->st = &ctx->public_st;

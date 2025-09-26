@@ -22,174 +22,9 @@ static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklSid_t id,
     return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
-static inline void init_codegen_grammer_ptr(FklCodegenInfo *codegen) {
-    codegen->self_g = NULL;
-    codegen->g = &codegen->self_g;
-    codegen->named_prod_groups = &codegen->self_named_prod_groups;
-
-    codegen->unnamed_g = &codegen->self_unnamed_g;
-}
-
-FklVMvalueCodegenEnv *fklInitGlobalCodegenInfo(FklCodegenInfo *codegen,
-        const char *rp,
-        FklSymbolTable *st,
-        FklConstTable *kt,
-        FklCodegenCtx *ctx,
-        FklCodegenInfoWorkCb work_cb,
-        FklCodegenInfoEnvWorkCb env_work_cb,
-        void *work_ctx) {
-    memset(codegen, 0, sizeof(*codegen));
-    codegen->st = st;
-    codegen->kt = kt;
-    codegen->ctx = ctx;
-    if (rp != NULL) {
-        codegen->dir = fklGetDir(rp);
-        codegen->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
-        codegen->realpath = fklZstrdup(rp);
-        codegen->fid = fklAddSymbolCstr(codegen->filename, st);
-    } else {
-        codegen->dir = fklSysgetcwd();
-        codegen->filename = NULL;
-        codegen->realpath = NULL;
-        codegen->fid = 0;
-    }
-    codegen->is_lib = 1;
-    codegen->is_macro = 0;
-    codegen->curline = 1;
-    codegen->prev = NULL;
-    codegen->global_env =
-            fklCreateVMvalueCodegenEnv(codegen->ctx, NULL, 0, NULL);
-    fklInitGlobCodegenEnv(codegen->global_env, &ctx->public_st);
-    codegen->refcount = 1;
-
-    codegen->libraries = &ctx->libraries;
-    codegen->pts = ctx->pts;
-
-    fklCgExportSidIdxHashMapInit(&codegen->exports);
-    codegen->export_replacement = fklReplacementHashMapCreate();
-    codegen->export_named_prod_groups = fklSidHashSetCreate();
-
-    init_codegen_grammer_ptr(codegen);
-
-    codegen->work.work_ctx = work_ctx;
-    codegen->work.work_cb = work_cb;
-    codegen->work.env_work_cb = env_work_cb;
-
-    if (work_cb)
-        work_cb(codegen, work_ctx);
-
-    FklVMvalueCodegenMacroScope *macros = codegen->global_env->e.macros;
-    FklVMvalueCodegenEnv *main_env = fklCreateVMvalueCodegenEnv(codegen->ctx,
-            codegen->global_env,
-            1,
-            macros);
-    create_and_insert_to_pool(codegen, 0, main_env, 0, 1, &ctx->public_st);
-    ctx->global_env = main_env;
-    return main_env;
-}
-
-void fklInitCodegenInfo(FklCodegenInfo *codegen,
-        const char *filename,
-        FklCodegenInfo *prev,
-        FklSymbolTable *st,
-        FklConstTable *kt,
-        int destroyAbleMark,
-        int libMark,
-        int macroMark,
-        FklCodegenCtx *ctx) {
-    memset(codegen, 0, sizeof(*codegen));
-
-    if (filename != NULL) {
-        char *rp = fklRealpath(filename);
-        codegen->dir = fklGetDir(rp);
-        codegen->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
-        codegen->realpath = rp;
-        codegen->fid = fklAddSymbolCstr(codegen->filename, st);
-    } else {
-        codegen->dir = fklSysgetcwd();
-        codegen->filename = NULL;
-        codegen->realpath = NULL;
-        codegen->fid = 0;
-    }
-
-    codegen->curline = 1;
-    codegen->prev = prev;
-
-    codegen->st = st;
-    codegen->kt = kt;
-    codegen->ctx = ctx;
-
-    codegen->refcount = 0;
-    codegen->exports.buckets = NULL;
-    codegen->is_lib = libMark;
-    codegen->is_macro = macroMark;
-
-    codegen->export_macro = NULL;
-    codegen->export_replacement =
-            libMark ? fklReplacementHashMapCreate() : NULL;
-    codegen->export_named_prod_groups = libMark ? fklSidHashSetCreate() : NULL;
-    codegen->exports.buckets = NULL;
-    if (libMark)
-        fklCgExportSidIdxHashMapInit(&codegen->exports);
-
-    init_codegen_grammer_ptr(codegen);
-    if (prev) {
-        prev->refcount += 1;
-        codegen->global_env = prev->global_env;
-        codegen->work = prev->work;
-        codegen->libraries = prev->libraries;
-        codegen->pts = prev->pts;
-    } else {
-        codegen->global_env = fklCreateVMvalueCodegenEnv(ctx, NULL, 1, NULL);
-        fklInitGlobCodegenEnv(codegen->global_env, &ctx->public_st);
-
-        codegen->work.work_cb = NULL;
-        codegen->work.env_work_cb = NULL;
-        codegen->work.work_ctx = NULL;
-
-        codegen->libraries = &ctx->libraries;
-        codegen->pts = ctx->pts;
-    }
-
-    if (codegen->work.work_cb)
-        codegen->work.work_cb(codegen, codegen->work.work_ctx);
-}
-
 static void fklDestroyCodegenMacro(FklCodegenMacro *macro) {
     uninit_codegen_macro(macro);
     fklZfree(macro);
-}
-
-void fklUninitCodegenInfo(FklCodegenInfo *codegen) {
-    codegen->global_env = NULL;
-    codegen->pts = NULL;
-    codegen->st = NULL;
-    codegen->kt = NULL;
-
-    fklZfree(codegen->dir);
-    if (codegen->filename)
-        fklZfree(codegen->filename);
-    if (codegen->realpath)
-        fklZfree(codegen->realpath);
-    if (codegen->exports.buckets)
-        fklCgExportSidIdxHashMapUninit(&codegen->exports);
-    for (FklCodegenMacro *cur = codegen->export_macro; cur;) {
-        FklCodegenMacro *t = cur;
-        cur = cur->next;
-        fklDestroyCodegenMacro(t);
-    }
-    if (codegen->export_named_prod_groups)
-        fklSidHashSetDestroy(codegen->export_named_prod_groups);
-    if (codegen->export_replacement)
-        fklReplacementHashMapDestroy(codegen->export_replacement);
-    if (codegen->g == &codegen->self_g && *codegen->g) {
-        FklGrammer *g = *codegen->g;
-        fklUninitGrammer(g);
-        fklUninitGrammer(codegen->unnamed_g);
-        fklGraProdGroupHashMapUninit(codegen->named_prod_groups);
-        fklZfree(g);
-        codegen->g = NULL;
-    }
 }
 
 FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklSid_t id,
@@ -211,7 +46,7 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklSid_t id,
 }
 
 void fklPrintCodegenError(FklCodegenErrorState *error_state,
-        const FklCodegenInfo *info,
+        const FklVMvalueCodegenInfo *info,
         const FklSymbolTable *symbolTable,
         const FklSymbolTable *publicSymbolTable) {
     FklNastNode *obj = error_state->place;
@@ -1097,7 +932,7 @@ static inline void recompute_sid_for_sid_set(FklSidHashSet *ht,
     fklSidHashSetRehash(ht);
 }
 
-static inline void recompute_sid_for_main_file(FklCodegenInfo *codegen,
+static inline void recompute_sid_for_main_file(FklVMvalueCodegenInfo *codegen,
         FklByteCodelnt *bcl,
         const FklSymbolTable *origin_st,
         FklSymbolTable *target_st,
@@ -1131,17 +966,18 @@ static inline void recompute_sid_for_main_file(FklCodegenInfo *codegen,
             option);
 }
 
-void fklRecomputeSidForSingleTableInfo(FklCodegenInfo *codegen,
+void fklRecomputeSidForSingleTableInfo(FklVMvalueCodegenInfo *codegen,
         FklByteCodelnt *bcl,
         const FklSymbolTable *origin_st,
         FklSymbolTable *target_st,
         const FklConstTable *origin_kt,
         FklConstTable *target_kt,
         FklCodegenRecomputeNastSidOption option) {
-    FklFuncPrototypes *pts = codegen->ctx->pts;
-    FklFuncPrototypes *macro_pts = codegen->ctx->macro_pts;
-    FklCodegenLibVector *libs = &codegen->ctx->libraries;
-    FklCodegenLibVector *macro_libs = &codegen->ctx->macro_libraries;
+    FklCodegenCtx *ctx = codegen->ctx;
+    FklFuncPrototypes *pts = ctx->pts;
+    FklFuncPrototypes *macro_pts = ctx->macro_pts;
+    FklCodegenLibVector *libs = &ctx->libraries;
+    FklCodegenLibVector *macro_libs = &ctx->macro_libraries;
 
     recompute_sid_for_prototypes(pts, origin_st, target_st);
     recompute_sid_for_prototypes(macro_pts, origin_st, target_st);
@@ -1682,7 +1518,7 @@ static inline void write_lib_vector(FklCodegenLibVector *loaded_libraries,
     }
 }
 
-static inline void write_lib_main_file(const FklCodegenInfo *codegen,
+static inline void write_lib_main_file(const FklVMvalueCodegenInfo *codegen,
         const FklByteCodelnt *bcl,
         const FklSymbolTable *st,
         const char *main_dir,
@@ -1699,7 +1535,7 @@ static inline void write_lib_main_file(const FklCodegenInfo *codegen,
             outfp);
 }
 
-void fklWritePreCompile(FklCodegenInfo *codegen,
+void fklWritePreCompile(FklVMvalueCodegenInfo *codegen,
         const char *main_dir,
         const char *target_dir,
         FklByteCodelnt *bcl,
@@ -1712,8 +1548,9 @@ void fklWritePreCompile(FklCodegenInfo *codegen,
     const FklSymbolTable *origin_st = codegen->st;
     const FklConstTable *origin_kt = codegen->kt;
 
-    FklCodegenLibVector *libs = &codegen->ctx->libraries;
-    FklCodegenLibVector *macro_libs = &codegen->ctx->macro_libraries;
+    FklCodegenCtx *ctx = codegen->ctx;
+    FklCodegenLibVector *libs = &ctx->libraries;
+    FklCodegenLibVector *macro_libs = &ctx->macro_libraries;
 
     for (uint32_t i = 0; i < libs->size; ++i) {
         fklClearCodegenLibMacros(&libs->base[i]);
@@ -1742,7 +1579,7 @@ void fklWritePreCompile(FklCodegenInfo *codegen,
             outfp);
     write_lib_main_file(codegen, bcl, &target_st, main_dir, outfp);
 
-    FklFuncPrototypes *macro_pts = codegen->ctx->macro_pts;
+    FklFuncPrototypes *macro_pts = ctx->macro_pts;
     fklWriteFuncPrototypes(macro_pts, outfp);
     write_lib_vector(macro_libs, &target_st, main_dir, target_dir, outfp);
 
@@ -1965,7 +1802,7 @@ void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env,
 }
 
 void fklInitFuncPrototypeWithEnv(FklFuncPrototype *cpt,
-        FklCodegenInfo *info,
+        FklVMvalueCodegenInfo *info,
         FklVMvalueCodegenEnv *env,
         FklSid_t sid,
         uint32_t line,
@@ -2094,7 +1931,7 @@ void fklInitCodegenDllLib(FklCodegenLib *lib,
 }
 
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
-        FklCodegenInfo *codegen,
+        FklVMvalueCodegenInfo *info,
         FklByteCodelnt *bcl,
         uint64_t epc,
         FklVMvalueCodegenEnv *env) {
@@ -2103,27 +1940,25 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
     lib->epc = epc;
     lib->named_prod_groups.buckets = NULL;
     lib->exports.buckets = NULL;
-    if (codegen) {
+    if (info) {
+        lib->rp = info->realpath;
 
-        lib->rp = codegen->realpath;
-
-        lib->head = codegen->export_macro;
-        lib->replacements = codegen->export_replacement;
-        if (codegen->export_named_prod_groups
-                && codegen->export_named_prod_groups->count) {
+        lib->head = info->export_macro;
+        lib->replacements = info->export_replacement;
+        if (info->export_named_prod_groups
+                && info->export_named_prod_groups->count) {
             fklGraProdGroupHashMapInit(&lib->named_prod_groups);
             for (FklSidHashSetNode *sid_list =
-                            codegen->export_named_prod_groups->first;
+                            info->export_named_prod_groups->first;
                     sid_list;
                     sid_list = sid_list->next) {
                 FklSid_t id = sid_list->k;
                 FklGrammerProdGroupItem *group =
-                        fklGraProdGroupHashMapGet2(codegen->named_prod_groups,
-                                id);
+                        fklGraProdGroupHashMapGet2(info->named_prod_groups, id);
                 FKL_ASSERT(group);
                 FklGrammerProdGroupItem *target_group =
                         add_production_group(&lib->named_prod_groups,
-                                &codegen->ctx->public_st,
+                                &info->ctx->public_st,
                                 id);
                 merge_group(target_group, group, NULL);
 
@@ -2134,29 +1969,30 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
                 }
             }
         }
+
+        if (env) {
+            FklCgExportSidIdxHashMap *exports_index = &lib->exports;
+            fklCgExportSidIdxHashMapInit(exports_index);
+            FklCgExportSidIdxHashMap *export_sid_set = &info->exports;
+            lib->prototypeId = env->e.prototypeId;
+            for (const FklCgExportSidIdxHashMapNode *sid_idx_list =
+                            export_sid_set->first;
+                    sid_idx_list;
+                    sid_idx_list = sid_idx_list->next) {
+                fklCgExportSidIdxHashMapPut(exports_index,
+                        &sid_idx_list->k,
+                        &sid_idx_list->v);
+            }
+        } else
+            lib->prototypeId = 0;
     } else {
         lib->rp = NULL;
         lib->head = NULL;
         lib->replacements = NULL;
     }
-    if (env) {
-        FklCgExportSidIdxHashMap *exports_index = &lib->exports;
-        fklCgExportSidIdxHashMapInit(exports_index);
-        FklCgExportSidIdxHashMap *export_sid_set = &codegen->exports;
-        lib->prototypeId = env->e.prototypeId;
-        for (const FklCgExportSidIdxHashMapNode *sid_idx_list =
-                        export_sid_set->first;
-                sid_idx_list;
-                sid_idx_list = sid_idx_list->next) {
-            fklCgExportSidIdxHashMapPut(exports_index,
-                    &sid_idx_list->k,
-                    &sid_idx_list->v);
-        }
-    } else
-        lib->prototypeId = 0;
 }
 
-static inline void get_macro_pts_and_lib(FklCodegenInfo *info,
+static inline void get_macro_pts_and_lib(FklVMvalueCodegenInfo *info,
         FklFuncPrototypes **ppts,
         FklCodegenLibVector **plib) {
     for (; info->prev; info = info->prev)
@@ -2239,7 +2075,7 @@ FklCodegenMacro *fklCreateCodegenMacroMove(FklNastNode *pattern,
 }
 
 FklNastNode *fklTryExpandCodegenMacro(FklNastNode *exp,
-        FklCodegenInfo *codegen,
+        FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *errorState) {
     FklSymbolTable *pst = &codegen->ctx->public_st;
@@ -2439,19 +2275,6 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
     return exe;
 }
 
-void fklDestroyCodegenInfo(FklCodegenInfo *codegen) {
-    while (codegen) {
-        codegen->refcount -= 1;
-        FklCodegenInfo *prev = codegen->prev;
-        if (!codegen->refcount) {
-            fklUninitCodegenInfo(codegen);
-            fklZfree(codegen);
-            codegen = prev;
-        } else
-            break;
-    }
-}
-
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(macro_scope_as_print, "macro-scope")
 
 static void macro_scope_atomic(const FklVMud *ud, FklVMgc *gc) {
@@ -2572,4 +2395,186 @@ FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *c,
     fklPreDefRefVectorInit(&r->e.ref_pdef, 8);
     r->e.macros = fklCreateVMvalueCodegenMacroScope(c, prev_ms);
     return r;
+}
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(info_as_print, "info");
+
+static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(e, struct FklCodegenInfo, ud);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
+}
+
+static int info_finalizer(FklVMud *ud) {
+    FKL_DECL_UD_DATA(i, struct FklCodegenInfo, ud);
+
+    fklZfree(i->dir);
+    if (i->filename)
+        fklZfree(i->filename);
+    if (i->realpath)
+        fklZfree(i->realpath);
+
+    fklCgExportSidIdxHashMapUninit(&i->exports);
+    for (FklCodegenMacro *cur = i->export_macro; cur;) {
+        FklCodegenMacro *t = cur;
+        cur = cur->next;
+        fklDestroyCodegenMacro(t);
+    }
+    if (i->export_named_prod_groups)
+        fklSidHashSetDestroy(i->export_named_prod_groups);
+    if (i->export_replacement)
+        fklReplacementHashMapDestroy(i->export_replacement);
+    if (i->g == &i->self_g && *i->g) {
+        FklGrammer *g = *i->g;
+        fklUninitGrammer(g);
+        fklUninitGrammer(i->unnamed_g);
+        fklGraProdGroupHashMapUninit(i->named_prod_groups);
+        fklZfree(g);
+    }
+
+    memset(i, 0, sizeof(struct FklCodegenInfo));
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable InfoUserDataMetaTable = {
+    .size = sizeof(struct FklCodegenInfo),
+    .__as_princ = info_as_print,
+    .__as_prin1 = info_as_print,
+    .__atomic = info_atomic,
+    .__finalizer = info_finalizer,
+};
+
+int fklIsVMvalueCodegenInfo(FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &InfoUserDataMetaTable;
+}
+
+FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
+        FklVMvalueCodegenInfo *prev,
+        const char *filename,
+        const FklCodegenInfoArgs *args) {
+
+    int is_lib = args == NULL ? 0 : args->is_lib;
+    int is_macro = args == NULL ? 0 : args->is_macro;
+    int is_global = args == NULL ? 0 : args->is_global;
+
+    FklCodegenInfoWorkCb work_cb = args ? args->work_cb
+                                 : prev ? prev->work.work_cb
+                                        : NULL;
+
+    FklCodegenInfoEnvWorkCb env_work_cb = args ? args->env_work_cb
+                                        : prev ? prev->work.env_work_cb
+                                               : NULL;
+    void *work_ctx = args ? args->work_ctx //
+                   : prev ? prev->work.work_ctx
+                          : NULL;
+
+    FKL_ASSERT(prev == NULL || fklIsVMvalueCodegenInfo((FklVMvalue *)prev));
+
+    FklVMvalueCodegenInfo *r =
+            (FklVMvalueCodegenInfo *)fklCreateVMvalueUd(&ctx->gc->gcvm,
+                    &InfoUserDataMetaTable,
+                    NULL);
+    FklSymbolTable *st = args && args->st ? args->st
+                       : is_macro         ? &ctx->public_st
+                       : prev             ? prev->st
+                                          : ctx->runtime_st;
+
+    FklConstTable *kt = args && args->kt ? args->kt
+                      : is_macro         ? &ctx->public_kt
+                      : prev             ? prev->kt
+                                         : ctx->runtime_kt;
+
+    FklCodegenLibVector *libs = args && args->libraries ? args->libraries
+                              : is_macro                ? &ctx->macro_libraries
+                              : prev                    ? prev->libraries
+                                                        : &ctx->libraries;
+
+    FklFuncPrototypes *pts = args && args->pts ? args->pts
+                           : is_macro          ? ctx->macro_pts
+                           : prev              ? prev->pts
+                                               : ctx->pts;
+
+    char *rp = filename ? fklRealpath(filename)
+             : prev     ? fklZstrdup(prev->realpath)
+                        : NULL;
+
+    filename = filename ? filename       //
+             : prev     ? prev->filename //
+                        : NULL;
+
+    if (filename != NULL) {
+        r->dir = fklGetDir(rp);
+        r->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
+        r->realpath = rp;
+        r->fid = fklAddSymbolCstr(r->filename, st);
+    } else {
+        r->dir = fklSysgetcwd();
+        r->filename = NULL;
+        r->realpath = NULL;
+        r->fid = 0;
+    }
+
+    r->prev = prev;
+
+    r->curline = prev ? prev->curline : 1;
+
+    r->st = st;
+    r->kt = kt;
+    r->ctx = ctx;
+
+    r->refcount = 0;
+    r->exports.buckets = NULL;
+    r->is_lib = is_lib;
+    r->is_macro = is_macro;
+
+    r->export_macro = NULL;
+    r->export_replacement = is_lib ? fklReplacementHashMapCreate() : NULL;
+    r->export_named_prod_groups = is_lib ? fklSidHashSetCreate() : NULL;
+    r->exports.buckets = NULL;
+
+    r->work.work_cb = work_cb;
+    r->work.env_work_cb = env_work_cb;
+    r->work.work_ctx = work_ctx;
+
+    r->libraries = libs;
+    r->pts = pts;
+
+    if (is_lib)
+        fklCgExportSidIdxHashMapInit(&r->exports);
+
+    r->self_g = NULL;
+    r->g = &r->self_g;
+    r->named_prod_groups = &r->self_named_prod_groups;
+    r->unnamed_g = &r->self_unnamed_g;
+
+    if (prev && !is_macro) {
+        r->global_env = prev->global_env;
+        r->work = prev->work;
+    } else {
+        r->global_env = fklCreateVMvalueCodegenEnv(ctx, NULL, 0, NULL);
+        fklInitGlobCodegenEnv(r->global_env, &ctx->public_st);
+    }
+
+    if (r->work.work_cb)
+        r->work.work_cb(r, r->work.work_ctx);
+
+    FklVMvalueCodegenEnv *main_env = NULL;
+    if (is_global) {
+        FklVMvalueCodegenMacroScope *macros = r->global_env->e.macros;
+        main_env = fklCreateVMvalueCodegenEnv(r->ctx, r->global_env, 1, macros);
+        create_and_insert_to_pool(r, 0, main_env, 0, 1, &ctx->public_st);
+        ctx->global_env = main_env;
+        ctx->global_info = r;
+    }
+
+    return r;
+}
+
+void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
+        uint32_t p,
+        FklVMvalueCodegenEnv *env,
+        FklSid_t sid,
+        uint32_t line,
+        FklSymbolTable *pst) {
+    create_and_insert_to_pool(info, p, env, sid, line, pst);
 }

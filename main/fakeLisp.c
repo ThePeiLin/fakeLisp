@@ -25,12 +25,12 @@
 #include <unistd.h>
 #endif
 
-static int runRepl(FklCodegenInfo *,
+static int runRepl(FklVMvalueCodegenInfo *,
         FklVMvalueCodegenEnv *main_env,
         const char *eval_expression,
         int8_t interactive);
 static void init_frame_to_repl_frame(FklVM *,
-        FklCodegenInfo *codegen,
+        FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *,
         const char *eval_expression,
         int8_t interactive);
@@ -54,22 +54,18 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
 
     FklSymbolTable *pst = &ctx.public_st;
     fklAddSymbolCstr(filename, pst);
-    FklCodegenInfo codegen = {
-        .fid = 0,
-    };
-    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
+            NULL,
             rp,
-            st,
-            kt,
-            &ctx,
-            NULL,
-            NULL,
-            NULL);
+            &(FklCodegenInfoArgs){
+                .is_lib = 1,
+                .is_global = 1,
+            });
+
     fklZfree(rp);
     FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
     if (mainByteCode == NULL) {
-        fklUninitCodegenInfo(&codegen);
         fklUninitCodegenCtx(&ctx);
         return FKL_EXIT_FAILURE;
     }
@@ -78,10 +74,10 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     ctx.runtime_st = NULL;
     ctx.pts = NULL;
 
-    fklUpdatePrototype(pts, main_env, st, pst);
-    fklPrintUndefinedRef(codegen.global_env, st, pst);
+    fklUpdatePrototype(pts, ctx.global_env, st, pst);
+    fklPrintUndefinedRef(codegen->global_env, st, pst);
 
-    FklCodegenLibVector *scriptLibStack = codegen.libraries;
+    FklCodegenLibVector *scriptLibStack = codegen->libraries;
     FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode, st, kt, pts, 1, 0);
 
     FklVMgc *gc = anotherVM->gc;
@@ -100,8 +96,6 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         if (type == FKL_CODEGEN_LIB_SCRIPT)
             fklInitMainProcRefs(anotherVM, curVMlib->proc);
     }
-
-    fklUninitCodegenInfo(&codegen);
 
     fklChdir(ctx.cwd);
     fklUninitCodegenCtx(&ctx);
@@ -534,30 +528,27 @@ int main(int argc, char *argv[]) {
     } else if (rest->count == 0) {
     interactive:;
         FklCodegenCtx ctx;
-        FklCodegenInfo codegen = {
-            .fid = 0,
-        };
         fklInitCodegenCtx(&ctx, NULL, NULL, NULL);
-        FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
-                NULL,
-                &ctx.public_st,
-                &ctx.public_kt,
-                &ctx,
+        FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
                 NULL,
                 NULL,
-                NULL);
-        exitState = runRepl(&codegen,
+                &(FklCodegenInfoArgs){
+                    .is_lib = 1,
+                    .is_global = 1,
+                    .st = &ctx.public_st,
+                    .kt = &ctx.public_kt,
+                });
+        FklVMvalueCodegenEnv *main_env = ctx.global_env;
+        exitState = runRepl(codegen,
                 main_env,
                 eval->count > 0 ? eval->sval[0] : NULL,
                 interactive->count > 0);
-        codegen.st = NULL;
-        FklCodegenLibVector *loadedLibStack = codegen.libraries;
+        FklCodegenLibVector *loadedLibStack = codegen->libraries;
         while (!fklCodegenLibVectorIsEmpty(loadedLibStack)) {
             FklCodegenLib *lib =
                     fklCodegenLibVectorPopBackNonNull(loadedLibStack);
             fklUninitCodegenLib(lib);
         }
-        fklUninitCodegenInfo(&codegen);
         fklUninitCodegenCtx(&ctx);
     } else {
         const char *filename = rest->sval[0];
@@ -678,7 +669,7 @@ exit:
     return exitState;
 }
 
-static int runRepl(FklCodegenInfo *codegen,
+static int runRepl(FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {
@@ -728,7 +719,7 @@ struct ReplFrameCtx {
 };
 
 typedef struct {
-    FklCodegenInfo *codegen;
+    FklVMvalueCodegenInfo *codegen;
     FklVMvalueCodegenEnv *main_env;
     NastCreatCtx *cc;
     FklVM *exe;
@@ -1030,7 +1021,7 @@ typedef struct {
     size_t offset;
     FklVMgc *gc;
     NastCreatCtx *cc;
-    FklCodegenInfo *codegen;
+    FklVMvalueCodegenInfo *codegen;
     size_t errline;
 } ReadExpressionEndArgs;
 
@@ -1045,7 +1036,7 @@ static int read_expression_end_cb(const char *str,
 
     ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *, vargs);
 
-    FklCodegenInfo *codegen = args->codegen;
+    FklVMvalueCodegenInfo *codegen = args->codegen;
     FklGrammer *g = *(codegen->g);
 
     FklVMgc *gc = args->gc;
@@ -1085,7 +1076,7 @@ static int read_expression_end_cb(const char *str,
     }
 
     cc->offset = str_len - restLen;
-    codegen->curline = ctx.line;
+    codegen->curline += ctx.line;
 
     if (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen) {
         cc->err = READ_ERROR_INVALIDEXPR;
@@ -1202,7 +1193,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
         break;
     }
 
-    FklCodegenInfo *codegen = ctx->codegen;
+    FklVMvalueCodegenInfo *codegen = ctx->codegen;
     FklVMvalueCodegenEnv *main_env = ctx->main_env;
     FklSymbolTable *pst = &codegen->ctx->public_st;
     FklStringBuffer *s = &fctx->buf;
@@ -1232,7 +1223,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
         FklByteCodelnt *mainCode = NULL;
         FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-            mainCode = fklGenExpressionCode(ast, main_env, codegen);
+            mainCode = fklGenExpressionCode(ast, main_env, ctx->codegen);
         }
 
         fklStoreHistoryInStringBuffer(s, cc->offset);
@@ -1463,7 +1454,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
 
     FklNastNodeQueue *queue = fklNastNodeQueueCreate();
 
-    FklCodegenInfo *codegen = ctx->codegen;
+    FklVMvalueCodegenInfo *codegen = ctx->codegen;
     FklVMvalueCodegenEnv *main_env = ctx->main_env;
     FklSymbolTable *pst = &codegen->ctx->public_st;
     FklNastNode *ast = NULL;
@@ -1519,7 +1510,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     FklByteCodelnt *mainCode = NULL;
 
     FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        mainCode = fklGenExpressionCodeWithQueue(queue, codegen, main_env);
+        mainCode = fklGenExpressionCodeWithQueue(queue, ctx->codegen, main_env);
     }
 
     g = *(codegen->g);
@@ -1644,7 +1635,7 @@ static inline NastCreatCtx *createNastCreatCtx(void) {
 }
 
 static inline void init_frame_to_repl_frame(FklVM *exe,
-        FklCodegenInfo *codegen,
+        FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {

@@ -25,30 +25,29 @@ static inline int pre_compile(const char *main_file_name,
     FklSymbolTable *pst = &ctx->public_st;
     fklAddSymbolCstr(main_file_name, pst);
     FILE *fp = fopen(main_file_name, "r");
-    FklCodegenInfo codegen = {
-        .fid = 0,
-    };
     char *rp = fklRealpath(main_file_name);
     fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
     const char *main_dir = ctx->main_file_real_path_dir;
     fklChdir(ctx->main_file_real_path_dir);
-    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
+            NULL,
             rp,
-            &ctx->public_st,
-            &ctx->public_kt,
-            ctx,
-            NULL,
-            NULL,
-            NULL);
+            &(FklCodegenInfoArgs){
+                .is_global = 1,
+                .is_lib = 1,
+                .st = &ctx->public_st,
+                .kt = &ctx->public_kt,
+            });
+
+    FklVMvalueCodegenEnv *main_env = ctx->global_env;
     FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFpForPrecompile(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFpForPrecompile(fp, codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
+    fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
+    fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
 
     char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
     FKL_ASSERT(outputname);
@@ -69,14 +68,12 @@ static inline int pre_compile(const char *main_file_name,
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create pre-compile file!", outputname);
-        fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
 
-    fklWritePreCompile(&codegen, main_dir, output_dir, mainByteCode, outfp);
+    fklWritePreCompile(codegen, main_dir, output_dir, mainByteCode, outfp);
     fklDestroyByteCodelnt(mainByteCode);
     fclose(outfp);
-    fklUninitCodegenInfo(&codegen);
     fklZfree(outputname);
     return 0;
 }
@@ -90,29 +87,25 @@ static inline int compile(const char *filename,
     FklSymbolTable *pst = &ctx->public_st;
     fklAddSymbolCstr(filename, pst);
     FILE *fp = fopen(filename, "r");
-    FklCodegenInfo codegen = {
-        .fid = 0,
-    };
     char *rp = fklRealpath(filename);
     fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
     fklChdir(ctx->main_file_real_path_dir);
-    FklVMvalueCodegenEnv *main_env = fklInitGlobalCodegenInfo(&codegen,
+    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
+            NULL,
             rp,
-            ctx->runtime_st,
-            ctx->runtime_kt,
-            ctx,
-            NULL,
-            NULL,
-            NULL);
+            &(FklCodegenInfoArgs){
+                .is_lib = 1,
+                .is_global = 1,
+            });
+    FklVMvalueCodegenEnv *main_env = ctx->global_env;
     FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, &codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, codegen, main_env);
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen.pts, main_env, codegen.st, pst);
-    fklPrintUndefinedRef(codegen.global_env, codegen.st, pst);
+    fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
+    fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
 
     char *outputname = NULL;
     if (output) {
@@ -129,22 +122,20 @@ static inline int compile(const char *filename,
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create byte code file!\n", outputname);
-        fklUninitCodegenInfo(&codegen);
         return EXIT_FAILURE;
     }
 
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
-                .runtime_st = codegen.st,
-                .runtime_kt = codegen.kt,
-                .pts = codegen.pts,
+                .runtime_st = codegen->st,
+                .runtime_kt = codegen->kt,
+                .pts = codegen->pts,
                 .main_func = mainByteCode,
-                .libs = codegen.libraries,
+                .libs = codegen->libraries,
             });
 
     fklDestroyByteCodelnt(mainByteCode);
     fclose(outfp);
-    fklUninitCodegenInfo(&codegen);
     fklZfree(outputname);
     return 0;
 }

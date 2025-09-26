@@ -18,8 +18,9 @@ struct CustomActionCtx {
 
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
     uint32_t r = ++env->e.sc;
-    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklZrealloc(env->e.scopes,
-            r * sizeof(FklCodegenEnvScope));
+    FklCodegenEnvScope *scopes =
+            (FklCodegenEnvScope *)fklZrealloc(env->e.scopes,
+                    r * sizeof(FklCodegenEnvScope));
     FKL_ASSERT(scopes);
     env->e.scopes = scopes;
     FklCodegenEnvScope *newScope = &scopes[r - 1];
@@ -90,7 +91,7 @@ static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
     macro->bcl = NULL;
 }
 
-static inline void create_and_insert_to_pool(FklCodegenInfo *info,
+static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
         uint32_t p,
         FklVMvalueCodegenEnv *env,
         FklSid_t sid,

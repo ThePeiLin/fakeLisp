@@ -122,6 +122,7 @@ typedef struct DebugCtx {
     CmdReadCtx read_ctx;
     FklVMvalueCodegenEnv *glob_env;
     FklVMvalueCodegenEnv *eval_env;
+    FklVMvalueCodegenInfo *eval_info;
     FklCodegenCtx codegen_ctx;
 
     FklSidHashSet file_sid_set;

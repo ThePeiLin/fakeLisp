@@ -926,7 +926,7 @@ static inline void resolve_ref_and_update_const_array_for_repl(
     };
 
     FklResolveRefArgVector *unresolve_refs = &resolve_ref_args.unresolve_refs;
-    fklResolveRefArgVectorInit(unresolve_refs, env->e.uref.size);
+    fklResolveRefArgVectorInit(unresolve_refs, env->uref.size);
 
     fklResolveRef(env,
             scope,
@@ -951,8 +951,8 @@ static inline void resolve_ref_and_update_const_array_for_repl(
 
 static inline void update_prototype_lcount(FklFuncPrototypes *cp,
         FklVMvalueCodegenEnv *env) {
-    FklFuncPrototype *pts = &cp->pa[env->e.prototypeId];
-    pts->lcount = env->e.lcount;
+    FklFuncPrototype *pts = &cp->pa[env->prototypeId];
+    pts->lcount = env->lcount;
 }
 
 static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef *lr,

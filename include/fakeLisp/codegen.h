@@ -46,30 +46,33 @@ typedef struct {
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
+#define FKL_CODEGEN_ENV_MEMBERS                                                \
+    FklUnReSymbolRefVector uref;                                               \
+    uint8_t *slotFlags;                                                        \
+    FklCodegenEnvScope *scopes;                                                \
+    uint32_t lcount;                                                           \
+    uint32_t sc;                                                               \
+    uint32_t pscope;                                                           \
+    uint32_t prototypeId;                                                      \
+    struct FklVMvalueCodegenEnv *prev;                                         \
+    struct FklVMvalueCodegenMacroScope *macros;                                \
+    FklSymDefHashMap refs;                                                     \
+    FklPredefHashMap pdef;                                                     \
+    struct FklPreDefRefVector ref_pdef;                                        \
+    int is_debugging
+
 struct FklCodegenEnv {
-    FklUnReSymbolRefVector uref;
-
-    uint8_t *slotFlags;
-    FklCodegenEnvScope *scopes;
-    uint32_t lcount;
-    uint32_t sc;
-    uint32_t pscope;
-
-    uint32_t prototypeId;
-
-    struct FklVMvalueCodegenEnv *prev;
-    struct FklVMvalueCodegenMacroScope *macros;
-    FklSymDefHashMap refs;
-
-    FklPredefHashMap pdef;
-    struct FklPreDefRefVector ref_pdef;
-
-    int is_debugging;
+    FKL_CODEGEN_ENV_MEMBERS;
 };
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, //
         {                                  //
-            struct FklCodegenEnv e;
+            union {
+                struct FklCodegenEnv _env;
+                struct {
+                    FKL_CODEGEN_ENV_MEMBERS;
+                };
+            };
         });
 
 typedef struct {

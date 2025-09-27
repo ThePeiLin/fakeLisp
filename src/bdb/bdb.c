@@ -51,7 +51,7 @@ static void create_env_work_cb(FklVMvalueCodegenInfo *info,
         void *ctx) {
     if (!info->is_macro) {
         DebugCtx *dctx = (DebugCtx *)ctx;
-        env->e.is_debugging = 1;
+        env->is_debugging = 1;
         putEnv(dctx, env);
     }
 }
@@ -527,7 +527,7 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx, FklSid_t id) {
     if (env == NULL)
         return NULL;
     const FklSymDefHashMapElm *def =
-            fklFindSymbolDefByIdAndScope(id, scope, env->e.scopes);
+            fklFindSymbolDefByIdAndScope(id, scope, env->scopes);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
     return NULL;

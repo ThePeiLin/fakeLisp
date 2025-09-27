@@ -17,12 +17,11 @@ struct CustomActionCtx {
 };
 
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
-    uint32_t r = ++env->e.sc;
-    FklCodegenEnvScope *scopes =
-            (FklCodegenEnvScope *)fklZrealloc(env->e.scopes,
-                    r * sizeof(FklCodegenEnvScope));
+    uint32_t r = ++env->sc;
+    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklZrealloc(env->scopes,
+            r * sizeof(FklCodegenEnvScope));
     FKL_ASSERT(scopes);
-    env->e.scopes = scopes;
+    env->scopes = scopes;
     FklCodegenEnvScope *newScope = &scopes[r - 1];
     newScope->p = p;
     fklSymDefHashMapInit(&newScope->defs);
@@ -105,11 +104,11 @@ static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
     FKL_ASSERT(pts);
     cp->pa = pts;
     FklFuncPrototype *cpt = &pts[cp->count];
-    env->e.prototypeId = cp->count;
-    cpt->lcount = env->e.lcount;
+    env->prototypeId = cp->count;
+    cpt->lcount = env->lcount;
     cpt->refs = NULL;
     cpt->rcount = 0;
-    FKL_ASSERT(cpt == &info->pts->pa[env->e.prototypeId]);
+    FKL_ASSERT(cpt == &info->pts->pa[env->prototypeId]);
     fklUpdatePrototypeRef(info->pts, env, info->st, pst);
 
     cpt->sid = sid;

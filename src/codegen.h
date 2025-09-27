@@ -119,13 +119,4 @@ static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
     if (info->work.env_work_cb)
         info->work.env_work_cb(info, env, info->work.work_ctx);
 }
-
-static inline FklCodegenMacroScope *fklms(FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueCodegenMacroScope(v));
-    return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
-}
-
-static inline FklCodegenMacroScope *fklms1(FklVMvalueCodegenMacroScope *v) {
-    return FKL_GET_UD_DATA(FklCodegenMacroScope, FKL_VM_UD(v));
-}
 #endif

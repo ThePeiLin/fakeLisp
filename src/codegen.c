@@ -871,7 +871,7 @@ static void destroy_cg_action(FklCodegenAction *action) {
     static FklByteCodelnt *NAME(FklVMvalueCodegenInfo *codegen,                \
             FklVMvalueCodegenEnv *env,                                         \
             uint32_t scope,                                                    \
-            FklCodegenMacroScope *cms,                                         \
+            FklVMvalueCodegenMacroScope *cms,                                         \
             void *data,                                                        \
             FklByteCodelntVector *bcl_vec,                                     \
             FklSid_t fid,                                                      \
@@ -2252,7 +2252,7 @@ static CODEGEN_FUNC(codegen_named_let0) {
     FklSymbolTable *pst = &ctx->public_st;
     uint32_t idx = fklAddCodegenDefBySid(name->sym, cs, curEnv)->idx;
 
-    fklReplacementHashMapAdd2(fklms1(cms)->replacements,
+    fklReplacementHashMapAdd2(cms->replacements,
             fklAddSymbolCstr("*func*", pst),
             name);
 
@@ -2366,7 +2366,7 @@ static CODEGEN_FUNC(codegen_named_let1) {
 
     FklSymbolTable *pst = &ctx->public_st;
 
-    fklReplacementHashMapAdd2(fklms1(cms)->replacements,
+    fklReplacementHashMapAdd2(cms->replacements,
             fklAddSymbolCstr("*func*", pst),
             name);
     fklCodegenActionVectorPushBack2(codegenActionStack,
@@ -2527,7 +2527,7 @@ static CODEGEN_FUNC(codegen_or) {
 }
 
 int fklIsReplacementDefined(FklSid_t id, FklVMvalueCodegenEnv *env) {
-    return fklReplacementHashMapGet2(fklms1(env->e.macros)->replacements, id)
+    return fklReplacementHashMapGet2(env->e.macros->replacements, id)
         != NULL;
 }
 
@@ -2739,7 +2739,7 @@ static CODEGEN_FUNC(codegen_defun) {
             pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
     name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst));
-    fklReplacementHashMapAdd2(fklms1(lambdaCodegenEnv->e.macros)->replacements,
+    fklReplacementHashMapAdd2(lambdaCodegenEnv->e.macros->replacements,
             fklAddSymbolCstr("*func*", pst),
             name_str);
     fklDestroyNastNode(name_str);
@@ -2807,7 +2807,7 @@ static CODEGEN_FUNC(codegen_defun_const) {
             pst);
     FklNastNode *name_str = fklCreateNastNode(FKL_NAST_STR, name->curline);
     name_str->str = fklCopyString(fklGetSymbolWithId(name->sym, pst));
-    fklReplacementHashMapAdd2(fklms1(lambdaCodegenEnv->e.macros)->replacements,
+    fklReplacementHashMapAdd2(lambdaCodegenEnv->e.macros->replacements,
             fklAddSymbolCstr("*func*", pst),
             name_str);
     fklDestroyNastNode(name_str);
@@ -2963,7 +2963,7 @@ static void add_compiler_macro(FklCodegenMacro **pmacro,
 }
 
 BC_PROCESS(_export_macro_bc_process) {
-    FklCodegenMacroScope *target_macro_scope = fklms1(cms->prev);
+    FklVMvalueCodegenMacroScope *target_macro_scope = cms->prev;
     for (; codegen && !codegen->is_lib; codegen = codegen->prev)
         ;
     for (FklCodegenMacro *cur = cms->head; cur; cur = cur->next) {
@@ -3040,8 +3040,8 @@ static inline int is_replacement_define(const FklNastNode *value,
     FklNastNode *replacement = NULL;
     ReplacementFunc f = NULL;
     for (const FklVMvalueCodegenMacroScope *cs = macroScope; cs && !replacement;
-            cs = cs->ms.prev)
-        replacement = fklGetReplacement(value->sym, cs->ms.replacements);
+            cs = cs->prev)
+        replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement) {
         return 1;
     } else if ((f = findBuiltInReplacementWithId(value->sym,
@@ -3059,8 +3059,8 @@ static inline int is_replacement_true(const FklNastNode *value,
     FklNastNode *replacement = NULL;
     ReplacementFunc f = NULL;
     for (const FklVMvalueCodegenMacroScope *cs = macroScope; cs && !replacement;
-            cs = cs->ms.prev)
-        replacement = fklGetReplacement(value->sym, cs->ms.replacements);
+            cs = cs->prev)
+        replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement) {
         int r = replacement->type != FKL_NAST_NIL;
         return r;
@@ -3082,8 +3082,8 @@ static inline FklNastNode *get_replacement(const FklNastNode *value,
     FklNastNode *replacement = NULL;
     ReplacementFunc f = NULL;
     for (const FklVMvalueCodegenMacroScope *cs = macroScope; cs && !replacement;
-            cs = cs->ms.prev)
-        replacement = fklGetReplacement(value->sym, cs->ms.replacements);
+            cs = cs->prev)
+        replacement = fklGetReplacement(value->sym, cs->replacements);
     if (replacement)
         return fklMakeNastNodeRef(replacement);
     else if ((f = findBuiltInReplacementWithId(value->sym,
@@ -3277,8 +3277,8 @@ static inline int cfg_check_macro_defined(const FklNastNode *exp,
         int r = 0;
         FklSid_t id = value->pair->car->sym;
         for (const FklVMvalueCodegenMacroScope *macros = macroScope; macros;
-                macros = macros->ms.prev) {
-            for (const FklCodegenMacro *cur = macros->ms.head; cur;
+                macros = macros->prev) {
+            for (const FklCodegenMacro *cur = macros->head; cur;
                     cur = cur->next) {
                 if (id == cur->pattern->pair->car->sym) {
                     r = 1;
@@ -4808,7 +4808,6 @@ static CODEGEN_FUNC(codegen_load) {
     if (hasLoadSameFile(nextCodegen->realpath, codegen)) {
         errorState->type = FKL_ERR_CIRCULARLOAD;
         errorState->place = fklMakeNastNodeRef(filename);
-        nextCodegen->refcount = 1;
         return;
     }
     init_load_codegen_grammer_ptr(nextCodegen, codegen);
@@ -4817,7 +4816,6 @@ static CODEGEN_FUNC(codegen_load) {
     if (!fp) {
         errorState->type = FKL_ERR_FILEFAILURE;
         errorState->place = fklMakeNastNodeRef(filename);
-        nextCodegen->refcount = 1;
         return;
     }
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(_begin_exp_bc_process,
@@ -4937,7 +4935,7 @@ static FklNastNode *replace_pattern_origin_exp_head(FklNastNode *orig,
 
 static inline void export_replacement_with_prefix(
         FklReplacementHashMap *replacements,
-        FklCodegenMacroScope *macros,
+        FklVMvalueCodegenMacroScope *macros,
         const FklString *prefix,
         FklSymbolTable *pst) {
     for (FklReplacementHashMapNode *cur = replacements->first; cur;
@@ -5104,7 +5102,7 @@ static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *curEnv,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         uint64_t curline,
         FklCodegenErrorState *errorState,
         FklSymbolTable *pst) {
@@ -5169,7 +5167,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *curEnv,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         uint64_t curline,
         FklNastNode *prefixNode,
         FklCodegenErrorState *errorState,
@@ -5242,7 +5240,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *curEnv,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         uint64_t curline,
         FklNastNode *only,
         FklCodegenErrorState *errorState) {
@@ -5334,7 +5332,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *curEnv,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         uint64_t curline,
         FklNastNode *except,
         FklCodegenErrorState *errorState) {
@@ -5424,7 +5422,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *curEnv,
         uint32_t scope,
-        FklCodegenMacroScope *macroScope,
+        FklVMvalueCodegenMacroScope *macroScope,
         uint64_t curline,
         FklNastNode *alias,
         FklCodegenErrorState *errorState,
@@ -5535,7 +5533,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
                 lib,
                 env,
                 scope,
-                fklms1(cms),
+                cms,
                 line,
                 prefix,
                 errorState,
@@ -5546,7 +5544,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
                 lib,
                 env,
                 scope,
-                fklms1(cms),
+                cms,
                 line,
                 only,
                 errorState);
@@ -5556,7 +5554,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
                 lib,
                 env,
                 scope,
-                fklms1(cms),
+                cms,
                 line,
                 alias,
                 errorState,
@@ -5567,7 +5565,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
                 lib,
                 env,
                 scope,
-                fklms1(cms),
+                cms,
                 line,
                 except,
                 errorState);
@@ -5576,7 +5574,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
             lib,
             env,
             scope,
-            fklms1(cms),
+            cms,
             line,
             errorState,
             pst);
@@ -5678,7 +5676,6 @@ static FklCodegenActionContext *createExportContext(
     ExportContextData *data = FKL_TYPE_CAST(ExportContextData *, r->d);
 
     data->codegen = codegen;
-    codegen->refcount++;
 
     data->scope = scope;
     data->env = targetEnv;
@@ -5826,9 +5823,9 @@ BC_PROCESS(_export_import_bc_process) {
 
     FklVMvalueCodegenMacroScope *macros = targetEnv->e.macros;
 
-    for (FklCodegenMacro *head = env->e.macros->ms.head; head;
+    for (FklCodegenMacro *head = env->e.macros->head; head;
             head = head->next) {
-        add_compiler_macro(&macros->ms.head,
+        add_compiler_macro(&macros->head,
                 fklMakeNastNodeRef(head->pattern),
                 fklMakeNastNodeRef(head->origin_exp),
                 head->bcl,
@@ -5841,11 +5838,11 @@ BC_PROCESS(_export_import_bc_process) {
                 head->prototype_id);
     }
 
-    for (FklReplacementHashMapNode *cur = env->e.macros->ms.replacements->first;
+    for (FklReplacementHashMapNode *cur = env->e.macros->replacements->first;
             cur;
             cur = cur->next) {
         fklReplacementHashMapAdd2(codegen->export_replacement, cur->k, cur->v);
-        fklReplacementHashMapAdd2(macros->ms.replacements, cur->k, cur->v);
+        fklReplacementHashMapAdd2(macros->replacements, cur->k, cur->v);
     }
 
     FklVMvalueCodegenInfo *lib_codegen = d->codegen;
@@ -5901,7 +5898,7 @@ static CODEGEN_FUNC(codegen_export_none) {
     FklVMvalueCodegenInfo *libCodegen = get_lib_codegen(codegen);
 
     if (libCodegen && scope == 1 && curEnv->e.prev == codegen->global_env
-            && macroScope->ms.prev == codegen->global_env->e.macros) {
+            && macroScope->prev == codegen->global_env->e.macros) {
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(_empty_bc_process,
                 createDefaultStackContext(),
                 NULL,
@@ -5945,7 +5942,7 @@ static CODEGEN_FUNC(codegen_export) {
     FklVMvalueCodegenInfo *libCodegen = get_lib_codegen(codegen);
 
     if (libCodegen && scope == 1 && curEnv->e.prev == codegen->global_env
-            && macroScope->ms.prev == codegen->global_env->e.macros) {
+            && macroScope->prev == codegen->global_env->e.macros) {
         FklNastNodeQueue *exportQueue = fklNastNodeQueueCreate();
         FklNastNode *orig_exp = fklCopyNastNode(origExp);
         FklNastNode *rest =
@@ -6008,7 +6005,7 @@ BC_PROCESS(_export_define_bc_process) {
 static CODEGEN_FUNC(codegen_export_single) {
     FklVMvalueCodegenInfo *libCodegen = get_lib_codegen(codegen);
     if (!libCodegen || curEnv->e.prev != codegen->global_env || scope > 1
-            || macroScope->ms.prev != codegen->global_env->e.macros) {
+            || macroScope->prev != codegen->global_env->e.macros) {
         errorState->type = FKL_ERR_SYNTAXERROR;
         errorState->place = fklMakeNastNodeRef(origExp);
         return;
@@ -6194,7 +6191,6 @@ static inline void process_import_script_common_header(FklNastNode *origExp,
     if (hasLoadSameFile(nextCodegen->realpath, codegen)) {
         errorState->type = FKL_ERR_CIRCULARLOAD;
         errorState->place = fklMakeNastNodeRef(name);
-        nextCodegen->refcount = 1;
         return;
     }
     size_t libId = check_loaded_lib(nextCodegen->realpath, codegen->libraries);
@@ -6203,7 +6199,6 @@ static inline void process_import_script_common_header(FklNastNode *origExp,
         if (!fp) {
             errorState->type = FKL_ERR_FILEFAILURE;
             errorState->place = fklMakeNastNodeRef(name);
-            nextCodegen->refcount = 1;
             return;
         }
         FklVMvalueCodegenEnv *libEnv = fklCreateVMvalueCodegenEnv(codegen->ctx,
@@ -7057,7 +7052,7 @@ BC_PROCESS(_compiler_macro_bc_process) {
     uint32_t prototype_id = d->prototype_id;
 
     fklPeepholeOptimize(macroBcl);
-    add_compiler_macro(&macros->ms.head,
+    add_compiler_macro(&macros->head,
             fklMakeNastNodeRef(pattern),
             fklMakeNastNodeRef(d->origin_exp),
             macroBcl,
@@ -8707,7 +8702,7 @@ static inline FklVMvalueCodegenInfo *macro_compile_prepare(
                     });
 
     FklVMvalueCodegenEnv *macro_glob_env = macroCodegen->global_env;
-    macro_glob_env->e.macros->ms.prev = macroScope;
+    macro_glob_env->e.macros->prev = macroScope;
     FklVMvalueCodegenEnv *macro_main_env =
             fklCreateVMvalueCodegenEnv(codegen->ctx,
                     macro_glob_env,
@@ -9288,7 +9283,7 @@ static CODEGEN_FUNC(codegen_defmacro) {
     FklNastNode *value =
             *fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (name->type == FKL_NAST_SYM)
-        fklReplacementHashMapAdd2(macroScope->ms.replacements,
+        fklReplacementHashMapAdd2(macroScope->replacements,
                 name->sym,
                 value);
     else if (name->type == FKL_NAST_PAIR) {
@@ -9998,9 +9993,9 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                     ReplacementFunc f = NULL;
                     for (FklVMvalueCodegenMacroScope *cs = cur_action->macros;
                             cs && !replacement;
-                            cs = cs->ms.prev)
+                            cs = cs->prev)
                         replacement = fklGetReplacement(curExp->sym,
-                                cs->ms.replacements);
+                                cs->replacements);
                     if (replacement) {
                         fklDestroyNastNode(curExp);
                         curExp = fklMakeNastNodeRef(replacement);
@@ -10098,7 +10093,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                     cur_action->codegen,
                     curEnv,
                     cur_action->scope,
-                    cur_action->macros ? fklms1(cur_action->macros) : NULL,
+                    cur_action->macros ,
                     FKL_TYPE_CAST(void *, cur_context->d),
                     &cur_action->bcl_vector,
                     cur_action->codegen->fid,

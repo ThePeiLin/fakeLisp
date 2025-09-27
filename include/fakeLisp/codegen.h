@@ -118,15 +118,23 @@ typedef struct FklCodegenMacro {
 #define FKL_HASH_VAL_UNINIT(V) fklDestroyNastNode(*(V))
 #include "cont/hash.h"
 
-typedef struct FklCodegenMacroScope {
-    struct FklVMvalueCodegenMacroScope *prev;
-    FklReplacementHashMap *replacements;
-    FklCodegenMacro *head;
-} FklCodegenMacroScope;
+#define FKL_CODEGEN_MACRO_SCOPE_MEMBERS                                        \
+    struct FklVMvalueCodegenMacroScope *prev;                                  \
+    FklReplacementHashMap *replacements;                                       \
+    FklCodegenMacro *head
+
+struct FklCodegenMacroScope {
+    FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
+};
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope,
         { //
-            FklCodegenMacroScope ms;
+            union {
+                struct FklCodegenMacroScope _ms;
+                struct {
+                    FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
+                };
+            };
         });
 
 typedef enum FklCodegenLibType {
@@ -371,7 +379,6 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
     FklFuncPrototypes *pts;                                                    \
     unsigned int is_lib : 1;                                                   \
     unsigned int is_macro : 1;                                                 \
-    uint64_t refcount : 61;                                                    \
     struct {                                                                   \
         void *work_ctx;                                                        \
         FklCodegenInfoWorkCb work_cb;                                          \
@@ -415,7 +422,7 @@ typedef struct FklCodegenErrorState {
 typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklVMvalueCodegenInfo *,
         FklVMvalueCodegenEnv *,
         uint32_t scope,
-        FklCodegenMacroScope *,
+        FklVMvalueCodegenMacroScope *,
         void *data,
         FklByteCodelntVector *bcl_vec,
         FklSid_t,

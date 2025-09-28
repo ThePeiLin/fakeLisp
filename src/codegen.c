@@ -4744,14 +4744,6 @@ static FklCodegenNextExpression *createFpNextExpression(FILE *fp,
             0);
 }
 
-static inline void init_load_codegen_grammer_ptr(FklVMvalueCodegenInfo *next,
-        FklVMvalueCodegenInfo *prev) {
-    next->g = &prev->self_g;
-    next->named_prod_groups = &prev->self_named_prod_groups;
-
-    next->unnamed_g = &prev->self_unnamed_g;
-}
-
 static CODEGEN_FUNC(codegen_load) {
     FklNastNode *filename =
             *fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_name);
@@ -4802,14 +4794,13 @@ static CODEGEN_FUNC(codegen_load) {
             fklCreateVMvalueCodegenInfo(codegen->ctx,
                     codegen,
                     filenameStr->str,
-                    NULL);
+                    &(FklCodegenInfoArgs){ .inherit_grammer = 1 });
 
     if (hasLoadSameFile(nextCodegen->realpath, codegen)) {
         errorState->type = FKL_ERR_CIRCULARLOAD;
         errorState->place = fklMakeNastNodeRef(filename);
         return;
     }
-    init_load_codegen_grammer_ptr(nextCodegen, codegen);
 
     FILE *fp = fopen(filenameStr->str, "r");
     if (!fp) {
@@ -8696,13 +8687,12 @@ static inline FklVMvalueCodegenInfo *macro_compile_prepare(
                     NULL,
                     &(FklCodegenInfoArgs){
                         .is_macro = 1,
+                        .macro_scope = macroScope,
                     });
 
-    FklVMvalueCodegenEnv *macro_glob_env = macroCodegen->global_env;
-    macro_glob_env->macros->prev = macroScope;
     FklVMvalueCodegenEnv *macro_main_env =
             fklCreateVMvalueCodegenEnv(codegen->ctx,
-                    macro_glob_env,
+                    macroCodegen->global_env,
                     1,
                     macroScope);
 

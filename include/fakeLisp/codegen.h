@@ -386,7 +386,7 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
         void *work_ctx;                                                        \
         FklCodegenInfoWorkCb work_cb;                                          \
         FklCodegenInfoEnvWorkCb env_work_cb;                                   \
-    } work
+    }
 
 struct FklCodegenInfo {
     FKL_CODEGEN_INFO_MEMBERS;
@@ -513,6 +513,7 @@ typedef struct {
     FklConstTable *kt;
     FklFuncPrototypes *pts;
     FklCodegenLibVector *libraries;
+    FklVMvalueCodegenMacroScope *macro_scope;
 
     void *work_ctx;
     FklCodegenInfoWorkCb work_cb;
@@ -521,6 +522,7 @@ typedef struct {
     int8_t is_lib;
     int8_t is_macro;
     int8_t is_global;
+    int8_t inherit_grammer;
 } FklCodegenInfoArgs;
 
 int fklIsVMvalueCodegenInfo(FklVMvalue *v);

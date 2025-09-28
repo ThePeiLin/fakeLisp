@@ -115,7 +115,7 @@ static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
     cpt->fid = fid;
     cpt->line = line;
 
-    if (info->work.env_work_cb)
-        info->work.env_work_cb(info, env, info->work.work_ctx);
+    if (info->env_work_cb)
+        info->env_work_cb(info, env, info->work_ctx);
 }
 #endif

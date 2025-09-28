@@ -2455,14 +2455,14 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
     int is_global = args == NULL ? 0 : args->is_global;
 
     FklCodegenInfoWorkCb work_cb = args ? args->work_cb
-                                 : prev ? prev->work.work_cb
+                                 : prev ? prev->work_cb
                                         : NULL;
 
     FklCodegenInfoEnvWorkCb env_work_cb = args ? args->env_work_cb
-                                        : prev ? prev->work.env_work_cb
+                                        : prev ? prev->env_work_cb
                                                : NULL;
     void *work_ctx = args ? args->work_ctx //
-                   : prev ? prev->work.work_ctx
+                   : prev ? prev->work_ctx
                           : NULL;
 
     FKL_ASSERT(prev == NULL || fklIsVMvalueCodegenInfo((FklVMvalue *)prev));
@@ -2528,9 +2528,9 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
     r->export_named_prod_groups = is_lib ? fklSidHashSetCreate() : NULL;
     r->exports.buckets = NULL;
 
-    r->work.work_cb = work_cb;
-    r->work.env_work_cb = env_work_cb;
-    r->work.work_ctx = work_ctx;
+    r->work_cb = work_cb;
+    r->env_work_cb = env_work_cb;
+    r->work_ctx = work_ctx;
 
     r->libraries = libs;
     r->pts = pts;
@@ -2538,21 +2538,28 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
     if (is_lib)
         fklCgExportSidIdxHashMapInit(&r->exports);
 
-    r->self_g = NULL;
-    r->g = &r->self_g;
-    r->named_prod_groups = &r->self_named_prod_groups;
-    r->unnamed_g = &r->self_unnamed_g;
+    if (args->inherit_grammer && prev) {
+        r->g = &prev->self_g;
+        r->named_prod_groups = &prev->self_named_prod_groups;
+        r->unnamed_g = &prev->self_unnamed_g;
+    } else {
+        r->g = &r->self_g;
+        r->named_prod_groups = &r->self_named_prod_groups;
+        r->unnamed_g = &r->self_unnamed_g;
+    }
 
     if (prev && !is_macro) {
         r->global_env = prev->global_env;
-        r->work = prev->work;
     } else {
-        r->global_env = fklCreateVMvalueCodegenEnv(ctx, NULL, 0, NULL);
+        r->global_env = fklCreateVMvalueCodegenEnv(ctx,
+                NULL,
+                0,
+                is_macro ? args->macro_scope : NULL);
         fklInitGlobCodegenEnv(r->global_env, &ctx->public_st);
     }
 
-    if (r->work.work_cb)
-        r->work.work_cb(r, r->work.work_ctx);
+    if (r->work_cb)
+        r->work_cb(r, r->work_ctx);
 
     FklVMvalueCodegenEnv *main_env = NULL;
     if (is_global) {

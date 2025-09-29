@@ -9427,12 +9427,6 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
 
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
-BC_PROCESS(pre_compile_main_bc_process) {
-    FklByteCodelnt *bclnt = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
-    process_export_bc(codegen, bclnt, fid, line, scope);
-    return bclnt;
-}
-
 BC_PROCESS(last_bc_process) {
     FklByteCodelnt *r = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
     FklInstruction r_ins = create_op_ins(FKL_OP_RET);
@@ -9921,21 +9915,21 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
     FklCodegenErrorState errorState = { 0, NULL, 0, 0, NULL, NULL };
     FklCodegenActionVector codegen_action_vector;
     fklCodegenActionVectorInit(&codegen_action_vector, 32);
-    fklCodegenActionVectorPushBack2(&codegen_action_vector, initial_action);
-    info->ctx->action_vector = &codegen_action_vector;
 
     FklCodegenAction *action1 = create_cg_action(last_bc_process,
             createDefaultStackContext(),
-            initial_action->expressions,
+            NULL,
             initial_action->scope,
             initial_action->macros,
             initial_action->env,
             initial_action->curline,
-            initial_action,
+            NULL,
             initial_action->codegen);
 
-    initial_action->expressions = NULL;
     fklCodegenActionVectorPushBack2(&codegen_action_vector, action1);
+    fklCodegenActionVectorPushBack2(&codegen_action_vector, initial_action);
+
+    info->ctx->action_vector = &codegen_action_vector;
 
     while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
         FklCodegenAction *cur_action =
@@ -10115,17 +10109,27 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
 FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env) {
-    FklCodegenAction *initialAction =
-            create_cg_action(pre_compile_main_bc_process,
-                    createDefaultStackContext(),
-                    createFpNextExpression(fp, codegen),
-                    1,
-                    cur_env->macros,
-                    cur_env,
-                    1,
-                    NULL,
-                    codegen);
-    return fklGenExpressionCodeWithAction(initialAction, codegen);
+    static const uint32_t scope = 1;
+    static const uint64_t line = 1;
+
+    FklCodegenAction *initialAction = create_cg_action(_begin_exp_bc_process,
+            createDefaultStackContext(),
+            createFpNextExpression(fp, codegen),
+            1,
+            cur_env->macros,
+            cur_env,
+            1,
+            NULL,
+            codegen);
+
+    FklByteCodelnt *bcl =
+            fklGenExpressionCodeWithAction(initialAction, codegen);
+    if (bcl == NULL)
+        return NULL;
+
+    process_export_bc(codegen, bcl, codegen->fid, line, scope);
+
+    return bcl;
 }
 
 FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *fp,

@@ -1,7 +1,8 @@
 (export
   (defmacro ~(make-test,~rest)
+    (let [(msg (make-symbol "msg"))]
     (if rest
-      `(let [(msg (make-vector ~(length rest) ()))]
+      `(let [(~msg (make-vector ~(length rest) ()))]
          ~@(local
              (define num 0)
              (map (lambda (t)
@@ -10,7 +11,7 @@
                          (define test-num ~num)
                          (let [(err (pcall (lambda () (import (only ~t)))))]
                            (if (error? err)
-                             (vector-set! msg
+                             (vector-set! ~msg
                                           test-num
                                           (cons err
                                                 (format "test-%S<%S> failed: %S: %s"
@@ -18,7 +19,7 @@
                                                         (quote ~t)
                                                         (error-type err)
                                                         (error-msg err))))
-                             (vector-set! msg
+                             (vector-set! ~msg
                                           test-num
                                           (cons ()
                                                 (format "test-%S<%S> success"
@@ -28,5 +29,5 @@
                     (setq num (1+ num))
                     r)
                   rest))
-         msg)
-      `())))
+         ~msg)
+      `()))))

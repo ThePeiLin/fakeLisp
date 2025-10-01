@@ -3,6 +3,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
 #include <inttypes.h>
@@ -401,7 +402,7 @@ FklByteCodelnt *fklCreateByteCodelnt(size_t len) {
 }
 
 FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
-        FklSid_t fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     FklByteCodelnt *r = fklCreateByteCodelnt(1);
@@ -509,6 +510,7 @@ void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from) {
 
 typedef struct ByteCodePrintState {
     uint32_t tc;
+    uint32_t prototype_id;
     uint64_t cp;
     uint64_t cpc;
 } ByteCodePrintState;
@@ -520,11 +522,17 @@ typedef struct ByteCodePrintState {
 #include <fakeLisp/cont/vector.h>
 
 static inline void push_bytecode_print_state(BcBcPrintStateVector *s,
+        uint32_t prototype_id,
         uint64_t tc,
         uint64_t cp,
         uint64_t cpc) {
     bcBcPrintStateVectorPushBack2(s,
-            (ByteCodePrintState){ .tc = tc, .cp = cp, .cpc = cpc });
+            (ByteCodePrintState){
+                .tc = tc,
+                .cp = cp,
+                .cpc = cpc,
+                .prototype_id = prototype_id,
+            });
 }
 
 static inline uint32_t print_single_ins(const FklByteCode *tmpCode,
@@ -533,146 +541,118 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode,
         struct ByteCodePrintState *cur_state,
         BcBcPrintStateVector *s,
         int *needBreak,
-        const FklSymbolTable *st,
+        FklVMgc *gc,
         const FklConstTable *kt,
         int numLen) {
-    uint32_t tab_count = cur_state->tc;
-    uint32_t proc_len = 0;
-    fprintf(fp, "%-*" PRIu64 ":", numLen, i);
-    for (uint32_t i = 0; i < tab_count; i++)
-        fputs("    ", fp);
-    const FklInstruction *ins = &tmpCode->code[i];
-    FklOpcode op = ins->op;
-    fprintf(fp, " %s", fklGetOpcodeName(op));
-    FklOpcodeMode mode = fklGetOpcodeMode(op);
-    if (mode == FKL_OP_MODE_I)
-        goto end;
-    fputc(' ', fp);
-    FklInstructionArg ins_arg = { 0 };
-    int len = fklGetInsOpArg(ins, &ins_arg);
-    switch (ins->op) {
-    case FKL_OP_PUSH_I64F:
-    case FKL_OP_PUSH_I64F_C:
-    case FKL_OP_PUSH_I64F_X:
-    case FKL_OP_PUSH_I64B:
-    case FKL_OP_PUSH_I64B_C:
-    case FKL_OP_PUSH_I64B_X:
-        fprintf(fp,
-                "%" PRIu64 "\t#\t%" PRId64,
-                ins_arg.ux,
-                fklGetI64ConstWithIdx(kt, ins_arg.ux));
-        break;
-    case FKL_OP_PUSH_F64:
-    case FKL_OP_PUSH_F64_C:
-    case FKL_OP_PUSH_F64_X:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintDouble(fklGetF64ConstWithIdx(kt, ins_arg.ux), fp);
-        break;
-    case FKL_OP_PUSH_CHAR:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintRawChar(ins->bu, fp);
-        break;
-
-    case FKL_OP_PUSH_STR:
-    case FKL_OP_PUSH_STR_C:
-    case FKL_OP_PUSH_STR_X:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintRawString(fklGetStrConstWithIdx(kt, ins_arg.ux), fp);
-        break;
-    case FKL_OP_PUSH_BVEC:
-    case FKL_OP_PUSH_BVEC_C:
-    case FKL_OP_PUSH_BVEC_X:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintRawBytevector(fklGetBvecConstWithIdx(kt, ins_arg.ux), fp);
-        break;
-
-    case FKL_OP_PUSH_SYM:
-    case FKL_OP_PUSH_SYM_C:
-    case FKL_OP_PUSH_SYM_X:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintRawSymbol(fklGetSymbolWithId(ins_arg.ux, st), fp);
-        break;
-
-    case FKL_OP_PUSH_BI:
-    case FKL_OP_PUSH_BI_C:
-    case FKL_OP_PUSH_BI_X:
-        fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrintBigInt(fklGetBiConstWithIdx(kt, ins_arg.ux), fp);
-        break;
-    case FKL_OP_PUSH_PROC:
-    case FKL_OP_PUSH_PROC_X:
-    case FKL_OP_PUSH_PROC_XX:
-    case FKL_OP_PUSH_PROC_XXX:
-        fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
-        push_bytecode_print_state(s,
-                cur_state->tc,
-                i + len + ins_arg.uy,
-                cur_state->cpc);
-        push_bytecode_print_state(s,
-                tab_count + 1,
-                i + len,
-                i + len + ins_arg.uy);
-        if (len > 1)
-            push_bytecode_print_state(s, cur_state->tc, i + 1, i + 1 + len - 1);
-        proc_len = ins_arg.uy;
-        *needBreak = 1;
-        break;
-
-    case FKL_OP_DROP:
-    case FKL_OP_PAIR:
-    case FKL_OP_VEC:
-    case FKL_OP_STR:
-    case FKL_OP_BVEC:
-    case FKL_OP_BOX:
-    case FKL_OP_HASH:
-        fprintf(fp, "::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
-        break;
-
-    default:
-        switch (mode) {
-        case FKL_OP_MODE_IsA:
-        case FKL_OP_MODE_IsB:
-        case FKL_OP_MODE_IsC:
-        case FKL_OP_MODE_IsBB:
-        case FKL_OP_MODE_IsCCB:
-            fprintf(fp, "%" PRId64, ins_arg.ix);
-            break;
-        case FKL_OP_MODE_IuB:
-        case FKL_OP_MODE_IuC:
-        case FKL_OP_MODE_IuBB:
-        case FKL_OP_MODE_IuCCB:
-            fprintf(fp, "%" PRIu64, ins_arg.ux);
-            break;
-        case FKL_OP_MODE_IsAuB:
-            fprintf(fp, "%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
-            break;
-        case FKL_OP_MODE_IuAuB:
-        case FKL_OP_MODE_IuCuC:
-        case FKL_OP_MODE_IuCAuBB:
-        case FKL_OP_MODE_IuCAuBCC:
-            fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
-            break;
-        case FKL_OP_MODE_I:
-            break;
-
-        case FKL_OP_MODE_IxAxB:
-            fprintf(fp, "%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
-            break;
-        }
-        break;
-    }
-end:
-    return proc_len + 1;
+	FKL_TODO();
+//     FklFuncPrototypes *pts = gc->pts;
+//     uint32_t tab_count = cur_state->tc;
+//     uint32_t proc_len = 0;
+//     fprintf(fp, "%-*" PRIu64 ":", numLen, i);
+//     for (uint32_t i = 0; i < tab_count; i++)
+//         fputs("    ", fp);
+//     const FklInstruction *ins = &tmpCode->code[i];
+//     FklOpcode op = ins->op;
+//     fprintf(fp, " %s", fklGetOpcodeName(op));
+//     FklOpcodeMode mode = fklGetOpcodeMode(op);
+//     if (mode == FKL_OP_MODE_I)
+//         goto end;
+//     fputc(' ', fp);
+//     FklInstructionArg ins_arg = { 0 };
+//     int len = fklGetInsOpArg(ins, &ins_arg);
+//     switch (ins->op) {
+//     case FKL_OP_PUSH_CONST:
+//         fklPrin1VMvalue(pts->pa[cur_state->prototype_id].konsts[ins->cu],
+//                 fp,
+//                 &gc->gcvm);
+//         break;
+//
+//     case FKL_OP_PUSH_CHAR:
+//         fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
+//         fklPrintRawChar(ins->bu, fp);
+//         break;
+//
+//     case FKL_OP_PUSH_PROC:
+//     case FKL_OP_PUSH_PROC_X:
+//     case FKL_OP_PUSH_PROC_XX:
+//     case FKL_OP_PUSH_PROC_XXX:
+//         fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
+//         push_bytecode_print_state(s,
+//                 cur_state->prototype_id,
+//                 cur_state->tc,
+//                 i + len + ins_arg.uy,
+//                 cur_state->cpc);
+//         push_bytecode_print_state(s,
+//                 ins_arg.ux,
+//                 tab_count + 1,
+//                 i + len,
+//                 i + len + ins_arg.uy);
+//         if (len > 1)
+//             push_bytecode_print_state(s,
+//                     cur_state->prototype_id,
+//                     cur_state->tc,
+//                     i + 1,
+//                     i + 1 + len - 1);
+//         proc_len = ins_arg.uy;
+//         *needBreak = 1;
+//         break;
+//
+//     case FKL_OP_DROP:
+//     case FKL_OP_PAIR:
+//     case FKL_OP_VEC:
+//     case FKL_OP_STR:
+//     case FKL_OP_BVEC:
+//     case FKL_OP_BOX:
+//     case FKL_OP_HASH:
+//         fprintf(fp, "::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
+//         break;
+//
+//     default:
+//         switch (mode) {
+//         case FKL_OP_MODE_IsA:
+//         case FKL_OP_MODE_IsB:
+//         case FKL_OP_MODE_IsC:
+//         case FKL_OP_MODE_IsBB:
+//         case FKL_OP_MODE_IsCCB:
+//             fprintf(fp, "%" PRId64, ins_arg.ix);
+//             break;
+//         case FKL_OP_MODE_IuB:
+//         case FKL_OP_MODE_IuC:
+//         case FKL_OP_MODE_IuBB:
+//         case FKL_OP_MODE_IuCCB:
+//             fprintf(fp, "%" PRIu64, ins_arg.ux);
+//             break;
+//         case FKL_OP_MODE_IsAuB:
+//             fprintf(fp, "%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
+//             break;
+//         case FKL_OP_MODE_IuAuB:
+//         case FKL_OP_MODE_IuCuC:
+//         case FKL_OP_MODE_IuCAuBB:
+//         case FKL_OP_MODE_IuCAuBCC:
+//             fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
+//             break;
+//         case FKL_OP_MODE_I:
+//             break;
+//
+//         case FKL_OP_MODE_IxAxB:
+//             fprintf(fp, "%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
+//             break;
+//         }
+//         break;
+//     }
+// end:
+//     return proc_len + 1;
 }
 
 #include <math.h>
 void fklPrintByteCode(const FklByteCode *tmpCode,
+        uint32_t prototype_id,
         FILE *fp,
-        FklSymbolTable *st,
+        FklVMgc *gc,
         FklConstTable *kt) {
     BcBcPrintStateVector s;
     bcBcPrintStateVectorInit(&s, 32);
-    push_bytecode_print_state(&s, 0, 0, tmpCode->len);
+    push_bytecode_print_state(&s, prototype_id, 0, 0, tmpCode->len);
     uint64_t codeLen = tmpCode->len;
     int numLen = codeLen ? (int)(log10(codeLen) + 1) : 1;
 
@@ -689,7 +669,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
         while (i < cpc && !needBreak) {
@@ -700,7 +680,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
         }
@@ -719,7 +699,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
         }
@@ -731,7 +711,7 @@ void fklPrintByteCode(const FklByteCode *tmpCode,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
         }
@@ -980,16 +960,17 @@ void fklScanAndSetTailCall(FklByteCode *bc) {
 }
 
 void fklPrintByteCodelnt(const FklByteCodelnt *obj,
+        uint32_t prototype_id,
         FILE *fp,
-        const FklSymbolTable *st,
+        FklVMgc *gc,
         const FklConstTable *kt) {
     const FklByteCode *tmpCode = &obj->bc;
     BcBcPrintStateVector s;
     bcBcPrintStateVectorInit(&s, 32);
-    push_bytecode_print_state(&s, 0, 0, tmpCode->len);
+    push_bytecode_print_state(&s, prototype_id, 0, 0, tmpCode->len);
     uint64_t j = 0;
     uint64_t end = obj->ls - 1;
-    FklSid_t fid = 0;
+    FklVMvalue *fid = NULL;
     uint64_t line = 0;
 
     uint64_t codeLen = tmpCode->len;
@@ -1008,7 +989,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
             if (j < end && obj->l[j + 1].scp < i)
@@ -1018,7 +999,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st), fp);
+                    fklPrintString(FKL_VM_SYM(obj->l[j].fid), fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -1032,7 +1013,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
             if (j < end && obj->l[j + 1].scp < i)
@@ -1042,7 +1023,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st), fp);
+                    fklPrintString(FKL_VM_SYM(obj->l[j].fid), fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -1063,7 +1044,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
             if (j < end && obj->l[j + 1].scp < i)
@@ -1073,7 +1054,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st), fp);
+                    fklPrintString(FKL_VM_SYM(obj->l[j].fid), fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -1087,7 +1068,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                     &cur_state,
                     &s,
                     &needBreak,
-                    st,
+                    gc,
                     kt,
                     numLen);
             if (j < end && obj->l[j + 1].scp < i)
@@ -1097,7 +1078,7 @@ void fklPrintByteCodelnt(const FklByteCodelnt *obj,
                 line = obj->l[j].line;
                 if (fid) {
                     fprintf(fp, "    ;");
-                    fklPrintString(fklGetSymbolWithId(obj->l[j].fid, st), fp);
+                    fklPrintString(FKL_VM_SYM(obj->l[j].fid), fp);
                     fprintf(fp, ":%u", obj->l[j].line);
                 } else
                     fprintf(fp, "\t%u", obj->l[j].line);
@@ -1245,7 +1226,7 @@ void fklByteCodePushBack(FklByteCode *bc, FklInstruction ins) {
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         const FklInstruction *ins,
-        FklSid_t fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     if (!bcl->l) {
@@ -1262,7 +1243,7 @@ void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
 
 void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
         FklByteCodelnt *bcl,
-        FklSid_t fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     if (!bcl->l) {
@@ -1322,7 +1303,7 @@ FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t at) {
 }
 
 void fklInitLineNumTabNode(FklLineNumberTableItem *n,
-        FklSid_t fid,
+        FklVMvalue *fid,
         uint64_t scp,
         uint32_t line,
         uint32_t scope) {
@@ -1355,39 +1336,41 @@ const FklLineNumberTableItem *fklFindLineNumTabNode(uint64_t cp,
 void fklWriteLineNumberTable(const FklLineNumberTableItem *line_numbers,
         uint32_t size,
         FILE *fp) {
-    fwrite(&size, sizeof(size), 1, fp);
-    for (uint32_t i = 0; i < size; i++) {
-        const FklLineNumberTableItem *n = &line_numbers[i];
-        fwrite(&n->fid, sizeof(n->fid), 1, fp);
-        fwrite(&n->scp, sizeof(n->scp), 1, fp);
-        fwrite(&n->line, sizeof(n->line), 1, fp);
-    }
+	FKL_TODO();
+    // fwrite(&size, sizeof(size), 1, fp);
+    // for (uint32_t i = 0; i < size; i++) {
+    //     const FklLineNumberTableItem *n = &line_numbers[i];
+    //     fwrite(&n->fid, sizeof(n->fid), 1, fp);
+    //     fwrite(&n->scp, sizeof(n->scp), 1, fp);
+    //     fwrite(&n->line, sizeof(n->line), 1, fp);
+    // }
 }
 
 void fklLoadLineNumberTable(FILE *fp,
         FklLineNumberTableItem **plist,
         uint32_t *pnum) {
-    size_t size = 0;
-    fread(&size, sizeof(uint32_t), 1, fp);
-    FklLineNumberTableItem *list;
-    if (size == 0)
-        list = NULL;
-    else {
-        list = (FklLineNumberTableItem *)fklZmalloc(
-                size * sizeof(FklLineNumberTableItem));
-        FKL_ASSERT(list);
-        for (size_t i = 0; i < size; i++) {
-            FklSid_t fid = 0;
-            uint64_t scp = 0;
-            uint32_t line = 0;
-            fread(&fid, sizeof(fid), 1, fp);
-            fread(&scp, sizeof(scp), 1, fp);
-            fread(&line, sizeof(line), 1, fp);
-            fklInitLineNumTabNode(&list[i], fid, scp, line, 0);
-        }
-    }
-    *plist = list;
-    *pnum = size;
+	FKL_TODO();
+    // size_t size = 0;
+    // fread(&size, sizeof(uint32_t), 1, fp);
+    // FklLineNumberTableItem *list;
+    // if (size == 0)
+    //     list = NULL;
+    // else {
+    //     list = (FklLineNumberTableItem *)fklZmalloc(
+    //             size * sizeof(FklLineNumberTableItem));
+    //     FKL_ASSERT(list);
+    //     for (size_t i = 0; i < size; i++) {
+    //         FklSid_t fid = 0;
+    //         uint64_t scp = 0;
+    //         uint32_t line = 0;
+    //         fread(&fid, sizeof(fid), 1, fp);
+    //         fread(&scp, sizeof(scp), 1, fp);
+    //         fread(&line, sizeof(line), 1, fp);
+    //         fklInitLineNumTabNode(&list[i], fid, scp, line, 0);
+    //     }
+    // }
+    // *plist = list;
+    // *pnum = size;
 }
 
 void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {

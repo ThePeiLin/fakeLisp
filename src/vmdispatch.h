@@ -19,6 +19,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     uint64_t size;
     uint64_t num;
     int64_t offset;
+    FklVMvalueLibs *libs = exe->libs;
     switch (op) {
 #endif
     case FKL_OP_DUMMY:
@@ -51,92 +52,8 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_PUSH_CHAR:
         FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_CHR(ins->bu));
         break;
-    case FKL_OP_PUSH_SYM:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_SYM(ins->bu));
-        break;
-    case FKL_OP_PUSH_SYM_C:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_SYM(FKL_GET_INS_UC(ins)));
-        break;
-    case FKL_OP_PUSH_SYM_X:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_SYM(GET_INS_UX(ins, frame)));
-        break;
-    case FKL_OP_PUSH_I64F:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(exe->gc->ki64[ins->bu]));
-        break;
-    case FKL_OP_PUSH_I64F_C:
-        FKL_VM_PUSH_VALUE(exe,
-                FKL_MAKE_VM_FIX(exe->gc->ki64[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_I64F_X:
-        FKL_VM_PUSH_VALUE(exe,
-                FKL_MAKE_VM_FIX(exe->gc->ki64[GET_INS_UX(ins, frame)]));
-        break;
-    case FKL_OP_PUSH_F64:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueF64(exe, exe->gc->kf64[ins->bu]));
-        break;
-    case FKL_OP_PUSH_F64_C:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueF64(exe, exe->gc->kf64[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_F64_X:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueF64(exe,
-                        exe->gc->kf64[GET_INS_UX(ins, frame)]));
-        break;
-    case FKL_OP_PUSH_STR:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueStr(exe, exe->gc->kstr[ins->bu]));
-        break;
-    case FKL_OP_PUSH_STR_C:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueStr(exe, exe->gc->kstr[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_STR_X:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueStr(exe,
-                        exe->gc->kstr[GET_INS_UX(ins, frame)]));
-        break;
-    case FKL_OP_PUSH_BVEC:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBvec(exe, exe->gc->kbvec[ins->bu]));
-        break;
-    case FKL_OP_PUSH_BVEC_C:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBvec(exe, exe->gc->kbvec[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_BVEC_X:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBvec(exe,
-                        exe->gc->kbvec[GET_INS_UX(ins, frame)]));
-        break;
-    case FKL_OP_PUSH_I64B:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigIntWithI64(exe, exe->gc->ki64[ins->bu]));
-        break;
-    case FKL_OP_PUSH_I64B_C:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigIntWithI64(exe,
-                        exe->gc->ki64[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_I64B_X:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigIntWithI64(exe,
-                        exe->gc->ki64[GET_INS_UX(ins, frame)]));
-        break;
-    case FKL_OP_PUSH_BI:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigInt2(exe, exe->gc->kbi[ins->bu]));
-        break;
-    case FKL_OP_PUSH_BI_C:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigInt2(exe,
-                        exe->gc->kbi[FKL_GET_INS_UC(ins)]));
-        break;
-    case FKL_OP_PUSH_BI_X:
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueBigInt2(exe,
-                        exe->gc->kbi[GET_INS_UX(ins, frame)]));
+    case FKL_OP_PUSH_CONST:
+        FKL_VM_PUSH_VALUE(exe, frame->c.konsts[FKL_GET_INS_UC(ins)]);
         break;
     case FKL_OP_PUSH_BOX:
         FKL_VM_PUSH_VALUE(exe,
@@ -266,7 +183,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         frame->c.pc += 3;
     push_proc: {
         FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueProcWithFrame(exe, frame, size, idx));
+                fklCreateVMvalueProcWithFrame(exe, frame, size, idx, exe->pts));
         frame->c.pc += size;
     } break;
     case FKL_OP_DUP: {
@@ -457,13 +374,13 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_GET_VAR_REF_X:
         idx = GET_INS_UX(ins, frame);
     get_var_ref: {
-        FklSid_t id = 0;
-        FklVMvalue *v = get_var_val(frame, idx, exe->pts, &id);
-        if (id)
+        FklVMvalue *name = FKL_VM_NIL;
+        FklVMvalue *v = get_var_val(frame, idx, &exe->pts->p, &name);
+        if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
-                    FKL_MAKE_VM_SYM(id));
+                    name);
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
     case FKL_OP_PUT_VAR_REF:
@@ -475,13 +392,13 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_PUT_VAR_REF_X:
         idx = GET_INS_UX(ins, frame);
     put_var_ref: {
-        FklSid_t id = 0;
-        FklVMvalue *volatile *pv = get_var_ref(frame, idx, exe->pts, &id);
+        FklVMvalue *name = FKL_VM_NIL;
+        FklVMvalue *volatile *pv = get_var_ref(frame, idx, &exe->pts->p, &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
-                    FKL_MAKE_VM_SYM(id));
+                    name);
         *pv = FKL_VM_GET_TOP_VALUE(exe);
     } break;
     case FKL_OP_EXPORT:
@@ -498,20 +415,20 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         break;
     case FKL_OP_LOAD_LIB:
-        plib = &exe->gc->libs[ins->bu];
+        plib = &libs->libs[ins->bu];
         goto load_lib;
     case FKL_OP_LOAD_LIB_C:
-        plib = &exe->gc->libs[FKL_GET_INS_UC(ins)];
+        plib = &libs->libs[FKL_GET_INS_UC(ins)];
         goto load_lib;
     case FKL_OP_LOAD_LIB_X:
-        plib = &exe->gc->libs[GET_INS_UX(ins, frame)];
+        plib = &libs->libs[GET_INS_UX(ins, frame)];
     load_lib: {
 
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
             fklUnlockThread(exe);
-            uv_mutex_lock(&exe->gc->libs_lock);
+            fklLockVMlibs(libs);
             fklLockThread(exe);
         }
 
@@ -533,7 +450,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
             atomic_store(&plib->import_state,
                     r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED);
-            uv_mutex_unlock(&exe->gc->libs_lock);
+            fklUnlockVMlibs(libs);
 
             if (r) {
                 fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
@@ -546,14 +463,14 @@ void fklVMexecuteInstruction(FklVM *exe,
         } break;
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
-                uv_mutex_unlock(&exe->gc->libs_lock);
+                fklUnlockVMlibs(libs);
             exe->importing_lib = plib;
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
             break;
 
         case FKL_VM_LIB_ERROR:
             if (state == FKL_VM_LIB_IMPORTING)
-                uv_mutex_unlock(&exe->gc->libs_lock);
+                fklUnlockVMlibs(libs);
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                     exe,
                     "library cannot be re-imported because of its' previous failure");
@@ -565,19 +482,19 @@ void fklVMexecuteInstruction(FklVM *exe,
         return;
     } break;
     case FKL_OP_LOAD_DLL:
-        plib = &exe->gc->libs[ins->bu];
+        plib = &libs->libs[ins->bu];
         goto load_dll;
     case FKL_OP_LOAD_DLL_C:
-        plib = &exe->gc->libs[FKL_GET_INS_UC(ins)];
+        plib = &libs->libs[FKL_GET_INS_UC(ins)];
         goto load_dll;
     case FKL_OP_LOAD_DLL_X:
-        plib = &exe->gc->libs[GET_INS_UX(ins, frame)];
+        plib = &libs->libs[GET_INS_UX(ins, frame)];
     load_dll: {
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
             fklUnlockThread(exe);
-            uv_mutex_lock(&exe->gc->libs_lock);
+            fklLockVMlibs(libs);
             fklLockThread(exe);
         }
 
@@ -600,7 +517,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
             else {
                 atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                uv_mutex_lock(&exe->gc->libs_lock);
+                fklUnlockVMlibs(libs);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         FKL_VM_STR(errorStr)->str);
@@ -608,7 +525,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
             if (!initFunc) {
                 atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                uv_mutex_lock(&exe->gc->libs_lock);
+                fklUnlockVMlibs(libs);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         "Failed to import dll: %s",
@@ -620,12 +537,12 @@ void fklVMexecuteInstruction(FklVM *exe,
             plib->loc = initFunc(exe, dll, &plib->count);
             exe->tp = tp;
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTED);
-            uv_mutex_unlock(&exe->gc->libs_lock);
+            fklUnlockVMlibs(libs);
             break;
 
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
-                uv_mutex_unlock(&exe->gc->libs_lock);
+                fklUnlockVMlibs(libs);
             break;
 
         case FKL_VM_LIB_ERROR:
@@ -1305,7 +1222,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     export_to: {
-        FklVMlib *lib = &exe->gc->libs[idx];
+        FklVMlib *lib = &libs->libs[idx];
         // pop all values in stack
         // module should only return nil
         exe->tp = frame->c.sp;
@@ -1337,20 +1254,21 @@ void fklVMexecuteInstruction(FklVM *exe,
                                 FKL_VM_GET_ARG(exe, frame, ins->au)));
         break;
     case FKL_OP_MOV_VAR_REF: {
-        FklSid_t id = 0;
-        FklVMvalue *v = get_var_val(frame, ins->au, exe->pts, &id);
-        if (id)
+        FklVMvalue *name = FKL_VM_NIL;
+        FklVMvalue *v = get_var_val(frame, ins->au, &exe->pts->p, &name);
+        if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
-                    FKL_MAKE_VM_SYM(id));
+                    name);
         FKL_VM_PUSH_VALUE(exe, v);
-        FklVMvalue *volatile *pv = get_var_ref(frame, ins->bu, exe->pts, &id);
+        FklVMvalue *volatile *pv =
+                get_var_ref(frame, ins->bu, &exe->pts->p, &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
-                    FKL_MAKE_VM_SYM(id));
+                    name);
         *pv = v;
     } break;
     case FKL_OP_EXTRA_ARG:

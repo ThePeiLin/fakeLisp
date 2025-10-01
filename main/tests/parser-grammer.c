@@ -1,5 +1,6 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser_grammer.h>
+#include <fakeLisp/vm.h>
 #include <string.h>
 
 static const FklGrammerBuiltinAction Actions[] = { { "first", NULL } };
@@ -38,29 +39,29 @@ static const char prod_rule[] = {
 //     "?? -> \"\\\"\";\n";
 
 int main() {
-    FklSymbolTable *st = fklCreateSymbolTable();
-    FklGrammer *g = fklCreateEmptyGrammer(st);
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklGrammer *g = fklCreateEmptyGrammer(&gc->gcvm);
     FklParserGrammerParseArg args;
     fklInitParserGrammerParseArg(&args, g, 1, resolver, NULL);
 
     int err = fklParseProductionRuleWithCstr(&args, prod_rule);
     if (err) {
         fklPrintParserGrammerParseError(err, &args, stderr);
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         exit(1);
     }
 
     if (!g) {
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
         exit(1);
     }
 
-    fklPrintGrammer(stdout, g, st);
+    fklPrintGrammer(stdout, g);
     fklUninitParserGrammerParseArg(&args);
 
-    fklDestroySymbolTable(st);
+    fklDestroyVMgc(gc);
     fklDestroyGrammer(g);
 
     return 0;

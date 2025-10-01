@@ -34,7 +34,7 @@ int main() {
     int64_t s = -0x123456;
     FklInstructionArg arg;
     // IuC
-    ins[0].op = FKL_OP_PUSH_I64F_C;
+    ins[0].op = FKL_OP_PUSH_I24;
     set_ins_uc(ins, ux);
     arg.ux = FKL_GET_INS_UC(ins);
     fputs("IuC\n", stderr);
@@ -79,7 +79,7 @@ int main() {
 
     // IuBB
     ux = 0x12345678;
-    ins[0].op = FKL_OP_PUSH_I64F_X;
+    ins[0].op = FKL_OP_GET_LOC_X;
     set_ins_ux(ins, ux);
     arg.ux = FKL_GET_INS_UX(ins);
     fputs("IuBB\n", stderr);

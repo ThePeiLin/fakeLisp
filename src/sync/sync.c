@@ -4,7 +4,7 @@
 #include <uv.h>
 
 typedef struct SyncPublicData {
-#define XX(code, _) FklSid_t uv_err_sid_##code;
+#define XX(code, _) FklVMvalue *uv_err_sid_##code;
     UV_ERRNO_MAP(XX)
 #undef XX
 } SyncPublicData;
@@ -15,7 +15,7 @@ static FklVMudMetaTable SyncPublicDataMetaTable = {
 
 static inline FklVMvalue *
 create_uv_error(int err_id, FklVM *exe, SyncPublicData *pd) {
-    FklSid_t id = 0;
+    FklVMvalue *id = 0;
     switch (err_id) {
 #define XX(code, _)                                                            \
     case UV_##code:                                                            \
@@ -435,20 +435,20 @@ struct SymFunc {
 static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-static inline void init_sync_public_data(SyncPublicData *pd,
-        FklSymbolTable *st) {
-#define XX(code, _) pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st);
+static inline void init_sync_public_data(SyncPublicData *pd, FklVM *vm) {
+#define XX(code, _) pd->uv_err_sid_##code = fklVMaddSymbolCstr(vm, "UV_" #code);
     UV_ERRNO_MAP(XX);
 #undef XX
 }
 
-FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
-        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
     *num = EXPORT_NUM;
-    FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
+    FklVMvalue **symbols =
+            (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
+        symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
+    // fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 
@@ -460,9 +460,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
     FKL_DECL_VM_UD_DATA(pd, SyncPublicData, spd);
 
-    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        init_sync_public_data(pd, exe->gc->st);
-    }
+    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) { init_sync_public_data(pd, exe); }
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;

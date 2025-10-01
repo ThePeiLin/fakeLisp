@@ -1,23 +1,18 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/grammer.h>
-#include <fakeLisp/nast.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
+#include <fakeLisp/parser.h>
 
 #include <stdio.h>
 #include <stdlib.h>
-
-static void *
-fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx) {
-    FklNastNode *ast = fklCreateNastNode(FKL_NAST_STR, line);
-    ast->str = fklCreateString(len, s);
-    return ast;
-}
+#include <string.h>
 
 int main() {
-    FklSymbolTable *st = fklCreateSymbolTable();
-    FklGrammer *g = fklCreateBuiltinGrammer(st);
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklGrammer *g = fklCreateBuiltinGrammer(&gc->gcvm);
     if (!g) {
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
         exit(1);
     }
@@ -28,7 +23,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(stdout, g, st);
+    fklPrintGrammer(stdout, g);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     // fputs("item sets:\n",stdout);
@@ -38,7 +33,7 @@ int main() {
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
     if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
         fklUninitStringBuffer(&err_msg);
@@ -78,26 +73,19 @@ int main() {
     };
 
     FklParseError retval = 0;
-    FklGrammerMatchCtx ctx = { .maxNonterminalLen = 0,
-        .line = 1,
-        .start = NULL,
-        .cur = NULL,
-        .create = fklNastTerminalCreate,
-        .destroy = (void (*)(void *))fklDestroyNastNode,
-        .ctx = st };
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
 
     for (const char **exp = &exps[0]; *exp; exp++) {
 
-        FklNastNode *ast = fklParseWithTableForCstr(g, *exp, &ctx, st, &retval);
+        FklVMvalue *ast = fklParseWithTableForCstr(g, *exp, &ctx, &retval);
 
         if (retval)
             break;
 
-        fklPrintNastNode(ast, stdout, st);
-        fklDestroyNastNode(ast);
+        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
         fputc('\n', stdout);
     }
     fklDestroyGrammer(g);
-    fklDestroySymbolTable(st);
+    fklDestroyVMgc(gc);
     return retval;
 }

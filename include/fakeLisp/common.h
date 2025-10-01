@@ -42,7 +42,7 @@ typedef intptr_t ssize_t;
 #if defined(__GNUC__) || defined(__clang__)
 
 #define FKL_DEPRECATED __attribute__((deprecated))
-#define FKL_ALWAYS_INLINE __attribute__((always_inline))
+#define FKL_ALWAYS_INLINE inline __attribute__((always_inline))
 #define __FKL_UNREACHABLE() __builtin_unreachable()
 
 #elif defined(_MSC_VER)
@@ -93,6 +93,16 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
         abort();                                                               \
     } while (0)
 #endif
+
+#define FKL_TODO()                                                             \
+    do {                                                                       \
+        fprintf(stderr,                                                        \
+                "[%s: %d] %s is incomplete!\n",                                \
+                __REL_FILE__,                                                  \
+                __LINE__,                                                      \
+                __FUNCTION__);                                                 \
+        abort();                                                               \
+    } while (0)
 
 #define FKL_TYPE_CAST(T, V) ((T)(V))
 

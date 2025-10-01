@@ -72,19 +72,43 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     for (uint32_t i = 0; i < exe->tp; i++)
         fklVMgcToGray(base[i], gc);
     fklVMgcToGray(exe->chan, gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, exe->libs), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, exe->pts), gc);
+}
+
+static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
+    uv_mutex_lock(&a->lock);
+    for (const FklStrValueHashMapNode *cur = a->map.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->v, gc);
+    }
+    uv_mutex_unlock(&a->lock);
+}
+
+void fklVMgcMarkPrototypes(FklVMgc *gc, const FklFuncPrototypes *pts) {
+    for (size_t i = 0; i < pts->count; ++i) {
+        FklFuncPrototype *pt = &pts->pa[i + 1];
+        fklVMgcToGray(pt->file, gc);
+        fklVMgcToGray(pt->name, gc);
+        for (size_t j = 0; j < pt->konsts_count; ++j)
+            fklVMgcToGray(pt->konsts[j], gc);
+        for (size_t j = 0; j < pt->rcount; ++j)
+            fklVMgcToGray(pt->refs[j].k.id, gc);
+    }
+}
+
+void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
+    for (uint32_t i = 0; i < t->ls; ++i)
+        fklVMgcToGray(t->l[i].fid, gc);
 }
 
 static inline void gc_extra_mark(FklVMgc *gc) {
     for (struct FklVMextraMarkObjList *l = gc->extra_mark_list; l; l = l->next)
         l->func(gc, l->arg);
-    for (size_t i = 1; i <= gc->lib_num; i++) {
-        FklVMlib *lib = &gc->libs[i];
-        fklVMgcToGray(lib->proc, gc);
+    mark_obarray(gc, gc->obarray);
 
-        FklVMvalue **cur = lib->loc;
-        FklVMvalue **const end = cur + lib->count;
-        for (; cur < end; ++cur)
-            fklVMgcToGray(*cur, gc);
+    for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
+        fklVMgcToGray(gc->builtinErrorTypeId[i], gc);
     }
 }
 
@@ -160,7 +184,7 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     gc->head = head;
 }
 
-void fklDestroyVMvalue(FklVMvalue *cur) {
+static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     switch (cur->type) {
     case FKL_TYPE_USERDATA:
         if (fklFinalizeVMud(FKL_VM_UD(cur)) == FKL_VM_UD_FINALIZE_DELAY)
@@ -169,6 +193,7 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
     case FKL_TYPE_F64:
     case FKL_TYPE_BIGINT:
     case FKL_TYPE_STR:
+    case FKL_TYPE_SYM:
     case FKL_TYPE_VECTOR:
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
@@ -186,17 +211,17 @@ void fklDestroyVMvalue(FklVMvalue *cur) {
         FKL_UNREACHABLE();
         break;
     }
-    atomic_fetch_sub(&cur->gc->alloced_size, fklZmallocSize(cur));
+    atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(cur));
     fklZfree((void *)cur);
 }
 
-void fklVMgcSweep(FklVMvalue *head) {
+void fklVMgcSweep(FklVMgc *gc, FklVMvalue *head) {
     FklVMvalue **phead = &head;
     while (*phead) {
         FklVMvalue *cur = *phead;
         *phead = cur->next;
         cur->next = NULL;
-        fklDestroyVMvalue(cur);
+        destroy_vm_value(gc, cur);
     }
 }
 
@@ -299,100 +324,54 @@ static inline void init_idle_work_queue(FklVMgc *gc) {
     gc->workq.tail = &gc->workq.head;
 }
 
-void fklVMgcUpdateConstArray(FklVMgc *gc, FklConstTable *kt) {
-    fklZfree(gc->ki64);
-    if (kt->ki64t.count) {
-        size_t size = sizeof(int64_t) * kt->ki64t.count;
-        gc->ki64 = (int64_t *)fklZmalloc(size);
-        FKL_ASSERT(gc->ki64);
-        memcpy(gc->ki64, kt->ki64t.base, size);
-    } else
-        gc->ki64 = NULL;
-
-    fklZfree(gc->kf64);
-    if (kt->kf64t.count) {
-        size_t size = sizeof(double) * kt->kf64t.count;
-        gc->kf64 = (double *)fklZmalloc(size);
-        FKL_ASSERT(gc->kf64);
-        memcpy(gc->kf64, kt->kf64t.base, size);
-    } else
-        gc->kf64 = NULL;
-
-    fklZfree(gc->kstr);
-    if (kt->kstrt.count) {
-        size_t size = sizeof(FklString *) * kt->kstrt.count;
-        gc->kstr = (FklString **)fklZmalloc(size);
-        FKL_ASSERT(gc->kstr);
-        memcpy(gc->kstr, kt->kstrt.base, size);
-    } else
-        gc->kstr = NULL;
-
-    fklZfree(gc->kbvec);
-    if (kt->kbvect.count) {
-        size_t size = sizeof(FklBytevector *) * kt->kbvect.count;
-        gc->kbvec = (FklBytevector **)fklZmalloc(size);
-        FKL_ASSERT(gc->kbvec);
-        memcpy(gc->kbvec, kt->kbvect.base, size);
-    } else
-        gc->kbvec = NULL;
-
-    fklZfree(gc->kbi);
-    if (kt->kbit.count) {
-        size_t size = sizeof(FklBigInt *) * kt->kbit.count;
-        gc->kbi = (FklBigInt **)fklZmalloc(size);
-        FKL_ASSERT(gc->kbi);
-        memcpy(gc->kbi, kt->kbit.base, size);
-    } else
-        gc->kbi = NULL;
-}
-
-static inline void uninit_all_vm_lib(FklVMlib *libs, size_t num) {
-    for (size_t i = 1; i <= num; i++)
-        fklUninitVMlib(&libs[i]);
-}
-
-void fklInitVMgc(FklVMgc *gc,
-        FklSymbolTable *st,
-        FklConstTable *kt,
-        FklFuncPrototypes *pts,
-        uint64_t lib_num,
-        FklVMlib *libs) {
+void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
-    uv_rwlock_init(&gc->st_lock);
     uv_mutex_init(&gc->extra_mark_lock);
-    uv_mutex_init_recursive(&gc->libs_lock);
     uv_mutex_init(&gc->print_backtrace_lock);
-    gc->kt = kt;
-    gc->st = st;
-    gc->pts = pts;
-    gc->lib_num = lib_num;
-    gc->libs = libs;
-    fklVMgcUpdateConstArray(gc, kt);
-    fklInitBuiltinErrorType(gc->builtinErrorTypeId, st);
-
+    gc->obarray = obarray;
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
     init_locv_cache(gc);
 
-    gc->seek_set = fklAddSymbolCstr("set", st);
-    gc->seek_cur = fklAddSymbolCstr("cur", st);
-    gc->seek_end = fklAddSymbolCstr("end", st);
-
+    gc->obarray = obarray;
     gc->gcvm.gc = gc;
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;
+
+    gc->seek_set = fklVMaddSymbolCstr(&gc->gcvm, "set");
+    gc->seek_cur = fklVMaddSymbolCstr(&gc->gcvm, "cur");
+    gc->seek_end = fklVMaddSymbolCstr(&gc->gcvm, "end");
+
+    fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
 }
 
-FklVMgc *fklCreateVMgc(FklSymbolTable *st,
-        FklConstTable *kt,
-        FklFuncPrototypes *pts,
-        uint64_t lib_num,
-        FklVMlib *libs) {
+FklVMgc *fklCreateVMgc(FklVMobarray *obarray) {
     FklVMgc *gc = (FklVMgc *)fklZmalloc(sizeof(FklVMgc));
     FKL_ASSERT(gc);
-    fklInitVMgc(gc, st, kt, pts, lib_num, libs);
+    fklInitVMgc(gc, obarray);
     return gc;
+}
+
+void fklInitVMobarray(FklVMobarray *obarray) {
+    uv_mutex_init(&obarray->lock);
+    fklStrValueHashMapInit(&obarray->map);
+}
+
+void fklUninitVMobarray(FklVMobarray *obarray) {
+    uv_mutex_destroy(&obarray->lock);
+    fklStrValueHashMapUninit(&obarray->map);
+}
+
+FklVMobarray *fklCreateVMobarray(void) {
+    FklVMobarray *obarray = (FklVMobarray *)fklZcalloc(1, sizeof(FklVMobarray));
+    fklInitVMobarray(obarray);
+    return obarray;
+}
+
+void fklDestroyVMobarray(FklVMobarray *obarray) {
+    fklUninitVMobarray(obarray);
+    fklZfree(obarray);
 }
 
 FklVMvalue **
@@ -470,7 +449,6 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc,
 
 void fklAddToGC(FklVMvalue *v, FklVM *vm) {
     if (FKL_IS_PTR(v)) {
-        v->gc = vm->gc;
         v->next = vm->obj_head;
         vm->obj_head = v;
         if (!vm->obj_tail)
@@ -536,30 +514,27 @@ static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList *l) {
     }
 }
 
+void fklVMclearExtraMarkFunc(FklVMgc *gc) {
+    uv_mutex_lock(&gc->extra_mark_lock);
+    destroy_extra_mark_list(gc->extra_mark_list);
+    gc->extra_mark_list = NULL;
+    uv_mutex_unlock(&gc->extra_mark_lock);
+}
+
 void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
-    fklDestroyFuncPrototypes(gc->pts);
-    uv_rwlock_destroy(&gc->st_lock);
+    if (gc->obarray)
+        fklDestroyVMobarray(gc->obarray);
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
-    uv_mutex_destroy(&gc->libs_lock);
     uv_mutex_destroy(&gc->print_backtrace_lock);
     destroy_interrupt_handle_list(gc->int_list);
     destroy_extra_mark_list(gc->extra_mark_list);
     destroy_argv(gc);
     destroy_all_locv_cache(gc);
-    fklVMgcSweep(gc->head);
+    fklVMgcSweep(gc, gc->head);
     gc->head = NULL;
     uninit_vm_queue(&gc->q);
-    fklZfree(gc->ki64);
-    fklZfree(gc->kf64);
-    fklZfree(gc->kstr);
-    fklZfree(gc->kbvec);
-    fklZfree(gc->kbi);
-    uninit_all_vm_lib(gc->libs, gc->lib_num);
-    gc->lib_num = 0;
-    fklZfree(gc->libs);
-    gc->libs = NULL;
 
     if (gc->alloced_size) {
         fprintf(stderr,
@@ -581,30 +556,109 @@ void fklVMacquireWq(FklVMgc *gc) { uv_mutex_lock(&gc->workq_lock); }
 
 void fklVMreleaseWq(FklVMgc *gc) { uv_mutex_unlock(&gc->workq_lock); }
 
-void fklVMacquireSt(FklVMgc *gc) { uv_rwlock_wrlock(&gc->st_lock); }
-
-void fklVMreleaseSt(FklVMgc *gc) { uv_rwlock_wrunlock(&gc->st_lock); }
-
-FklSid_t fklVMaddSymbol(FklVMgc *gc, const FklString *str) {
-    return fklVMaddSymbolCharBuf(gc, str->str, str->size);
+FklVMvalue *fklVMaddSymbol(FklVM *vm, const FklString *str) {
+    return fklVMaddSymbolCharBuf(vm, str->str, str->size);
 }
 
-FklSid_t fklVMaddSymbolCstr(FklVMgc *gc, const char *str) {
-    return fklVMaddSymbolCharBuf(gc, str, strlen(str));
+FklVMvalue *fklVMaddSymbolCstr(FklVM *vm, const char *str) {
+    return fklVMaddSymbolCharBuf(vm, str, strlen(str));
 }
 
-FklSid_t fklVMaddSymbolCharBuf(FklVMgc *gc, const char *str, size_t size) {
-    uv_rwlock_wrlock(&gc->st_lock);
-    FklSid_t r = fklAddSymbolCharBuf(str, size, gc->st);
-    uv_rwlock_wrunlock(&gc->st_lock);
+static inline FklStrValueHashMapNode *const *
+get_btk(FklStrValueHashMap *ht, uintptr_t *hashv, const char *buf, size_t len) {
+    *hashv = fklCharBufHash(buf, len);
+    FklStrValueHashMapNode *const *bkt = fklStrValueHashMapBucket(ht, *hashv);
+    for (; *bkt; bkt = &(*bkt)->bkt_next) {
+        FklStrValueHashMapNode *cur = *bkt;
+        if (!fklStringCharBufCmp(cur->k, len, buf)) {
+            break;
+        }
+    }
+
+    return bkt;
+}
+
+FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
+    FklVMgc *gc = vm->gc;
+    uv_mutex_lock(&gc->obarray->lock);
+
+    FklVMvalue *r = NULL;
+
+    uintptr_t hashv = 0;
+    FklStrValueHashMap *ht = &gc->obarray->map;
+    FklStrValueHashMapNode *const *bkt = get_btk(ht, &hashv, buf, len);
+    if (*bkt) {
+        r = (*bkt)->v;
+    } else {
+        FklString *str = fklCreateString(len, buf);
+        FklStrValueHashMapNode *node =
+                fklStrValueHashMapCreateNode2(hashv, str);
+        r = fklCreateVMvalueSym2(vm, len, buf);
+        FKL_VM_SYM_INTERNED(r) = 1;
+        node->v = r;
+        fklStrValueHashMapInsertNode(ht, node);
+    }
+
+    uv_mutex_unlock(&gc->obarray->lock);
+
+    return r;
+    // uv_rwlock_wrlock(&gc->st_lock);
+    // FklSid_t r = fklAddSymbolCharBuf(str, size, gc->st);
+    // uv_rwlock_wrunlock(&gc->st_lock);
+    // return r;
+}
+
+static inline FklVMvalue *add_symbol_value_unlock(FklStrValueHashMap *ht,
+        FklVMvalue *v) {
+    FklVMvalue *r = NULL;
+    const FklString *s = FKL_VM_SYM(v);
+    uintptr_t hashv = 0;
+    FklStrValueHashMapNode *const *bkt = get_btk(ht, &hashv, s->str, s->size);
+
+    if (*bkt) {
+        r = (*bkt)->v;
+    } else {
+        FklString *str = fklCreateString(s->size, s->str);
+        FklStrValueHashMapNode *node =
+                fklStrValueHashMapCreateNode2(hashv, str);
+        r = v;
+        FKL_VM_SYM_INTERNED(r) = 1;
+        node->v = r;
+        fklStrValueHashMapInsertNode(ht, node);
+    }
+
     return r;
 }
 
-const FklString *fklVMgetSymbolWithId(FklVMgc *gc, FklSid_t id) {
-    uv_rwlock_rdlock(&gc->st_lock);
-    const FklString *r = fklGetSymbolWithId(id, gc->st);
-    uv_rwlock_rdunlock(&gc->st_lock);
+FklVMvalue *fklVMaddSymbolValue(FklVM *vm, FklVMvalue *v) {
+    FKL_ASSERT(FKL_IS_SYM(v));
+    FklVMgc *gc = vm->gc;
+    uv_mutex_lock(&gc->obarray->lock);
+
+    FklVMvalue *r = add_symbol_value_unlock(&gc->obarray->map, v);
+
+    uv_mutex_unlock(&gc->obarray->lock);
+
     return r;
+}
+
+void fklVMclearSymbol(FklVMgc *gc) {
+    uv_mutex_lock(&gc->obarray->lock);
+    fklStrValueHashMapClear(&gc->obarray->map);
+    uv_mutex_unlock(&gc->obarray->lock);
+}
+
+void fklVMrestoreSymbol(FklVMgc *gc) {
+    uv_mutex_lock(&gc->obarray->lock);
+    FklStrValueHashMap *ht = &gc->obarray->map;
+    for (FklVMvalue *cur = gc->head; cur; cur = cur->next) {
+        if (FKL_IS_SYM(cur) && FKL_VM_SYM_INTERNED(cur)) {
+            FklVMvalue *r = add_symbol_value_unlock(ht, cur);
+            FKL_ASSERT(r == cur);
+            (void)r;
+        }
+    }
+    uv_mutex_unlock(&gc->obarray->lock);
 }
 
 FklVMinterruptResult

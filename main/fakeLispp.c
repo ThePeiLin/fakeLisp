@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
             fklInitConstTable(&runtime_kt);
 
             FklReadCodeFileArgs read_args = {
-                .runtime_st = &runtime_st,
+                .obarray = &runtime_st,
                 .runtime_kt = &runtime_kt,
                 .library_initer = codegenlib_initer,
                 .lib_init_args = NULL,
@@ -413,7 +413,7 @@ static void codegenlib_initer(FklReadCodeFileArgs *read_args,
         FKL_ASSERT(rp);
         strncpy(rp, dll_name->str, dll_name->size);
         strcat(rp, FKL_DLL_FILE_TYPE);
-        fklInitCodegenDllLib(lib, rp, tlib, dll_init, read_args->runtime_st);
+        fklInitCodegenDllLib(lib, rp, tlib, dll_init, read_args->obarray);
     } break;
     case FKL_CODEGEN_LIB_UNINIT:
         FKL_UNREACHABLE();

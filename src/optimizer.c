@@ -1,6 +1,7 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
 #include <stdlib.h>
@@ -547,7 +548,7 @@ void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
         const FklInstruction *ins,
         uint32_t line,
         uint32_t scope,
-        FklSid_t fid) {
+        FklVMvalue *fid) {
     if (buf->size == buf->capacity) {
         buf->capacity <<= 1;
         FklInsLn *new_base = (FklInsLn *)fklZrealloc(buf->base,
@@ -1373,21 +1374,20 @@ static uint32_t push_const_not_pred(const FklByteCodeBuffer *buf,
     case FKL_OP_PUSH_I8:
     case FKL_OP_PUSH_I16:
     case FKL_OP_PUSH_I24:
-    case FKL_OP_PUSH_I64F:
-    case FKL_OP_PUSH_I64F_C:
-    case FKL_OP_PUSH_I64F_X:
-    case FKL_OP_PUSH_I64B:
-    case FKL_OP_PUSH_I64B_C:
-    case FKL_OP_PUSH_I64B_X:
-    case FKL_OP_PUSH_F64:
-    case FKL_OP_PUSH_F64_C:
-    case FKL_OP_PUSH_F64_X:
-    case FKL_OP_PUSH_BI:
-    case FKL_OP_PUSH_BI_C:
-    case FKL_OP_PUSH_BI_X:
-    case FKL_OP_PUSH_SYM:
-    case FKL_OP_PUSH_SYM_C:
-    case FKL_OP_PUSH_SYM_X: {
+	case FKL_OP_PUSH_CONST:
+    // case FKL_OP_PUSH_I64B:
+    // case FKL_OP_PUSH_I64B_C:
+    // case FKL_OP_PUSH_I64B_X:
+    // case FKL_OP_PUSH_F64:
+    // case FKL_OP_PUSH_F64_C:
+    // case FKL_OP_PUSH_F64_X:
+    // case FKL_OP_PUSH_BI:
+    // case FKL_OP_PUSH_BI_C:
+    // case FKL_OP_PUSH_BI_X:
+    // case FKL_OP_PUSH_SYM:
+    // case FKL_OP_PUSH_SYM_C:
+    // case FKL_OP_PUSH_SYM_X:
+		{
         uint32_t i = fklGetOpcodeModeLen(peephole[0].ins.op);
         if (k > i && peephole[i].ins.op == FKL_OP_NOT)
             return i + 1;

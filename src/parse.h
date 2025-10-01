@@ -3,7 +3,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/utils.h>
 
-#include "grammer.c"
+#include "parser.c"
 
 #endif
 
@@ -20,7 +20,6 @@
                 action->prod,                                                  \
                 action->actual_len,                                            \
                 ctx,                                                           \
-                st,                                                            \
                 errLine)) {                                                    \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
         return NULL;                                                           \
@@ -33,7 +32,6 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
         size_t len,
         size_t *restLen,
         FklGrammerMatchCtx *ctx,
-        FklSymbolTable *st,
         FklParseError *err,
         size_t *errLine,
         FklAnalysisSymbolVector *symbolStack,

@@ -1,120 +1,169 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/vm.h>
 
 #include <string.h>
 
-int fklPatternMatch(const FklNastNode *pattern,
-        const FklNastNode *exp,
+static void
+_slot_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+    FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
+    fklStringBufferConcatWithCstr(buf, "#<slot ");
+    fklPrintRawStringToStringBuffer(buf, FKL_VM_SYM(s->v), "|", "|", '|');
+    fklStringBufferPutc(buf, '>');
+}
+
+static void _slot_userdata_atomic(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
+    fklVMgcToGray(s->v, gc);
+}
+
+static FklVMudMetaTable SlotUserDataMetaTable = {
+    .size = sizeof(struct FklVMslot),
+    .__as_princ = _slot_userdata_as_print,
+    .__as_prin1 = _slot_userdata_as_print,
+    .__atomic = _slot_userdata_atomic,
+};
+
+int fklIsVMvalueSlot(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &SlotUserDataMetaTable;
+}
+
+FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s) {
+    FKL_ASSERT(FKL_IS_SYM(s));
+    FklVMvalueSlot *r = (FklVMvalueSlot *)fklCreateVMvalueUd(vm,
+            &SlotUserDataMetaTable,
+            NULL);
+    r->s = s;
+    return (FklVMvalue *)r;
+}
+
+int fklPatternMatch(const FklVMvalue *pattern,
+        const FklVMvalue *exp,
         FklPmatchHashMap *ht) {
-    if (exp->type != FKL_NAST_PAIR)
+    if (!FKL_IS_PAIR(exp))
         return 0;
-    if (exp->pair->car->type != FKL_NAST_SYM
-            || pattern->pair->car->sym != exp->pair->car->sym)
+    if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
-    FklNastImmPairVector s;
-    fklNastImmPairVectorInit(&s, 8);
-    fklNastImmPairVectorPushBack(&s,
-            &(FklNastImmPair){ .car = pattern->pair->cdr,
-                .cdr = exp->pair->cdr });
-    while (!fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
-        const FklNastNode *n0 = top->car;
-        const FklNastNode *n1 = top->cdr;
-        if (n0->type == FKL_NAST_SLOT) {
+    FklVMpairVector s;
+    fklVMpairVectorInit(&s, 8);
+    fklVMpairVectorPushBack(&s,
+            &(FklVMpair){
+                .car = FKL_VM_CDR(pattern),
+                .cdr = FKL_VM_CDR(exp),
+            });
+    while (!fklVMpairVectorIsEmpty(&s)) {
+        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+        const FklVMvalue *n0 = top->car;
+        FklVMvalue *n1 = top->cdr;
+        if (fklIsVMvalueSlot(n0)) {
             if (ht != NULL)
                 fklPmatchHashMapAdd2(ht,
-                        n0->sym,
-                        FKL_TYPE_CAST(FklNastNode *, n1));
-        } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->cdr,
-                        .cdr = n1->pair->cdr });
+                        // n0->sym,
+                        FKL_VM_SLOT_SYM(n0),
+                        // FKL_TYPE_CAST(FklNastNode *, n1)
+                        n1);
+        } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CDR(n0),
+                        .cdr = FKL_VM_CDR(n1),
+                    });
 
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->car,
-                        .cdr = n1->pair->car });
-        } else if (!fklNastNodeEqual(n0, n1)) {
-            fklNastImmPairVectorUninit(&s);
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CAR(n0),
+                        .cdr = FKL_VM_CAR(n1),
+                    });
+        } else if (!fklVMvalueEqual(n0, n1)) {
+            fklVMpairVectorUninit(&s);
             return 0;
         }
     }
-    fklNastImmPairVectorUninit(&s);
+    fklVMpairVectorUninit(&s);
     return 1;
 }
 
-static inline int is_pattern_equal(const FklNastNode *pattern,
-        const FklNastNode *exp) {
-    if (exp->type != FKL_NAST_PAIR)
+static inline int is_pattern_equal(const FklVMvalue *pattern,
+        const FklVMvalue *exp) {
+    if (!FKL_IS_PAIR(exp))
         return 0;
-    if (exp->pair->car->type != FKL_NAST_SYM
-            || pattern->pair->car->sym != exp->pair->car->sym)
+    if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
-    FklNastImmPairVector s;
-    fklNastImmPairVectorInit(&s, 8);
-    fklNastImmPairVectorPushBack(&s,
-            &(FklNastImmPair){ .car = pattern->pair->cdr,
-                .cdr = exp->pair->cdr });
+    FklVMpairVector s;
+    fklVMpairVectorInit(&s, 8);
+    fklVMpairVectorPushBack(&s,
+            &(FklVMpair){
+                .car = FKL_VM_CDR(pattern),
+                .cdr = FKL_VM_CDR(exp),
+            });
     int r = 1;
-    while (r && !fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
-        const FklNastNode *n0 = top->car;
-        const FklNastNode *n1 = top->cdr;
-        if (n0->type != n1->type)
-            r = 0;
-        else if (n0->type == FKL_NAST_SLOT)
+    while (r && !fklVMpairVectorIsEmpty(&s)) {
+        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+        FklVMvalue *n0 = top->car;
+        FklVMvalue *n1 = top->cdr;
+        if (fklIsVMvalueSlot(n0) && fklIsVMvalueSlot(n1))
             continue;
-        else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->cdr,
-                        .cdr = n1->pair->cdr });
+        else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CDR(n0),
+                        .cdr = FKL_VM_CDR(n1),
+                    });
 
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->car,
-                        .cdr = n1->pair->car });
-        } else if (!fklNastNodeEqual(n0, n1))
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CAR(n0),
+                        .cdr = FKL_VM_CAR(n1),
+                    });
+        } else if (!fklVMvalueEqual(n0, n1))
             r = 0;
     }
-    fklNastImmPairVectorUninit(&s);
+    fklVMpairVectorUninit(&s);
     return r;
 }
 
-static inline int is_partly_covered(const FklNastNode *pattern,
-        const FklNastNode *exp) {
+static inline int is_partly_covered(const FklVMvalue *pattern,
+        const FklVMvalue *exp) {
     int r = 0;
-    if (exp->type != FKL_NAST_PAIR)
+    if (!FKL_IS_PAIR(exp))
         return r;
-    if (exp->pair->car->type != FKL_NAST_SYM
-            || pattern->pair->car->sym != exp->pair->car->sym)
+    if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return r;
-    FklNastImmPairVector s;
-    fklNastImmPairVectorInit(&s, 8);
-    fklNastImmPairVectorPushBack(&s,
-            &(FklNastImmPair){ .car = pattern->pair->cdr,
-                .cdr = exp->pair->cdr });
-    while (!fklNastImmPairVectorIsEmpty(&s)) {
-        const FklNastImmPair *top = fklNastImmPairVectorPopBackNonNull(&s);
-        const FklNastNode *n0 = top->car;
-        const FklNastNode *n1 = top->cdr;
-        if (n0->type == FKL_NAST_SLOT) {
+    FklVMpairVector s;
+    fklVMpairVectorInit(&s, 8);
+    fklVMpairVectorPushBack(&s,
+            &(FklVMpair){
+                .car = FKL_VM_CDR(pattern),
+                .cdr = FKL_VM_CDR(exp),
+            });
+    while (!fklVMpairVectorIsEmpty(&s)) {
+        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+        FklVMvalue *n0 = top->car;
+        FklVMvalue *n1 = top->cdr;
+        if (fklIsVMvalueSlot(n0)) {
             r = 1;
             break;
-        } else if (n0->type == FKL_NAST_PAIR && n1->type == FKL_NAST_PAIR) {
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->cdr,
-                        .cdr = n1->pair->cdr });
+        } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CDR(n0),
+                        .cdr = FKL_VM_CDR(n1),
+                    });
 
-            fklNastImmPairVectorPushBack(&s,
-                    &(FklNastImmPair){ .car = n0->pair->car,
-                        .cdr = n1->pair->car });
-        } else if (!fklNastNodeEqual(n0, n1))
+            fklVMpairVectorPushBack(&s,
+                    &(FklVMpair){
+                        .car = FKL_VM_CAR(n0),
+                        .cdr = FKL_VM_CAR(n1),
+                    });
+        } else if (!fklVMvalueEqual(n0, n1))
             break;
     }
-    fklNastImmPairVectorUninit(&s);
+    fklVMpairVectorUninit(&s);
     return r;
 }
 
-int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1) {
+int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1) {
     if (is_pattern_equal(p0, p1))
         return FKL_PATTERN_EQUAL;
     else if (is_partly_covered(p0, p1))
@@ -125,66 +174,75 @@ int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1) {
         return FKL_PATTERN_NOT_EQUAL;
 }
 
-static inline int is_valid_pattern_nast(const FklNastNode *p) {
-    if (p->type != FKL_NAST_PAIR)
+static inline int is_valid_pattern_nast(const FklVMvalue *p) {
+    if (!FKL_IS_PAIR(p))
         return 0;
-    if (p->pair->car->type != FKL_NAST_SYM)
+    if (!FKL_IS_SYM(FKL_VM_CAR(p)))
         return 0;
     return 1;
 }
 
-static inline int is_pattern_slot(FklSid_t s, const FklNastNode *p) {
-    return p->type == FKL_NAST_PAIR && p->pair->cdr->type == FKL_NAST_PAIR
-        && p->pair->cdr->pair->cdr->type == FKL_NAST_NIL
-        && p->pair->car->type == FKL_NAST_SYM && p->pair->car->sym == s
-        && p->pair->cdr->pair->car->type == FKL_NAST_SYM;
+static inline int is_pattern_slot(const FklVMvalue *s, const FklVMvalue *p) {
+    return FKL_IS_PAIR(p)                          //
+        && FKL_IS_PAIR(FKL_VM_CDR(p))              //
+        && FKL_VM_CDR(FKL_VM_CDR(p)) == FKL_VM_NIL //
+        && FKL_IS_SYM(FKL_VM_CAR(p))               //
+        && FKL_VM_CAR(p) == s                      //
+        && FKL_IS_SYM(FKL_VM_CAR(FKL_VM_CDR(p)));
 }
 
-FklNastNode *fklCreatePatternFromNast(FklNastNode *node,
-        FklSidHashSet **psymbolTable) {
-    FklNastNode *r = NULL;
-    if (node->type == FKL_NAST_PAIR && fklIsNastNodeList(node)
-            && node->pair->car->type == FKL_NAST_SYM
-            && node->pair->cdr->type == FKL_NAST_PAIR
-            && node->pair->cdr->pair->cdr->type == FKL_NAST_NIL
-            && is_valid_pattern_nast(node->pair->cdr->pair->car)) {
-        FklSidHashSet *symbolTable = fklSidHashSetCreate();
-        FklNastNode *exp = fklCopyNastNode(node->pair->cdr->pair->car);
-        FklSid_t slotId = node->pair->car->sym;
-        FklNastNode *rest = exp->pair->cdr;
+FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
+        FklVMvalue *node,
+        FklVMvalueHashSet **psymbolTable) {
+    FklVMvalue *r = NULL;
+    if (FKL_IS_PAIR(node)                                 //
+            && fklIsList(node)                            //
+            && FKL_IS_SYM(FKL_VM_CAR(node))               //
+            && FKL_IS_PAIR(FKL_VM_CDR(node))              //
+            && FKL_VM_CDR(FKL_VM_CDR(node)) == FKL_VM_NIL //
+            && is_valid_pattern_nast(FKL_VM_CAR(FKL_VM_CDR(node)))) {
+        FklVMvalueHashSet *symbolTable = fklVMvalueHashSetCreate();
+        // FklNastNode *exp = fklCopyNastNode(node->pair->cdr->pair->car);
+        // FklSid_t slotId = node->pair->car->sym;
+        // FklNastNode *rest = exp->pair->cdr;
 
-        FklNastNodeVector stack;
-        fklNastNodeVectorInit(&stack, 32);
-        fklNastNodeVectorPushBack2(&stack, rest);
-        while (!fklNastNodeVectorIsEmpty(&stack)) {
-            FklNastNode *c = *fklNastNodeVectorPopBackNonNull(&stack);
-            if (c->type == FKL_NAST_PAIR) {
-                if (is_pattern_slot(slotId, c)) {
-                    FklSid_t sym = c->pair->cdr->pair->car->sym;
-                    if (fklSidHashSetPut2(symbolTable, sym)) {
-                        fklSidHashSetDestroy(symbolTable);
-                        fklNastNodeVectorUninit(&stack);
+        FklVMvalue *exp = fklCopyVMlistOrAtom(FKL_VM_CAR(FKL_VM_CDR(node)), vm);
+        FklVMvalue *slotId = FKL_VM_CAR(node);
+
+        FklVMvalueSlotVector stack;
+        fklVMvalueSlotVectorInit(&stack, 32);
+        fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CDR(exp));
+        while (!fklVMvalueSlotVectorIsEmpty(&stack)) {
+            FklVMvalue **c = *fklVMvalueSlotVectorPopBackNonNull(&stack);
+            FklVMvalue *cur = *c;
+            if (FKL_IS_PAIR(cur)) {
+                if (is_pattern_slot(slotId, cur)) {
+                    FklVMvalue *sym = FKL_VM_CAR(FKL_VM_CDR(cur));
+                    if (fklVMvalueHashSetPut2(symbolTable, sym)) {
+                        fklVMvalueHashSetDestroy(symbolTable);
+                        fklVMvalueSlotVectorUninit(&stack);
                         *psymbolTable = NULL;
-                        fklDestroyNastNode(exp);
+                        // fklDestroyNastNode(exp);
                         return NULL;
                     }
-                    fklDestroyNastNode(c->pair->car);
-                    fklDestroyNastNode(c->pair->cdr);
-                    fklZfree(c->pair);
-                    c->type = FKL_NAST_SLOT;
-                    c->sym = sym;
+                    // fklDestroyNastNode(c->pair->car);
+                    // fklDestroyNastNode(c->pair->cdr);
+                    // fklZfree(c->pair);
+                    *c = fklCreateVMvalueSlot(vm, sym);
+                    // c->type = FKL_NAST_SLOT;
+                    // c->sym = sym;
                 } else {
-                    fklNastNodeVectorPushBack2(&stack, c->pair->cdr);
-                    fklNastNodeVectorPushBack2(&stack, c->pair->car);
+                    fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
+                    fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
                 }
             }
         }
         r = exp;
-        fklNastNodeVectorUninit(&stack);
+        fklVMvalueSlotVectorUninit(&stack);
         if (psymbolTable)
             *psymbolTable = symbolTable;
         else
-            fklSidHashSetDestroy(symbolTable);
+            fklVMvalueHashSetDestroy(symbolTable);
     }
     return r;
 }

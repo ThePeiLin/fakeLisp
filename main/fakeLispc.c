@@ -20,92 +20,99 @@
 static inline int pre_compile(const char *main_file_name,
         const char *output_dir,
         int argc,
-        char *argv[],
-        FklCodegenCtx *ctx) {
-    FklSymbolTable *pst = &ctx->public_st;
-    fklAddSymbolCstr(main_file_name, pst);
-    FILE *fp = fopen(main_file_name, "r");
-    char *rp = fklRealpath(main_file_name);
-    fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
-    const char *main_dir = ctx->main_file_real_path_dir;
-    fklChdir(ctx->main_file_real_path_dir);
-    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
-            NULL,
-            rp,
-            &(FklCodegenInfoArgs){
-                .is_global = 1,
-                .is_lib = 1,
-                .st = &ctx->public_st,
-                .kt = &ctx->public_kt,
-            });
+        char *argv[]) {
+    FKL_TODO();
+    // FklSymbolTable *pst = &ctx->public_st;
+    // fklAddSymbolCstr(main_file_name, pst);
+    // FILE *fp = fopen(main_file_name, "r");
+    // char *rp = fklRealpath(main_file_name);
+    // fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
+    // const char *main_dir = ctx->main_file_real_path_dir;
+    // fklChdir(ctx->main_file_real_path_dir);
+    // FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
+    //         NULL,
+    //         rp,
+    //         &(FklCodegenInfoArgs){
+    //             .is_global = 1,
+    //             .is_lib = 1,
+    //             .st = &ctx->public_st,
+    //             .kt = &ctx->public_kt,
+    //         });
 
-    FklVMvalueCodegenEnv *main_env = ctx->global_env;
-    FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFpForPrecompile(fp, codegen, main_env);
-    if (mainByteCode == NULL) {
-        fklZfree(rp);
-        return EXIT_FAILURE;
-    }
-    fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
-    fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
+    // FklVMvalueCodegenEnv *main_env = ctx->global_env;
+    // FklByteCodelnt *mainByteCode =
+    //         fklGenExpressionCodeWithFpForPrecompile(fp, codegen, main_env);
+    // if (mainByteCode == NULL) {
+    //     fklZfree(rp);
+    //     return EXIT_FAILURE;
+    // }
+    // fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
+    // fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
 
-    char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
-    FKL_ASSERT(outputname);
-    strcpy(outputname, rp);
-    strcat(outputname, FKL_PRE_COMPILE_FKL_SUFFIX_STR);
-    if (output_dir) {
-        if (!fklIsAccessibleDirectory(output_dir))
-            fklMkdir(output_dir);
-        char *new_output_name =
-                fklStrCat(fklZstrdup(output_dir), FKL_PATH_SEPARATOR_STR);
-        char *rel_new_output_name = fklRelpath(main_dir, outputname);
-        new_output_name = fklStrCat(new_output_name, rel_new_output_name);
-        fklZfree(rel_new_output_name);
-        fklZfree(outputname);
-        outputname = new_output_name;
-    }
-    fklZfree(rp);
-    FILE *outfp = fopen(outputname, "wb");
-    if (!outfp) {
-        fprintf(stderr, "%s: Can't create pre-compile file!", outputname);
-        return EXIT_FAILURE;
-    }
+    // char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
+    // FKL_ASSERT(outputname);
+    // strcpy(outputname, rp);
+    // strcat(outputname, FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+    // if (output_dir) {
+    //     if (!fklIsAccessibleDirectory(output_dir))
+    //         fklMkdir(output_dir);
+    //     char *new_output_name =
+    //             fklStrCat(fklZstrdup(output_dir), FKL_PATH_SEPARATOR_STR);
+    //     char *rel_new_output_name = fklRelpath(main_dir, outputname);
+    //     new_output_name = fklStrCat(new_output_name, rel_new_output_name);
+    //     fklZfree(rel_new_output_name);
+    //     fklZfree(outputname);
+    //     outputname = new_output_name;
+    // }
+    // fklZfree(rp);
+    // FILE *outfp = fopen(outputname, "wb");
+    // if (!outfp) {
+    //     fprintf(stderr, "%s: Can't create pre-compile file!", outputname);
+    //     return EXIT_FAILURE;
+    // }
 
-    fklWritePreCompile(codegen, main_dir, output_dir, mainByteCode, outfp);
-    fklDestroyByteCodelnt(mainByteCode);
-    fclose(outfp);
-    fklZfree(outputname);
-    return 0;
+    // fklWritePreCompile(codegen, main_dir, output_dir, mainByteCode, outfp);
+    // fklDestroyByteCodelnt(mainByteCode);
+    // fclose(outfp);
+    // fklZfree(outputname);
+    // return 0;
 }
 
 static inline int compile(const char *filename,
         const char *output,
         const char *cwd,
         int argc,
-        char *argv[],
-        FklCodegenCtx *ctx) {
-    FklSymbolTable *pst = &ctx->public_st;
-    fklAddSymbolCstr(filename, pst);
+        char *argv[]) {
     FILE *fp = fopen(filename, "r");
+    FKL_ASSERT(fp);
+
     char *rp = fklRealpath(filename);
-    fklSetCodegenCtxMainFileRealPathDir(ctx, fklGetDir(rp));
-    fklChdir(ctx->main_file_real_path_dir);
-    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(ctx,
+    FklCodegenCtx ctx;
+
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+
+    fklChdir(ctx.main_file_real_path_dir);
+    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
             NULL,
             rp,
             &(FklCodegenInfoArgs){
                 .is_lib = 1,
                 .is_global = 1,
             });
-    FklVMvalueCodegenEnv *main_env = ctx->global_env;
     FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, codegen, main_env);
+            fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
+    fklVMclearExtraMarkFunc(gc);
+
     if (mainByteCode == NULL) {
         fklZfree(rp);
         return EXIT_FAILURE;
     }
-    fklUpdatePrototype(codegen->pts, main_env, codegen->st, pst);
-    fklPrintUndefinedRef(codegen->global_env, codegen->st, pst);
+
+    fklUpdatePrototype(&pts->p, ctx.global_env);
+    fklPrintUndefinedRef(ctx.global_env->prev);
 
     char *outputname = NULL;
     if (output) {
@@ -119,22 +126,46 @@ static inline int compile(const char *filename,
         strcat(outputname, FKL_BYTECODE_FKL_SUFFIX_STR);
     }
     fklZfree(rp);
+
+    fklChdir(ctx.cwd);
+
+    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
+            gc,
+            1,
+            0,
+            pts,
+            fklCreateVMvalueLibs(&gc->gcvm));
+
+    fklUpdateVMlibsWithCodegenLibVector(anotherVM,
+            anotherVM->libs,
+            codegen->libraries,
+            anotherVM->pts);
+
+    fklChdir(ctx.cwd);
+    fklUninitCodegenCtx(&ctx);
+
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create byte code file!\n", outputname);
         return EXIT_FAILURE;
     }
 
+    fklVMclearSymbol(gc);
+    fklCheckAndGC(anotherVM, 1);
+    fklVMrestoreSymbol(gc);
+
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
-                .runtime_st = codegen->st,
-                .runtime_kt = codegen->kt,
-                .pts = codegen->pts,
+                .obarray = gc->obarray,
+                .pts = anotherVM->pts,
                 .main_func = mainByteCode,
-                .libs = codegen->libraries,
+                .libs = anotherVM->libs,
             });
 
     fklDestroyByteCodelnt(mainByteCode);
+    fklDestroyVMgc(gc);
+    fklUninitCodegenCtx(&ctx);
+
     fclose(outfp);
     fklZfree(outputname);
     return 0;
@@ -156,10 +187,9 @@ int main(int argc, char **argv) {
     argv = uv_setup_args(argc, argv);
     const char *progname = argv[0];
 
-    FklCodegenCtx ctx;
-    FklSymbolTable *st = fklCreateSymbolTable();
-    FklConstTable *kt = fklCreateConstTable();
-    fklInitCodegenCtx(&ctx, NULL, st, kt);
+    // FklSymbolTable *st = fklCreateSymbolTable();
+    // FklConstTable *kt = fklCreateConstTable();
+    // fklInitCodegenCtx(&ctx, NULL, st, kt);
 
     void *argtable[] = {
         help = arg_lit0("h", "help", "display this help and exit"),
@@ -222,7 +252,7 @@ int main(int argc, char **argv) {
                                                      FKL_PATH_SEPARATOR_STR),
                                            dir->filename[0])
                                  : NULL;
-        if (pre_compile(buffer.buf, output_dir, argc, argv, &ctx)) {
+        if (pre_compile(buffer.buf, output_dir, argc, argv)) {
             fklZfree(output_dir);
             fklUninitStringBuffer(&buffer);
             goto compile_error;
@@ -242,8 +272,7 @@ int main(int argc, char **argv) {
                         output->count > 0 ? output->filename[0] : NULL,
                         cwd,
                         argc,
-                        argv,
-                        &ctx)) {
+                        argv)) {
             compile_error:
                 exitcode = 255;
                 goto exit;
@@ -264,8 +293,7 @@ int main(int argc, char **argv) {
                         output->count > 0 ? output->filename[0] : NULL,
                         cwd,
                         argc,
-                        argv,
-                        &ctx)) {
+                        argv)) {
                 fklUninitStringBuffer(&buffer);
                 goto compile_error;
             }
@@ -275,7 +303,7 @@ int main(int argc, char **argv) {
 
 exit:
     fklZfree(cwd);
-    fklUninitCodegenCtx(&ctx);
+    // fklUninitCodegenCtx(&ctx);
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     return exitcode;
 }

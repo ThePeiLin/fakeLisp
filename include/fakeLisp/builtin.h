@@ -8,20 +8,22 @@
 extern "C" {
 #endif
 
-#define FKL_BUILTIN_SYMBOL_NUM (200)
+#define FKL_BUILTIN_SYMBOL_NUM (201)
+
+struct FklVMvalueCodegenEnv;
+struct FklVM;
+struct FklVMgc;
+struct FklVMframe;
+struct FklVMproc;
+struct FklVMvalue;
 
 typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[],
-        FklSid_t,
+        struct FklVMvalue *,
         uint32_t line,
         uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 
-struct FklVMvalueCodegenEnv;
-struct FklVMgc;
-struct FklVMframe;
-struct FklVMproc;
-
-void fklInitGlobCodegenEnv(struct FklVMvalueCodegenEnv *, FklSymbolTable *pst);
+void fklInitGlobCodegenEnv(struct FklVMvalueCodegenEnv *, struct FklVM *gc);
 void fklInitGlobalVMclosureForGC(struct FklVMgc *);
 
 #define FKL_VM_STDIN_IDX (0)

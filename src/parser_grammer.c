@@ -3,6 +3,7 @@
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
@@ -554,6 +555,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
     fklGraSymVectorInit(&gsym_vector, 2);
 
     int has_ignore = 0;
+    FklVM *gcvm = &arg->g->gc->gcvm;
 
     const char *action_name = NULL;
     FklProdActionFunc action_func = NULL;
@@ -596,8 +598,8 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 Token ntoken = next_token(arg, err, &buf, end);
                 buf -= ntoken.len;
                 s.type = FKL_TERM_BUILTIN;
-                FklSid_t id =
-                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
+                FklVMvalue *id =
+                        fklVMaddSymbolCharBuf(gcvm, token.str, token.len);
                 const FklLalrBuiltinMatch *builtin =
                         fklGetBuiltinMatch(&arg->g->builtins, id);
                 if (builtin) {
@@ -647,8 +649,8 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     goto error_happened;
                 }
             } else {
-                FklSid_t id =
-                        fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
+                FklVMvalue *id =
+                        fklVMaddSymbolCharBuf(gcvm, token.str, token.len);
                 s.type = FKL_TERM_NONTERM;
                 s.nt.sid = id;
             }
@@ -840,8 +842,9 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
                 invalid_left_part_error(arg, &token);
             }
 
-            arg->current_nonterm =
-                    fklAddSymbolCharBuf(token.str, token.len, arg->g->st);
+            arg->current_nonterm = fklVMaddSymbolCharBuf(&arg->g->gc->gcvm,
+                    token.str,
+                    token.len);
             arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
             buf = parse_right_part(arg, &err, buf, end);
             if (err)

@@ -1,11 +1,11 @@
 (defmacro #&json
   #(json #["#json'" json-value] builtin second)
 
-  #(#[#"null"] json-value builtin symbol)
+  #(#[#"null"] json-value replace null)
 
-  #(#[#"true"] json-value builtin symbol)
+  #(#[#"true"] json-value replace true)
 
-  #(#[#"false"] json-value builtin symbol)
+  #(#[#"false"] json-value replace false)
 
   #(#[*string*] json-value builtin first)
 

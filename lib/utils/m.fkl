@@ -1,6 +1,6 @@
 (export
-  (defmacro ~(case (~s ~v),~b)
-    (begin
+  (defmacro ~(case ~v,~b)
+    (let [(s (make-symbol "_"))]
       (define body
         (let [(tb (map (lambda (x) (cdr x)) b))
               (cs (map (lambda (x)
@@ -15,6 +15,12 @@
                cs)))
       `(let [(~s ~v)]
          (cond,~body))))
+
+  (defmacro ~(swap ~a ~b)
+    (let [(s (make-symbol "tmp"))]
+      `(let [(~s ~a)]
+         (setq ~a ~b)
+         (setq ~b ~s))))
 
   (defmacro ~(->> ~x,~forms)
     (let [(carc (car forms))]

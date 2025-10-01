@@ -3,18 +3,8 @@
 
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/vm.h>
 #include <stdint.h>
-
-struct CustomActionCtx {
-    uint64_t refcount;
-    FklByteCodelnt *bcl;
-    FklFuncPrototypes *pts;
-    FklCodegenLibVector *macro_libraries;
-    FklCodegenCtx *ctx;
-    FklSymbolTable *pst;
-    uint32_t prototype_id;
-    uint8_t is_recomputed;
-};
 
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
     uint32_t r = ++env->sc;
@@ -35,42 +25,42 @@ static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
 
 static inline FklGrammerProdGroupItem *add_production_group(
         FklGraProdGroupHashMap *named_prod_groups,
-        FklSymbolTable *st,
-        FklSid_t group_id) {
+        FklVMgc *gc,
+        FklVMvalue *group_id) {
     FklGrammerProdGroupItem *group =
             fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
-    if (!group->g.st) {
-        fklInitEmptyGrammer(&group->g, st);
+    if (!group->g.gc) {
+        fklInitEmptyGrammer(&group->g, &gc->gcvm);
         fklInitStringTable(&group->delimiters);
     }
     return group;
 }
 
-static inline void print_nast_node_with_null_chr(const FklNastNode *node,
-        const FklSymbolTable *st,
+static inline void print_nast_node_with_null_chr(const FklVMvalue *node,
         FILE *fp) {
-    fklPrintNastNode(node, fp, st);
-    fputc('\0', fp);
+    FKL_TODO();
+    // fklPrintNastNode(node, fp, st);
+    // fputc('\0', fp);
 }
 
-static inline FklNastNode *load_nast_node_with_null_chr(FklSymbolTable *st,
-        FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    char ch = 0;
-    while ((ch = fgetc(fp)))
-        fklStringBufferPutc(&buf, ch);
-    FklNastNode *node = fklCreateNastNodeFromCstr(buf.buf, st);
-    fklUninitStringBuffer(&buf);
-    return node;
-}
+// static inline FklNastNode *load_nast_node_with_null_chr(FklSymbolTable *st,
+//         FILE *fp) {
+//     FklStringBuffer buf;
+//     fklInitStringBuffer(&buf);
+//     char ch = 0;
+//     while ((ch = fgetc(fp)))
+//         fklStringBufferPutc(&buf, ch);
+//     FklNastNode *node = fklCreateNastNodeFromCstr(buf.buf, st);
+//     fklUninitStringBuffer(&buf);
+//     return node;
+// }
 
-static inline void replace_sid(FklSid_t *id,
-        const FklSymbolTable *origin_st,
-        FklSymbolTable *target_st) {
-    FklSid_t sid = *id;
-    *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st);
-}
+// static inline void replace_sid(FklSid_t *id,
+//         const FklSymbolTable *origin_st,
+//         FklSymbolTable *target_st) {
+//     FklSid_t sid = *id;
+//     *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st);
+// }
 
 static inline void merge_group(FklGrammerProdGroupItem *group,
         const FklGrammerProdGroupItem *other,
@@ -82,10 +72,7 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
 }
 
 static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
-    fklDestroyNastNode(macro->pattern);
     macro->pattern = NULL;
-    fklDestroyNastNode(macro->origin_exp);
-    macro->origin_exp = NULL;
     fklDestroyByteCodelnt(macro->bcl);
     macro->bcl = NULL;
 }
@@ -93,29 +80,129 @@ static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
 static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
         uint32_t p,
         FklVMvalueCodegenEnv *env,
-        FklSid_t sid,
-        uint32_t line,
-        FklSymbolTable *pst) {
-    FklSid_t fid = info->fid;
-    FklFuncPrototypes *cp = info->pts;
+        FklVMvalue *sid,
+        uint32_t line) {
+    FklVMvalue *fid = info->fid;
+    FklFuncPrototypes *cp = &info->pts->p;
     cp->count += 1;
     FklFuncPrototype *pts = (FklFuncPrototype *)fklZrealloc(cp->pa,
             (cp->count + 1) * sizeof(FklFuncPrototype));
     FKL_ASSERT(pts);
     cp->pa = pts;
     FklFuncPrototype *cpt = &pts[cp->count];
+    memset(cpt, 0, sizeof(FklFuncPrototype));
     env->prototypeId = cp->count;
     cpt->lcount = env->lcount;
-    cpt->refs = NULL;
-    cpt->rcount = 0;
-    FKL_ASSERT(cpt == &info->pts->pa[env->prototypeId]);
-    fklUpdatePrototypeRef(info->pts, env, info->st, pst);
 
-    cpt->sid = sid;
-    cpt->fid = fid;
+    FKL_ASSERT(cpt == &cp->pa[env->prototypeId]);
+    fklUpdatePrototypeRef(cp, env);
+
+    cpt->name = sid;
+    cpt->file = fid;
     cpt->line = line;
 
     if (info->env_work_cb)
         info->env_work_cb(info, env, info->work_ctx);
 }
+
+static inline void
+put_line_number(FklLineNumHashMap *ln, FklVMvalue *v, uint64_t line) {
+    if (ln)
+        fklLineNumHashMapPut2(ln, v, line);
+}
+
+static inline FklVMvalue *add_symbol_cstr(FklCodegenCtx *c, const char *s) {
+    return fklVMaddSymbolCstr(&c->gc->gcvm, s);
+}
+
+static inline FklVMvalue *
+add_symbol_char_buf(FklCodegenCtx *c, const char *s, size_t l) {
+    return fklVMaddSymbolCharBuf(&c->gc->gcvm, s, l);
+}
+
+static inline FklVMvalue *add_symbol(FklCodegenCtx *c, const FklString *s) {
+    return fklVMaddSymbol(&c->gc->gcvm, s);
+}
+
+static inline int is_symbol_list(const FklVMvalue *v) {
+    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v)) {
+        if (!FKL_IS_SYM(FKL_VM_CAR(v)))
+            return 0;
+    }
+    return 1;
+}
+
+static inline int is_string_list(const FklVMvalue *v) {
+    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v)) {
+        if (!FKL_IS_STR(FKL_VM_CAR(v)))
+            return 0;
+    }
+    return 1;
+}
+
+static inline int is_pair_list(const FklVMvalue *v) {
+    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v)) {
+        if (!FKL_IS_PAIR(FKL_VM_CAR(v)))
+            return 0;
+    }
+    return 1;
+}
+
+static inline FklVMvalue *check_macro_expand_result(FklVMvalue *r) {
+    if (fklIsSerializableToByteCodeFile(r))
+        return r;
+    return NULL;
+}
+
+static inline FklVMvalue *codegen_create_hash(FklVMparseCtx *c,
+        FklHashTableEqType eq_type,
+        FklVMvalue *list,
+        size_t line) {
+    FklVMvalue *r = NULL;
+    switch (eq_type) {
+    case FKL_HASH_EQ:
+        r = fklCreateVMvalueHashEq(c->exe);
+        break;
+    case FKL_HASH_EQV:
+        r = fklCreateVMvalueHashEqv(c->exe);
+        break;
+    case FKL_HASH_EQUAL:
+        r = fklCreateVMvalueHashEqual(c->exe);
+        break;
+    }
+    put_line_number(c->ln, r, line);
+    for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list)) {
+        FklVMvalue *p = FKL_VM_CAR(list);
+        FklVMvalue *car = FKL_VM_CAR(p);
+        FklVMvalue *cdr = FKL_VM_CDR(p);
+        fklVMhashTableSet(FKL_VM_HASH(r), car, cdr);
+    }
+    return r;
+}
+
+typedef struct ListElm {
+    FklVMvalue *v;
+    uint64_t line;
+} ListElm;
+
+static inline FklVMvalue *create_nast_list(ListElm *a,
+        size_t num,
+        uint32_t line,
+        FklVM *vm,
+        FklLineNumHashMap *ln) {
+    FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **cur = &r;
+    for (size_t i = 0; i < num; i++) {
+        (*cur) = fklCreateVMvaluePairWithCar(vm, a[i].v);
+        put_line_number(ln, *cur, a[i].line);
+        cur = &FKL_VM_CDR(*cur);
+        // (*cur) = fklCreateNastNode(FKL_NAST_PAIR, a[i]->curline);
+        // (*cur)->pair = fklCreateNastPair();
+        // (*cur)->pair->car = a[i];
+        // cur = &(*cur)->pair->cdr;
+    }
+    // (*cur) = fklCreateNastNode(FKL_NAST_NIL, line);
+    return r;
+}
+
 #endif

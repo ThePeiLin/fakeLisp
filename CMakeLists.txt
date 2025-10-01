@@ -41,7 +41,6 @@ set(LIBFKL_STATIC_TARGET_NAME fkl_a)
 set(LIBFKL_TARGET_NAME fkl)
 
 set(GRAMMER_GEN grammer)
-set(PARSE parse)
 set(VMPARSE vmparse)
 set(BIN2H bin2h)
 
@@ -108,52 +107,47 @@ function(target_define_relative_file target_name)
     endforeach()
 endfunction()
 
-add_library(test_lib
+file(GLOB LIBFKL_SOURCE "src/*.c"
+	                    "${GENERATED_HEADER_DIR}/lisp.g.h")
+
+add_library(grammer_lib
 	OBJECT
-	"src/base.c"
-	"src/utils.c"
-	"src/grammer.c"
-	"src/parser_grammer.c"
-	"src/symbol.c"
-	"src/string_table.c"
-	"src/nast.c"
-	"src/regex.c"
-	"src/bigint.c"
-	"src/readline.c"
-	"${GENERATED_HEADER_DIR}/lisp.g.h")
-target_define_relative_file(test_lib)
+	${LIBFKL_SOURCE})
+target_compile_definitions(grammer_lib PRIVATE DEFINE_PUSH_STATE0)
+target_link_libraries(grammer_lib $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+target_define_relative_file(grammer_lib)
 
 add_executable(test-lexer "main/tests/lexer.c")
-target_link_libraries(test-lexer test_lib ${LINK_TARGET})
+target_link_libraries(test-lexer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-lexer)
 
 add_executable(test-lexer2 "main/tests/lexer2.c")
-target_link_libraries(test-lexer2 test_lib ${LINK_TARGET})
+target_link_libraries(test-lexer2 grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-lexer2)
 
 add_executable(test-regex "main/tests/regex.c")
-target_link_libraries(test-regex test_lib ${LINK_TARGET})
+target_link_libraries(test-regex grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-regex)
 
 add_executable(test-grammer "main/tests/grammer.c")
-target_link_libraries(test-grammer test_lib ${LINK_TARGET})
+target_link_libraries(test-grammer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-grammer)
 
-add_executable(test-parser "main/tests/parser.c" "src/parser.c")
-target_link_libraries(test-parser test_lib ${PARSE} ${LINK_TARGET})
+add_executable(test-parser "main/tests/parser.c")
+target_link_libraries(test-parser ${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET})
 target_define_relative_file(test-parser)
 
 add_executable(test-bigint "main/tests/bi.c")
-target_link_libraries(test-bigint test_lib ${LINK_TARGET})
+target_link_libraries(test-bigint grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-bigint)
 
 add_executable(test-ins "main/tests/ins.c")
-target_link_libraries(test-ins ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(test-ins grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-ins)
 
 # print some struct size
 add_executable(psssize "main/psssize.c")
-target_link_libraries(psssize ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(psssize grammer_lib ${LINK_TARGET})
 target_define_relative_file(psssize)
 
 #grammer
@@ -162,25 +156,25 @@ file(GLOB GRAMMER_GEN_SOURCE
 )
 
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
-target_link_libraries(${GRAMMER_GEN} test_lib ${LINK_TARGET})
+target_link_libraries(${GRAMMER_GEN} grammer_lib ${LINK_TARGET})
 target_define_relative_file(${GRAMMER_GEN})
 
 add_executable(test-lexer3 "main/tests/lexer3.c")
-target_link_libraries(test-lexer3 test_lib ${LINK_TARGET})
-target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+target_link_libraries(test-lexer3 grammer_lib ${LINK_TARGET})
+target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c")
 target_define_relative_file(test-lexer3)
 
 add_executable(test-lexer4 "main/tests/lexer4.c")
-target_link_libraries(test-lexer4 ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(test-lexer4 ${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET})
 target_define_relative_file(test-lexer4)
 
 add_executable(test-lexer5 "main/tests/lexer5.c")
-target_link_libraries(test-lexer5 test_lib ${LINK_TARGET})
-target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/action.c")
+target_link_libraries(test-lexer5 grammer_lib ${LINK_TARGET})
+target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c")
 target_define_relative_file(test-lexer5)
 
 add_executable(test-parser-grammer "main/tests/parser-grammer.c" "${GENERATED_HEADER_DIR}/lisp.g.h")
-target_link_libraries(test-parser-grammer ${LIBFKL_TARGET_NAME} ${LINK_TARGET})
+target_link_libraries(test-parser-grammer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-parser-grammer)
  
 add_executable(test-dns "main/tests/dns.c")
@@ -205,13 +199,6 @@ file(GLOB COMPILER_SOURCE "main/fakeLispc.c")
 
 file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 
-#parser.o
-add_library(${PARSE}
-	OBJECT
-	"parse.c")
-set_target_properties(${PARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_define_relative_file(${PARSE})
-
 #vmparser.o
 add_library(${VMPARSE}
 	OBJECT
@@ -220,16 +207,11 @@ set_target_properties(${VMPARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_define_relative_file(${VMPARSE})
 
 if(ASAN)
-	set_target_properties(${PARSE} PROPERTIES
-		POSITION_INDEPENDENT_CODE ON)
 	set_target_properties(${VMPARSE} PROPERTIES
 		POSITION_INDEPENDENT_CODE ON)
 endif()
 
 #libfkl_a.a
-file(GLOB LIBFKL_SOURCE "src/*.c"
-	                    "${GENERATED_HEADER_DIR}/lisp.g.h")
-
 add_library(${LIBFKL_STATIC_TARGET_NAME}
 	STATIC
 	${LIBFKL_SOURCE})
@@ -369,7 +351,6 @@ if(FANALYZER)
 	target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(${COMPILER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${PARSE} PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(${VMPARSE} PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(ht PRIVATE ${FANALYZER_OPTIONS})
 	target_compile_options(os PRIVATE ${FANALYZER_OPTIONS})
@@ -385,11 +366,11 @@ endif()
 
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME}
-	PUBLIC ${PARSE} ${VMPARSE}
+	PUBLIC ${VMPARSE}
 	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 
 target_link_libraries(${LIBFKL_TARGET_NAME}
-	PUBLIC ${PARSE} ${VMPARSE}
+	PUBLIC ${VMPARSE}
 	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
@@ -400,17 +381,6 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argt
 add_fkl_native_module(test-dll
     SRC "main/tests/dll.c"
     OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
-
-add_custom_command(OUTPUT "parse.c"
-	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
-	"parse.c"
-	${PROJECT_SOURCE_DIR}/src/grammer/action.c
-	"fklNastTerminalCreate"
-	"fklDestroyNastNode"
-	"fklNastPushState0ToStack"
-
-	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/action.c
-	VERBATIM)
 
 add_custom_command(OUTPUT "vmparse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>

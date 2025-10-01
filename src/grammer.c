@@ -7,6 +7,7 @@
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
 #include <ctype.h>
@@ -39,7 +40,7 @@ void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len) {
 void fklDestroyGrammerProduction(FklGrammerProduction *h) {
     if (h == NULL)
         return;
-    h->ctx_destroyer(h->ctx);
+    h->ctx_destroy(h->ctx);
     fklUninitGrammerSymbols(h->syms, h->len);
     fklZfree(h);
 }
@@ -52,8 +53,8 @@ static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
     }
 }
 
-FklGrammerProduction *fklCreateProduction(FklSid_t group,
-        FklSid_t sid,
+FklGrammerProduction *fklCreateProduction(struct FklVMvalue *group,
+        struct FklVMvalue *sid,
         size_t len,
         FklGrammerSym *syms,
         const char *name,
@@ -70,14 +71,14 @@ FklGrammerProduction *fklCreateProduction(FklSid_t group,
     r->name = name;
     r->func = func;
     r->ctx = ctx;
-    r->ctx_destroyer = destroy;
-    r->ctx_copyer = copyer;
+    r->ctx_destroy = destroy;
+    r->ctx_copy = copyer;
     memcpy(r->syms, syms, len * sizeof(FklGrammerSym));
     return r;
 }
 
-FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group,
-        FklSid_t sid,
+FklGrammerProduction *fklCreateEmptyProduction(struct FklVMvalue *group,
+        struct FklVMvalue *sid,
         size_t len,
         const char *name,
         FklProdActionFunc func,
@@ -93,8 +94,8 @@ FklGrammerProduction *fklCreateEmptyProduction(FklSid_t group,
     r->name = name;
     r->func = func;
     r->ctx = ctx;
-    r->ctx_destroyer = destroy;
-    r->ctx_copyer = copyer;
+    r->ctx_destroy = destroy;
+    r->ctx_copy = copyer;
     return r;
 }
 
@@ -246,8 +247,8 @@ static inline int ignore_equal(const FklGrammerIgnore *a,
     return 1;
 }
 
-static inline FklGrammerProduction *create_extra_production(FklSid_t group,
-        FklSid_t start) {
+static inline FklGrammerProduction *
+create_extra_production(struct FklVMvalue *group, struct FklVMvalue *start) {
     FklGrammerProduction *prod = fklCreateEmptyProduction(0,
             0,
             2,
@@ -401,12 +402,18 @@ static inline int builtin_grammer_sym_cmp(const FklLalrBuiltinGrammerSym *b0,
 
 static inline int nonterm_gt(const FklGrammerNonterm *nt0,
         const FklGrammerNonterm *nt1) {
-    return ((nt0->group << 32) + nt0->sid) > ((nt1->group << 32) + nt1->sid);
+    return ((FKL_TYPE_CAST(uintptr_t, nt0->group) << 32)
+                   + FKL_TYPE_CAST(uintptr_t, nt0->sid))
+         > ((FKL_TYPE_CAST(uintptr_t, nt1->group) << 32)
+                 + FKL_TYPE_CAST(uintptr_t, nt1->sid));
 }
 
 static int nonterm_lt(const FklGrammerNonterm *nt0,
         const FklGrammerNonterm *nt1) {
-    return ((nt0->group << 32) + nt0->sid) > ((nt1->group << 32) + nt1->sid);
+    return ((FKL_TYPE_CAST(uintptr_t, nt0->group) << 32)
+                   + FKL_TYPE_CAST(uintptr_t, nt0->sid))
+         > ((FKL_TYPE_CAST(uintptr_t, nt1->group) << 32)
+                 + FKL_TYPE_CAST(uintptr_t, nt1->sid));
 }
 
 static inline int grammer_sym_cmp(const FklGrammerSym *s0,
@@ -1353,12 +1360,12 @@ static const struct BuiltinGrammerSymList {
 };
 
 void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s,
-        FklSymbolTable *st) {
+        struct FklVM *vm) {
     fklGraSidBuiltinHashMapInit(s);
     for (const struct BuiltinGrammerSymList *l = &builtin_grammer_sym_list[0];
             l->name;
             l++) {
-        FklSid_t id = fklAddSymbolCstr(l->name, st);
+        FklVMvalue *id = fklVMaddSymbolCstr(vm, l->name);
         fklGraSidBuiltinHashMapPut2(s, id, l->t);
     }
 }
@@ -1613,15 +1620,15 @@ static inline int compute_all_first_set(FklGrammer *g) {
     return 0;
 }
 
-void fklInitEmptyGrammer(FklGrammer *r, FklSymbolTable *st) {
+void fklInitEmptyGrammer(FklGrammer *r, struct FklVM *vm) {
     memset(r, 0, sizeof(*r));
     fklInitStringTable(&r->terminals);
     fklInitStringTable(&r->delimiters);
     fklInitRegexTable(&r->regexes);
-    r->st = st;
+    r->gc = vm->gc;
     fklFirstSetHashMapInit(&r->firstSets);
     fklProdHashMapInit(&r->productions);
-    fklInitBuiltinGrammerSymTable(&r->builtins, st);
+    fklInitBuiltinGrammerSymTable(&r->builtins, vm);
 }
 
 static inline FklGrammer *create_grammer() {
@@ -1630,9 +1637,9 @@ static inline FklGrammer *create_grammer() {
     return r;
 }
 
-FklGrammer *fklCreateEmptyGrammer(FklSymbolTable *st) {
+FklGrammer *fklCreateEmptyGrammer(struct FklVM *vm) {
     FklGrammer *r = create_grammer();
-    fklInitEmptyGrammer(r, st);
+    fklInitEmptyGrammer(r, vm);
     return r;
 }
 
@@ -1675,10 +1682,9 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
     return 0;
 }
 
-static inline void print_unresolved_terminal(const FklSymbolTable *st,
-        const FklGrammerNonterm *nt) {
+static inline void print_unresolved_terminal(const FklGrammerNonterm *nt) {
     fputs("nonterm: ", stderr);
-    fklPrintRawSymbol(fklGetSymbolWithId(nt->sid, st), stderr);
+    fklPrintRawSymbol(FKL_VM_SYM(nt->sid), stderr);
     fputs(" is not defined\n", stderr);
 }
 
@@ -1725,10 +1731,8 @@ static inline void print_as_regex_to_string_buffer(FklStringBuffer *buf,
     fklStringBufferPutc(buf, '/');
 }
 
-static inline void print_prod_sym(FILE *fp,
-        const FklGrammerSym *u,
-        const FklSymbolTable *st,
-        const FklRegexTable *rt) {
+static inline void
+print_prod_sym(FILE *fp, const FklGrammerSym *u, const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
         fputs(u->b.t->name, fp);
@@ -1755,12 +1759,12 @@ static inline void print_prod_sym(FILE *fp,
     case FKL_TERM_NONTERM:
         if (u->nt.group) {
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.group, st), fp);
+            fklPrintRawSymbol(FKL_VM_SYM(u->nt.group), fp);
             fputs(" , ", fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(u->nt.sid, st), fp);
+            fklPrintRawSymbol(FKL_VM_SYM(u->nt.sid), fp);
             fputc(')', fp);
         } else {
-            fklPrintString(fklGetSymbolWithId(u->nt.sid, st), fp);
+            fklPrintString(FKL_VM_SYM(u->nt.sid), fp);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -1811,7 +1815,6 @@ print_string_as_dot(const uint8_t *str, char se, size_t size, FILE *out) {
 }
 static inline void print_prod_sym_as_dot(FILE *fp,
         const FklGrammerSym *u,
-        const FklSymbolTable *st,
         const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
@@ -1833,7 +1836,7 @@ static inline void print_prod_sym_as_dot(FILE *fp,
         fputs("\\\'", fp);
     } break;
     case FKL_TERM_NONTERM: {
-        const FklString *str = fklGetSymbolWithId(u->nt.sid, st);
+        const FklString *str = FKL_VM_SYM(u->nt.sid);
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '|', str->size, fp);
         fputc('|', fp);
@@ -2146,28 +2149,26 @@ static inline void print_lookahead_to_string_buffer(FklStringBuffer *buf,
     }
 }
 
-static inline void print_item(FILE *fp,
-        const FklLalrItem *item,
-        const FklSymbolTable *st,
-        const FklRegexTable *rt) {
+static inline void
+print_item(FILE *fp, const FklLalrItem *item, const FklRegexTable *rt) {
     size_t i = 0;
     size_t idx = item->idx;
     FklGrammerProduction *prod = item->prod;
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left))
-        fklPrintString(fklGetSymbolWithId(prod->left.sid, st), fp);
+        fklPrintString(FKL_VM_SYM(prod->left.sid), fp);
     else
         fputs("S'", fp);
     fputs(" ->", fp);
     for (; i < idx; i++) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, rt);
+        print_prod_sym(fp, &syms[i], rt);
     }
     fputs(" *", fp);
     for (; i < len; i++) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, rt);
+        print_prod_sym(fp, &syms[i], rt);
     }
     fputs(" ## ", fp);
     print_look_ahead(fp, &item->la, rt);
@@ -2175,7 +2176,6 @@ static inline void print_item(FILE *fp,
 
 static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
         const FklGrammerSym *u,
-        const FklSymbolTable *st,
         const FklRegexTable *rt) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
@@ -2209,19 +2209,19 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
         if (u->nt.group) {
             fklStringBufferPutc(buf, '(');
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(u->nt.group, st),
+                    FKL_VM_SYM(u->nt.group),
                     "|",
                     "|",
                     '|');
             fklStringBufferPrintf(buf, " , ");
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(u->nt.sid, st),
+                    FKL_VM_SYM(u->nt.sid),
                     "|",
                     "|",
                     '|');
             fklStringBufferPutc(buf, ')');
         } else {
-            fklStringBufferPrintf(buf, fklGetSymbolWithId(u->nt.sid, st)->str);
+            fklStringBufferPrintf(buf, FKL_VM_SYM(u->nt.sid)->str);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -2236,7 +2236,6 @@ static inline void print_prod_sym_to_stringbuffer(FklStringBuffer *buf,
 
 static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
         const FklLalrItem *item,
-        const FklSymbolTable *st,
         const FklStringTable *tt,
         const FklRegexTable *rt) {
     size_t i = 0;
@@ -2248,38 +2247,36 @@ static inline void print_lalr_item_to_stringbuffer(FklStringBuffer *buf,
         if (prod->left.group) {
             fklStringBufferPutc(buf, '(');
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(prod->left.group, st),
+                    FKL_VM_SYM(prod->left.group),
                     "|",
                     "|",
                     '|');
             fklStringBufferPrintf(buf, " , ");
             fklPrintRawStringToStringBuffer(buf,
-                    fklGetSymbolWithId(prod->left.sid, st),
+                    FKL_VM_SYM(prod->left.sid),
                     "|",
                     "|",
                     '|');
             fklStringBufferPutc(buf, ')');
         } else {
-            fklStringBufferPrintf(buf,
-                    fklGetSymbolWithId(prod->left.sid, st)->str);
+            fklStringBufferPrintf(buf, FKL_VM_SYM(prod->left.sid)->str);
         }
     } else
         fklStringBufferPrintf(buf, "S'");
     fklStringBufferPrintf(buf, " ->");
     for (; i < idx; i++) {
         fklStringBufferPutc(buf, ' ');
-        print_prod_sym_to_stringbuffer(buf, &syms[i], st, rt);
+        print_prod_sym_to_stringbuffer(buf, &syms[i], rt);
     }
     fklStringBufferPrintf(buf, " *");
     for (; i < len; i++) {
         fklStringBufferPutc(buf, ' ');
-        print_prod_sym_to_stringbuffer(buf, &syms[i], st, rt);
+        print_prod_sym_to_stringbuffer(buf, &syms[i], rt);
     }
 }
 
 void fklPrintItemSet(const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
-        const FklSymbolTable *st,
         FILE *fp) {
     FklLalrItem const *curItem = NULL;
     for (FklLalrItemHashSetNode *list = itemSet->first; list;
@@ -2289,7 +2286,7 @@ void fklPrintItemSet(const FklLalrItemHashSet *itemSet,
             if (curItem)
                 putc('\n', fp);
             curItem = &list->k;
-            print_item(fp, curItem, st, &g->regexes);
+            print_item(fp, curItem, &g->regexes);
         } else {
             fputs(" , ", fp);
             print_look_ahead(fp, &list->k.la, &g->regexes);
@@ -2879,17 +2876,15 @@ static inline void print_look_ahead_as_dot(FILE *fp,
     }
 }
 
-static inline void print_item_as_dot(FILE *fp,
-        const FklLalrItem *item,
-        const FklSymbolTable *st,
-        const FklRegexTable *rt) {
+static inline void
+print_item_as_dot(FILE *fp, const FklLalrItem *item, const FklRegexTable *rt) {
     size_t i = 0;
     size_t idx = item->idx;
     FklGrammerProduction *prod = item->prod;
     size_t len = prod->len;
     FklGrammerSym *syms = prod->syms;
     if (!is_Sq_nt(&prod->left)) {
-        const FklString *str = fklGetSymbolWithId(prod->left.sid, st);
+        const FklString *str = FKL_VM_SYM(prod->left.sid);
         fputc('|', fp);
         print_string_as_dot((const uint8_t *)str->str, '"', str->size, fp);
         fputc('|', fp);
@@ -2898,12 +2893,12 @@ static inline void print_item_as_dot(FILE *fp,
     fputs(" ->", fp);
     for (; i < idx; i++) {
         putc(' ', fp);
-        print_prod_sym_as_dot(fp, &syms[i], st, rt);
+        print_prod_sym_as_dot(fp, &syms[i], rt);
     }
     fputs(" *", fp);
     for (; i < len; i++) {
         putc(' ', fp);
-        print_prod_sym_as_dot(fp, &syms[i], st, rt);
+        print_prod_sym_as_dot(fp, &syms[i], rt);
     }
     fputs(" , ", fp);
     print_look_ahead_as_dot(fp, &item->la, rt);
@@ -2911,7 +2906,6 @@ static inline void print_item_as_dot(FILE *fp,
 
 static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
-        const FklSymbolTable *st,
         FILE *fp) {
     FklLalrItem const *curItem = NULL;
     for (FklLalrItemHashSetNode *list = itemSet->first; list;
@@ -2921,7 +2915,7 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
             if (curItem)
                 fputs("\\l\\\n", fp);
             curItem = &list->k;
-            print_item_as_dot(fp, curItem, st, &g->regexes);
+            print_item_as_dot(fp, curItem, &g->regexes);
         } else {
             fputs(" / ", fp);
             print_look_ahead_as_dot(fp, &list->k.la, &g->regexes);
@@ -2932,7 +2926,6 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
 
 void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
-        const FklSymbolTable *st,
         FILE *fp) {
     fputs("digraph \"items-lalr\"{\n", fp);
     fputs("\trankdir=\"LR\"\n", fp);
@@ -2953,7 +2946,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
                 "\\l\\\n",
                 idx,
                 idx);
-        print_item_set_as_dot(i, g, st, fp);
+        print_item_set_as_dot(i, g, fp);
         fputs("\"]\n", fp);
         for (FklLalrItemSetLink *l = ll->v.links; l; l = l->next) {
             FklLalrItemSetHashMapElm *dst = l->dst;
@@ -2963,7 +2956,7 @@ void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
                     "[fontname=\"Courier\" label=\"",
                     idx,
                     *c);
-            print_prod_sym_as_dot(fp, &l->sym, st, &g->regexes);
+            print_prod_sym_as_dot(fp, &l->sym, &g->regexes);
             fputs("\"]\n", fp);
         }
         putc('\n', fp);
@@ -3397,7 +3390,6 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
                                 idx);
                         print_lalr_item_to_stringbuffer(error_msg,
                                 &il->k,
-                                grammer->st,
                                 &grammer->terminals,
                                 &grammer->regexes);
                         fklStringBufferPrintf(error_msg, " ## ");
@@ -3467,9 +3459,7 @@ static inline void print_look_ahead_of_analysis_table(FILE *fp,
     }
 }
 
-void fklPrintAnalysisTable(const FklGrammer *grammer,
-        const FklSymbolTable *st,
-        FILE *fp) {
+void fklPrintAnalysisTable(const FklGrammer *grammer, FILE *fp) {
     size_t num = grammer->aTable.num;
     FklAnalysisState *states = grammer->aTable.states;
 
@@ -3512,7 +3502,7 @@ void fklPrintAnalysisTable(const FklGrammer *grammer,
         for (FklAnalysisStateGoto *gt = curState->state.gt; gt; gt = gt->next) {
             uintptr_t idx = gt->state - states;
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(gt->nt.sid, st), fp);
+            fklPrintRawSymbol(FKL_VM_SYM(gt->nt.sid), fp);
             fprintf(fp, " , %" PRIu64 ")", idx);
             fputc('\t', fp);
         }
@@ -3719,7 +3709,6 @@ static inline void print_look_ahead_for_grapheasy(
 static inline void print_table_header_for_grapheasy(
         const GraActionMatchHashSet *la,
         const FklNontermHashSet *sid,
-        const FklSymbolTable *st,
         FILE *fp) {
     fputs("\\n|", fp);
     for (GraActionMatchHashSetNode *al = la->first; al; al = al->next) {
@@ -3730,7 +3719,7 @@ static inline void print_table_header_for_grapheasy(
     for (FklNontermHashSetNode *sl = sid->first; sl; sl = sl->next) {
         fputc('|', fp);
         fputs("\\|", fp);
-        print_symbol_for_grapheasy(fklGetSymbolWithId(sl->k.sid, st), fp);
+        print_symbol_for_grapheasy(FKL_VM_SYM(sl->k.sid), fp);
         fputs("\\|", fp);
     }
     fputs("||\n", fp);
@@ -3746,8 +3735,9 @@ static inline FklAnalysisStateAction *find_action(
     return NULL;
 }
 
-static inline FklAnalysisStateGoto *
-find_gt(FklAnalysisStateGoto *gt, FklSid_t group, FklSid_t id) {
+static inline FklAnalysisStateGoto *find_gt(FklAnalysisStateGoto *gt,
+        struct FklVMvalue *group,
+        struct FklVMvalue *id) {
     for (; gt; gt = gt->next) {
         if (gt->nt.sid == id && gt->nt.group == group)
             return gt;
@@ -3755,9 +3745,7 @@ find_gt(FklAnalysisStateGoto *gt, FklSid_t group, FklSid_t id) {
     return NULL;
 }
 
-void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
-        const FklSymbolTable *st,
-        FILE *fp) {
+void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g, FILE *fp) {
     size_t num = g->aTable.num;
     FklAnalysisState *states = g->aTable.states;
 
@@ -3768,7 +3756,7 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *g,
     FklNontermHashSet sidSet;
     init_analysis_table_header(&laTable, &sidSet, states, num);
 
-    print_table_header_for_grapheasy(&laTable, &sidSet, st, fp);
+    print_table_header_for_grapheasy(&laTable, &sidSet, fp);
 
     GraActionMatchHashSetNode *laList = laTable.first;
     FklNontermHashSetNode *sidList = sidSet.first;
@@ -4040,7 +4028,7 @@ static inline void build_state_action_match_to_c_file(
     }
 }
 
-static inline void build_state_action_to_c_file(
+static inline void build_state_action_to_c_file(FklValueTable *t,
         const FklAnalysisStateAction *ac,
         const FklAnalysisState *states,
         const char *ast_destroyer_name,
@@ -4082,10 +4070,10 @@ static inline void build_state_action_to_c_file(
 
             CB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
             CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,NULL,0,%s,%" PRIu64
-                    ",&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
+            CB_LINE("func(NULL,NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu64
+                    "),&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     actual_len ? "base[0].start_with_ignore" : "0",
-                    ac->prod->left.sid);
+                    fklValueTableAdd(t, ac->prod->left.sid));
             CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
@@ -4114,9 +4102,9 @@ static inline void build_state_action_to_c_file(
             }
             CB_LINE("}");
 
-            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,%" PRIu64
-                    ",ast,%s);",
-                    ac->prod->left.sid,
+            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,FKL_MAKE_VM_FIX(%" PRIu64
+                    "),ast,%s);",
+                    fklValueTableAdd(t, ac->prod->left.sid),
                     actual_len ? "base[0].start_with_ignore" : "0");
             CB_LINE("fklUintVectorPushBack2(lineStack,line);");
         } break;
@@ -4141,7 +4129,7 @@ static inline void build_state_prototype_to_c_file(
     CB_LINE(",FklUintVector*");
     CB_LINE(",int");
     CB_LINE(",uint8_t");
-    CB_LINE(",FklSid_t");
+    CB_LINE(",struct FklVMvalue*");
     CB_LINE(",FklParseState* pfunc");
     CB_LINE(",const char*");
     CB_LINE(",const char**");
@@ -4151,7 +4139,8 @@ static inline void build_state_prototype_to_c_file(
     CB_LINE_END(",size_t*);");
 }
 
-static inline void build_state_to_c_file(const FklAnalysisState *states,
+static inline void build_state_to_c_file(FklValueTable *t,
+        const FklAnalysisState *states,
         size_t idx,
         const FklGrammer *g,
         const char *ast_destroyer_name,
@@ -4164,7 +4153,7 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
         CB_LINE(",FklUintVector* lineStack");
         CB_LINE(",int is_action");
         CB_LINE(",uint8_t start_with_ignore");
-        CB_LINE(",FklSid_t left");
+        CB_LINE(",struct FklVMvalue* left");
         CB_LINE(",FklParseState* pfunc");
         CB_LINE(",const char* start");
         CB_LINE(",const char** in");
@@ -4210,7 +4199,8 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
                     CB_LINE_START("if(");
                     build_state_action_match_to_c_file(ac, g, build);
                     CB_LINE_END(")");
-                    build_state_action_to_c_file(ac,
+                    build_state_action_to_c_file(t,
+                            ac,
                             states,
                             ast_destroyer_name,
                             build);
@@ -4243,15 +4233,19 @@ static inline void build_state_to_c_file(const FklAnalysisState *states,
             if (gt) {
                 CB_LINE("if(0){}");
                 for (; gt; gt = gt->next) {
-                    if (!gt->allow_ignore)
-                        CB_LINE("else if(!start_with_ignore&&left==%" PRIu64
-                                "/* %s */){",
-                                gt->nt.sid,
-                                fklGetSymbolWithId(gt->nt.sid, g->st)->str);
-                    else
-                        CB_LINE("else if(left==%" PRIu64 "/* %s */){",
-                                gt->nt.sid,
-                                fklGetSymbolWithId(gt->nt.sid, g->st)->str);
+                    if (!gt->allow_ignore) {
+                        CB_LINE("else if(!start_with_ignore&&left==FKL_MAKE_VM_FIX(%" PRIu64
+                                ")/* %s */){",
+                                // gt->nt.sid,
+                                fklValueTableAdd(t, gt->nt.sid),
+                                FKL_VM_SYM(gt->nt.sid)->str);
+                    } else {
+                        CB_LINE("else if(left==FKL_MAKE_VM_FIX(%" PRIu64
+                                ")/* %s */){",
+                                // gt->nt.sid,
+                                fklValueTableAdd(t, gt->nt.sid),
+                                FKL_VM_SYM(gt->nt.sid)->str);
+                    }
                     CB_INDENT(flag) {
                         CB_LINE("pfunc->func=state_%" PRIu64 ";",
                                 gt->state - states);
@@ -4474,7 +4468,6 @@ static inline void build_all_ignores(const FklGrammer *g,
 }
 
 void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
-        const FklSymbolTable *st,
         FILE *action_src_fp,
         const char *ast_creator_name,
         const char *ast_destroyer_name,
@@ -4547,8 +4540,11 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
         build_state_prototype_to_c_file(states, i, build);
     CB_LINE("");
 
+    FklValueTable t;
+    fklInitValueTable(&t);
     for (size_t i = 0; i < stateNum; i++)
-        build_state_to_c_file(states, i, g, ast_destroyer_name, build);
+        build_state_to_c_file(&t, states, i, g, ast_destroyer_name, build);
+    fklUninitValueTable(&t);
 
     CB_LINE("void %s(FklParseStateVector* "
             "stateStack){",
@@ -4561,7 +4557,6 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
 void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
-        const FklSymbolTable *st,
         FILE *fp) {
     GraItemStateIdxHashMap idxTable;
     graItemStateIdxHashMapInit(&idxTable);
@@ -4574,7 +4569,7 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
         idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &l->elm);
         fprintf(fp, "===\nI%" PRIu64 ": ", idx);
         putc('\n', fp);
-        fklPrintItemSet(i, g, st, fp);
+        fklPrintItemSet(i, g, fp);
         putc('\n', fp);
         for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             FklLalrItemSetHashMapElm *dst = ll->dst;
@@ -4582,7 +4577,7 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
             fprintf(fp, "I%" PRIu64 "--{ ", idx);
             if (ll->allow_ignore)
                 fputs("?e ", fp);
-            print_prod_sym(fp, &ll->sym, st, &g->regexes);
+            print_prod_sym(fp, &ll->sym, &g->regexes);
             fprintf(fp, " }-->I%" PRIu64 "\n", *c);
         }
         putc('\n', fp);
@@ -4592,17 +4587,16 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
 
 void fklPrintGrammerProduction(FILE *fp,
         const FklGrammerProduction *prod,
-        const FklSymbolTable *st,
         const FklRegexTable *rt) {
     if (!is_Sq_nt(&prod->left)) {
         if (prod->left.group) {
             fputc('(', fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.group, st), fp);
+            fklPrintRawSymbol(FKL_VM_SYM(prod->left.group), fp);
             fputs(" , ", fp);
-            fklPrintRawSymbol(fklGetSymbolWithId(prod->left.sid, st), fp);
+            fklPrintRawSymbol(FKL_VM_SYM(prod->left.sid), fp);
             fputc(')', fp);
         } else {
-            fklPrintString(fklGetSymbolWithId(prod->left.sid, st), fp);
+            fklPrintString(FKL_VM_SYM(prod->left.sid), fp);
         }
     } else
         fputs("S'", fp);
@@ -4611,7 +4605,7 @@ void fklPrintGrammerProduction(FILE *fp,
     const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
         putc(' ', fp);
-        print_prod_sym(fp, &syms[i], st, rt);
+        print_prod_sym(fp, &syms[i], rt);
         ++i;
         if (i < len && syms[i].type != FKL_TERM_IGNORE)
             fputs(" ..", fp);
@@ -4621,7 +4615,7 @@ void fklPrintGrammerProduction(FILE *fp,
 }
 
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
-        FklSid_t id) {
+        struct FklVMvalue *id) {
     FklLalrBuiltinMatch const **i = fklGraSidBuiltinHashMapGet2(ht, id);
     if (i)
         return *i;
@@ -4629,20 +4623,22 @@ const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
 }
 
 int fklIsNonterminalExist(FklProdHashMap *prods,
-        FklSid_t group_id,
-        FklSid_t sid) {
+        FklVMvalue *group_id,
+        FklVMvalue *sid) {
     return fklProdHashMapGet2(prods,
                    (FklGrammerNonterm){ .group = group_id, .sid = sid })
         != NULL;
 }
 
-FklGrammerProduction *
-fklGetGrammerProductions(const FklGrammer *g, FklSid_t group, FklSid_t sid) {
+FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
+        FklVMvalue *group,
+        FklVMvalue *sid) {
     return fklGetProductions(&g->productions, group, sid);
 }
 
-FklGrammerProduction *
-fklGetProductions(const FklProdHashMap *prods, FklSid_t group, FklSid_t sid) {
+FklGrammerProduction *fklGetProductions(const FklProdHashMap *prods,
+        FklVMvalue *group,
+        FklVMvalue *sid) {
     FklGrammerProduction **pp = fklProdHashMapGet2(prods,
             (FklGrammerNonterm){ .group = group, .sid = sid });
     return pp ? *pp : NULL;
@@ -4686,77 +4682,19 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
     }
 }
 
-void fklPrintGrammer(FILE *fp, const FklGrammer *grammer, FklSymbolTable *st) {
+void fklPrintGrammer(FILE *fp, const FklGrammer *grammer) {
     const FklRegexTable *rt = &grammer->regexes;
     for (FklProdHashMapNode *list = grammer->productions.first; list;
             list = list->next) {
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
             fprintf(fp, "(%" PRIu64 ") ", prods->idx);
-            fklPrintGrammerProduction(fp, prods, st, rt);
+            fklPrintGrammerProduction(fp, prods, rt);
             putc('\n', fp);
         }
     }
     fputs("\nignore:\n", fp);
     fklPrintGrammerIgnores(grammer, &grammer->regexes, fp);
-}
-
-void *fklDefaultParseForCstr(const char *cstr,
-        FklGrammerMatchCtx *ctx,
-        FklParseError *err,
-        uint64_t *errLine,
-        FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
-        FklParseStateVector *stateStack) {
-    size_t restLen = strlen(cstr);
-    return fklDefaultParseForCharBuf(cstr,
-            restLen,
-            &restLen,
-            ctx,
-            err,
-            errLine,
-            symbolStack,
-            lineStack,
-            stateStack);
-}
-
-void *fklDefaultParseForCharBuf(const char *cstr,
-        size_t len,
-        size_t *restLen,
-        FklGrammerMatchCtx *ctx,
-        FklParseError *err,
-        uint64_t *errLine,
-        FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
-        FklParseStateVector *stateStack) {
-    const char *start = cstr;
-    *restLen = len;
-    void *ast = NULL;
-    for (;;) {
-        int accept = 0;
-        FklStateFuncPtr state =
-                fklParseStateVectorBackNonNull(stateStack)->func;
-        *err = state(stateStack,
-                symbolStack,
-                lineStack,
-                1,
-                0,
-                0,
-                NULL,
-                start,
-                &cstr,
-                restLen,
-                ctx,
-                &accept,
-                errLine);
-        if (*err)
-            break;
-        if (accept) {
-            ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
-            break;
-        }
-    }
-    return ast;
 }
 
 static inline int match_char_buf_end_with_terminal(const FklString *laString,
@@ -4898,103 +4836,6 @@ match_start:
     return 0;
 }
 
-static inline int do_reduce_action(FklParseStateVector *stateStack,
-        FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
-        const FklGrammerProduction *prod,
-        size_t len,
-        FklGrammerMatchCtx *ctx,
-        FklSymbolTable *st,
-        size_t *errLine) {
-    stateStack->size -= len;
-    symbolStack->size -= len;
-    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
-    FklAnalysisStateGoto *gt =
-            fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
-    const FklAnalysisState *state = NULL;
-    FklGrammerNonterm left = prod->left;
-    for (; gt; gt = gt->next) {
-        if ((gt->allow_ignore || !len || !base[0].start_with_ignore)
-                && fklNontermEqual(&gt->nt, &left)) {
-            state = gt->state;
-            break;
-        }
-    }
-    if (!state)
-        return 1;
-    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
-    lineStack->size -= len;
-    void *ast = prod->func(prod->ctx, ctx->ctx, base, len, line);
-    for (size_t i = 0; i < len; i++) {
-        ctx->destroy(base[i].ast);
-        base[i].ast = NULL;
-    }
-    if (!ast) {
-        *errLine = line;
-        return FKL_PARSE_REDUCE_FAILED;
-    }
-
-    fklInitNontermAnalysisSymbol(
-            fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
-            left.group,
-            left.sid,
-            ast,
-            len && base[0].start_with_ignore);
-    fklUintVectorPushBack2(lineStack, line);
-    fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
-    return 0;
-}
-
-void *fklParseWithTableForCstr(const FklGrammer *g,
-        const char *cstr,
-        FklGrammerMatchCtx *ctx,
-        FklSymbolTable *st,
-        FklParseError *err) {
-    return fklParseWithTableForCharBuf(g, cstr, strlen(cstr), ctx, st, err);
-}
-
-void *fklParseWithTableForCharBuf(const FklGrammer *g,
-        const char *cstr,
-        size_t restLen,
-        FklGrammerMatchCtx *ctx,
-        FklSymbolTable *st,
-        FklParseError *err) {
-    const FklAnalysisTable *t = &g->aTable;
-    size_t errLine = 0;
-    FklAnalysisSymbolVector symbolStack;
-    FklParseStateVector stateStack;
-    FklUintVector lineStack;
-    fklParseStateVectorInit(&stateStack, 16);
-    fklAnalysisSymbolVectorInit(&symbolStack, 16);
-    fklUintVectorInit(&lineStack, 16);
-    fklParseStateVectorPushBack2(&stateStack,
-            (FklParseState){ .state = &t->states[0] });
-
-    void *ast = fklParseWithTableForCharBuf2(g,
-            cstr,
-            restLen,
-            &restLen,
-            ctx,
-            st,
-            err,
-            &errLine,
-            &symbolStack,
-            &lineStack,
-            &stateStack);
-
-    fklUintVectorUninit(&lineStack);
-    fklParseStateVectorUninit(&stateStack);
-    while (!fklAnalysisSymbolVectorIsEmpty(&symbolStack))
-        fklDestroyNastNode(
-                fklAnalysisSymbolVectorPopBackNonNull(&symbolStack)->ast);
-    fklAnalysisSymbolVectorUninit(&symbolStack);
-    return ast;
-}
-
-#define PARSE_INCLUDED
-#include "parse.h"
-#undef PARSE_INCLUDED
-
 uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
     if (num)
         return lineStack->base[lineStack->size - num];
@@ -5009,9 +4850,9 @@ static const char builtin_grammer_rules[] = {
     '\0',
 };
 
-void fklInitBuiltinGrammer(FklGrammer *g, FklSymbolTable *st) {
+void fklInitBuiltinGrammer(FklGrammer *g, FklVM *vm) {
     FklParserGrammerParseArg args;
-    fklInitEmptyGrammer(g, st);
+    fklInitEmptyGrammer(g, vm);
 
     fklInitParserGrammerParseArg(&args,
             g,
@@ -5028,16 +4869,16 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklSymbolTable *st) {
     FklGrammerNonterm nonterm = { 0, 0 };
     fklUninitParserGrammerParseArg(&args);
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        print_unresolved_terminal(st, &nonterm);
+        print_unresolved_terminal(&nonterm);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return;
     }
 }
 
-FklGrammer *fklCreateBuiltinGrammer(FklSymbolTable *st) {
+FklGrammer *fklCreateBuiltinGrammer(FklVM *vm) {
     FklGrammer *g = create_grammer();
-    fklInitBuiltinGrammer(g, st);
+    fklInitBuiltinGrammer(g, vm);
     return g;
 }
 
@@ -5060,7 +4901,7 @@ FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g) {
 }
 
 static inline void replace_group_id(FklGrammerProduction *prod,
-        FklSid_t new_id) {
+        FklVMvalue *new_id) {
     size_t len = prod->len;
     if (prod->left.group)
         prod->left.group = new_id;
@@ -5134,9 +4975,9 @@ int fklMergeGrammer(FklGrammer *g,
                             prod->len,
                             prod->name,
                             prod->func,
-                            prod->ctx_copyer(prod->ctx),
-                            prod->ctx_destroyer,
-                            prod->ctx_copyer);
+                            prod->ctx_copy(prod->ctx),
+                            prod->ctx_destroy,
+                            prod->ctx_copy);
 
             FklGrammerSym *syms = new_prod->syms;
             for (size_t i = 0; i < prod->len; ++i) {

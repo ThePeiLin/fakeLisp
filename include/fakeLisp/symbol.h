@@ -10,41 +10,8 @@
 extern "C" {
 #endif
 
-typedef uint64_t FklSid_t;
-
-// FklStrIdHashMap
-#define FKL_HASH_KEY_TYPE FklString *
-#define FKL_HASH_VAL_TYPE FklSid_t
-#define FKL_HASH_ELM_NAME StrId
-#define FKL_HASH_KEY_HASH return fklStringHash(*pk);
-#define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#include "cont/hash.h"
-
-typedef struct FklSymboTable {
-    FklSid_t num;
-    size_t idl_size;
-    FklString **idl;
-    FklStrIdHashMap ht;
-} FklSymbolTable;
-
-void fklInitSymbolTable(FklSymbolTable *st);
-FklSymbolTable *fklCreateSymbolTable(void);
-
-FklSid_t fklAddSymbol(const FklString *, FklSymbolTable *);
-FklSid_t fklAddSymbolCstr(const char *, FklSymbolTable *);
-FklSid_t fklAddSymbolCharBuf(const char *, size_t, FklSymbolTable *);
-const FklString *fklGetSymbolWithId(FklSid_t id, const FklSymbolTable *);
-
-void fklPrintSymbolTable(const FklSymbolTable *, FILE *);
-
-void fklDestroySymbolTable(FklSymbolTable *);
-void fklUninitSymbolTable(FklSymbolTable *);
-
-void fklWriteSymbolTable(const FklSymbolTable *, FILE *);
-void fklLoadSymbolTable(FILE *, FklSymbolTable *table);
-
 typedef struct {
-    FklSid_t id;
+    struct FklVMvalue *id;
     uint32_t scope;
 } FklSidScope;
 
@@ -59,12 +26,12 @@ typedef struct FklSymDef {
 
 typedef struct // unresolved symbol ref
 {
-    FklSid_t id;
+    struct FklVMvalue *id;
+    struct FklVMvalue *fid;
     uint32_t scope;
     uint32_t idx;
     uint32_t prototypeId;
     uint32_t assign;
-    FklSid_t fid;
     uint64_t line;
 } FklUnReSymbolRef;
 
@@ -73,31 +40,27 @@ typedef struct // unresolved symbol ref
 #define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
 #include "cont/vector.h"
 
-// FklSidVector
-#define FKL_VECTOR_ELM_TYPE FklSid_t
-#define FKL_VECTOR_ELM_TYPE_NAME Sid
-#include "cont/vector.h"
-
-// FklSidHashSet
-#define FKL_HASH_KEY_TYPE FklSid_t
-#define FKL_HASH_ELM_NAME Sid
-#include "cont/hash.h"
+static inline uintptr_t fklSymDefHashv(const FklSidScope *k) {
+    return fklHashCombine(fklHash64Shift(FKL_TYPE_CAST(uintptr_t, k->id)),
+            k->scope);
+}
 
 // FklSymDefHashMap
 #define FKL_HASH_KEY_TYPE FklSidScope
 #define FKL_HASH_VAL_TYPE FklSymDef
 #define FKL_HASH_ELM_NAME SymDef
-#define FKL_HASH_KEY_HASH                                                      \
-    return fklHashCombine(fklHash32Shift((pk)->id), (pk)->scope);
+#define FKL_HASH_KEY_HASH return fklSymDefHashv(pk);
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
 typedef struct FklFuncPrototype {
     FklSymDefHashMapMutElm *refs;
-    uint32_t lcount;
     uint32_t rcount;
-    FklSid_t sid;
-    FklSid_t fid;
+    uint32_t lcount;
+    struct FklVMvalue *name;
+    struct FklVMvalue *file;
+    struct FklVMvalue **konsts;
+	uint32_t konsts_count;
     uint64_t line;
 } FklFuncPrototype;
 
@@ -109,7 +72,6 @@ typedef struct {
 void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
 
-FklFuncPrototypes *fklCreateFuncPrototypes(uint32_t count);
 uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts);
 
 void fklWriteFuncPrototypes(const FklFuncPrototypes *pts, FILE *fp);

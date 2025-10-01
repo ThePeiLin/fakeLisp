@@ -294,8 +294,7 @@ static int export_strbuf_to_symbol(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, obj);
     FKL_CPROC_RETURN(exe,
             ctx,
-            FKL_MAKE_VM_SYM(
-                    fklVMaddSymbolCharBuf(exe->gc, buf->buf, buf->index)));
+            fklVMaddSymbolCharBuf(exe, buf->buf, buf->index));
     return 0;
 }
 
@@ -538,13 +537,14 @@ struct SymFunc {
 static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
-        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
     *num = EXPORT_NUM;
-    FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
+    FklVMvalue **symbols =
+            (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
+        symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
+    // fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

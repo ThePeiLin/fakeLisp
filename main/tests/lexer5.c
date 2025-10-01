@@ -1,8 +1,9 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/grammer.h>
-#include <fakeLisp/nast.h>
+#include <fakeLisp/parser.h>
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,20 +12,13 @@
 #define ACTION_FILE_PATH "action.c"
 #endif
 
-static void *
-fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx) {
-    FklNastNode *ast = fklCreateNastNode(FKL_NAST_STR, line);
-    ast->str = fklCreateString(len, s);
-    return ast;
-}
-
 static void *action_nil(void *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,
         size_t line) {
     fprintf(stderr, "[%s: %d] nil!\n", __FILE__, __LINE__);
-    return fklNastTerminalCreate("()", strlen("()"), line, ctx);
+    return fklVMvalueTerminalCreate("()", strlen("()"), line, ctx);
 }
 
 static void *action_not_allow_ignore(void *args,
@@ -33,7 +27,7 @@ static void *action_not_allow_ignore(void *args,
         size_t count,
         size_t line) {
     fprintf(stderr, "[%s: %d] not allow ignore!\n", __FILE__, __LINE__);
-    return fklNastTerminalCreate("#()", strlen("#()"), line, ctx);
+    return fklVMvalueTerminalCreate("#()", strlen("#()"), line, ctx);
 }
 
 static void *action_start_with_ignore(void *args,
@@ -42,7 +36,7 @@ static void *action_start_with_ignore(void *args,
         size_t count,
         size_t line) {
     fprintf(stderr, "[%s: %d] start with ignore!\n", __FILE__, __LINE__);
-    return fklNastTerminalCreate("# ()", strlen("# ()"), line, ctx);
+    return fklVMvalueTerminalCreate("# ()", strlen("# ()"), line, ctx);
 }
 
 static void *action_first(void *args,
@@ -51,7 +45,7 @@ static void *action_first(void *args,
         size_t count,
         size_t line) {
     fprintf(stderr, "[%s: %d] first!\n", __FILE__, __LINE__);
-    return fklMakeNastNodeRef(asts[0].ast);
+    return asts[0].ast;
 }
 
 static const FklGrammerBuiltinAction builtin_actions[] = {
@@ -82,10 +76,10 @@ static char example_grammer_rules[] = //
         "";
 
 int main() {
-    FklSymbolTable *st = fklCreateSymbolTable();
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
 
     FklParserGrammerParseArg args;
-    FklGrammer *g = fklCreateEmptyGrammer(st);
+    FklGrammer *g = fklCreateEmptyGrammer(&gc->gcvm);
 
     fklInitParserGrammerParseArg(&args,
             g,
@@ -95,7 +89,7 @@ int main() {
     int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
     if (err) {
         fklPrintParserGrammerParseError(err, &args, stderr);
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         fprintf(stderr, "garmmer create fail\n");
         fklUninitParserGrammerParseArg(&args);
@@ -107,9 +101,9 @@ int main() {
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
-        fklPrintRawSymbol(fklGetSymbolWithId(nonterm.sid, st), stderr);
+        fklPrintRawSymbol(FKL_VM_SYM(nonterm.sid), stderr);
         fputs(" is not defined\n", stderr);
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         exit(1);
     }
@@ -120,35 +114,35 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(stdout, g, st);
+    fklPrintGrammer(stdout, g);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     fputs("lr0 item sets:\n", stdout);
-    fklPrintItemStateSet(itemSet, g, st, stdout);
+    fklPrintItemStateSet(itemSet, g, stdout);
 
     FILE *gzf = fopen("items.gz.txt", "w");
     FILE *lalrgzf = fopen("items-lalr.gz.txt", "w");
-    fklPrintItemStateSetAsDot(itemSet, g, st, gzf);
+    fklPrintItemStateSetAsDot(itemSet, g, gzf);
     fklLr0ToLalrItems(itemSet, g);
     fputs("lalr item set:\n", stdout);
-    fklPrintItemStateSet(itemSet, g, st, stdout);
-    fklPrintItemStateSetAsDot(itemSet, g, st, lalrgzf);
+    fklPrintItemStateSet(itemSet, g, stdout);
+    fklPrintItemStateSetAsDot(itemSet, g, lalrgzf);
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
     if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
-        fklDestroySymbolTable(st);
+        fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
         fklUninitStringBuffer(&err_msg);
         exit(1);
     }
-    fklPrintAnalysisTable(g, st, stdout);
+    fklPrintAnalysisTable(g, stdout);
     fklLalrItemSetHashMapDestroy(itemSet);
     fklUninitStringBuffer(&err_msg);
 
     FILE *tablef = fopen("table.txt", "w");
-    fklPrintAnalysisTableForGraphEasy(g, st, tablef);
+    fklPrintAnalysisTableForGraphEasy(g, tablef);
 
     const char *output_file_name = "test_lexer5_parse.c";
     const char *action_file_name = ACTION_FILE_PATH;
@@ -159,7 +153,6 @@ int main() {
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(output_file_name, "w");
     fklPrintAnalysisTableAsCfunc(g,
-            st,
             action_file,
             ast_creator_name,
             ast_destroy_name,
@@ -182,30 +175,21 @@ int main() {
     };
 
     FklParseError retval = 0;
-    FklGrammerMatchCtx ctx = {
-        .maxNonterminalLen = 0,
-        .line = 1,
-        .start = NULL,
-        .cur = NULL,
-        .create = fklNastTerminalCreate,
-        .destroy = (void (*)(void *))fklDestroyNastNode,
-        .ctx = st,
-    };
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
 
     for (const char **exp = &exps[0]; *exp; exp++) {
-        FklNastNode *ast = fklParseWithTableForCstr(g, *exp, &ctx, st, &retval);
+        FklVMvalue *ast = fklParseWithTableForCstr(g, *exp, &ctx, &retval);
 
         if (retval) {
             fprintf(stderr, "error: %d\n", retval);
             break;
         }
 
-        fklPrintNastNode(ast, stdout, st);
-        fklDestroyNastNode(ast);
+        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
         fputc('\n', stdout);
     }
     fklDestroyGrammer(g);
-    fklDestroySymbolTable(st);
+    fklDestroyVMgc(gc);
 
     return 0;
 }

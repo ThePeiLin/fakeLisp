@@ -10,7 +10,7 @@ extern "C" {
 typedef struct {
     FklInstruction ins;
     uint32_t line;
-    FklSid_t fid;
+    struct FklVMvalue *fid;
     uint32_t scope;
     uint32_t block_id;
     uint32_t jmp_to;
@@ -47,7 +47,7 @@ void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
         const FklInstruction *ins,
         uint32_t line,
         uint32_t scope,
-        FklSid_t fid);
+        struct FklVMvalue *fid);
 
 void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf, const FklByteCodelnt *);
 FklByteCodeBuffer *fklCreateByteCodeBufferWith(const FklByteCodelnt *);

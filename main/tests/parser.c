@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 int main() {
-    FklSymbolTable *st = fklCreateSymbolTable();
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
 
     fputc('\n', stdout);
 
@@ -43,18 +43,18 @@ int main() {
 
     FklParseError retval = 0;
     for (const char **exp = &exps[0]; *exp; exp++) {
-        FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
+        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
 
         FklParseStateVector stateStack;
         FklAnalysisSymbolVector symbolStack;
         FklUintVector lineStack;
 
         fklParseStateVectorInit(&stateStack, 8);
-        fklNastPushState0ToStack(&stateStack);
+        fklVMvaluePushState0ToStack(&stateStack);
         fklAnalysisSymbolVectorInit(&symbolStack, 8);
         fklUintVectorInit(&lineStack, 8);
         size_t errLine = 0;
-        FklNastNode *ast = fklDefaultParseForCstr(*exp,
+        FklVMvalue *ast = fklDefaultParseForCstr(*exp,
                 &ctx,
                 &retval,
                 &errLine,
@@ -69,11 +69,10 @@ int main() {
         if (retval)
             break;
 
-        fklPrintNastNode(ast, stdout, st);
-        fklDestroyNastNode(ast);
+        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
 
         fputc('\n', stdout);
     }
-    fklDestroySymbolTable(st);
+    fklDestroyVMgc(gc);
     return retval;
 }

@@ -9,20 +9,20 @@
 
 #include <string.h>
 
-FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
-        FklSymbolTable *publicSymbolTable) {
+FklVMvalue *
+fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklLineNumHashMap *ln) {
     FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
     fklParseStateVectorInit(&stateStack, 16);
     fklAnalysisSymbolVectorInit(&symbolStack, 16);
     fklUintVectorInit(&lineStack, 16);
-    fklNastPushState0ToStack(&stateStack);
+    fklVMvaluePushState0ToStack(&stateStack);
 
     FklParseError err = 0;
     size_t errLine = 0;
-    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(publicSymbolTable);
-    FklNastNode *node = fklDefaultParseForCstr(cStr,
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
+    FklVMvalue *node = fklDefaultParseForCstr(cStr,
             &ctx,
             &err,
             &errLine,
@@ -30,10 +30,6 @@ FklNastNode *fklCreateNastNodeFromCstr(const char *cStr,
             &lineStack,
             &stateStack);
 
-    FklAnalysisSymbol *cur_sym = symbolStack.base;
-    FklAnalysisSymbol *const sym_end = cur_sym + symbolStack.size;
-    for (; cur_sym < sym_end; ++cur_sym)
-        fklDestroyNastNode(cur_sym->ast);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     fklParseStateVectorUninit(&stateStack);
     fklUintVectorUninit(&lineStack);
@@ -45,18 +41,19 @@ char *fklReadWithBuiltinParser(FILE *fp,
         size_t *psize,
         size_t line,
         size_t *pline,
-        FklSymbolTable *st,
+        FklVM *vm,
         int *unexpectEOF,
         size_t *errLine,
-        FklNastNode **output,
+        FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
-        FklParseStateVector *stateStack) {
+        FklParseStateVector *stateStack,
+        FklLineNumHashMap *ln) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
-    FklNastNode *ast = NULL;
-    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
+    FklVMvalue *ast = NULL;
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
     ctx.line = line;
     size_t offset = 0;
     for (;;) {
@@ -120,18 +117,19 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         size_t *psize,
         size_t line,
         size_t *pline,
-        FklSymbolTable *st,
+        FklVM *vm,
         int *unexpectEOF,
         size_t *errLine,
-        FklNastNode **output,
+        FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
-        FklParseStateVector *stateStack) {
+        FklParseStateVector *stateStack,
+        FklLineNumHashMap *ln) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
-    FklNastNode *ast = NULL;
-    FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(st);
+    FklVMvalue *ast = NULL;
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
     ctx.line = line;
     size_t offset = 0;
     for (;;) {
@@ -142,7 +140,6 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
                 restLen,
                 &restLen,
                 &ctx,
-                st,
                 &err,
                 errLine,
                 symbolStack,
@@ -192,8 +189,150 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
     return tmp;
 }
 
-void *fklNastTerminalCreate(const char *s, size_t len, size_t line, void *ctx) {
-    FklNastNode *ast = fklCreateNastNode(FKL_NAST_STR, line);
-    ast->str = fklCreateString(len, s);
+void *fklParseWithTableForCstr(const FklGrammer *g,
+        const char *cstr,
+        FklGrammerMatchCtx *ctx,
+        FklParseError *err) {
+    return fklParseWithTableForCharBuf(g, cstr, strlen(cstr), ctx, err);
+}
+
+void *fklParseWithTableForCharBuf(const FklGrammer *g,
+        const char *cstr,
+        size_t restLen,
+        FklGrammerMatchCtx *ctx,
+        FklParseError *err) {
+    const FklAnalysisTable *t = &g->aTable;
+    size_t errLine = 0;
+    FklAnalysisSymbolVector symbolStack;
+    FklParseStateVector stateStack;
+    FklUintVector lineStack;
+    fklParseStateVectorInit(&stateStack, 16);
+    fklAnalysisSymbolVectorInit(&symbolStack, 16);
+    fklUintVectorInit(&lineStack, 16);
+    fklParseStateVectorPushBack2(&stateStack,
+            (FklParseState){ .state = &t->states[0] });
+
+    void *ast = fklParseWithTableForCharBuf2(g,
+            cstr,
+            restLen,
+            &restLen,
+            ctx,
+            err,
+            &errLine,
+            &symbolStack,
+            &lineStack,
+            &stateStack);
+
+    fklUintVectorUninit(&lineStack);
+    fklParseStateVectorUninit(&stateStack);
+    fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
 }
+
+static inline int do_reduce_action(FklParseStateVector *stateStack,
+        FklAnalysisSymbolVector *symbolStack,
+        FklUintVector *lineStack,
+        const FklGrammerProduction *prod,
+        size_t len,
+        FklGrammerMatchCtx *ctx,
+        size_t *errLine) {
+    stateStack->size -= len;
+    symbolStack->size -= len;
+    FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
+    FklAnalysisStateGoto *gt =
+            fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
+    const FklAnalysisState *state = NULL;
+    FklGrammerNonterm left = prod->left;
+    for (; gt; gt = gt->next) {
+        if ((gt->allow_ignore || !len || !base[0].start_with_ignore)
+                && fklNontermEqual(&gt->nt, &left)) {
+            state = gt->state;
+            break;
+        }
+    }
+    if (!state)
+        return 1;
+    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
+    lineStack->size -= len;
+    void *ast = prod->func(prod->ctx, ctx->ctx, base, len, line);
+    for (size_t i = 0; i < len; i++) {
+        ctx->destroy(base[i].ast);
+        base[i].ast = NULL;
+    }
+    if (!ast) {
+        *errLine = line;
+        return FKL_PARSE_REDUCE_FAILED;
+    }
+
+    fklInitNontermAnalysisSymbol(
+            fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
+            left.group,
+            left.sid,
+            ast,
+            len && base[0].start_with_ignore);
+    fklUintVectorPushBack2(lineStack, line);
+    fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
+    return 0;
+}
+
+void *fklDefaultParseForCstr(const char *cstr,
+        FklGrammerMatchCtx *ctx,
+        FklParseError *err,
+        uint64_t *errLine,
+        FklAnalysisSymbolVector *symbolStack,
+        FklUintVector *lineStack,
+        FklParseStateVector *stateStack) {
+    size_t restLen = strlen(cstr);
+    return fklDefaultParseForCharBuf(cstr,
+            restLen,
+            &restLen,
+            ctx,
+            err,
+            errLine,
+            symbolStack,
+            lineStack,
+            stateStack);
+}
+
+void *fklDefaultParseForCharBuf(const char *cstr,
+        size_t len,
+        size_t *restLen,
+        FklGrammerMatchCtx *ctx,
+        FklParseError *err,
+        uint64_t *errLine,
+        FklAnalysisSymbolVector *symbolStack,
+        FklUintVector *lineStack,
+        FklParseStateVector *stateStack) {
+    const char *start = cstr;
+    *restLen = len;
+    void *ast = NULL;
+    for (;;) {
+        int accept = 0;
+        FklStateFuncPtr state =
+                fklParseStateVectorBackNonNull(stateStack)->func;
+        *err = state(stateStack,
+                symbolStack,
+                lineStack,
+                1,
+                0,
+                0,
+                NULL,
+                start,
+                &cstr,
+                restLen,
+                ctx,
+                &accept,
+                errLine);
+        if (*err)
+            break;
+        if (accept) {
+            ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
+            break;
+        }
+    }
+    return ast;
+}
+
+#define PARSE_INCLUDED
+#include "parse.h"
+#undef PARSE_INCLUDED

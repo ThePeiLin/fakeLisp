@@ -47,27 +47,7 @@ extern "C" {
     X(FKL_OP_PUSH_I16,          "push-i16",          FKL_OP_MODE_IsB     )\
     X(FKL_OP_PUSH_I24,          "push-i24",          FKL_OP_MODE_IsC     )\
     X(FKL_OP_PUSH_CHAR,         "push-char",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_SYM,          "push-sym",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_SYM_C,        "push-sym-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_SYM_X,        "push-sym-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_I64F,         "push-i64f",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_I64F_C,       "push-i64f-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_I64F_X,       "push-i64f-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_F64,          "push-f64",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_F64_C,        "push-f64-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_F64_X,        "push-f64-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_STR,          "push-str",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_STR_C,        "push-str-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_STR_X,        "push-str-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_BVEC,         "push-bvec",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_BVEC_C,       "push-bvec-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_BVEC_X,       "push-bvec-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_I64B,         "push-i64b",         FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_I64B_C,       "push-i64b-c",       FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_I64B_X,       "push-i64b-x",       FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_PUSH_BI,           "push-bi",           FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_BI_C,         "push-bi-c",         FKL_OP_MODE_IuC     )\
-    X(FKL_OP_PUSH_BI_X,         "push-bi-x",         FKL_OP_MODE_IuBB    )\
+	X(FKL_OP_PUSH_CONST,        "push-const",        FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_BOX,          "push-box",          FKL_OP_MODE_IsA     )\
     X(FKL_OP_PUSH_LIST_0,       "push-list-0",       FKL_OP_MODE_I       )\
     X(FKL_OP_PUSH_LIST,         "push-list",         FKL_OP_MODE_IuB     )\
@@ -201,19 +181,6 @@ typedef enum {
 
     FKL_OP_MODE_IxAxB,
 } FklOpcodeMode;
-
-#define FKL_GET_INS_UC(ins)                                                    \
-    (((((uint32_t)(ins)->bu) << FKL_BYTE_WIDTH)) | (ins)->au)
-#define FKL_GET_INS_IC(ins) (((int32_t)FKL_GET_INS_UC(ins)) - FKL_I24_OFFSET)
-#define FKL_GET_INS_UX(ins)                                                    \
-    ((ins)->bu | (((uint32_t)(ins)[1].bu) << FKL_I16_WIDTH))
-#define FKL_GET_INS_IX(ins) ((int32_t)FKL_GET_INS_UX(ins))
-#define FKL_GET_INS_UXX(ins)                                                   \
-    (FKL_GET_INS_UC(ins)                                                       \
-            | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH)         \
-            | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
-
-#define FKL_GET_INS_IXX(ins) ((int64_t)FKL_GET_INS_UXX(ins))
 
 const char *fklGetOpcodeName(FklOpcode);
 FklOpcodeMode fklGetOpcodeMode(FklOpcode);

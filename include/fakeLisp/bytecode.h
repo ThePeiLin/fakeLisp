@@ -14,6 +14,9 @@
 extern "C" {
 #endif
 
+struct FklVMvalue;
+struct FklVMgc;
+
 // FklKi64HashMap
 #define FKL_HASH_KEY_TYPE int64_t
 #define FKL_HASH_VAL_TYPE uint32_t
@@ -66,17 +69,30 @@ extern "C" {
 #define FKL_HASH_KEY_HASH return fklBigIntHash(pk);
 #include "cont/hash.h"
 
-typedef struct {
-    uint8_t op;
-    union {
-        uint8_t au;
-        int8_t ai;
+typedef union {
+    struct {
+        uint8_t op;
+        union {
+            uint8_t au;
+            int8_t ai;
+        };
+        union {
+            uint16_t bu;
+            int16_t bi;
+        };
     };
-    union {
-        uint16_t bu;
-        int16_t bi;
+    struct {
+        uint32_t op1 : 8;
+        uint32_t ci : 24;
+    };
+    struct {
+        uint32_t op2 : 8;
+        uint32_t cu : 24;
     };
 } FklInstruction;
+
+static_assert(sizeof(FklInstruction) == sizeof(uint32_t),
+        "invalid instruction definition");
 
 typedef struct {
     FklKi64HashMap ht;
@@ -129,7 +145,7 @@ typedef struct {
 } FklByteCode;
 
 typedef struct {
-    FklSid_t fid;
+    struct FklVMvalue *fid;
     uint64_t scp;
     uint32_t line;
     uint32_t scope;
@@ -184,20 +200,22 @@ void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from);
 void fklUninitByteCode(FklByteCode *);
 void fklDestroyByteCode(FklByteCode *);
 void fklPrintByteCode(const FklByteCode *,
+        uint32_t prototype_id,
         FILE *,
-        FklSymbolTable *,
+        struct FklVMgc *,
         FklConstTable *);
 
 FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
 FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
-        FklSid_t fid,
+        struct FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
 void fklPrintByteCodelnt(const FklByteCodelnt *obj,
+        uint32_t prototype_id,
         FILE *fp,
-        const FklSymbolTable *,
+        struct FklVMgc *,
         const FklConstTable *);
 
 void fklUninitByteCodelnt(FklByteCodelnt *);
@@ -208,13 +226,13 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         const FklInstruction *ins,
-        FklSid_t fid,
+        struct FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
 void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
         FklByteCodelnt *bcl,
-        FklSid_t fid,
+        struct FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
@@ -227,7 +245,7 @@ void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl,
 FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
 
 void fklInitLineNumTabNode(FklLineNumberTableItem *,
-        FklSid_t fid,
+        struct FklVMvalue *fid,
         uint64_t scp,
         uint32_t line,
         uint32_t scope);
@@ -298,6 +316,19 @@ void fklLoadByteCode(FklByteCode *bc, FILE *fp);
 
 void fklWriteByteCodelnt(const FklByteCodelnt *bcl, FILE *fp);
 FklByteCodelnt *fklLoadByteCodelnt(FILE *fp);
+
+#define FKL_GET_INS_UC(ins)                                                    \
+    (((((uint32_t)(ins)->bu) << FKL_BYTE_WIDTH)) | (ins)->au)
+#define FKL_GET_INS_IC(ins) (((int32_t)FKL_GET_INS_UC(ins)) - FKL_I24_OFFSET)
+#define FKL_GET_INS_UX(ins)                                                    \
+    ((ins)->bu | (((uint32_t)(ins)[1].bu) << FKL_I16_WIDTH))
+#define FKL_GET_INS_IX(ins) ((int32_t)FKL_GET_INS_UX(ins))
+#define FKL_GET_INS_UXX(ins)                                                   \
+    (FKL_GET_INS_UC(ins)                                                       \
+            | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH)         \
+            | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
+
+#define FKL_GET_INS_IXX(ins) ((int64_t)FKL_GET_INS_UXX(ins))
 
 #ifdef __cplusplus
 }

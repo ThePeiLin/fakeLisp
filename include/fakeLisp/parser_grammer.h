@@ -61,7 +61,7 @@ typedef struct {
     size_t errline;
     FklProdActionResolver prod_action_resolver;
     FklGrammer *g;
-    FklSid_t current_nonterm;
+    struct FklVMvalue *current_nonterm;
     FklParserGrammerState state;
     FklStringBuffer error_msg;
     void *resolver_ctx;

@@ -1,18 +1,17 @@
 #ifndef FKL_PATTERN_H
 #define FKL_PATTERN_H
 
-#include "symbol.h"
+#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct FklNastNode FklNastNode;
-
 // FklPmatchHashMap
-#define FKL_HASH_KEY_TYPE FklSid_t
-#define FKL_HASH_VAL_TYPE FklNastNode *
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklVMvalue *
 #define FKL_HASH_ELM_NAME Pmatch
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
 
 #define FKL_PATTERN_NOT_EQUAL (0)
@@ -20,12 +19,30 @@ typedef struct FklNastNode FklNastNode;
 #define FKL_PATTERN_BE_COVER (2)
 #define FKL_PATTERN_EQUAL (3)
 
-FklNastNode *fklCreatePatternFromNast(FklNastNode *, FklSidHashSet **);
-int fklPatternMatch(const FklNastNode *pattern,
-        const FklNastNode *exp,
+struct FklVMslot {
+    FklVMvalue *v;
+};
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot,
+        { //
+            union {
+                struct FklVMslot _slot;
+               alignas(struct FklVMslot) FklVMvalue *s;
+            };
+        });
+
+#define FKL_VM_SLOT_SYM(V) (((FklVMvalueSlot *)(V))->s)
+
+FklVMvalue *
+fklCreatePatternFromNast(FklVM *exe, FklVMvalue *, FklVMvalueHashSet **);
+int fklPatternMatch(const FklVMvalue *pattern,
+        const FklVMvalue *exp,
         FklPmatchHashMap *ht);
 
-int fklPatternCoverState(const FklNastNode *p0, const FklNastNode *p1);
+int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
+
+FklVMvalue *fklCreateVMvalueSlot(FklVM *, FklVMvalue *s);
+int fklIsVMvalueSlot(const FklVMvalue *s);
 
 #ifdef __cplusplus
 }

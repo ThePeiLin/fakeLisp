@@ -1,5 +1,5 @@
-#include <fakeLisp/nast.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/vm.h>
 
 static const char *expressions[] = {
     ";;abcd\n(abcd,efgh)",                                //
@@ -33,20 +33,19 @@ static const char *expressions[] = {
 };
 
 int main() {
-    FklSymbolTable st;
-    fklInitSymbolTable(&st);
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+
     fputs("parse with builtin parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
-        FklNastNode *node = fklCreateNastNodeFromCstr(*pexp, &st);
+        FklVMvalue *node = fklCreateNastNodeFromCstr(&gc->gcvm, *pexp, NULL);
         FKL_ASSERT(node);
-        fklPrintNastNode(node, stderr, &st);
+        fklPrin1VMvalue(node, stderr, &gc->gcvm);
         fputc('\n', stderr);
-        fklDestroyNastNode(node);
     }
 
-    FklGrammer *g = fklCreateBuiltinGrammer(&st);
+    FklGrammer *g = fklCreateBuiltinGrammer(&gc->gcvm);
     if (!g) {
-        fklUninitSymbolTable(&st);
+        fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
         exit(1);
     }
@@ -58,7 +57,7 @@ int main() {
     fklInitStringBuffer(&err_msg);
     if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
-        fklUninitSymbolTable(&st);
+        fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
@@ -70,15 +69,14 @@ int main() {
     fputs("\nparse with custom parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
         FklParseError err = 0;
-        FklGrammerMatchCtx ctx = FKL_NAST_PARSE_CTX_INIT(&st);
-        FklNastNode *node = fklParseWithTableForCstr(g, *pexp, &ctx, &st, &err);
+        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
+        FklVMvalue *node = fklParseWithTableForCstr(g, *pexp, &ctx, &err);
         FKL_ASSERT(node && err == 0);
-        fklPrintNastNode(node, stderr, &st);
+        fklPrin1VMvalue(node, stderr, &gc->gcvm);
         fputc('\n', stderr);
-        fklDestroyNastNode(node);
     }
     fklLalrItemSetHashMapDestroy(itemSet);
     fklDestroyGrammer(g);
-    fklUninitSymbolTable(&st);
+    fklDestroyVMgc(gc);
     return 0;
 }

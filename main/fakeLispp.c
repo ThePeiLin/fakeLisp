@@ -1,14 +1,18 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
+#include <fakeLisp/code_builder.h>
+#include <fakeLisp/code_lw.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/dis.h>
 #include <fakeLisp/grammer.h>
-#include <fakeLisp/nast.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+
+#include <fakeLisp/cb_helper.h>
 
 #include <argtable3.h>
 
@@ -23,29 +27,18 @@
 #include <unistd.h>
 #endif
 
-static void codegenlib_initer(FklReadCodeFileArgs *read_args,
-        void *lib_addr,
-        void *lib_init_args,
-        FklCodegenLibType type,
-        uint32_t prototypeId,
-        uint64_t spc,
-        const FklByteCodelnt *bcl,
-        const FklString *dll_name);
-
-static void print_compiler_macros(FklCodegenMacro *head,
-        const FklSymbolTable *pst,
-        const FklConstTable *pkt,
-        FILE *fp,
+static void print_compiler_macros(const FklCodegenMacro *head,
+        const FklVMvalueProtos *macro_pts,
+        FklCodeBuilder *build,
         uint64_t *opcode_count);
 
 static void print_reader_macros(const FklGraProdGroupHashMap *named_prod_groups,
-        const FklSymbolTable *pst,
-        const FklConstTable *pkt,
-        FILE *fp);
+        const FklVMvalueProtos *macro_pts,
+        FklCodeBuilder *build,
+        uint64_t *opcode_count);
 
 static void print_replacements(const FklReplacementHashMap *replacements,
-        const FklSymbolTable *pst,
-        FILE *fp);
+        FklCodeBuilder *build);
 
 struct arg_lit *help;
 struct arg_lit *stats;
@@ -140,236 +133,197 @@ int main(int argc, char **argv) {
                 exitState = EXIT_FAILURE;
                 goto exit;
             }
-            FklSymbolTable runtime_st;
-            fklInitSymbolTable(&runtime_st);
+            FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+            FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+            FklVMvalueLibs *libs = fklCreateVMvalueLibs(&gc->gcvm);
 
-            FklConstTable runtime_kt;
-            fklInitConstTable(&runtime_kt);
+            FklLoadCodeFileArgs args = {
+                .gc = gc,
+                .pts = pts,
+                .libs = libs,
 
-            FklReadCodeFileArgs read_args = {
-                .obarray = &runtime_st,
-                .runtime_kt = &runtime_kt,
-                .library_initer = codegenlib_initer,
-                .lib_init_args = NULL,
-                .lib_size = sizeof(FklCodegenLib),
             };
 
-            fklReadCodeFile(fp, &read_args);
-
-            fklDestroyFuncPrototypes(read_args.pts);
-            char *rp = fklRealpath(filename);
-            fklZfree(rp);
-
-            FklByteCodelnt *bcl = read_args.main_func;
-            printf("file: %s\n\n", filename);
-            fklPrintByteCodelnt(bcl, stdout, &runtime_st, &runtime_kt);
-            if (stats->count > 0)
-                do_gather_statistics(bcl, opcode_count);
-            fputc('\n', stdout);
-            fklDestroyByteCodelnt(bcl);
-
-            FklCodegenLib *libs = FKL_TYPE_CAST(void *, read_args.libs);
-            size_t num = read_args.lib_count;
-
-            for (size_t i = 1; i <= num; ++i) {
-                FklCodegenLib *cur = &libs[i];
-                fputc('\n', stdout);
-                printf("lib %" PRIu64 ":\n", i);
-                switch (cur->type) {
-                case FKL_CODEGEN_LIB_SCRIPT:
-                    fklPrintByteCodelnt(cur->bcl,
-                            stdout,
-                            &runtime_st,
-                            &runtime_kt);
-                    if (stats->count > 0)
-                        do_gather_statistics(cur->bcl, opcode_count);
-                    break;
-                case FKL_CODEGEN_LIB_DLL:
-                    fputs(cur->rp, stdout);
-                    break;
-                case FKL_CODEGEN_LIB_UNINIT:
-                    FKL_UNREACHABLE();
-                    break;
-                }
-                fputc('\n', stdout);
-                fklUninitCodegenLib(cur);
-            }
-            puts("\nruntime symbol table:");
-            fklPrintSymbolTable(&runtime_st, stdout);
-
-            puts("\nruntime const table:");
-            fklPrintConstTable(&runtime_kt, stdout);
-
-            fklZfree(libs);
+            int r = fklLoadCodeFile(fp, &args);
+            FKL_ASSERT(r == 0);
             fclose(fp);
-            fklUninitSymbolTable(&runtime_st);
-            fklUninitConstTable(&runtime_kt);
+
+            FklCodeBuilder builder = { 0 };
+            fklInitCodeBuilderFp(&builder, stdout, NULL);
+            FklCodeBuilder *const build = &builder;
+
+            CB_LINE("file: %s", filename);
+            CB_LINE("");
+
+            CB_LINE("main func:");
+            fklDisassembleProc(args.main_func, build);
+            if (stats->count > 0)
+                do_gather_statistics(
+                        FKL_VM_CO(FKL_VM_PROC(args.main_func)->codeObj),
+                        opcode_count);
+
+            CB_LINE("");
+            size_t count = libs->count;
+
+            for (size_t i = 1; i <= count; ++i) {
+                const FklVMlib *cur = &libs->libs[i];
+                CB_LINE("");
+                CB_LINE("lib %" PRIu64 ":", i);
+                if (FKL_IS_PROC(cur->proc)) {
+                    CB_LINE("epc %" PRIu64 "", cur->epc);
+                    fklDisassembleProc(cur->proc, build);
+                    if (stats->count > 0)
+                        do_gather_statistics(
+                                FKL_VM_CO(FKL_VM_PROC(cur->proc)->codeObj),
+                                opcode_count);
+                } else {
+                    CB_LINE("%s", FKL_VM_STR(cur->proc)->str);
+                }
+
+                CB_LINE("");
+            }
+
+            CB_LINE("\nobarray:");
+
+            fklPrintObarray(gc->obarray, build);
+            fklDestroyVMgc(gc);
         } else if (!strcmp(extension, FKL_PRE_COMPILE_FILE_EXTENSION)) {
-            char *cwd = fklSysgetcwd();
-            fklZfree(cwd);
             FILE *fp = fopen(filename, "rb");
             if (fp == NULL) {
                 perror(filename);
                 exitState = EXIT_FAILURE;
-                return EXIT_FAILURE;
+                goto exit;
             }
-            FklSymbolTable runtime_st;
-            fklInitSymbolTable(&runtime_st);
 
-            FklConstTable runtime_kt;
-            fklInitConstTable(&runtime_kt);
+            FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+            FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
 
-            FklFuncPrototypes pts;
-            fklInitFuncPrototypes(&pts, 0);
-
-            FklFuncPrototypes macro_pts;
-            fklInitFuncPrototypes(&macro_pts, 0);
-
-            FklCodegenLibVector scriptLibStack;
-            fklCodegenLibVectorInit(&scriptLibStack, 8);
-
-            FklCodegenLibVector macroScriptLibStack;
-            fklCodegenLibVectorInit(&macroScriptLibStack, 8);
-
-            FklCodegenCtx ctx;
-            fklInitCodegenCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
-
+            FklCodegenCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            char *errorStr = NULL;
-            int load_result = fklLoadPreCompile(&pts,
-                    &macro_pts,
-                    &scriptLibStack,
-                    &macroScriptLibStack,
-                    &runtime_st,
-                    &runtime_kt,
-                    &ctx,
-                    rp,
-                    fp,
-                    &errorStr);
+            fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+
+            FklLoadPreCompileArgs args = {
+                .ctx = &ctx,
+                .libraries = &ctx.libraries,
+                .macro_libraries = &ctx.macro_libraries,
+                .pts = pts,
+                .macro_pts = ctx.macro_pts,
+            };
+
+            int load_result = fklLoadPreCompile(fp, rp, &args);
+
             fklZfree(rp);
+
+            fklVMclearExtraMarkFunc(gc);
+
             fclose(fp);
+
             if (load_result) {
-                if (errorStr) {
-                    fprintf(stderr, "%s\n", errorStr);
-                    fklZfree(errorStr);
+                if (args.error) {
+                    fprintf(stderr, "%s\n", args.error);
+                    fklZfree(args.error);
                 } else
                     fprintf(stderr, "%s: load failed\n", filename);
                 exitState = EXIT_FAILURE;
                 goto precompile_exit;
             }
 
-            printf("file: %s\n\n", filename);
-            FklSymbolTable *pst = &ctx.public_st;
-            FklConstTable *pkt = &ctx.public_kt;
-            uint32_t num = scriptLibStack.size;
-            for (size_t i = 0; i < num; i++) {
-                const FklCodegenLib *cur = &scriptLibStack.base[i];
-                printf("lib %" PRIu64 ":\n", i + 1);
+            FklCodeBuilder builder = { 0 };
+            fklInitCodeBuilderFp(&builder, stdout, NULL);
+            FklCodeBuilder *const build = &builder;
+
+            CB_LINE("file: %s", filename);
+            CB_LINE("");
+            uint64_t count = ctx.libraries.size;
+            for (uint64_t i = 0; i < count; ++i) {
+                const FklCodegenLib *cur = &ctx.libraries.base[i];
+                CB_LINE("lib %" PRIu64 ":", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
-                    fklPrintByteCodelnt(cur->bcl,
-                            stdout,
-                            &runtime_st,
-                            &runtime_kt);
+                    CB_LINE("epc %" PRIu64 "", cur->epc);
+                    fklDisassembleByteCodelnt(cur->bcl,
+                            cur->prototypeId,
+                            ctx.pts,
+                            build);
                     if (stats->count > 0)
                         do_gather_statistics(cur->bcl, opcode_count);
-                    fputc('\n', stdout);
+                    CB_LINE("");
                     if (cur->head)
                         print_compiler_macros(cur->head,
-                                pst,
-                                pkt,
-                                stdout,
+                                ctx.macro_pts,
+                                build,
                                 opcode_count);
                     if (cur->named_prod_groups.buckets)
                         print_reader_macros(&cur->named_prod_groups,
-                                pst,
-                                pkt,
-                                stdout);
+                                ctx.macro_pts,
+                                build,
+                                opcode_count);
                     if (cur->replacements->buckets)
-                        print_replacements(cur->replacements, pst, stdout);
+                        print_replacements(cur->replacements, build);
                     if (!cur->head && !cur->named_prod_groups.buckets)
-                        fputc('\n', stdout);
+                        CB_LINE("");
                     break;
                 case FKL_CODEGEN_LIB_DLL:
-                    fputs(cur->rp, stdout);
-                    fputs("\n\n", stdout);
+                    CB_LINE("%s", cur->rp);
+                    CB_LINE("");
                     break;
                 case FKL_CODEGEN_LIB_UNINIT:
                     FKL_UNREACHABLE();
                     break;
                 }
-                fputc('\n', stdout);
+                CB_LINE("");
             }
 
-            if (macroScriptLibStack.size > 0) {
-                fputc('\n', stdout);
-                puts("macro loaded libs:\n");
-                num = macroScriptLibStack.size;
-                for (size_t i = 0; i < num; i++) {
-                    const FklCodegenLib *cur = &macroScriptLibStack.base[i];
-                    printf("lib %" PRIu64 ":\n", i + 1);
+            if (ctx.macro_libraries.size > 0) {
+                CB_LINE("");
+                CB_LINE("macro loaded libs:");
+                uint64_t count = ctx.macro_libraries.size;
+                for (uint64_t i = 0; i < count; ++i) {
+                    const FklCodegenLib *cur = &ctx.macro_libraries.base[i];
+                    CB_LINE("lib %" PRIu64 ":", i + 1);
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:
-                        fklPrintByteCodelnt(cur->bcl, stdout, pst, pkt);
+                        CB_LINE("epc %" PRIu64 "", cur->epc);
+                        fklDisassembleByteCodelnt(cur->bcl,
+                                cur->prototypeId,
+                                ctx.macro_pts,
+                                build);
                         if (stats->count > 0)
                             do_gather_statistics(cur->bcl, opcode_count);
-                        fputc('\n', stdout);
+                        CB_LINE("");
                         if (cur->head)
                             print_compiler_macros(cur->head,
-                                    pst,
-                                    pkt,
-                                    stdout,
+                                    ctx.macro_pts,
+                                    build,
                                     opcode_count);
                         if (cur->named_prod_groups.buckets)
                             print_reader_macros(&cur->named_prod_groups,
-                                    pst,
-                                    pkt,
-                                    stdout);
+                                    ctx.macro_pts,
+                                    build,
+                                    opcode_count);
+                        if (cur->replacements->buckets)
+                            print_replacements(cur->replacements, build);
                         if (!cur->head && !cur->named_prod_groups.buckets)
-                            fputc('\n', stdout);
+                            CB_LINE("");
                         break;
                     case FKL_CODEGEN_LIB_DLL:
-                        fputs(cur->rp, stdout);
-                        fputs("\n\n", stdout);
+                        CB_LINE("%s", cur->rp);
+                        CB_LINE("");
                         break;
                     case FKL_CODEGEN_LIB_UNINIT:
                         FKL_UNREACHABLE();
                         break;
                     }
-                    fputc('\n', stdout);
+                    CB_LINE("");
                 }
             }
-            puts("\nruntime symbol table:");
-            fklPrintSymbolTable(&runtime_st, stdout);
 
-            puts("\npublic symbol table:");
-            fklPrintSymbolTable(&ctx.public_st, stdout);
-
-            puts("\npublic const table:");
-            fklPrintConstTable(&ctx.public_kt, stdout);
-
-            puts("\nruntime const table:");
-            fklPrintConstTable(&runtime_kt, stdout);
+            CB_LINE("\nobarray:");
+            fklPrintObarray(gc->obarray, build);
 
         precompile_exit:
-            fklUninitFuncPrototypes(&pts);
-            fklUninitFuncPrototypes(&macro_pts);
-
-            while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
-                fklUninitCodegenLib(
-                        fklCodegenLibVectorPopBack(&scriptLibStack));
-            fklCodegenLibVectorUninit(&scriptLibStack);
-            while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
-                fklUninitCodegenLib(
-                        fklCodegenLibVectorPopBack(&macroScriptLibStack));
-            fklCodegenLibVectorUninit(&macroScriptLibStack);
-
-            fklUninitSymbolTable(&runtime_st);
-            fklUninitConstTable(&runtime_kt);
-            fklUninitSymbolTable(&ctx.public_st);
-            fklUninitConstTable(&ctx.public_kt);
-            fklUninitGrammer(&ctx.builtin_g);
-
+            fklUninitCodegenCtx(&ctx);
+            fklDestroyVMgc(gc);
             if (exitState)
                 break;
         } else {
@@ -386,104 +340,104 @@ exit:
     return exitState;
 }
 
-static FklSid_t *dll_init(FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
-    return NULL;
-}
-
-static void codegenlib_initer(FklReadCodeFileArgs *read_args,
-        void *lib_addr,
-        void *lib_init_args,
-        FklCodegenLibType type,
-        uint32_t prototypeId,
-        uint64_t spc,
-        const FklByteCodelnt *bcl,
-        const FklString *dll_name) {
-    FklCodegenLib *lib = FKL_TYPE_CAST(FklCodegenLib *, lib_addr);
-
-    switch (type) {
-    case FKL_CODEGEN_LIB_SCRIPT: {
-        fklInitCodegenScriptLib(lib, NULL, fklCopyByteCodelnt(bcl), spc, NULL);
-        lib->prototypeId = prototypeId;
-    } break;
-    case FKL_CODEGEN_LIB_DLL: {
-        uv_lib_t tlib = { 0 };
-        uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
-        char *rp =
-                (char *)fklZcalloc(dll_name->size + typelen + 1, sizeof(char));
-        FKL_ASSERT(rp);
-        strncpy(rp, dll_name->str, dll_name->size);
-        strcat(rp, FKL_DLL_FILE_TYPE);
-        fklInitCodegenDllLib(lib, rp, tlib, dll_init, read_args->obarray);
-    } break;
-    case FKL_CODEGEN_LIB_UNINIT:
-        FKL_UNREACHABLE();
-        break;
-    }
-}
-
-static void print_compiler_macros(FklCodegenMacro *head,
-        const FklSymbolTable *pst,
-        const FklConstTable *pkt,
-        FILE *fp,
+static void print_compiler_macros(const FklCodegenMacro *cur,
+        const FklVMvalueProtos *macro_pts,
+        FklCodeBuilder *build,
         uint64_t *opcode_count) {
-    fputs("\ncompiler macros:\n", fp);
-    for (; head; head = head->next) {
-        fputs("pattern:\n", fp);
-        fklPrintNastNode(head->origin_exp, fp, pst);
-        fputc('\n', fp);
-        fklPrintByteCodelnt(head->bcl, fp, pst, pkt);
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+    CB_LINE("\ncompiler macros:");
+    for (; cur; cur = cur->next) {
+        CB_LINE("pattern:");
+        CB_LINE_START("");
+        fklPrintValue(cur->pattern, &buf, build);
+        CB_LINE_END("");
+
+        fklDisassembleByteCodelnt(cur->bcl,
+                cur->prototype_id,
+                macro_pts,
+                build);
         if (stats->count > 0)
-            do_gather_statistics(head->bcl, opcode_count);
-        fputs("\n\n", fp);
+            do_gather_statistics(cur->bcl, opcode_count);
+        CB_LINE("");
+    }
+    fklUninitStringBuffer(&buf);
+}
+
+static void print_reader_macro_action(const FklGrammerProduction *prod,
+        const FklVMvalueProtos *macro_pts,
+        FklStringBuffer *buf,
+        FklCodeBuilder *build) {
+    if (fklIsCustomActionProd(prod)) {
+        CB_LINE_END("custom");
+        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+        fklDisassembleByteCodelnt(ctx->c.bcl,
+                ctx->c.prototype_id,
+                macro_pts,
+                build);
+    } else {
+        if (prod->ctx == NULL) {
+            CB_FMT("|first|");
+        } else {
+            fklPrintValue(prod->ctx, buf, build);
+        }
+        CB_LINE_END("");
     }
 }
 
 static void print_reader_macros(const FklGraProdGroupHashMap *ht,
-        const FklSymbolTable *pst,
-        const FklConstTable *pkt,
-        FILE *fp) {
-    fputs("\nreader macros:\n", fp);
+        const FklVMvalueProtos *macro_pts,
+        FklCodeBuilder *build,
+        uint64_t *opcode_count) {
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+    CB_LINE("\nreader macros:");
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
-        fputs("group name:", fp);
-        fklPrintRawSymbol(fklGetSymbolWithId(l->k, pst), fp);
+        CB_LINE_START("group name: ");
+        fklPrintValue(l->k, &buf, build);
+        CB_LINE_END("");
 
         if (l->v.g.ignores) {
-            fputs("\nignores:\n", fp);
-            fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, fp);
+            CB_LINE("\nignores:");
+            fklPrintGrammerIgnores2(&l->v.g, &l->v.g.regexes, build);
         }
 
         if (l->v.g.productions.first) {
-            fputs("\nprods:\n", fp);
+            CB_LINE("\nprods:");
             for (const FklProdHashMapNode *cur = l->v.g.productions.first; cur;
                     cur = cur->next) {
                 for (const FklGrammerProduction *prod = cur->v; prod;
                         prod = prod->next) {
-                    fklPrintGrammerProduction(fp,
-                            prod,
-                            l->v.g.st,
-                            &l->v.g.regexes);
-                    fputs(" => ", fp);
-                    fklPrintReaderMacroAction(fp, prod, l->v.g.st, pkt);
-                    fputc('\n', fp);
+                    CB_LINE_START("");
+                    fklPrintGrammerProduction2(prod, &l->v.g.regexes, build);
+                    CB_FMT(" => ");
+                    print_reader_macro_action(prod, macro_pts, &buf, build);
                 }
+                CB_LINE("");
             }
         }
 
-        fputc('\n', fp);
+        CB_LINE("");
     }
+
+    fklUninitStringBuffer(&buf);
 }
 
 static void print_replacements(const FklReplacementHashMap *replacements,
-        const FklSymbolTable *pst,
-        FILE *fp) {
+        FklCodeBuilder *build) {
     if (replacements->count == 0)
         return;
-    fputs("\nreplacements:\n", fp);
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+
+    CB_LINE("\nreplacements:");
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {
-        fklPrintRawSymbol(fklGetSymbolWithId(cur->k, pst), fp);
-        fputs(" => ", fp);
-        fklPrintNastNode(cur->v, fp, pst);
-        fputc('\n', fp);
+        CB_LINE_START("");
+        fklPrintValue(cur->k, &buf, build);
+        CB_FMT(" => ");
+        fklPrintValue(cur->v, &buf, build);
+        CB_LINE_END("");
     }
+    fklUninitStringBuffer(&buf);
 }

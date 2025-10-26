@@ -214,96 +214,6 @@ const FklBigInt *fklGetBiConstWithIdx(const FklConstTable *kt, uint32_t idx) {
 
 #undef REALLOC_CONST_TABLE_BASE
 
-void fklLoadConstTable(FILE *fp, FklConstTable *kt) {
-    uint32_t count = 0;
-    fread(&count, sizeof(count), 1, fp);
-    for (; count > 0; count--) {
-        int64_t k = 0;
-        fread(&k, sizeof(k), 1, fp);
-        fklAddI64Const(kt, k);
-    }
-
-    fread(&count, sizeof(count), 1, fp);
-    for (; count > 0; count--) {
-        double k = 0;
-        fread(&k, sizeof(k), 1, fp);
-        fklAddF64Const(kt, k);
-    }
-
-    fread(&count, sizeof(count), 1, fp);
-    for (; count > 0; count--) {
-        uint64_t size = 0;
-        fread(&size, sizeof(size), 1, fp);
-        FklString *str = fklCreateString(size, NULL);
-        fread(str->str, size, 1, fp);
-        fklAddStrConst(kt, str);
-        fklZfree(str);
-    }
-
-    fread(&count, sizeof(count), 1, fp);
-    for (; count > 0; count--) {
-        uint64_t size = 0;
-        fread(&size, sizeof(size), 1, fp);
-        FklBytevector *bvec = fklCreateBytevector(size, NULL);
-        fread(bvec->ptr, size, 1, fp);
-        fklAddBvecConst(kt, bvec);
-        fklZfree(bvec);
-    }
-
-    fread(&count, sizeof(count), 1, fp);
-    for (; count > 0; count--) {
-        int64_t num = 0;
-        fread(&num, sizeof(num), 1, fp);
-        size_t size = fklAbs(num) * sizeof(FklBigIntDigit);
-        FklBigIntDigit *mem;
-        if (!num)
-            mem = NULL;
-        else {
-            mem = (FklBigIntDigit *)fklZmalloc(size);
-            FKL_ASSERT(mem);
-            fread(mem, size, 1, fp);
-        }
-        FklBigInt bi = FKL_BIGINT_0;
-        fklInitBigIntFromMem(&bi, num, mem);
-        fklAddBigIntConst(kt, &bi);
-        fklUninitBigInt(&bi);
-    }
-}
-
-void fklWriteConstTable(const FklConstTable *kt, FILE *fp) {
-    const FklConstI64Table *ki64t = &kt->ki64t;
-    fwrite(&ki64t->count, sizeof(ki64t->count), 1, fp);
-    fwrite(ki64t->base, sizeof(*ki64t->base), ki64t->count, fp);
-
-    const FklConstF64Table *kf64t = &kt->kf64t;
-    fwrite(&kf64t->count, sizeof(kf64t->count), 1, fp);
-    fwrite(kf64t->base, sizeof(*kf64t->base), kf64t->count, fp);
-
-    const FklConstStrTable *kstrt = &kt->kstrt;
-    fwrite(&kstrt->count, sizeof(kstrt->count), 1, fp);
-    for (uint32_t i = 0; i < kstrt->count; i++) {
-        const FklString *cur = kstrt->base[i];
-        fwrite(&cur->size, sizeof(cur->size), 1, fp);
-        fwrite(&cur->str, cur->size, 1, fp);
-    }
-
-    const FklConstBvecTable *kbvect = &kt->kbvect;
-    fwrite(&kbvect->count, sizeof(kbvect->count), 1, fp);
-    for (uint32_t i = 0; i < kbvect->count; i++) {
-        const FklBytevector *cur = kbvect->base[i];
-        fwrite(&cur->size, sizeof(cur->size), 1, fp);
-        fwrite(&cur->ptr, cur->size, 1, fp);
-    }
-
-    const FklConstBiTable *kbit = &kt->kbit;
-    fwrite(&kbit->count, sizeof(kbit->count), 1, fp);
-    for (uint32_t i = 0; i < kbit->count; i++) {
-        const FklBigInt *cur = kbit->base[i];
-        fwrite(&cur->num, sizeof(cur->num), 1, fp);
-        fwrite(cur->digits, fklAbs(cur->num) * sizeof(FklBigIntDigit), 1, fp);
-    }
-}
-
 #include <math.h>
 void fklPrintConstTable(const FklConstTable *kt, FILE *fp) {
     const FklConstI64Table *ki64t = &kt->ki64t;
@@ -392,12 +302,16 @@ void fklByteCodeRealloc(FklByteCode *bc, size_t len) {
     bc->len = len;
 }
 
-FklByteCodelnt *fklCreateByteCodelnt(size_t len) {
-    FklByteCodelnt *t = (FklByteCodelnt *)fklZmalloc(sizeof(FklByteCodelnt));
-    FKL_ASSERT(t);
+void fklInitByteCodelnt(FklByteCodelnt *t, size_t len) {
     t->ls = 0;
     t->l = NULL;
     fklInitByteCode(&t->bc, len);
+}
+
+FklByteCodelnt *fklCreateByteCodelnt(size_t len) {
+    FklByteCodelnt *t = (FklByteCodelnt *)fklZmalloc(sizeof(FklByteCodelnt));
+    FKL_ASSERT(t);
+    fklInitByteCodelnt(t, len);
     return t;
 }
 
@@ -405,6 +319,7 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
+    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
     FklByteCodelnt *r = fklCreateByteCodelnt(1);
     FklByteCode *bc = &r->bc;
     bc->code[0] = ins;
@@ -544,104 +459,104 @@ static inline uint32_t print_single_ins(const FklByteCode *tmpCode,
         FklVMgc *gc,
         const FklConstTable *kt,
         int numLen) {
-	FKL_TODO();
-//     FklFuncPrototypes *pts = gc->pts;
-//     uint32_t tab_count = cur_state->tc;
-//     uint32_t proc_len = 0;
-//     fprintf(fp, "%-*" PRIu64 ":", numLen, i);
-//     for (uint32_t i = 0; i < tab_count; i++)
-//         fputs("    ", fp);
-//     const FklInstruction *ins = &tmpCode->code[i];
-//     FklOpcode op = ins->op;
-//     fprintf(fp, " %s", fklGetOpcodeName(op));
-//     FklOpcodeMode mode = fklGetOpcodeMode(op);
-//     if (mode == FKL_OP_MODE_I)
-//         goto end;
-//     fputc(' ', fp);
-//     FklInstructionArg ins_arg = { 0 };
-//     int len = fklGetInsOpArg(ins, &ins_arg);
-//     switch (ins->op) {
-//     case FKL_OP_PUSH_CONST:
-//         fklPrin1VMvalue(pts->pa[cur_state->prototype_id].konsts[ins->cu],
-//                 fp,
-//                 &gc->gcvm);
-//         break;
-//
-//     case FKL_OP_PUSH_CHAR:
-//         fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
-//         fklPrintRawChar(ins->bu, fp);
-//         break;
-//
-//     case FKL_OP_PUSH_PROC:
-//     case FKL_OP_PUSH_PROC_X:
-//     case FKL_OP_PUSH_PROC_XX:
-//     case FKL_OP_PUSH_PROC_XXX:
-//         fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
-//         push_bytecode_print_state(s,
-//                 cur_state->prototype_id,
-//                 cur_state->tc,
-//                 i + len + ins_arg.uy,
-//                 cur_state->cpc);
-//         push_bytecode_print_state(s,
-//                 ins_arg.ux,
-//                 tab_count + 1,
-//                 i + len,
-//                 i + len + ins_arg.uy);
-//         if (len > 1)
-//             push_bytecode_print_state(s,
-//                     cur_state->prototype_id,
-//                     cur_state->tc,
-//                     i + 1,
-//                     i + 1 + len - 1);
-//         proc_len = ins_arg.uy;
-//         *needBreak = 1;
-//         break;
-//
-//     case FKL_OP_DROP:
-//     case FKL_OP_PAIR:
-//     case FKL_OP_VEC:
-//     case FKL_OP_STR:
-//     case FKL_OP_BVEC:
-//     case FKL_OP_BOX:
-//     case FKL_OP_HASH:
-//         fprintf(fp, "::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
-//         break;
-//
-//     default:
-//         switch (mode) {
-//         case FKL_OP_MODE_IsA:
-//         case FKL_OP_MODE_IsB:
-//         case FKL_OP_MODE_IsC:
-//         case FKL_OP_MODE_IsBB:
-//         case FKL_OP_MODE_IsCCB:
-//             fprintf(fp, "%" PRId64, ins_arg.ix);
-//             break;
-//         case FKL_OP_MODE_IuB:
-//         case FKL_OP_MODE_IuC:
-//         case FKL_OP_MODE_IuBB:
-//         case FKL_OP_MODE_IuCCB:
-//             fprintf(fp, "%" PRIu64, ins_arg.ux);
-//             break;
-//         case FKL_OP_MODE_IsAuB:
-//             fprintf(fp, "%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
-//             break;
-//         case FKL_OP_MODE_IuAuB:
-//         case FKL_OP_MODE_IuCuC:
-//         case FKL_OP_MODE_IuCAuBB:
-//         case FKL_OP_MODE_IuCAuBCC:
-//             fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
-//             break;
-//         case FKL_OP_MODE_I:
-//             break;
-//
-//         case FKL_OP_MODE_IxAxB:
-//             fprintf(fp, "%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
-//             break;
-//         }
-//         break;
-//     }
-// end:
-//     return proc_len + 1;
+    FKL_TODO();
+    //     FklFuncPrototypes *pts = gc->pts;
+    //     uint32_t tab_count = cur_state->tc;
+    //     uint32_t proc_len = 0;
+    //     fprintf(fp, "%-*" PRIu64 ":", numLen, i);
+    //     for (uint32_t i = 0; i < tab_count; i++)
+    //         fputs("    ", fp);
+    //     const FklInstruction *ins = &tmpCode->code[i];
+    //     FklOpcode op = ins->op;
+    //     fprintf(fp, " %s", fklGetOpcodeName(op));
+    //     FklOpcodeMode mode = fklGetOpcodeMode(op);
+    //     if (mode == FKL_OP_MODE_I)
+    //         goto end;
+    //     fputc(' ', fp);
+    //     FklInstructionArg ins_arg = { 0 };
+    //     int len = fklGetInsOpArg(ins, &ins_arg);
+    //     switch (ins->op) {
+    //     case FKL_OP_PUSH_CONST:
+    //         fklPrin1VMvalue(pts->pa[cur_state->prototype_id].konsts[ins->cu],
+    //                 fp,
+    //                 &gc->gcvm);
+    //         break;
+    //
+    //     case FKL_OP_PUSH_CHAR:
+    //         fprintf(fp, "%" PRIu64 "\t#\t", ins_arg.ux);
+    //         fklPrintRawChar(ins->bu, fp);
+    //         break;
+    //
+    //     case FKL_OP_PUSH_PROC:
+    //     case FKL_OP_PUSH_PROC_X:
+    //     case FKL_OP_PUSH_PROC_XX:
+    //     case FKL_OP_PUSH_PROC_XXX:
+    //         fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
+    //         push_bytecode_print_state(s,
+    //                 cur_state->prototype_id,
+    //                 cur_state->tc,
+    //                 i + len + ins_arg.uy,
+    //                 cur_state->cpc);
+    //         push_bytecode_print_state(s,
+    //                 ins_arg.ux,
+    //                 tab_count + 1,
+    //                 i + len,
+    //                 i + len + ins_arg.uy);
+    //         if (len > 1)
+    //             push_bytecode_print_state(s,
+    //                     cur_state->prototype_id,
+    //                     cur_state->tc,
+    //                     i + 1,
+    //                     i + 1 + len - 1);
+    //         proc_len = ins_arg.uy;
+    //         *needBreak = 1;
+    //         break;
+    //
+    //     case FKL_OP_DROP:
+    //     case FKL_OP_PAIR:
+    //     case FKL_OP_VEC:
+    //     case FKL_OP_STR:
+    //     case FKL_OP_BVEC:
+    //     case FKL_OP_BOX:
+    //     case FKL_OP_HASH:
+    //         fprintf(fp, "::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
+    //         break;
+    //
+    //     default:
+    //         switch (mode) {
+    //         case FKL_OP_MODE_IsA:
+    //         case FKL_OP_MODE_IsB:
+    //         case FKL_OP_MODE_IsC:
+    //         case FKL_OP_MODE_IsBB:
+    //         case FKL_OP_MODE_IsCCB:
+    //             fprintf(fp, "%" PRId64, ins_arg.ix);
+    //             break;
+    //         case FKL_OP_MODE_IuB:
+    //         case FKL_OP_MODE_IuC:
+    //         case FKL_OP_MODE_IuBB:
+    //         case FKL_OP_MODE_IuCCB:
+    //             fprintf(fp, "%" PRIu64, ins_arg.ux);
+    //             break;
+    //         case FKL_OP_MODE_IsAuB:
+    //             fprintf(fp, "%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
+    //             break;
+    //         case FKL_OP_MODE_IuAuB:
+    //         case FKL_OP_MODE_IuCuC:
+    //         case FKL_OP_MODE_IuCAuBB:
+    //         case FKL_OP_MODE_IuCAuBCC:
+    //             fprintf(fp, "%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
+    //             break;
+    //         case FKL_OP_MODE_I:
+    //             break;
+    //
+    //         case FKL_OP_MODE_IxAxB:
+    //             fprintf(fp, "%#" PRIx64 "\t%#" PRIx64, ins_arg.ux,
+    //             ins_arg.uy); break;
+    //         }
+    //         break;
+    //     }
+    // end:
+    //     return proc_len + 1;
 }
 
 #include <math.h>
@@ -800,61 +715,6 @@ static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
             i += get_next(&code[i]))
         if (code[i].op != FKL_OP_JMP && code[i].op != FKL_OP_CLOSE_REF)
             return 0;
-    return 1;
-}
-
-static inline int8_t get_op_ins_len(FklOpcode op) {
-    switch (fklGetOpcodeMode(op)) {
-    case FKL_OP_MODE_I:
-        return 1;
-        break;
-    case FKL_OP_MODE_IsA:
-        return 1;
-        break;
-    case FKL_OP_MODE_IuB:
-        return 1;
-        break;
-    case FKL_OP_MODE_IsB:
-        return 1;
-        break;
-    case FKL_OP_MODE_IuC:
-        return 1;
-        break;
-    case FKL_OP_MODE_IsC:
-        return 1;
-        break;
-    case FKL_OP_MODE_IuBB:
-        return 2;
-        break;
-    case FKL_OP_MODE_IsBB:
-        return 2;
-        break;
-    case FKL_OP_MODE_IuCCB:
-        return 3;
-        break;
-    case FKL_OP_MODE_IsCCB:
-        return 3;
-        break;
-
-    case FKL_OP_MODE_IsAuB:
-    case FKL_OP_MODE_IuAuB:
-        return 1;
-        break;
-
-    case FKL_OP_MODE_IuCuC:
-        return 2;
-        break;
-    case FKL_OP_MODE_IuCAuBB:
-        return 3;
-        break;
-    case FKL_OP_MODE_IuCAuBCC:
-        return 4;
-        break;
-
-    case FKL_OP_MODE_IxAxB:
-        return 1;
-        break;
-    }
     return 1;
 }
 
@@ -1229,6 +1089,7 @@ void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
+    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
@@ -1246,6 +1107,7 @@ void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
+    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
@@ -1307,6 +1169,7 @@ void fklInitLineNumTabNode(FklLineNumberTableItem *n,
         uint64_t scp,
         uint32_t line,
         uint32_t scope) {
+    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
     n->fid = fid;
     n->scp = scp;
     n->line = line;
@@ -1331,204 +1194,4 @@ const FklLineNumberTableItem *fklFindLineNumTabNode(uint64_t cp,
             return cur;
     }
     return NULL;
-}
-
-void fklWriteLineNumberTable(const FklLineNumberTableItem *line_numbers,
-        uint32_t size,
-        FILE *fp) {
-	FKL_TODO();
-    // fwrite(&size, sizeof(size), 1, fp);
-    // for (uint32_t i = 0; i < size; i++) {
-    //     const FklLineNumberTableItem *n = &line_numbers[i];
-    //     fwrite(&n->fid, sizeof(n->fid), 1, fp);
-    //     fwrite(&n->scp, sizeof(n->scp), 1, fp);
-    //     fwrite(&n->line, sizeof(n->line), 1, fp);
-    // }
-}
-
-void fklLoadLineNumberTable(FILE *fp,
-        FklLineNumberTableItem **plist,
-        uint32_t *pnum) {
-	FKL_TODO();
-    // size_t size = 0;
-    // fread(&size, sizeof(uint32_t), 1, fp);
-    // FklLineNumberTableItem *list;
-    // if (size == 0)
-    //     list = NULL;
-    // else {
-    //     list = (FklLineNumberTableItem *)fklZmalloc(
-    //             size * sizeof(FklLineNumberTableItem));
-    //     FKL_ASSERT(list);
-    //     for (size_t i = 0; i < size; i++) {
-    //         FklSid_t fid = 0;
-    //         uint64_t scp = 0;
-    //         uint32_t line = 0;
-    //         fread(&fid, sizeof(fid), 1, fp);
-    //         fread(&scp, sizeof(scp), 1, fp);
-    //         fread(&line, sizeof(line), 1, fp);
-    //         fklInitLineNumTabNode(&list[i], fid, scp, line, 0);
-    //     }
-    // }
-    // *plist = list;
-    // *pnum = size;
-}
-
-void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {
-    uint64_t len = bc->len;
-    fwrite(&len, sizeof(bc->len), 1, outfp);
-    const FklInstruction *end = bc->code + len;
-    const FklInstruction *code = bc->code;
-    while (code < end) {
-        uint8_t op = code->op;
-        fwrite(&op, sizeof(op), 1, outfp);
-        int ins_len = get_op_ins_len(code->op);
-        FklOpcodeMode mode = fklGetOpcodeMode(code->op);
-        switch (mode) {
-        case FKL_OP_MODE_I:
-            break;
-        case FKL_OP_MODE_IsA:
-            fwrite(&code->ai, sizeof(code->ai), 1, outfp);
-            break;
-        case FKL_OP_MODE_IuB:
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            break;
-        case FKL_OP_MODE_IsB:
-            fwrite(&code->bi, sizeof(code->bi), 1, outfp);
-            break;
-        case FKL_OP_MODE_IuC:
-        case FKL_OP_MODE_IsC:
-        case FKL_OP_MODE_IuAuB:
-        case FKL_OP_MODE_IsAuB:
-            fwrite(&code->au, sizeof(code->au), 1, outfp);
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            break;
-        case FKL_OP_MODE_IuBB:
-        case FKL_OP_MODE_IsBB:
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-            break;
-        case FKL_OP_MODE_IuCCB:
-        case FKL_OP_MODE_IsCCB:
-        case FKL_OP_MODE_IuCAuBB:
-            fwrite(&code->au, sizeof(code->au), 1, outfp);
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
-            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-            fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
-            break;
-
-        case FKL_OP_MODE_IuCuC:
-            fwrite(&code->au, sizeof(code->au), 1, outfp);
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
-            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-            break;
-        case FKL_OP_MODE_IuCAuBCC:
-            fwrite(&code->au, sizeof(code->au), 1, outfp);
-            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
-
-            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-            fwrite(&code[2].au, sizeof(code[2].au), 1, outfp);
-            fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
-            fwrite(&code[3].au, sizeof(code[3].au), 1, outfp);
-            fwrite(&code[3].bu, sizeof(code[3].bu), 1, outfp);
-            break;
-        case FKL_OP_MODE_IxAxB:
-            FKL_UNREACHABLE();
-            break;
-        }
-        code += ins_len;
-    }
-}
-
-void fklWriteByteCodelnt(const FklByteCodelnt *bcl, FILE *outfp) {
-    fklWriteLineNumberTable(bcl->l, bcl->ls, outfp);
-    fklWriteByteCode(&bcl->bc, outfp);
-}
-
-void fklLoadByteCode(FklByteCode *tmp, FILE *fp) {
-    uint64_t len = 0;
-    fread(&len, sizeof(uint64_t), 1, fp);
-    fklInitByteCode(tmp, len);
-
-    const FklInstruction *end = tmp->code + len;
-    FklInstruction *code = tmp->code;
-    while (code < end) {
-        uint8_t op = 0;
-        fread(&op, sizeof(op), 1, fp);
-        code->op = op;
-        FklOpcodeMode mode = fklGetOpcodeMode(op);
-        switch (mode) {
-        case FKL_OP_MODE_I:
-            break;
-        case FKL_OP_MODE_IsA:
-            fread(&code->ai, sizeof(code->ai), 1, fp);
-            break;
-        case FKL_OP_MODE_IuB:
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            break;
-        case FKL_OP_MODE_IsB:
-            fread(&code->bi, sizeof(code->bi), 1, fp);
-            break;
-        case FKL_OP_MODE_IuC:
-        case FKL_OP_MODE_IsC:
-        case FKL_OP_MODE_IuAuB:
-        case FKL_OP_MODE_IsAuB:
-            fread(&code->au, sizeof(code->au), 1, fp);
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            break;
-
-        case FKL_OP_MODE_IuBB:
-        case FKL_OP_MODE_IsBB:
-            code[1].op = FKL_OP_EXTRA_ARG;
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-            break;
-        case FKL_OP_MODE_IuCCB:
-        case FKL_OP_MODE_IsCCB:
-        case FKL_OP_MODE_IuCAuBB:
-            code[1].op = FKL_OP_EXTRA_ARG;
-            code[2].op = FKL_OP_EXTRA_ARG;
-            fread(&code->au, sizeof(code->au), 1, fp);
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            fread(&code[1].au, sizeof(code[1].au), 1, fp);
-            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-            fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
-            break;
-
-        case FKL_OP_MODE_IuCuC:
-            code[1].op = FKL_OP_EXTRA_ARG;
-            fread(&code->au, sizeof(code->au), 1, fp);
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            fread(&code[1].au, sizeof(code[1].au), 1, fp);
-            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-            break;
-        case FKL_OP_MODE_IuCAuBCC:
-            code[1].op = FKL_OP_EXTRA_ARG;
-            code[2].op = FKL_OP_EXTRA_ARG;
-            code[3].op = FKL_OP_EXTRA_ARG;
-
-            fread(&code->au, sizeof(code->au), 1, fp);
-            fread(&code->bu, sizeof(code->bu), 1, fp);
-            fread(&code[1].au, sizeof(code[1].au), 1, fp);
-            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-            fread(&code[2].au, sizeof(code[2].au), 1, fp);
-            fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
-            fread(&code[3].au, sizeof(code[3].au), 1, fp);
-            fread(&code[3].bu, sizeof(code[3].bu), 1, fp);
-            break;
-        case FKL_OP_MODE_IxAxB:
-            FKL_UNREACHABLE();
-            break;
-        }
-        code += get_op_ins_len(op);
-    }
-}
-
-FklByteCodelnt *fklLoadByteCodelnt(FILE *fp) {
-    FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
-    fklLoadLineNumberTable(fp, &bcl->l, &bcl->ls);
-    fklLoadByteCode(&bcl->bc, fp);
-    return bcl;
 }

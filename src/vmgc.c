@@ -1,3 +1,4 @@
+#include <fakeLisp/builtin.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 #include <uv.h>
@@ -102,6 +103,60 @@ void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
         fklVMgcToGray(t->l[i].fid, gc);
 }
 
+static void mark_nonterm(FklVMgc *gc, const FklGrammerNonterm *nt) {
+    fklVMgcToGray(nt->group, gc);
+    fklVMgcToGray(nt->sid, gc);
+}
+
+void fklVMgcMarkGrammerProd(FklVMgc *gc,
+        const FklGrammerProduction *prod,
+        void (*ctx_atomic)(FklVMgc *gc, void *ctx)) {
+
+    mark_nonterm(gc, &prod->left);
+    const FklGrammerSym *cur = prod->syms;
+    const FklGrammerSym *const end = cur + prod->len;
+    for (; cur < end; ++cur) {
+        switch (cur->type) {
+        case FKL_TERM_NONTERM:
+            mark_nonterm(gc, &cur->nt);
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (ctx_atomic) {
+        ctx_atomic(prod->ctx, gc);
+    } else if (ctx_atomic != FKL_VM_GRAMMER_CTX_MARKER_NONE) {
+        fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, prod->ctx), gc);
+    }
+}
+
+void fklVMgcMarkGrammer(FklVMgc *gc,
+        const FklGrammer *g,
+        void (*ctx_atomic)(FklVMgc *, void *)) {
+    for (const FklGraSidBuiltinHashMapNode *cur = g->builtins.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
+
+    mark_nonterm(gc, &g->start);
+
+    for (const FklProdHashMapNode *cur = g->productions.first; cur;
+            cur = cur->next) {
+        mark_nonterm(gc, &cur->k);
+        for (const FklGrammerProduction *prod = cur->v; prod;
+                prod = prod->next) {
+            fklVMgcMarkGrammerProd(gc, prod, ctx_atomic);
+        }
+    }
+
+    for (const FklGraSidBuiltinHashMapNode *cur = g->builtins.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
+}
+
 static inline void gc_extra_mark(FklVMgc *gc) {
     for (struct FklVMextraMarkObjList *l = gc->extra_mark_list; l; l = l->next)
         l->func(gc, l->arg);
@@ -110,6 +165,15 @@ static inline void gc_extra_mark(FklVMgc *gc) {
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
         fklVMgcToGray(gc->builtinErrorTypeId[i], gc);
     }
+
+    fklVMgcToGray(gc->seek_set, gc);
+    fklVMgcToGray(gc->seek_cur, gc);
+    fklVMgcToGray(gc->seek_end, gc);
+
+    fklVMgcToGray(gc->sym_quote, gc);
+    fklVMgcToGray(gc->sym_unquote, gc);
+    fklVMgcToGray(gc->sym_qsquote, gc);
+    fklVMgcToGray(gc->sym_unquote, gc);
 }
 
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
@@ -343,7 +407,13 @@ void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
     gc->seek_cur = fklVMaddSymbolCstr(&gc->gcvm, "cur");
     gc->seek_end = fklVMaddSymbolCstr(&gc->gcvm, "end");
 
+    gc->sym_quote = fklVMaddSymbolCstr(&gc->gcvm, "quote");
+    gc->sym_unquote = fklVMaddSymbolCstr(&gc->gcvm, "unquote");
+    gc->sym_qsquote = fklVMaddSymbolCstr(&gc->gcvm, "qsquote");
+    gc->sym_unqtesp = fklVMaddSymbolCstr(&gc->gcvm, "unqtesp");
+
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
+    fklInitGlobalVMclosureForGC(gc);
 }
 
 FklVMgc *fklCreateVMgc(FklVMobarray *obarray) {

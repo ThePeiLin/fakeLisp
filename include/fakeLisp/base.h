@@ -47,7 +47,9 @@ size_t fklQuotedCharBufMatch(const char *cstr,
         const char *end,
         size_t end_size);
 
+void fklWriteString(const FklString *s, FILE *fp);
 FklString *fklLoadString(FILE *fp);
+
 char *fklStringToCstr(const FklString *str);
 void fklPrintRawString(const FklString *str, FILE *fp);
 void fklPrintString(const FklString *str, FILE *fp);
@@ -89,6 +91,17 @@ static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
             begin_str,
             end_str,
             se);
+}
+
+static inline void fklPrintRawSymbolToStringBuffer(struct FklStringBuffer *s,
+        const FklString *fstr) {
+    fklPrintRawCharBufToStringBuffer(s, fstr->size, fstr->str, "|", "|", '|');
+}
+
+static inline void fklPrintStringLiteralToStringBuffer(
+        struct FklStringBuffer *s,
+        const FklString *fstr) {
+    fklPrintRawCharBufToStringBuffer(s, fstr->size, fstr->str, "\"", "\"", '"');
 }
 
 static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer *s,
@@ -160,6 +173,8 @@ void fklPrintRawBytevector(const FklBytevector *str, FILE *fp);
 FklString *fklBytevectorToString(const FklBytevector *);
 void fklPrintBytevectorToStringBuffer(FklStringBuffer *,
         const FklBytevector *bvec);
+void fklWriteBytevector(const FklBytevector *b, FILE *fp);
+FklBytevector *fklLoadBytevector(FILE *fp);
 
 uintptr_t fklBytevectorHash(const FklBytevector *bv);
 

@@ -199,12 +199,15 @@ void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from);
 
 void fklUninitByteCode(FklByteCode *);
 void fklDestroyByteCode(FklByteCode *);
+
+FKL_DEPRECATED
 void fklPrintByteCode(const FklByteCode *,
         uint32_t prototype_id,
         FILE *,
         struct FklVMgc *,
         FklConstTable *);
 
+void fklInitByteCodelnt(FklByteCodelnt *t, size_t len);
 FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
 FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
@@ -212,6 +215,7 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
         uint32_t line,
         uint32_t scope);
 
+FKL_DEPRECATED
 void fklPrintByteCodelnt(const FklByteCodelnt *obj,
         uint32_t prototype_id,
         FILE *fp,
@@ -300,22 +304,6 @@ static inline int fklIsLoadLibIns(const FklInstruction *ins) {
 }
 
 void fklScanAndSetTailCall(FklByteCode *bc);
-
-void fklWriteConstTable(const FklConstTable *kt, FILE *fp);
-void fklLoadConstTable(FILE *fp, FklConstTable *kt);
-
-void fklWriteLineNumberTable(const FklLineNumberTableItem *,
-        uint32_t num,
-        FILE *);
-void fklLoadLineNumberTable(FILE *fp,
-        FklLineNumberTableItem **plist,
-        uint32_t *pnum);
-
-void fklWriteByteCode(const FklByteCode *bc, FILE *fp);
-void fklLoadByteCode(FklByteCode *bc, FILE *fp);
-
-void fklWriteByteCodelnt(const FklByteCodelnt *bcl, FILE *fp);
-FklByteCodelnt *fklLoadByteCodelnt(FILE *fp);
 
 #define FKL_GET_INS_UC(ins)                                                    \
     (((((uint32_t)(ins)->bu) << FKL_BYTE_WIDTH)) | (ins)->au)

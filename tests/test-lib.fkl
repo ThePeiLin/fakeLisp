@@ -1,8 +1,13 @@
 (export
   (defmacro #&custom
-    #[custom-quote #["#quote'" *s-exp*] builtin quote]))
+    #[custom-quote #["#quote'" *s-exp*]
+                   custom
+                   (list 'quote (vector-ref $$ 1))]))
 
 (export
   (defmacro #&comment
     #& #[#&"/\\*\\*/|/\\*.*\\*/"]
     "/*"))
+
+(export
+  (defmacro test-replacement 'foobar))

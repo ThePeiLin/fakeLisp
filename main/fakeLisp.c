@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
+#include <fakeLisp/code_lw.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
@@ -119,186 +120,144 @@ typedef struct {
     FklVM *exe;
 } VMlibInitArgs;
 
-static void vmlib_initer(FklReadCodeFileArgs *read_args,
-        void *lib_addr,
-        void *lib_init_args,
-        FklCodegenLibType type,
-        uint32_t prototypeId,
-        uint64_t spc,
-        const FklByteCodelnt *bcl,
-        const FklString *dll_name) {
-
-    FKL_TODO();
-    // FklVMlib *lib = FKL_TYPE_CAST(FklVMlib *, lib_addr);
-    // VMlibInitArgs *args = FKL_TYPE_CAST(VMlibInitArgs *, lib_init_args);
-    // if (args->exe == NULL) {
-    //     args->exe = fklCreateVMwithByteCode(read_args->main_func,
-    //             read_args->obarray,
-    //             read_args->runtime_kt,
-    //             read_args->pts,
-    //             1,
-    //             0);
-    // }
-    //
-    // switch (type) {
-    // case FKL_CODEGEN_LIB_SCRIPT: {
-    //     FklVMvalue *codeObj = fklCreateVMvalueCodeObj(args->exe, bcl);
-    //     fklInitVMlibWithCodeObj(lib, codeObj, args->exe, prototypeId, spc);
-    //     fklInitMainProcRefs(args->exe, lib->proc);
-    // } break;
-    // case FKL_CODEGEN_LIB_DLL: {
-    //     FklVMvalue *sv = fklCreateVMvalueStr(args->exe, dll_name);
-    //     fklInitVMlib(lib, sv, 0);
-    // } break;
-    // case FKL_CODEGEN_LIB_UNINIT:
-    //     FKL_UNREACHABLE();
-    //     break;
-    // }
-}
+// static void vmlib_initer(FklReadCodeFileArgs *read_args,
+//         void *lib_addr,
+//         void *lib_init_args,
+//         FklCodegenLibType type,
+//         uint32_t prototypeId,
+//         uint64_t spc,
+//         const FklByteCodelnt *bcl,
+//         const FklString *dll_name) {
+//
+// FKL_TODO();
+// FklVMlib *lib = FKL_TYPE_CAST(FklVMlib *, lib_addr);
+// VMlibInitArgs *args = FKL_TYPE_CAST(VMlibInitArgs *, lib_init_args);
+// if (args->exe == NULL) {
+//     args->exe = fklCreateVMwithByteCode(read_args->main_func,
+//             read_args->obarray,
+//             read_args->runtime_kt,
+//             read_args->pts,
+//             1,
+//             0);
+// }
+//
+// switch (type) {
+// case FKL_CODEGEN_LIB_SCRIPT: {
+//     FklVMvalue *codeObj = fklCreateVMvalueCodeObj(args->exe, bcl);
+//     fklInitVMlibWithCodeObj(lib, codeObj, args->exe, prototypeId, spc);
+//     fklInitMainProcRefs(args->exe, lib->proc);
+// } break;
+// case FKL_CODEGEN_LIB_DLL: {
+//     FklVMvalue *sv = fklCreateVMvalueStr(args->exe, dll_name);
+//     fklInitVMlib(lib, sv, 0);
+// } break;
+// case FKL_CODEGEN_LIB_UNINIT:
+//     FKL_UNREACHABLE();
+//     break;
+// }
+// }
 
 static inline int
 runCode(const char *filename, int argc, const char *const *argv) {
-    FKL_TODO();
-    // FILE *fp = fopen(filename, "rb");
-    // if (fp == NULL) {
-    //     perror(filename);
-    //     return FKL_EXIT_FAILURE;
-    // }
-    // FklSymbolTable runtime_st;
-    // fklInitSymbolTable(&runtime_st);
-    // FklConstTable runtime_kt;
-    // fklInitConstTable(&runtime_kt);
-    //
-    // VMlibInitArgs lib_init_args = { .exe = NULL };
-    // FklReadCodeFileArgs args = {
-    //     .obarray = &runtime_st,
-    //     .runtime_kt = &runtime_kt,
-    //     .library_initer = vmlib_initer,
-    //     .lib_init_args = &lib_init_args,
-    //     .lib_size = sizeof(FklVMlib),
-    // };
-    //
-    // fklReadCodeFile(fp, &args);
-    //
-    // FklVM *anotherVM = lib_init_args.exe;
-    //
-    // FklVMgc *gc = anotherVM->gc;
-    //
-    // fclose(fp);
-    //
-    // gc->libs = FKL_TYPE_CAST(FklVMlib *, args.libs);
-    // gc->lib_num = args.lib_count;
-    // initLibWithPrototype(gc->libs, gc->lib_num, anotherVM->pts);
-    // fklInitVMargs(anotherVM->gc, argc, argv);
-    // int r = fklRunVMidleLoop(anotherVM);
-    // fklUninitSymbolTable(&runtime_st);
-    // fklUninitConstTable(&runtime_kt);
-    // fklDestroyAllVMs(anotherVM);
-    // fklDestroyVMgc(gc);
-    // return r;
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        perror(filename);
+        return FKL_EXIT_FAILURE;
+    }
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+    FklVMvalueLibs *libs = fklCreateVMvalueLibs(&gc->gcvm);
+
+    FklLoadCodeFileArgs args = {
+        .gc = gc,
+        .pts = pts,
+        .libs = libs,
+
+    };
+
+    int r = fklLoadCodeFile(fp, &args);
+    FKL_ASSERT(r == 0);
+    fclose(fp);
+    FklVM *vm = fklCreateVM(args.main_func, gc, pts, libs);
+
+    fklInitVMargs(vm->gc, argc, argv);
+    r = fklRunVMidleLoop(vm);
+
+    fklDestroyAllVMs(vm);
+    fklDestroyVMgc(gc);
+    return r;
 }
 
 static inline int
 runPreCompile(const char *filename, int argc, const char *const *argv) {
-    FKL_TODO();
-    // FILE *fp = fopen(filename, "rb");
-    // if (fp == NULL) {
-    //     perror(filename);
-    //     return FKL_EXIT_FAILURE;
-    // }
-    // FklSymbolTable runtime_st;
-    // fklInitSymbolTable(&runtime_st);
-    //
-    // FklConstTable runtime_kt;
-    // fklInitConstTable(&runtime_kt);
-    //
-    // FklCodegenLibVector scriptLibStack;
-    // fklCodegenLibVectorInit(&scriptLibStack, 8);
-    //
-    // FklCodegenLibVector macroScriptLibStack;
-    // fklCodegenLibVectorInit(&macroScriptLibStack, 8);
-    //
-    // FklCodegenCtx ctx;
-    // fklInitCodegenCtxExceptPattern(&ctx, &runtime_st, &runtime_kt);
-    //
-    // char *errorStr = NULL;
-    // char *rp = fklRealpath(filename);
-    // int load_result = fklLoadPreCompile(ctx.pts,
-    //         ctx.macro_pts,
-    //         &scriptLibStack,
-    //         &macroScriptLibStack,
-    //         &runtime_st,
-    //         &runtime_kt,
-    //         &ctx,
-    //         rp,
-    //         fp,
-    //         &errorStr);
-    // while (!fklCodegenLibVectorIsEmpty(&macroScriptLibStack))
-    //     fklUninitCodegenLib(
-    //             fklCodegenLibVectorPopBackNonNull(&macroScriptLibStack));
-    // fklCodegenLibVectorUninit(&macroScriptLibStack);
-    // fklZfree(rp);
-    // fclose(fp);
-    // FklFuncPrototypes *pts = ctx.pts;
-    // ctx.runtime_kt = NULL;
-    // ctx.runtime_st = NULL;
-    // ctx.pts = NULL;
-    // fklUninitCodegenCtx(&ctx);
-    // if (load_result) {
-    //     fklUninitSymbolTable(&runtime_st);
-    //     fklDestroyFuncPrototypes(pts);
-    //     while (!fklCodegenLibVectorIsEmpty(&scriptLibStack))
-    //         fklUninitCodegenLib(
-    //                 fklCodegenLibVectorPopBackNonNull(&scriptLibStack));
-    //     fklCodegenLibVectorUninit(&scriptLibStack);
-    //     if (errorStr) {
-    //         fprintf(stderr, "%s\n", errorStr);
-    //         fklZfree(errorStr);
-    //     }
-    //     fprintf(stderr, "%s: Load pre-compile file failed.\n", filename);
-    //     return 1;
-    // }
-    //
-    // FklCodegenLib *main_lib =
-    //         fklCodegenLibVectorPopBackNonNull(&scriptLibStack);
-    // FklByteCodelnt *main_byte_code = main_lib->bcl;
-    //
-    // main_lib->bcl = NULL;
-    //
-    // FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
-    //         &runtime_st,
-    //         &runtime_kt,
-    //         pts,
-    //         1,
-    //         0);
-    //
-    // fklUninitCodegenLib(main_lib);
-    //
-    // FklVMgc *gc = anotherVM->gc;
-    // gc->lib_num = scriptLibStack.size + 1;
-    // gc->libs = (FklVMlib *)fklZcalloc((gc->lib_num + 1), sizeof(FklVMlib));
-    // FKL_ASSERT(gc->libs);
-    //
-    // while (!fklCodegenLibVectorIsEmpty(&scriptLibStack)) {
-    //     FklVMlib *curVMlib = &gc->libs[scriptLibStack.size];
-    //     FklCodegenLib *cur =
-    //     fklCodegenLibVectorPopBackNonNull(&scriptLibStack); FklCodegenLibType
-    //     type = cur->type; fklInitVMlibWithCodegenLibMove(cur,
-    //             curVMlib,
-    //             anotherVM,
-    //             anotherVM->pts);
-    //     if (type == FKL_CODEGEN_LIB_SCRIPT)
-    //         fklInitMainProcRefs(anotherVM, curVMlib->proc);
-    // }
-    // fklCodegenLibVectorUninit(&scriptLibStack);
-    //
-    // fklInitVMargs(anotherVM->gc, argc, argv);
-    // int r = fklRunVMidleLoop(anotherVM);
-    // fklDestroyAllVMs(anotherVM);
-    // fklDestroyVMgc(gc);
-    // fklUninitSymbolTable(&runtime_st);
-    // fklUninitConstTable(&runtime_kt);
-    // return r;
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        perror(filename);
+        return FKL_EXIT_FAILURE;
+    }
+    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+
+    FklCodegenCtx ctx = { 0 };
+    char *rp = fklRealpath(filename);
+    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+
+    FklLoadPreCompileArgs args = {
+        .ctx = &ctx,
+        .libraries = &ctx.libraries,
+        .macro_libraries = &ctx.macro_libraries,
+        .pts = pts,
+        .macro_pts = ctx.macro_pts,
+    };
+
+    int load_result = fklLoadPreCompile(fp, rp, &args);
+
+    fklZfree(rp);
+
+    fklVMclearExtraMarkFunc(gc);
+
+    fclose(fp);
+
+    if (load_result) {
+        fklUninitCodegenCtx(&ctx);
+        fklDestroyVMgc(gc);
+        if (args.error) {
+            fprintf(stderr, "%s\n", args.error);
+            fklZfree(args.error);
+            args.error = NULL;
+        }
+        fprintf(stderr, "%s: Load pre-compile file failed.\n", filename);
+        return 1;
+    }
+
+    FklCodegenLib *main_lib = fklCodegenLibVectorPopBackNonNull(&ctx.libraries);
+    FklByteCodelnt *main_byte_code = fklCopyByteCodelnt(main_lib->bcl);
+    fklUninitCodegenLib(main_lib);
+
+    FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
+            gc,
+            1,
+            0,
+            pts,
+            fklCreateVMvalueLibs(&gc->gcvm));
+
+    fklUpdateVMlibsWithCodegenLibVector(anotherVM,
+            anotherVM->libs,
+            &ctx.libraries,
+            anotherVM->pts);
+
+    fklChdir(ctx.cwd);
+    fklUninitCodegenCtx(&ctx);
+
+    fklVMclearSymbol(gc);
+    fklCheckAndGC(anotherVM, 1);
+    fklVMrestoreSymbol(gc);
+
+    fklInitVMargs(gc, argc, argv);
+    int r = fklRunVMidleLoop(anotherVM);
+    fklDestroyAllVMs(anotherVM);
+    fklDestroyVMgc(gc);
+    return r;
 }
 
 enum PriorityEnum {

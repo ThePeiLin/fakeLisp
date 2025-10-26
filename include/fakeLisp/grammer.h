@@ -580,7 +580,7 @@ FklGrammerIgnore *fklCreateEmptyGrammerIgnore(size_t len);
 FklGrammerProduction *fklCreateProduction(struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         const char *name,
         FklProdActionFunc func,
         void *ctx,
@@ -610,9 +610,19 @@ FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
 void fklPrintGrammerIgnores(const FklGrammer *g,
         const FklRegexTable *rt,
         FILE *fp);
+
+void fklPrintGrammerIgnores2(const FklGrammer *g,
+        const FklRegexTable *rt,
+        FklCodeBuilder *build);
+
 void fklPrintGrammerProduction(FILE *fp,
         const FklGrammerProduction *prod,
         const FklRegexTable *rt);
+
+void fklPrintGrammerProduction2(const FklGrammerProduction *prod,
+        const FklRegexTable *rt,
+        FklCodeBuilder *build);
+
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer);
 
 typedef enum {

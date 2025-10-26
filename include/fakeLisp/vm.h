@@ -243,8 +243,8 @@ typedef struct {
 } FklVMvalueVarRef;
 
 typedef struct FklVMproc {
-    FklInstruction *spc;
-    FklInstruction *end;
+    const FklInstruction *spc;
+    const FklInstruction *end;
     FklVMvalue *name;
     uint32_t protoId;
     uint32_t lcount;
@@ -286,9 +286,9 @@ typedef struct {
     FklVMvalue *proc;
     FklVMvalue **konsts;
     FklVMCompoundFrameVarRef lr;
-    FklInstruction *spc;
-    FklInstruction *pc;
-    FklInstruction *end;
+    const FklInstruction *spc;
+    const FklInstruction *pc;
+    const FklInstruction *end;
     uint32_t arg_num : 24;
     unsigned int mark : 8;
     uint32_t sp;
@@ -721,6 +721,11 @@ typedef struct FklVMgc {
     FklVMvalue *seek_cur;
     FklVMvalue *seek_end;
 
+    FklVMvalue *sym_quote;
+    FklVMvalue *sym_unquote;
+    FklVMvalue *sym_qsquote;
+    FklVMvalue *sym_unqtesp;
+
     // only for create objects before idle loop start
     FklVM gcvm;
 } FklVMgc;
@@ -924,6 +929,8 @@ void fklVMrestoreSymbol(FklVMgc *);
 void fklInitValueTable(FklValueTable *t);
 void fklUninitValueTable(FklValueTable *t);
 uint64_t fklValueTableAdd(FklValueTable *t, FklVMvalue *v);
+uint64_t fklValueTableGet(const FklValueTable *t, FklVMvalue *v);
+void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v);
 
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
 void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
@@ -935,6 +942,17 @@ void fklVMgcUpdateThreshold(FklVMgc *);
 
 void fklVMgcMarkPrototypes(FklVMgc *gc, const FklFuncPrototypes *pts);
 void fklVMgcMarkCodeObject(FklVMgc *, const FklByteCodelnt *bc);
+
+typedef void (*FklVMgrammerProdMarker)(FklVMgc *gc, void *ctx);
+#define FKL_VM_GRAMMER_CTX_MARKER_NONE ((FklVMgrammerProdMarker)UINTPTR_MAX)
+
+void fklVMgcMarkGrammerProd(FklVMgc *gc,
+        const FklGrammerProduction *prod,
+        FklVMgrammerProdMarker ctx_atomic);
+
+void fklVMgcMarkGrammer(FklVMgc *,
+        const FklGrammer *g,
+        FklVMgrammerProdMarker ctx_atomic);
 
 void fklUninitVMgc(FklVMgc *);
 void fklDestroyVMgc(FklVMgc *);
@@ -1076,6 +1094,7 @@ uint64_t fklVMintToHashv(const FklVMvalue *p);
 double fklVMgetDouble(const FklVMvalue *p);
 
 int fklHasCircleRef(const FklVMvalue *first_value);
+int fklIsSerializableLeafNode(const FklVMvalue *v);
 int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value);
 
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
@@ -1167,7 +1186,6 @@ FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
 
 #define FKL_VM_F64_STATIC_INIT(F64)                                            \
     ((FklVMvalueF64){                                                          \
-        .gc = NULL,                                                            \
         .next = NULL,                                                          \
         .gray_next = NULL,                                                     \
         .mark = FKL_MARK_B,                                                    \
@@ -1180,25 +1198,25 @@ FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
 FklVMvalue *fklCreateVMvalueProc(FklVM *,
         FklVMvalue *codeObj,
         uint32_t pid,
-        FklVMvalueProtos *pts);
+        const FklVMvalueProtos *pts);
 
 FklVMvalue *fklCreateVMvalueProc2(FklVM *,
-        FklInstruction *spc,
+        const FklInstruction *spc,
         uint64_t cpc,
         FklVMvalue *codeObj,
         uint32_t pid,
-        FklVMvalueProtos *pts);
+        const FklVMvalueProtos *pts);
 
 FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *,
         FklVMframe *f,
         size_t,
         uint32_t pid,
-        FklVMvalueProtos *pts);
+        const FklVMvalueProtos *pts);
 void fklCreateVMvalueClosureFrom(FklVM *,
         FklVMvalue **closure,
         FklVMframe *f,
         uint32_t from,
-        FklFuncPrototype *pt);
+        const FklFuncPrototype *pt);
 
 #ifdef _WIN32
 #define FKL_DLL_EXPORT __declspec(dllexport)
@@ -1286,6 +1304,9 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *,
 
 FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);
+
+FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);
+
 int fklIsVMvalueCodeObj(FklVMvalue *v);
 
 FklVMvalue *fklVMvalueEof(void);
@@ -1555,7 +1576,7 @@ fklGetCompoundFrameProcPrototype(const FklVMframe *f, FklVM *exe) {
     return &exe->pts->p.pa[pId];
 }
 
-static FKL_ALWAYS_INLINE FklInstruction *fklGetCompoundFrameCode(
+static FKL_ALWAYS_INLINE const FklInstruction *fklGetCompoundFrameCode(
         const FklVMframe *f) {
     return f->c.pc;
 }
@@ -1585,6 +1606,7 @@ void fklUnlockVMlibs(FklVMvalueLibs *libs);
 
 FklVMvalueLibs *fklCreateVMvalueLibs(FklVM *vm);
 int fklIsVMvalueLibs(FklVMvalue *);
+void fklVMvalueLibsReserve(FklVMvalueLibs *v, uint64_t count);
 
 FklVMvalueProtos *fklCreateVMvalueProtos(FklVM *vm, uint32_t count);
 int fklIsVMvalueProtos(FklVMvalue *);
@@ -1592,7 +1614,7 @@ int fklIsVMvalueProtos(FklVMvalue *);
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklVMgc *);
 
-noreturn FKL_ALWAYS_INLINE static inline void
+noreturn static FKL_ALWAYS_INLINE void
 FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
     FklVMvalue *errorMessage = fklGenErrorMessage(error_type, exe);
     FklVMvalue *err = fklCreateVMvalueError(exe,
@@ -1601,7 +1623,7 @@ FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
     fklRaiseVMerror(err, exe);
 }
 
-noreturn FKL_ALWAYS_INLINE static inline void fklRaiseBuiltinErrorFmtArr(
+noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtArr(
         FklBuiltinErrorType error_type,
         FklVM *exe,
         const char *fmt,
@@ -1805,7 +1827,8 @@ static inline void fklAddCompoundFrameCp(FklVMframe *f, int64_t a) {
     f->c.pc += a;
 }
 
-static inline FklInstruction *fklGetCompoundFrameEnd(const FklVMframe *f) {
+static inline const FklInstruction *fklGetCompoundFrameEnd(
+        const FklVMframe *f) {
     return f->c.end;
 }
 

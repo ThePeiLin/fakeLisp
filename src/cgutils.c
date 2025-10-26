@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
+#include <fakeLisp/code_lw.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
@@ -1006,676 +1007,6 @@ FklSymDef *fklAddCodegenDefBySid(FklVMvalue *id,
 #include <fakeLisp/parser.h>
 #include <string.h>
 
-static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    fklStringBufferConcatWithCstr(&buf, main_dir);
-    int ch = fgetc(fp);
-    for (;;) {
-        while (ch) {
-            fklStringBufferPutc(&buf, ch);
-            ch = fgetc(fp);
-        }
-        ch = fgetc(fp);
-        if (!ch)
-            break;
-        fklStringBufferPutc(&buf, FKL_PATH_SEPARATOR);
-    }
-
-    fklStringBufferPutc(&buf, FKL_PRE_COMPILE_FKL_SUFFIX);
-
-    char *path = fklZstrdup(buf.buf);
-    fklUninitStringBuffer(&buf);
-    return path;
-}
-
-static inline void load_export_sid_idx_table(FklCgExportSidIdxHashMap *t,
-        FILE *fp) {
-    FKL_TODO();
-    // fklCgExportSidIdxHashMapInit(t);
-    // fread(&t->count, sizeof(t->count), 1, fp);
-    // uint32_t num = t->count;
-    // t->count = 0;
-    // for (uint32_t i = 0; i < num; i++) {
-    //     FklSid_t sid;
-    //     FklCodegenExportIdx idxs;
-    //     fread(&sid, sizeof(sid), 1, fp);
-    //     fread(&idxs.idx, sizeof(idxs.idx), 1, fp);
-    //     fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
-    //     fklCgExportSidIdxHashMapPut(t, &sid, &idxs);
-    // }
-}
-
-static inline FklCodegenMacro *load_compiler_macros(FklVMgc *gc, FILE *fp) {
-    FKL_TODO();
-    // uint64_t count = 0;
-    // fread(&count, sizeof(count), 1, fp);
-    // FklCodegenMacro *r = NULL;
-    // FklCodegenMacro **pr = &r;
-    // for (uint64_t i = 0; i < count; i++) {
-    //     FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-    //     uint32_t prototype_id = 0;
-    //     fread(&prototype_id, sizeof(prototype_id), 1, fp);
-    //     FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-    //     FklNastNode *pattern = fklCreatePatternFromNast(node, NULL);
-    //     FklCodegenMacro *cur = fklCreateCodegenMacroMove(pattern,
-    //             node,
-    //             bcl,
-    //             NULL,
-    //             prototype_id);
-    //     *pr = cur;
-    //     pr = &cur->next;
-    // }
-    // return r;
-}
-
-static inline FklReplacementHashMap *load_replacements(FklVMgc *gc, FILE *fp) {
-    FKL_TODO();
-    // FklReplacementHashMap *ht = fklReplacementHashMapCreate();
-    // fread(&ht->count, sizeof(ht->count), 1, fp);
-    // uint32_t num = ht->count;
-    // ht->count = 0;
-    // for (uint32_t i = 0; i < num; i++) {
-    //     FklSid_t id = 0;
-    //     fread(&id, sizeof(id), 1, fp);
-    //     FklNastNode *node = load_nast_node_with_null_chr(st, fp);
-    //     *fklReplacementHashMapAdd1(ht, id) = node;
-    // }
-    // return ht;
-}
-
-static inline void load_script_lib_from_pre_compile(FklCodegenLib *lib,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *main_dir,
-        FILE *fp) {
-    FKL_TODO();
-    // memset(lib, 0, sizeof(*lib));
-    // lib->rp = load_script_lib_path(main_dir, fp);
-    // fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
-    // lib->bcl = fklLoadByteCodelnt(fp);
-    // fread(&lib->epc, sizeof(lib->epc), 1, fp);
-    // load_export_sid_idx_table(&lib->exports, fp);
-    // lib->head = load_compiler_macros(st, fp);
-    // lib->replacements = load_replacements(st, fp);
-    // fklLoadNamedProds(&lib->named_prod_groups, st, ctx, fp);
-}
-
-static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    fklStringBufferConcatWithCstr(&buf, main_dir);
-    int ch = fgetc(fp);
-    for (;;) {
-        while (ch) {
-            fklStringBufferPutc(&buf, ch);
-            ch = fgetc(fp);
-        }
-        ch = fgetc(fp);
-        if (!ch)
-            break;
-        fklStringBufferPutc(&buf, FKL_PATH_SEPARATOR);
-    }
-
-    fklStringBufferConcatWithCstr(&buf, FKL_DLL_FILE_TYPE);
-
-    char *path = fklZstrdup(buf.buf);
-    fklUninitStringBuffer(&buf);
-    char *rp = fklRealpath(path);
-    fklZfree(path);
-    return rp;
-}
-
-static inline int load_dll_lib_from_pre_compile(FklCodegenLib *lib,
-        FklVMgc *gc,
-        const char *main_dir,
-        FILE *fp,
-        char **errorStr) {
-    FKL_TODO();
-    // lib->rp = load_dll_lib_path(main_dir, fp);
-    // if (!lib->rp || !fklIsAccessibleRegFile(lib->rp)) {
-    //     fklZfree(lib->rp);
-    //     return 1;
-    // }
-    //
-    // if (uv_dlopen(lib->rp, &lib->dll)) {
-    //     *errorStr = fklZstrdup(uv_dlerror(&lib->dll));
-    //     uv_dlclose(&lib->dll);
-    //     fklZfree(lib->rp);
-    //     return 1;
-    // }
-    // load_export_sid_idx_table(&lib->exports, fp);
-    // return 0;
-}
-
-static inline int load_lib_from_pre_compile(FklCodegenLib *lib,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *main_dir,
-        FILE *fp,
-        char **errorStr) {
-    FKL_TODO();
-    // uint8_t type = 0;
-    // fread(&type, sizeof(type), 1, fp);
-    // lib->type = type;
-    // switch (lib->type) {
-    // case FKL_CODEGEN_LIB_SCRIPT:
-    //     load_script_lib_from_pre_compile(lib, st, ctx, main_dir, fp);
-    //     break;
-    // case FKL_CODEGEN_LIB_DLL:
-    //     if (load_dll_lib_from_pre_compile(lib, st, main_dir, fp, errorStr))
-    //         return 1;
-    //     break;
-    // case FKL_CODEGEN_LIB_UNINIT:
-    //     FKL_UNREACHABLE();
-    //     break;
-    // }
-    // return 0;
-}
-
-static inline int load_imported_lib_stack(FklCodegenLibVector *libraries,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *main_dir,
-        FILE *fp,
-        char **errorStr) {
-    FKL_TODO();
-    // uint64_t num = 0;
-    // fread(&num, sizeof(num), 1, fp);
-    // fklCodegenLibVectorInit(libraries, num + 1);
-    // for (size_t i = 0; i < num; i++) {
-    //     FklCodegenLib lib = { 0 };
-    //     if (load_lib_from_pre_compile(&lib, st, ctx, main_dir, fp, errorStr))
-    //         return 1;
-    //     fklCodegenLibVectorPushBack(libraries, &lib);
-    // }
-    // FklCodegenLib main_lib = { 0 };
-    // main_lib.named_prod_groups.buckets = NULL;
-    // main_lib.type = FKL_CODEGEN_LIB_SCRIPT;
-    // main_lib.rp = load_script_lib_path(main_dir, fp);
-    // main_lib.bcl = fklLoadByteCodelnt(fp);
-    // fread(&main_lib.epc, sizeof(main_lib.epc), 1, fp);
-    // main_lib.prototypeId = 1;
-    // load_export_sid_idx_table(&main_lib.exports, fp);
-    // main_lib.head = load_compiler_macros(st, fp);
-    // main_lib.replacements = load_replacements(st, fp);
-    // fklLoadNamedProds(&main_lib.named_prod_groups, st, ctx, fp);
-    // fklCodegenLibVectorPushBack(libraries, &main_lib);
-    // return 0;
-}
-
-static inline int load_macro_lib_stack(FklCodegenLibVector *libraries,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *main_dir,
-        FILE *fp,
-        char **errorStr) {
-    FKL_TODO();
-    // uint64_t num = 0;
-    // fread(&num, sizeof(num), 1, fp);
-    // fklCodegenLibVectorInit(libraries, num);
-    // for (size_t i = 0; i < num; i++) {
-    //     FklCodegenLib lib = { 0 };
-    //     if (load_lib_from_pre_compile(&lib, st, ctx, main_dir, fp, errorStr))
-    //         return 1;
-    //     fklCodegenLibVectorPushBack(libraries, &lib);
-    // }
-    // return 0;
-}
-
-static inline void increase_prototype_and_lib_id(uint32_t pts_count,
-        uint32_t macro_pts_count,
-        uint32_t lib_count,
-        uint32_t macro_lib_count,
-        FklCodegenLibVector *libraries,
-        FklCodegenLibVector *macro_libraries) {
-    uint32_t top = libraries->size;
-    FklCodegenLib *base = libraries->base;
-    for (uint32_t i = 0; i < top; i++) {
-        fklIncreaseLibIdAndPrototypeId(&base[i],
-                lib_count,
-                macro_lib_count,
-                pts_count,
-                macro_pts_count);
-    }
-
-    top = macro_libraries->size;
-    base = macro_libraries->base;
-    for (uint32_t i = 0; i < top; i++) {
-        fklIncreaseLibIdAndPrototypeId(&base[i],
-                macro_lib_count,
-                macro_lib_count,
-                pts_count,
-                macro_pts_count);
-    }
-}
-
-static inline void merge_prototypes(FklFuncPrototypes *o,
-        const FklFuncPrototypes *pts) {
-    uint32_t o_count = o->count;
-    o->count += pts->count;
-    FklFuncPrototype *pa = (FklFuncPrototype *)fklZrealloc(o->pa,
-            (o->count + 1) * sizeof(FklFuncPrototype));
-    FKL_ASSERT(pa);
-    o->pa = pa;
-    uint32_t i = o_count + 1;
-    memcpy(&pa[i], &pts->pa[1], sizeof(FklFuncPrototype) * pts->count);
-    uint32_t end = o->count + 1;
-    for (; i < end; i++) {
-        FklFuncPrototype *cur = &pa[i];
-        cur->refs = fklCopyMemory(cur->refs, cur->rcount * sizeof(*cur->refs));
-    }
-}
-
-int fklLoadPreCompile(FklFuncPrototypes *info_pts,
-        FklFuncPrototypes *info_macro_pts,
-        FklCodegenLibVector *info_script_libraries,
-        FklCodegenLibVector *info_macro_script_libraries,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *rp,
-        FILE *fp,
-        char **errorStr) {
-    FKL_TODO();
-    //     FklSymbolTable *pst = &ctx->public_st;
-    //     FklConstTable *pkt = &ctx->public_kt;
-    //
-    //     int need_open = fp == NULL;
-    //     if (need_open) {
-    //         fp = fopen(rp, "rb");
-    //         if (fp == NULL)
-    //             return 1;
-    //     }
-    //     int err = 0;
-    //     FklSymbolTable ost;
-    //     FklConstTable okt;
-    //     char *main_dir = fklGetDir(rp);
-    //     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
-    //
-    //     FklCodegenLibVector script_libraries;
-    //     FklCodegenLibVector macro_script_libraries;
-    //
-    //     fklInitSymbolTable(&ost);
-    //     fklLoadSymbolTable(fp, &ost);
-    //
-    //     fklInitConstTable(&okt);
-    //     fklLoadConstTable(fp, &okt);
-    //
-    //     FklFuncPrototypes *pts = NULL;
-    //     FklFuncPrototypes *macro_pts = NULL;
-    //
-    //     pts = fklLoadFuncPrototypes(fp);
-    //
-    //     if (load_imported_lib_stack(&script_libraries,
-    //                 &ost,
-    //                 ctx,
-    //                 main_dir,
-    //                 fp,
-    //                 errorStr))
-    //         goto error;
-    //
-    //     macro_pts = fklLoadFuncPrototypes(fp);
-    //     if (load_macro_lib_stack(&macro_script_libraries,
-    //                 &ost,
-    //                 ctx,
-    //                 main_dir,
-    //                 fp,
-    //                 errorStr)) {
-    //         while (!fklCodegenLibVectorIsEmpty(&macro_script_libraries))
-    //             fklUninitCodegenLib(
-    //                     fklCodegenLibVectorPopBack(&macro_script_libraries));
-    //         fklCodegenLibVectorUninit(&macro_script_libraries);
-    //     error:
-    //         while (!fklCodegenLibVectorIsEmpty(&script_libraries))
-    //             fklUninitCodegenLib(fklCodegenLibVectorPopBack(&script_libraries));
-    //         err = 1;
-    //         goto exit;
-    //     }
-    //
-    //     recompute_sid_for_prototypes(pts, &ost, runtime_st);
-    //     recompute_sid_for_prototypes(macro_pts, &ost, pst);
-    //
-    //     recompute_sid_for_double_st_lib_stack(&script_libraries,
-    //             &ost,
-    //             runtime_st,
-    //             pst,
-    //             &okt,
-    //             runtime_kt,
-    //             pkt,
-    //             FKL_CODEGEN_SID_RECOMPUTE_NONE);
-    //     recompute_sid_for_lib_stack(&macro_script_libraries,
-    //             &ost,
-    //             pst,
-    //             &okt,
-    //             pkt,
-    //             FKL_CODEGEN_SID_RECOMPUTE_NONE);
-    //
-    //     increase_prototype_and_lib_id(info_pts->count,
-    //             info_macro_pts->count,
-    //             info_script_libraries->size,
-    //             info_macro_script_libraries->size,
-    //             &script_libraries,
-    //             &macro_script_libraries);
-    //
-    //     merge_prototypes(info_pts, pts);
-    //     merge_prototypes(info_macro_pts, macro_pts);
-    //
-    //     fklInitPreLibReaderMacros(&script_libraries,
-    //             pst,
-    //             ctx,
-    //             info_macro_pts,
-    //             info_macro_script_libraries);
-    //     fklInitPreLibReaderMacros(&macro_script_libraries,
-    //             pst,
-    //             ctx,
-    //             info_macro_pts,
-    //             info_macro_script_libraries);
-    //
-    //     for (uint32_t i = 0; i < script_libraries.size; i++)
-    //         fklCodegenLibVectorPushBack(info_script_libraries,
-    //                 &script_libraries.base[i]);
-    //
-    //     for (uint32_t i = 0; i < macro_script_libraries.size; i++)
-    //         fklCodegenLibVectorPushBack(info_macro_script_libraries,
-    //                 &macro_script_libraries.base[i]);
-    //
-    //     fklCodegenLibVectorUninit(&macro_script_libraries);
-    // exit:
-    //     if (need_open)
-    //         fclose(fp);
-    //     fklZfree(main_dir);
-    //     fklDestroyFuncPrototypes(pts);
-    //     if (macro_pts)
-    //         fklDestroyFuncPrototypes(macro_pts);
-    //     fklUninitSymbolTable(&ost);
-    //     fklUninitConstTable(&okt);
-    //     fklCodegenLibVectorUninit(&script_libraries);
-    //     return err;
-}
-
-static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
-        FILE *fp) {
-    FKL_TODO();
-    // fwrite(&t->count, sizeof(t->count), 1, fp);
-    // for (FklCgExportSidIdxHashMapNode *sid_idx = t->first; sid_idx;
-    //         sid_idx = sid_idx->next) {
-    //     fwrite(&sid_idx->k, sizeof(sid_idx->k), 1, fp);
-    //     fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
-    //     fwrite(&sid_idx->v.oidx, sizeof(sid_idx->v.oidx), 1, fp);
-    // }
-}
-
-static inline void write_compiler_macros(const FklCodegenMacro *head,
-        FILE *fp) {
-    FKL_TODO();
-    // uint64_t count = 0;
-    // for (const FklCodegenMacro *c = head; c; c = c->next)
-    //     count++;
-    // fwrite(&count, sizeof(count), 1, fp);
-    // for (const FklCodegenMacro *c = head; c; c = c->next) {
-    //     print_nast_node_with_null_chr(c->origin_exp, pst, fp);
-    //     fwrite(&c->prototype_id, sizeof(c->prototype_id), 1, fp);
-    //     fklWriteByteCodelnt(c->bcl, fp);
-    // }
-}
-
-static inline void write_replacements(const FklReplacementHashMap *ht,
-        FILE *fp) {
-    FKL_TODO();
-    // if (ht == NULL) {
-    //     uint32_t count = 0;
-    //     fwrite(&count, sizeof(count), 1, fp);
-    //     return;
-    // }
-    // fwrite(&ht->count, sizeof(ht->count), 1, fp);
-    // for (const FklReplacementHashMapNode *rep_list = ht->first; rep_list;
-    //         rep_list = rep_list->next) {
-    //     fwrite(&rep_list->k, sizeof(rep_list->k), 1, fp);
-    //     print_nast_node_with_null_chr(rep_list->v, st, fp);
-    // }
-}
-
-static inline void write_codegen_script_lib_path(const char *rp,
-        const char *main_dir,
-        FILE *outfp) {
-    char *relpath = fklRelpath(main_dir, rp);
-    size_t count = 0;
-    char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
-
-    for (size_t i = 0; i < count; i++) {
-        fputs(slices[i], outfp);
-        fputc('\0', outfp);
-    }
-    fputc('\0', outfp);
-    fklZfree(relpath);
-    fklZfree(slices);
-}
-
-static inline void write_codegen_script_lib(const FklCodegenLib *lib,
-        const char *main_dir,
-        FILE *outfp) {
-    FKL_TODO();
-    // write_codegen_script_lib_path(lib->rp, main_dir, outfp);
-    // fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
-    // fklWriteByteCodelnt(lib->bcl, outfp);
-    // fwrite(&lib->epc, sizeof(lib->epc), 1, outfp);
-    // write_export_sid_idx_table(&lib->exports, outfp);
-    // write_compiler_macros(lib->head, st, outfp);
-    // write_replacements(lib->replacements, st, outfp);
-    // fklWriteNamedProds(&lib->named_prod_groups, st, outfp);
-}
-
-static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
-        const char *main_dir,
-        FILE *outfp) {
-    char *relpath = fklRelpath(main_dir, lib->rp);
-    size_t count = 0;
-    char **slices = fklSplit(relpath, FKL_PATH_SEPARATOR_STR, &count);
-    count--;
-
-    for (size_t i = 0; i < count; i++) {
-        fputs(slices[i], outfp);
-        fputc('\0', outfp);
-    }
-    uint64_t len = strlen(slices[count]) - FKL_DLL_FILE_TYPE_STR_LEN;
-    fwrite(slices[count], len, 1, outfp);
-    fputc('\0', outfp);
-    fputc('\0', outfp);
-    fklZfree(relpath);
-    fklZfree(slices);
-}
-
-static inline void write_codegen_dll_lib(const FklCodegenLib *lib,
-        const char *main_dir,
-        const char *target_dir,
-        FILE *outfp) {
-    write_codegen_dll_lib_path(lib, target_dir ? target_dir : main_dir, outfp);
-    write_export_sid_idx_table(&lib->exports, outfp);
-}
-
-static inline void write_codegen_lib(const FklCodegenLib *lib,
-        const char *main_dir,
-        const char *target_dir,
-        FILE *fp) {
-    FKL_TODO();
-    // uint8_t type_byte = lib->type;
-    // fwrite(&type_byte, sizeof(type_byte), 1, fp);
-    // switch (lib->type) {
-    // case FKL_CODEGEN_LIB_SCRIPT:
-    //     write_codegen_script_lib(lib, st, main_dir, fp);
-    //     break;
-    // case FKL_CODEGEN_LIB_DLL:
-    //     write_codegen_dll_lib(lib, main_dir, target_dir, fp);
-    //     break;
-    // case FKL_CODEGEN_LIB_UNINIT:
-    //     FKL_UNREACHABLE();
-    //     break;
-    // }
-}
-
-static inline void write_lib_vector(FklCodegenLibVector *loaded_libraries,
-        const char *main_dir,
-        const char *target_dir,
-        FILE *outfp) {
-    FKL_TODO();
-    // uint64_t num = loaded_libraries->size;
-    // fwrite(&num, sizeof(uint64_t), 1, outfp);
-    // for (size_t i = 0; i < num; i++) {
-    //     const FklCodegenLib *lib = &loaded_libraries->base[i];
-    //     write_codegen_lib(lib, st, main_dir, target_dir, outfp);
-    // }
-}
-
-static inline void write_lib_main_file(const FklVMvalueCodegenInfo *codegen,
-        const FklByteCodelnt *bcl,
-        const char *main_dir,
-        FILE *outfp) {
-    FKL_TODO();
-    // write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
-    // fklWriteByteCodelnt(bcl, outfp);
-    // fwrite(&codegen->epc, sizeof(codegen->epc), 1, outfp);
-    // write_export_sid_idx_table(&codegen->exports, outfp);
-    // write_compiler_macros(codegen->export_macro, st, outfp);
-    // write_replacements(codegen->export_replacement, st, outfp);
-    // fklWriteExportNamedProds(codegen->export_named_prod_groups,
-    //         codegen->named_prod_groups,
-    //         st,
-    //         outfp);
-}
-
-void fklWritePreCompile(FklVMvalueCodegenInfo *codegen,
-        const char *main_dir,
-        const char *target_dir,
-        FklByteCodelnt *bcl,
-        FILE *outfp) {
-    FKL_TODO();
-    // FklSymbolTable target_st;
-    // fklInitSymbolTable(&target_st);
-    //
-    // FklConstTable target_kt;
-    // fklInitConstTable(&target_kt);
-    // const FklSymbolTable *origin_st = codegen->st;
-    // const FklConstTable *origin_kt = codegen->kt;
-    //
-    // FklCodegenCtx *ctx = codegen->ctx;
-    // FklCodegenLibVector *libs = &ctx->libraries;
-    // FklCodegenLibVector *macro_libs = &ctx->macro_libraries;
-    //
-    // for (uint32_t i = 0; i < libs->size; ++i) {
-    //     fklClearCodegenLibMacros(&libs->base[i]);
-    // }
-    //
-    // for (uint32_t i = 0; i < macro_libs->size; ++i) {
-    //     fklClearCodegenLibMacros(&macro_libs->base[i]);
-    // }
-    //
-    // fklRecomputeSidForSingleTableInfo(codegen,
-    //         bcl,
-    //         origin_st,
-    //         &target_st,
-    //         origin_kt,
-    //         &target_kt,
-    //         FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM);
-    //
-    // fklWriteSymbolTable(&target_st, outfp);
-    // fklWriteConstTable(&target_kt, outfp);
-    //
-    // fklWriteFuncPrototypes(codegen->pts, outfp);
-    // write_lib_vector(codegen->libraries,
-    //         &target_st,
-    //         main_dir,
-    //         target_dir,
-    //         outfp);
-    // write_lib_main_file(codegen, bcl, &target_st, main_dir, outfp);
-    //
-    // FklFuncPrototypes *macro_pts = ctx->macro_pts;
-    // fklWriteFuncPrototypes(macro_pts, outfp);
-    // write_lib_vector(macro_libs, &target_st, main_dir, target_dir, outfp);
-    //
-    // fklUninitSymbolTable(&target_st);
-    // fklUninitConstTable(&target_kt);
-}
-
-void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *args) {
-    FKL_TODO();
-    // fklWriteSymbolTable(args->runtime_st, fp);
-    // fklWriteConstTable(args->runtime_kt, fp);
-    // fklWriteFuncPrototypes(args->pts, fp);
-    // fklWriteByteCodelnt(args->main_func, fp);
-    //
-    // uint64_t num = args->libs->size;
-    // fwrite(&num, sizeof(uint64_t), 1, fp);
-    // for (size_t i = 0; i < num; i++) {
-    //     const FklCodegenLib *lib = &args->libs->base[i];
-    //     uint8_t type_byte = lib->type;
-    //     fwrite(&type_byte, sizeof(type_byte), 1, fp);
-    //     if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
-    //         fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
-    //         FklByteCodelnt *bcl = lib->bcl;
-    //         fklWriteByteCodelnt(bcl, fp);
-    //         fwrite(&lib->epc, sizeof(lib->epc), 1, fp);
-    //     } else {
-    //         const char *rp = lib->rp;
-    //         uint64_t typelen = strlen(FKL_DLL_FILE_TYPE);
-    //         uint64_t len = strlen(rp) - typelen;
-    //         fwrite(&len, sizeof(uint64_t), 1, fp);
-    //         fwrite(rp, len, 1, fp);
-    //     }
-    // }
-}
-
-static void load_lib(FILE *fp, FklReadCodeFileArgs *args) {
-    fread(&args->lib_count, sizeof(args->lib_count), 1, fp);
-    args->libs = fklZcalloc(args->lib_count + 1, args->lib_size);
-    FKL_ASSERT(args->libs);
-    for (size_t i = 1; i <= args->lib_count; i++) {
-        FklCodegenLibType libType = FKL_CODEGEN_LIB_SCRIPT;
-        fread(&libType, sizeof(char), 1, fp);
-        if (libType == FKL_CODEGEN_LIB_SCRIPT) {
-            uint32_t protoId = 0;
-            uint64_t epc = 0;
-            fread(&protoId, sizeof(protoId), 1, fp);
-            FklByteCodelnt *bcl = fklLoadByteCodelnt(fp);
-            fread(&epc, sizeof(epc), 1, fp);
-
-            void *lib_addr = FKL_TYPE_CAST(void *,
-                    FKL_TYPE_CAST(uint8_t *, args->libs) + args->lib_size * i);
-            args->library_initer(args,
-                    lib_addr,
-                    args->lib_init_args,
-                    libType,
-                    protoId,
-                    epc,
-                    bcl,
-                    NULL);
-
-            fklDestroyByteCodelnt(bcl);
-        } else {
-            FklString *str = fklLoadString(fp);
-            void *lib_addr = FKL_TYPE_CAST(void *,
-                    FKL_TYPE_CAST(uint8_t *, args->libs) + args->lib_size * i);
-            args->library_initer(args,
-                    lib_addr,
-                    args->lib_init_args,
-                    libType,
-                    0,
-                    0,
-                    NULL,
-                    str);
-            fklZfree(str);
-        }
-    }
-}
-
-void fklReadCodeFile(FILE *fp, FklReadCodeFileArgs *args) {
-    FKL_TODO();
-    // fklLoadSymbolTable(fp, args->runtime_st);
-    // fklLoadConstTable(fp, args->runtime_kt);
-    // args->pts = fklLoadFuncPrototypes(fp);
-    // args->main_func = fklLoadByteCodelnt(fp);
-    // load_lib(fp, args);
-}
-
 typedef void (*FklResolveRefToDefCb)(const FklSymDefHashMapMutElm *ref,
         const FklSymDefHashMapElm *def,
         const FklUnReSymbolRef *uref,
@@ -1900,6 +1231,7 @@ void fklInitCodegenDllLib(FklCodegenCtx *ctx,
         char *rp,
         uv_lib_t dll,
         FklCodegenDllLibInitExportFunc init) {
+    memset(lib, 0, sizeof(*lib));
     lib->rp = rp;
     lib->type = FKL_CODEGEN_LIB_DLL;
     lib->dll = dll;
@@ -1931,6 +1263,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklByteCodelnt *bcl,
         uint64_t epc,
         FklVMvalueCodegenEnv *env) {
+    memset(lib, 0, sizeof(*lib));
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->bcl = bcl;
     lib->epc = epc;
@@ -2116,10 +1449,10 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(MacroExpandCtx);
 
 static int macro_expand_frame_step(void *data, FklVM *exe) {
     MacroExpandCtx *ctx = (MacroExpandCtx *)data;
-    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        FklVMvalue *r = FKL_VM_GET_TOP_VALUE(exe);
-        *(ctx->retval) = check_macro_expand_result(r);
-    }
+
+    FklVMvalue *r = FKL_VM_GET_TOP_VALUE(exe);
+    *(ctx->retval) = check_macro_expand_result(r);
+
     return 0;
 }
 
@@ -2173,15 +1506,12 @@ static inline void update_new_codegen_to_new_vm_lib(FklVM *vm,
         const FklVMvalueProtos *pts,
         FklVMvalueLibs *libs) {
     if (libs->count != clibs->size) {
-        libs->libs = (FklVMlib *)fklZrealloc(libs->libs,
-                (clibs->size + 1) * sizeof(FklVMlib));
-        FKL_ASSERT(libs->libs);
-
-        for (size_t i = libs->count; i < clibs->size; ++i) {
+        uint64_t old_count = libs->count;
+        fklVMvalueLibsReserve(libs, clibs->size);
+        for (size_t i = old_count; i < clibs->size; ++i) {
             const FklCodegenLib *cur = &clibs->base[i];
             fklInitVMlibWithCodegenLib(cur, &libs->libs[i + 1], vm, pts);
         }
-        libs->count = clibs->size;
     }
 }
 
@@ -2378,11 +1708,6 @@ FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *c,
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(info_as_print, "info");
 
-static void mark_nonterm(FklVMgc *gc, const FklGrammerNonterm *nt) {
-    fklVMgcToGray(nt->group, gc);
-    fklVMgcToGray(nt->sid, gc);
-}
-
 static void *custom_action(void *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
@@ -2401,46 +1726,6 @@ static void *replace_action(void *c,
         size_t num,
         size_t line);
 
-void fklMarkCodegenProd(FklVMgc *gc, const FklGrammerProduction *prod) {
-    mark_nonterm(gc, &prod->left);
-    const FklGrammerSym *cur = prod->syms;
-    const FklGrammerSym *const end = cur + prod->len;
-    for (; cur < end; ++cur) {
-        switch (cur->type) {
-        case FKL_TERM_NONTERM:
-            mark_nonterm(gc, &cur->nt);
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (prod->func == custom_action        //
-            || prod->func == simple_action //
-            || prod->func == replace_action) {
-        FklVMvalue *v = prod->ctx;
-        fklVMgcToGray(v, gc);
-    }
-}
-
-static void mark_grammer(FklVMgc *gc, FklGrammer *g) {
-    mark_nonterm(gc, &g->start);
-
-    for (const FklProdHashMapNode *cur = g->productions.first; cur;
-            cur = cur->next) {
-        mark_nonterm(gc, &cur->k);
-        for (const FklGrammerProduction *prod = cur->v; prod;
-                prod = prod->next) {
-            fklMarkCodegenProd(gc, prod);
-        }
-    }
-
-    for (const FklGraSidBuiltinHashMapNode *cur = g->builtins.first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-    }
-}
-
 static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(e, struct FklCodegenInfo, ud);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
@@ -2452,11 +1737,11 @@ static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
         for (FklGraProdGroupHashMapNode *cur = e->named_prod_groups->first; cur;
                 cur = cur->next) {
             fklVMgcToGray(cur->k, gc);
-            mark_grammer(gc, &cur->v.g);
+            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
         }
     }
     if (e->unnamed_g == &e->self_unnamed_g) {
-        mark_grammer(gc, e->unnamed_g);
+        fklVMgcMarkGrammer(gc, e->unnamed_g, NULL);
     }
 }
 
@@ -2737,7 +2022,7 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         uint32_t prototypeId) {
     FklVMvalue *action_ctx = create_custom_prod_action_ctx(cg_ctx, prototypeId);
 
@@ -2754,39 +2039,49 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
     return prod;
 }
 
-struct SimpleActionNthCtx {
-    uint64_t nth;
-};
+int fklIsCustomActionProd(const FklGrammerProduction *p) {
+    return p->func == custom_action;
+}
 
-static int
-simple_action_nth_create(void *c, FklVMvalue *rest[], size_t rest_len) {
+static int simple_action_nth_check(FklVMvalue *rest[], size_t rest_len) {
     if (rest_len != 1 || !FKL_IS_FIX(rest[0]) || FKL_GET_FIX(rest[0]) < 0) {
         return 1;
     }
 
-    struct SimpleActionNthCtx *cc = c;
-    cc->nth = FKL_GET_FIX(rest[0]);
     return 0;
 }
 
-static void simple_action_nth_write(void *ctx, FILE *fp) {
-    struct SimpleActionNthCtx *c = ctx;
-    fwrite(&c->nth, sizeof(c->nth), 1, fp);
+static void simple_action_nth_write(void *ctx,
+        FklWriteCodePass pass,
+        FklValueTable *vt,
+        FILE *fp) {
+    FKL_TODO();
+    // if (pass == FKL_WRITE_CODE_PASS_FIRST)
+    //     return;
+    // struct SimpleActionNthCtx *c = ctx;
+    // fwrite(&c->nth, sizeof(c->nth), 1, fp);
 }
 
 static void simple_action_nth_print(void *ctx, FILE *fp) {
-    struct SimpleActionNthCtx *c = ctx;
-    fprintf(fp, "%" PRIu64, c->nth);
+    FKL_TODO();
+    // struct SimpleActionNthCtx *c = ctx;
+    // fprintf(fp, "%" PRIu64, c->nth);
 }
 
 static void *simple_action_nth_read(FklVM *vm, FILE *fp) {
+    FKL_TODO();
+    // struct SimpleActionNthCtx *c = (struct SimpleActionNthCtx *)fklZmalloc(
+    //         sizeof(struct SimpleActionNthCtx));
+    // FKL_ASSERT(c);
+    // fread(&c->nth, sizeof(c->nth), 1, fp);
 
-    struct SimpleActionNthCtx *c = (struct SimpleActionNthCtx *)fklZmalloc(
-            sizeof(struct SimpleActionNthCtx));
-    FKL_ASSERT(c);
-    fread(&c->nth, sizeof(c->nth), 1, fp);
+    // return c;
+}
 
-    return c;
+static inline uint64_t get_nth(FklVMvalue *vec) {
+    FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 2);
+    FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
+    return FKL_GET_FIX(FKL_VM_VEC(vec)->base[1]);
 }
 
 static void *simple_action_nth(void *action_ctx,
@@ -2794,19 +2089,13 @@ static void *simple_action_nth(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionNthCtx *c = action_ctx;
-    if (c->nth >= num)
+    uint64_t nth = get_nth(action_ctx);
+    if (nth >= num)
         return NULL;
-    return nodes[c->nth].ast;
+    return nodes[nth].ast;
 }
 
-struct SimpleActionConsCtx {
-    uint64_t car;
-    uint64_t cdr;
-};
-
-static int
-simple_action_cons_create(void *ctx, FklVMvalue *rest[], size_t rest_len) {
+static int simple_action_cons_check(FklVMvalue *rest[], size_t rest_len) {
     if (rest_len != 2                   //
             || !FKL_IS_FIX(rest[0])     //
             || FKL_GET_FIX(rest[0]) < 0 //
@@ -2814,18 +2103,25 @@ simple_action_cons_create(void *ctx, FklVMvalue *rest[], size_t rest_len) {
             || FKL_GET_FIX(rest[1]) < 0) {
         return 1;
     }
-    struct SimpleActionConsCtx *c = ctx;
-    c->car = FKL_GET_FIX(rest[0]);
-    c->cdr = FKL_GET_FIX(rest[1]);
     return 0;
 }
 
 static void *simple_action_cons_copy(const void *c) {
-    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)fklZmalloc(
-            sizeof(struct SimpleActionConsCtx));
-    FKL_ASSERT(ctx);
-    *ctx = *(struct SimpleActionConsCtx *)c;
-    return ctx;
+    FKL_TODO();
+    // struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx
+    // *)fklZmalloc(
+    //         sizeof(struct SimpleActionConsCtx));
+    // FKL_ASSERT(ctx);
+    // *ctx = *(struct SimpleActionConsCtx *)c;
+    // return ctx;
+}
+
+static inline void get_car_cdr(FklVMvalue *vec, uint64_t *car, uint64_t *cdr) {
+    FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 3);
+    FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
+    FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[2]));
+    *car = FKL_GET_FIX(FKL_VM_VEC(vec)->base[1]);
+    *cdr = FKL_GET_FIX(FKL_VM_VEC(vec)->base[2]);
 }
 
 static void *simple_action_cons(void *c,
@@ -2833,15 +2129,18 @@ static void *simple_action_cons(void *c,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionConsCtx *cc = (struct SimpleActionConsCtx *)c;
-    if (cc->car >= num || cc->cdr >= num)
+    uint64_t car = 0;
+    uint64_t cdr = 0;
+    get_car_cdr(c, &car, &cdr);
+
+    if (car >= num || cdr >= num)
         return NULL;
     FklVMparseCtx *ct = ctx;
-    FklVMvalue *retval = fklCreateVMvaluePair(ct->exe,
-            nodes[cc->car].ast,
-            nodes[cc->cdr].ast);
+    FklVMvalue *retval =
+            fklCreateVMvaluePair(ct->exe, nodes[car].ast, nodes[cdr].ast);
     put_line_number(ct->ln, retval, line);
     return retval;
+
     FKL_TODO();
     // FklNastNode *retval = fklCreateNastNode(FKL_NAST_PAIR, line);
     // retval->pair = fklCreateNastPair();
@@ -2850,47 +2149,59 @@ static void *simple_action_cons(void *c,
     // return retval;
 }
 
-static void simple_action_cons_write(void *c, FILE *fp) {
-    struct SimpleActionConsCtx *ctx = c;
-    fwrite(&ctx->car, sizeof(ctx->car), 1, fp);
-    fwrite(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
+static void simple_action_cons_write(void *c,
+        FklWriteCodePass pass,
+        FklValueTable *vt,
+        FILE *fp) {
+    FKL_TODO();
+    // if (pass == FKL_WRITE_CODE_PASS_FIRST)
+    //     return;
+    // struct SimpleActionConsCtx *ctx = c;
+    // fwrite(&ctx->car, sizeof(ctx->car), 1, fp);
+    // fwrite(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
 }
 
 static void simple_action_cons_print(void *c, FILE *fp) {
-    struct SimpleActionConsCtx *ctx = c;
-    fprintf(fp, "%" PRIu64 ", %" PRIu64, ctx->car, ctx->cdr);
+    FKL_TODO();
+    // struct SimpleActionConsCtx *ctx = c;
+    // fprintf(fp, "%" PRIu64 ", %" PRIu64, ctx->car, ctx->cdr);
 }
 
 static void *simple_action_cons_read(FklVM *pst, FILE *fp) {
-    struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx *)fklZmalloc(
-            sizeof(struct SimpleActionConsCtx));
-    FKL_ASSERT(ctx);
-    fread(&ctx->car, sizeof(ctx->car), 1, fp);
-    fread(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
-    return ctx;
+    FKL_TODO();
+    // struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx
+    // *)fklZmalloc(
+    //         sizeof(struct SimpleActionConsCtx));
+    // FKL_ASSERT(ctx);
+    // fread(&ctx->car, sizeof(ctx->car), 1, fp);
+    // fread(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
+    // return ctx;
 }
-
-struct SimpleActionHeadCtx {
-    FklVMvalue *head;
-    uint64_t idx_num;
-    uint64_t idx[];
-};
 
 static void *simple_action_head(void *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionHeadCtx *cc = (struct SimpleActionHeadCtx *)c;
-    for (size_t i = 0; i < cc->idx_num; i++)
-        if (cc->idx[i] >= num)
+    FklVMvalue *vec = c;
+    FKL_ASSERT(FKL_IS_VECTOR(vec));
+
+    for (size_t i = 2; i < FKL_VM_VEC(vec)->size; i++) {
+        FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
+        FKL_ASSERT(FKL_IS_FIX(c) && FKL_GET_FIX(c) >= 0);
+        uint64_t idx = FKL_GET_FIX(c);
+        if (idx >= num)
             return NULL;
+    }
     FklVMparseCtx *ct = ctx;
-    FklVMvalue *head = cc->head;
+    FklVMvalue *head = FKL_VM_VEC(vec)->base[1];
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
-    for (uint32_t i = 0; i < cc->idx_num; ++i) {
-        const FklAnalysisSymbol *s = &nodes[cc->idx[i]];
+    for (size_t i = 2; i < FKL_VM_VEC(vec)->size; ++i) {
+        FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
+        uint64_t idx = FKL_GET_FIX(c);
+
+        const FklAnalysisSymbol *s = &nodes[idx];
         *pr = fklCreateVMvaluePairWithCar(ct->exe, s->ast);
         put_line_number(ct->ln, *pr, s->line);
         pr = &FKL_VM_CDR(*pr);
@@ -2913,12 +2224,12 @@ static void *simple_action_head(void *c,
 }
 
 static size_t simple_action_head_get_size(FklVMvalue *rest[], size_t rest_len) {
-    return sizeof(struct SimpleActionHeadCtx)
-         + ((rest_len - 1) * sizeof(uint64_t));
+    FKL_TODO();
+    // return sizeof(struct SimpleActionHeadCtx)
+    //      + ((rest_len - 1) * sizeof(uint64_t));
 }
 
-static int
-simple_action_head_create(void *c, FklVMvalue *rest[], size_t rest_len) {
+static int simple_action_head_check(FklVMvalue *rest[], size_t rest_len) {
     if (rest_len < 2 ||          //
             !FKL_IS_FIX(rest[1]) //
             || FKL_GET_FIX(rest[1]) < 0) {
@@ -2927,11 +2238,7 @@ simple_action_head_create(void *c, FklVMvalue *rest[], size_t rest_len) {
     for (size_t i = 1; i < rest_len; i++)
         if (!FKL_IS_FIX(rest[i]) || FKL_GET_FIX(rest[i]) < 0)
             return 1;
-    struct SimpleActionHeadCtx *ctx = c;
-    ctx->head = rest[0];
-    ctx->idx_num = rest_len - 1;
-    for (size_t i = 1; i < rest_len; i++)
-        ctx->idx[i - 1] = FKL_GET_FIX(rest[i]);
+
     return 0;
     FKL_TODO();
     // for (size_t i = 1; i < rest_len; i++)
@@ -2950,15 +2257,25 @@ simple_action_head_create(void *c, FklVMvalue *rest[], size_t rest_len) {
 }
 
 static void simple_action_head_atomic(void *c, FklVMgc *gc) {
-    struct SimpleActionHeadCtx *cc = c;
-    fklVMgcToGray(cc->head, gc);
+    FKL_TODO();
+    // struct SimpleActionHeadCtx *cc = c;
+    // fklVMgcToGray(cc->head, gc);
 }
 
-static void simple_action_head_write(void *c, FILE *fp) {
-    struct SimpleActionHeadCtx *ctx = c;
-    print_nast_node_with_null_chr(ctx->head, fp);
-    fwrite(&ctx->idx_num, sizeof(ctx->idx_num), 1, fp);
-    fwrite(&ctx->idx[0], sizeof(ctx->idx[0]), ctx->idx_num, fp);
+static void simple_action_head_write(void *c,
+        FklWriteCodePass pass,
+        FklValueTable *vt,
+        FILE *fp) {
+    FKL_TODO();
+    // struct SimpleActionHeadCtx *ctx = c;
+    // if (pass == FKL_WRITE_CODE_PASS_FIRST) {
+    //     fklTraverseSerializableValue(vt, ctx->head);
+    //     return;
+    // }
+    //
+    // fklWriteValueId(vt, ctx->head, fp);
+    // fwrite(&ctx->idx_num, sizeof(ctx->idx_num), 1, fp);
+    // fwrite(&ctx->idx[0], sizeof(ctx->idx[0]), ctx->idx_num, fp);
 }
 
 static void simple_action_head_print(void *c, FILE *fp) {
@@ -2988,15 +2305,16 @@ static void *simple_action_head_read(FklVM *pst, FILE *fp) {
 }
 
 static void *simple_action_head_copy(const void *c) {
-    struct SimpleActionHeadCtx *cc = (struct SimpleActionHeadCtx *)c;
-    size_t size = sizeof(struct SimpleActionHeadCtx)
-                + (sizeof(uint64_t) * cc->idx_num);
-    struct SimpleActionHeadCtx *ctx =
-            (struct SimpleActionHeadCtx *)fklZmalloc(size);
-    FKL_ASSERT(ctx);
-    memcpy(ctx, cc, size);
+    FKL_TODO();
+    // struct SimpleActionHeadCtx *cc = (struct SimpleActionHeadCtx *)c;
+    // size_t size = sizeof(struct SimpleActionHeadCtx)
+    //             + (sizeof(uint64_t) * cc->idx_num);
+    // struct SimpleActionHeadCtx *ctx =
+    //         (struct SimpleActionHeadCtx *)fklZmalloc(size);
+    // FKL_ASSERT(ctx);
+    // memcpy(ctx, cc, size);
     // fklMakeNastNodeRef(ctx->head);
-    return ctx;
+    // return ctx;
 }
 
 static void simple_action_head_destroy(void *cc) {
@@ -3010,7 +2328,8 @@ static inline void *simple_action_box(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = ((struct SimpleActionNthCtx *)action_ctx)->nth;
+    uint64_t nth = get_nth(action_ctx);
+
     if (nth >= num)
         return NULL;
     FklVMparseCtx *c = ctx;
@@ -3028,7 +2347,8 @@ static inline void *simple_action_vector(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = ((struct SimpleActionNthCtx *)action_ctx)->nth;
+    uint64_t nth = get_nth(action_ctx);
+
     if (nth >= num)
         return NULL;
     FklVMvalue *list = nodes[nth].ast;
@@ -3057,7 +2377,8 @@ static inline void *simple_action_hasheq(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = ((struct SimpleActionNthCtx *)action_ctx)->nth;
+    uint64_t nth = get_nth(action_ctx);
+
     if (nth >= num)
         return NULL;
     FklVMparseCtx *c = ctx;
@@ -3086,7 +2407,8 @@ static inline void *simple_action_hasheqv(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = ((struct SimpleActionNthCtx *)action_ctx)->nth;
+    uint64_t nth = get_nth(action_ctx);
+
     if (nth >= num)
         return NULL;
     FklVMparseCtx *c = ctx;
@@ -3115,7 +2437,8 @@ static inline void *simple_action_hashequal(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = ((struct SimpleActionNthCtx *)action_ctx)->nth;
+    uint64_t nth = get_nth(action_ctx);
+
     if (nth >= num)
         return NULL;
     FklVMparseCtx *c = ctx;
@@ -3139,29 +2462,57 @@ static inline void *simple_action_hashequal(void *action_ctx,
     // return r;
 }
 
-struct SimpleActionSymbolCtx {
-    uint64_t nth;
-    FklVMvalue *start;
-    FklVMvalue *end;
-};
+static inline void get_nth_start_end(FklVMvalue *v,
+        FklString const **pstart,
+        FklString const **pend,
+        uint64_t *nth) {
+
+    FKL_ASSERT(FKL_IS_VECTOR(v) && FKL_VM_VEC(v)->size > 1);
+
+    FklVMvalue **rest = &FKL_VM_VEC(v)->base[1];
+    size_t rest_len = FKL_VM_VEC(v)->size - 1;
+
+    FKL_ASSERT(FKL_IS_FIX(rest[0]) && FKL_GET_FIX(rest[0]) >= 0);
+    *nth = FKL_GET_FIX(rest[0]);
+
+    if (rest_len == 3) {
+        FKL_ASSERT(FKL_IS_STR(rest[1])              //
+                   && FKL_VM_STR(rest[1])->size > 0 //
+                   && FKL_IS_STR(rest[2])           //
+                   && FKL_VM_STR(rest[2])->size > 0);
+
+        *pstart = FKL_VM_STR(rest[1]);
+        *pend = FKL_VM_STR(rest[2]);
+    } else if (rest_len == 2) {
+        FKL_ASSERT(FKL_IS_STR(rest[1]) && FKL_VM_STR(rest[1])->size > 0);
+        *pstart = FKL_VM_STR(rest[1]);
+        *pend = *pstart;
+    } else {
+        *pstart = NULL;
+        *pend = NULL;
+    }
+}
 
 static inline void *simple_action_bytevector(void *actx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionSymbolCtx *action_ctx =
-            (struct SimpleActionSymbolCtx *)actx;
-    if (action_ctx->nth >= num)
+    uint64_t nth = 0;
+    const FklString *start_str = NULL;
+    const FklString *end_str = NULL;
+    get_nth_start_end(actx, &start_str, &end_str, &nth);
+
+    if (nth >= num)
         return NULL;
 
     FklVMparseCtx *ct = ctx;
-    FklVMvalue *node = nodes[action_ctx->nth].ast;
+    FklVMvalue *node = nodes[nth].ast;
     if (!FKL_IS_STR(node))
         return NULL;
-    if (action_ctx->start) {
-        size_t start_size = FKL_VM_STR(action_ctx->start)->size;
-        size_t end_size = FKL_VM_STR(action_ctx->end)->size;
+    if (start_str) {
+        size_t start_size = start_str->size;
+        size_t end_size = end_str->size;
 
         const FklString *str = FKL_VM_STR(node);
         const char *cstr = str->str;
@@ -3199,15 +2550,15 @@ static inline void *simple_action_bytevector(void *actx,
     // return r;
 }
 
-static int
-simple_action_symbol_create(void *c, FklVMvalue *rest[], size_t rest_len) {
-    FklVMvalue *start = NULL;
-    FklVMvalue *end = NULL;
-    if (rest_len == 0               //
-            || !FKL_IS_FIX(rest[0]) //
+static int simple_action_symbol_check(FklVMvalue *rest[], size_t rest_len) {
+    if (rest_len < 1)
+        return 1;
+
+    if (!FKL_IS_FIX(rest[0]) //
             || FKL_GET_FIX(rest[0]) < 0) {
         return 1;
     }
+
     if (rest_len == 3) {
         if (!FKL_IS_STR(rest[1])                  //
                 || FKL_VM_STR(rest[1])->size == 0 //
@@ -3215,32 +2566,36 @@ simple_action_symbol_create(void *c, FklVMvalue *rest[], size_t rest_len) {
                 || FKL_VM_STR(rest[2])->size == 0) {
             return 1;
         }
-        start = rest[1];
-        end = rest[2];
     } else if (rest_len == 2) {
         if (!FKL_IS_STR(rest[1]) || FKL_VM_STR(rest[1])->size == 0) {
             return 1;
         }
-        start = rest[1];
-        end = start;
     }
-    struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)c;
-    ctx->nth = FKL_GET_FIX(rest[0]);
-    ctx->start = start;
-    ctx->end = end;
+
     return 0;
 }
 
 static void simple_action_symbol_atomic(void *c, FklVMgc *gc) {
-    struct SimpleActionSymbolCtx *cc = c;
-    fklVMgcToGray(cc->start, gc);
-    fklVMgcToGray(cc->end, gc);
+    FKL_TODO();
+    // struct SimpleActionSymbolCtx *cc = c;
+    // fklVMgcToGray(cc->start, gc);
+    // fklVMgcToGray(cc->end, gc);
 }
 
-static void simple_action_symbol_write(void *c, FILE *fp) {
+static void simple_action_symbol_write(void *c,
+        FklWriteCodePass pass,
+        FklValueTable *vt,
+        FILE *fp) {
     FKL_TODO();
     // struct SimpleActionSymbolCtx *ctx = c;
+    // if (pass == FKL_WRITE_CODE_PASS_FIRST) {
+    //     fklTraverseSerializableValue(vt, ctx->start);
+    //     fklTraverseSerializableValue(vt, ctx->end);
+    //     return;
+    // }
     // fwrite(&ctx->nth, sizeof(ctx->nth), 1, fp);
+    // fklWriteValueId(vt, ctx->start, fp);
+    // fklWriteValueId(vt, ctx->end, fp);
     // if (ctx->start) {
     //     fwrite(ctx->start, sizeof(ctx->start->size) + ctx->start->size, 1,
     //     fp);
@@ -3257,16 +2612,17 @@ static void simple_action_symbol_write(void *c, FILE *fp) {
 }
 
 static void simple_action_symbol_print(void *c, FILE *fp) {
-    struct SimpleActionSymbolCtx *ctx = c;
-    fprintf(fp, "%" PRIu64, ctx->nth);
-    if (ctx->start) {
-        fputs(", ", fp);
-        fklPrintRawString(FKL_VM_STR(ctx->start), fp);
-    }
-    if (ctx->end) {
-        fputs(", ", fp);
-        fklPrintRawString(FKL_VM_STR(ctx->end), fp);
-    }
+    FKL_TODO();
+    // struct SimpleActionSymbolCtx *ctx = c;
+    // fprintf(fp, "%" PRIu64, ctx->nth);
+    // if (ctx->start) {
+    //     fputs(", ", fp);
+    //     fklPrintRawString(FKL_VM_STR(ctx->start), fp);
+    // }
+    // if (ctx->end) {
+    //     fputs(", ", fp);
+    //     fklPrintRawString(FKL_VM_STR(ctx->end), fp);
+    // }
 }
 static void *simple_action_symbol_read(FklVM *pst, FILE *fp) {
     FKL_TODO();
@@ -3301,9 +2657,10 @@ static void *simple_action_symbol_read(FklVM *pst, FILE *fp) {
 }
 
 static void simple_action_symbol_destroy(void *cc) {
-    struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)cc;
-    ctx->end = NULL;
-    ctx->start = NULL;
+    FKL_TODO();
+    // struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)cc;
+    // ctx->end = NULL;
+    // ctx->start = NULL;
 }
 
 static void *simple_action_symbol(void *c,
@@ -3311,20 +2668,22 @@ static void *simple_action_symbol(void *c,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionSymbolCtx *action_ctx =
-            (struct SimpleActionSymbolCtx *)c;
-    if (action_ctx->nth >= num)
+    uint64_t nth = 0;
+    const FklString *start_str = NULL;
+    const FklString *end_str = NULL;
+    get_nth_start_end(c, &start_str, &end_str, &nth);
+    if (nth >= num)
         return NULL;
-    FklVMvalue *node = nodes[action_ctx->nth].ast;
+    FklVMvalue *node = nodes[nth].ast;
     if (!FKL_IS_STR(node))
         return NULL;
     FklVMvalue *sym = NULL;
     FklVMparseCtx *ct = ctx;
-    if (action_ctx->start) {
-        const char *start = FKL_VM_STR(action_ctx->start)->str;
-        size_t start_size = FKL_VM_STR(action_ctx->start)->size;
-        const char *end = FKL_VM_STR(action_ctx->end)->str;
-        size_t end_size = FKL_VM_STR(action_ctx->end)->size;
+    if (start_str) {
+        const char *start = start_str->str;
+        size_t start_size = start_str->size;
+        const char *end = end_str->str;
+        size_t end_size = end_str->size;
 
         const FklString *str = FKL_VM_STR(node);
         const char *cstr = str->str;
@@ -3430,17 +2789,19 @@ static inline void *simple_action_string(void *c,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    struct SimpleActionSymbolCtx *action_ctx =
-            (struct SimpleActionSymbolCtx *)c;
-    if (action_ctx->nth >= num)
+    uint64_t nth = 0;
+    const FklString *start_str = NULL;
+    const FklString *end_str = NULL;
+    get_nth_start_end(c, &start_str, &end_str, &nth);
+    if (nth >= num)
         return NULL;
     FklVMparseCtx *ct = ctx;
-    FklVMvalue *node = nodes[action_ctx->nth].ast;
+    FklVMvalue *node = nodes[nth].ast;
     if (!FKL_IS_STR(node))
         return NULL;
-    if (action_ctx->start) {
-        size_t start_size = FKL_VM_STR(action_ctx->start)->size;
-        size_t end_size = FKL_VM_STR(action_ctx->end)->size;
+    if (start_str) {
+        size_t start_size = start_str->size;
+        size_t end_size = end_str->size;
 
         const FklString *str = FKL_VM_STR(node);
         const char *cstr = str->str;
@@ -3481,117 +2842,58 @@ static struct FklSimpleProdAction
         CodegenProdCreatorActions[FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM] = {
             {
                 "nth",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_nth,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "cons",
-                .size = sizeof(struct SimpleActionConsCtx),
                 .func = simple_action_cons,
-                .init = simple_action_cons_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_cons_write,
-                .read = simple_action_cons_read,
-                .print = simple_action_cons_print,
+                .check = simple_action_cons_check,
             },
             {
                 "head",
-                .get_size = simple_action_head_get_size,
                 .func = simple_action_head,
-                .init = simple_action_head_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_head_write,
-                .read = simple_action_head_read,
-                .print = simple_action_head_print,
-                .atomic = simple_action_head_atomic,
+                .check = simple_action_head_check,
             },
             {
                 "symbol",
-                .size = sizeof(struct SimpleActionSymbolCtx),
                 .func = simple_action_symbol,
-                .init = simple_action_symbol_create,
-                .ctx_destroy = simple_action_symbol_destroy,
-                .write = simple_action_symbol_write,
-                .read = simple_action_symbol_read,
-                .print = simple_action_symbol_print,
-                .atomic = simple_action_symbol_atomic,
+                .check = simple_action_symbol_check,
             },
             {
                 "string",
-                .size = sizeof(struct SimpleActionSymbolCtx),
                 .func = simple_action_string,
-                .init = simple_action_symbol_create,
-                .ctx_destroy = simple_action_symbol_destroy,
-                .write = simple_action_symbol_write,
-                .read = simple_action_symbol_read,
-                .print = simple_action_symbol_print,
-                .atomic = simple_action_symbol_atomic,
+                .check = simple_action_symbol_check,
             },
             {
                 "box",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_box,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "vector",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_vector,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "hasheq",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_hasheq,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "hasheqv",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_hasheqv,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "hashequal",
-                .size = sizeof(struct SimpleActionNthCtx),
                 .func = simple_action_hashequal,
-                .init = simple_action_nth_create,
-                .ctx_destroy = fklProdCtxDestroyDoNothing,
-                .write = simple_action_nth_write,
-                .read = simple_action_nth_read,
-                .print = simple_action_nth_print,
+                .check = simple_action_nth_check,
             },
             {
                 "bytes",
-                .size = sizeof(struct SimpleActionSymbolCtx),
                 .func = simple_action_bytevector,
-                .init = simple_action_symbol_create,
-                .ctx_destroy = simple_action_symbol_destroy,
-                .write = simple_action_symbol_write,
-                .read = simple_action_symbol_read,
-                .print = simple_action_symbol_print,
-                .atomic = simple_action_symbol_atomic,
+                .check = simple_action_symbol_check,
             },
         };
 
@@ -3601,7 +2903,7 @@ static void *simple_action(void *actx,
         size_t num,
         size_t line) {
     FklVMvalueSimpleActionCtx *cc = actx;
-    return cc->c.mt->func((void *)cc->c.data, ctx, nodes, num, line);
+    return cc->c.mt->func((void *)cc->c.vec, ctx, nodes, num, line);
 }
 
 const FklSimpleProdAction *fklGetSimpleProdActions(void) {
@@ -3628,7 +2930,7 @@ static void *replace_action(void *action_ctx,
 FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         FklVMvalue *ast) {
     FklGrammerProduction *prod = fklCreateProduction(group,
             sid,
@@ -3641,6 +2943,10 @@ FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
             fklProdCtxCopyerDoNothing);
 
     return prod;
+}
+
+int fklIsReplaceActionProd(const FklGrammerProduction *p) {
+    return p->func == replace_action;
 }
 
 static void *builtin_prod_action_nil(void *action_ctx,
@@ -4063,12 +3369,13 @@ static inline FklProdActionFunc find_builtin_prod_action(FklCodegenCtx *ctx,
 }
 
 FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
-        FklVMvalue *id,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms) {
-    FklProdActionFunc action = find_builtin_prod_action(ctx, id);
+        const FklGrammerSym *syms,
+        FklVMvalue *id) {
+    FklProdActionFunc action = id == NULL ? builtin_prod_action_first
+                                          : find_builtin_prod_action(ctx, id);
     if (action == NULL) {
         return NULL;
     }
@@ -4079,7 +3386,7 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
             syms,
             NULL,
             action,
-            NULL,
+            id,
             fklProdCtxDestroyDoNothing,
             fklProdCtxCopyerDoNothing);
 }
@@ -4121,9 +3428,7 @@ find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
 
 static void simple_action_ctx_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(c, struct FklSimpleActionCtx, ud);
-    if (c->mt == NULL || c->mt->atomic == NULL)
-        return;
-    c->mt->atomic((void *)c->data, gc);
+    fklVMgcToGray(c->vec, gc);
 }
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(simple_action_ctx_ud_as_print,
@@ -4134,9 +3439,8 @@ static int simple_action_ctx_ud_finalizer(FklVMud *ud) {
     if (c->mt == NULL)
         return FKL_VM_UD_FINALIZE_NOW;
 
-    if (c->mt->ctx_destroy == NULL)
-        return FKL_VM_UD_FINALIZE_NOW;
-    c->mt->ctx_destroy((void *)c->data);
+    c->mt = NULL;
+    c->vec = NULL;
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -4159,31 +3463,27 @@ static inline FklVMvalue *create_simple_prod_action_ctx(FklCodegenCtx *cg_ctx,
     FklVMvalue **rest = &FKL_VM_VEC(action_ast)->base[1];
     size_t rest_len = FKL_VM_VEC(action_ast)->size - 1;
 
-    size_t extra_size = mt->get_size //
-                              ? mt->get_size(rest, rest_len)
-                              : mt->size;
-
     FklVMvalueSimpleActionCtx *v =
-            (FklVMvalueSimpleActionCtx *)fklCreateVMvalueUd2(&cg_ctx->gc->gcvm,
+            (FklVMvalueSimpleActionCtx *)fklCreateVMvalueUd(&cg_ctx->gc->gcvm,
                     &SimpleActionCtxUdMetaTable,
-                    extra_size,
                     NULL);
 
-    int r = mt->init((void *)v->c.data, rest, rest_len);
+    int r = mt->check(rest, rest_len);
     if (r != 0) {
         return NULL;
     }
     v->c.mt = mt;
+    v->c.vec = action_ast;
 
     return FKL_TYPE_CAST(FklVMvalue *, v);
 }
 
 FklGrammerProduction *fklCreateSimpleActionProd(FklCodegenCtx *cg_ctx,
-        struct FklVMvalue *action,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms) {
+        const FklGrammerSym *syms,
+        struct FklVMvalue *action) {
     FklVMvalue *action_ctx = create_simple_prod_action_ctx(cg_ctx, action);
     if (action_ctx == NULL)
         return NULL;
@@ -4196,6 +3496,10 @@ FklGrammerProduction *fklCreateSimpleActionProd(FklCodegenCtx *cg_ctx,
             action_ctx,
             fklProdCtxDestroyDoNothing,
             fklProdCtxCopyerDoNothing);
+}
+
+int fklIsSimpleActionProd(const FklGrammerProduction *p) {
+    return p->func == simple_action;
 }
 
 FklProdActionFunc fklFindBuiltinProdActionByName(const char *str) {
@@ -4226,455 +3530,6 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
-}
-
-static inline void
-write_nonterm(const FklGrammerNonterm *nt, const FklGrammer *g, FILE *fp) {
-    uint64_t str_len;
-    if (nt->group == 0) {
-        str_len = 0;
-        fwrite(&str_len, sizeof(str_len), 1, fp);
-    } else {
-        const FklString *str = FKL_VM_SYM(nt->group);
-        fwrite(str, sizeof(str->size) + str->size, 1, fp);
-    }
-    if (nt->sid == 0) {
-        str_len = 0;
-        fwrite(&str_len, sizeof(str_len), 1, fp);
-    } else {
-        const FklString *str = FKL_VM_SYM(nt->sid);
-        fwrite(str, sizeof(str->size) + str->size, 1, fp);
-    }
-}
-
-static inline void
-write_production_rule_action(const FklGrammerProduction *prod, FILE *fp) {
-    FKL_TODO();
-    // uint8_t type;
-    // if (prod->func == custom_action) {
-    //     type = FKL_CODEGEN_PROD_CUSTOM;
-    //     fwrite(&type, sizeof(type), 1, fp);
-    //     FklCustomActionCtx *ctx = prod->ctx;
-    //     fwrite(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
-    //     fklWriteByteCodelnt(ctx->bcl, fp);
-    // } else if (is_simple_action(prod->func)) {
-    //     type = FKL_CODEGEN_PROD_SIMPLE;
-    //     fwrite(&type, sizeof(type), 1, fp);
-    //     struct FklSimpleProdAction *a =
-    //             find_simple_prod_action_name(prod->func);
-    //     FKL_ASSERT(a);
-    //     const char *name = a->name;
-    //     uint64_t str_len = strlen(name);
-    //     fwrite(&str_len, sizeof(str_len), 1, fp);
-    //     fputs(name, fp);
-    //
-    //     a->write(prod->ctx, fp);
-    // } else {
-    //     type = FKL_CODEGEN_PROD_BUILTIN;
-    //     fwrite(&type, sizeof(type), 1, fp);
-    //     const char *name = find_builtin_prod_action_name(prod->func);
-    //     FKL_ASSERT(name);
-    //     uint64_t str_len = strlen(name);
-    //     fwrite(&str_len, sizeof(str_len), 1, fp);
-    //     fputs(name, fp);
-    // }
-}
-
-static inline void write_grammer_in_binary(const FklGrammer *g, FILE *fp) {
-    FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
-    uint64_t left_count = g->productions.count;
-    fwrite(&left_count, sizeof(left_count), 1, fp);
-    for (const FklProdHashMapNode *cur = g->productions.first; cur;
-            cur = cur->next) {
-        FKL_ASSERT(!(cur->k.group == 0 && cur->k.sid == 0));
-
-        {
-            uint64_t prod_count = 0;
-            for (const FklGrammerProduction *prod = cur->v; prod;
-                    prod = prod->next, ++prod_count)
-                ;
-            fwrite(&prod_count, sizeof(prod_count), 1, fp);
-        }
-
-        write_nonterm(&cur->k, g, fp);
-
-        for (const FklGrammerProduction *prod = cur->v; prod;
-                prod = prod->next) {
-            uint64_t prod_len = prod->len;
-            fwrite(&prod_len, sizeof(prod_len), 1, fp);
-            for (size_t i = 0; i < prod_len; ++i) {
-                const FklGrammerSym *cur = &prod->syms[i];
-                fwrite(&cur->type, 1, 1, fp);
-                switch (cur->type) {
-                case FKL_TERM_NONTERM:
-                    write_nonterm(&cur->nt, g, fp);
-                    break;
-                case FKL_TERM_STRING:
-                case FKL_TERM_KEYWORD: {
-                    const FklString *t = cur->str;
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                } break;
-
-                case FKL_TERM_REGEX: {
-                    const FklString *t =
-                            fklGetStringWithRegex(&g->regexes, cur->re, NULL);
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                } break;
-
-                case FKL_TERM_BUILTIN: {
-                    uint64_t str_len = strlen(cur->b.t->name);
-                    fwrite(&str_len, sizeof(str_len), 1, fp);
-                    fputs(cur->b.t->name, fp);
-
-                    uint64_t len = cur->b.len;
-                    fwrite(&len, sizeof(len), 1, fp);
-                    for (size_t i = 0; i < len; ++i) {
-                        const FklString *t = cur->b.args[i];
-                        fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                    }
-                } break;
-
-                case FKL_TERM_IGNORE:
-                    break;
-                case FKL_TERM_EOF:
-                case FKL_TERM_NONE:
-                    FKL_UNREACHABLE();
-                }
-            }
-
-            write_production_rule_action(prod, fp);
-        }
-    }
-
-    {
-        uint64_t ignore_count = 0;
-        for (const FklGrammerIgnore *ig = g->ignores; ig;
-                ig = ig->next, ++ignore_count)
-            ;
-        fwrite(&ignore_count, sizeof(ignore_count), 1, fp);
-    }
-
-    for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
-        uint64_t len = ig->len;
-        fwrite(&len, sizeof(len), 1, fp);
-        for (uint64_t i = 0; i < len; ++i) {
-            const FklGrammerIgnoreSym *cur = &ig->ig[i];
-            fwrite(&cur->term_type, 1, 1, fp);
-            switch (cur->term_type) {
-
-            case FKL_TERM_STRING: {
-                const FklString *t = cur->str;
-                fwrite(t, sizeof(t->size) + t->size, 1, fp);
-            } break;
-
-            case FKL_TERM_REGEX: {
-                const FklString *t =
-                        fklGetStringWithRegex(&g->regexes, cur->re, NULL);
-                fwrite(t, sizeof(t->size) + t->size, 1, fp);
-            } break;
-
-            case FKL_TERM_BUILTIN: {
-                uint64_t str_len = strlen(cur->b.t->name);
-                fwrite(&str_len, sizeof(str_len), 1, fp);
-                fputs(cur->b.t->name, fp);
-
-                uint64_t len = cur->b.len;
-                fwrite(&len, sizeof(len), 1, fp);
-                for (size_t i = 0; i < len; ++i) {
-                    const FklString *t = cur->b.args[i];
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                }
-            } break;
-
-            case FKL_TERM_NONTERM:
-            case FKL_TERM_KEYWORD:
-            case FKL_TERM_IGNORE:
-            case FKL_TERM_EOF:
-            case FKL_TERM_NONE:
-                FKL_UNREACHABLE();
-            }
-        }
-    }
-}
-
-void fklWriteExportNamedProds(const FklVMvalueHashSet *export_named_prod_groups,
-        const FklGraProdGroupHashMap *named_prod_groups,
-        // const FklSymbolTable *st,
-        FILE *fp) {
-    FKL_TODO();
-    // uint8_t has_named_prod = export_named_prod_groups->count > 0;
-    // fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    // if (!has_named_prod)
-    //     return;
-    // fwrite(&export_named_prod_groups->count,
-    //         sizeof(export_named_prod_groups->count),
-    //         1,
-    //         fp);
-    // for (FklVMvalueHashSetNode *list = export_named_prod_groups->first; list;
-    //         list = list->next) {
-    //     FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
-    //     FklGrammerProdGroupItem *group =
-    //             get_production_group(named_prod_groups, id);
-    //     FKL_ASSERT(group);
-    //     fwrite(&id, sizeof(id), 1, fp);
-    //     fklWriteStringTable(&group->delimiters, fp);
-    //     write_grammer_in_binary(&group->g, fp);
-    // }
-}
-
-void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
-        // const FklSymbolTable *st,
-        FILE *fp) {
-    FKL_TODO();
-    // uint8_t has_named_prod = named_prod_groups->buckets != NULL;
-    // fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    // if (!has_named_prod)
-    //     return;
-    // fwrite(&named_prod_groups->count, sizeof(named_prod_groups->count), 1,
-    // fp); for (FklGraProdGroupHashMapNode *list = named_prod_groups->first;
-    // list;
-    //         list = list->next) {
-    //     fwrite(&list->k, sizeof(list->k), 1, fp);
-    //     fklWriteStringTable(&list->v.delimiters, fp);
-    //     write_grammer_in_binary(&list->v.g, fp);
-    // }
-}
-
-static inline void
-load_nonterm(FklGrammerNonterm *nt, FklGrammer *g, FILE *fp) {
-    FKL_TODO();
-    // uint64_t str_len;
-    // fread(&str_len, sizeof(str_len), 1, fp);
-    // if (str_len == 0) {
-    //     nt->group = 0;
-    // } else {
-    //     FklString *str = fklCreateString(str_len, NULL);
-    //     fread(str->str, str_len, 1, fp);
-    //     nt->group = fklAddSymbol(str, g->st);
-    //     fklZfree(str);
-    // }
-    //
-    // fread(&str_len, sizeof(str_len), 1, fp);
-    // if (str_len == 0) {
-    //     nt->sid = 0;
-    // } else {
-    //     FklString *str = fklCreateString(str_len, NULL);
-    //     fread(str->str, str_len, 1, fp);
-    //     nt->sid = fklAddSymbol(str, g->st);
-    //     fklZfree(str);
-    // }
-}
-
-static inline void
-read_production_rule_action(FklVM *pst, FklGrammerProduction *prod, FILE *fp) {
-    FKL_TODO();
-    // uint8_t type = 255;
-    // fread(&type, sizeof(type), 1, fp);
-    // FKL_ASSERT(type != 255);
-    // switch ((FklCodegenProdActionType)type) {
-    // case FKL_CODEGEN_PROD_BUILTIN: {
-    //     FklString *name = fklLoadString(fp);
-    //     prod->func = fklFindBuiltinProdActionByName(name->str);
-    //     FKL_ASSERT(prod->func);
-    //     fklZfree(name);
-    // } break;
-    //
-    // case FKL_CODEGEN_PROD_CUSTOM: {
-    //     prod->func = custom_action;
-    //     struct CustomActionCtx *ctx = (struct CustomActionCtx *)fklZcalloc(1,
-    //             sizeof(struct CustomActionCtx));
-    //     FKL_ASSERT(ctx);
-    //     fread(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
-    //     ctx->bcl = fklLoadByteCodelnt(fp);
-    //     prod->ctx = ctx;
-    // } break;
-    //
-    // case FKL_CODEGEN_PROD_SIMPLE: {
-    //     FklString *name = fklLoadString(fp);
-    //     const FklSimpleProdAction *action =
-    //             fklFindSimpleProdActionByName(name->str);
-    //     FKL_ASSERT(action);
-    //     prod->func = action->func;
-    //     prod->ctx_destroyer = action->ctx_destroy;
-    //     prod->ctx_copyer = action->ctx_copyer;
-    //     prod->ctx = action->read(pst, fp);
-    //     fklZfree(name);
-    // } break;
-    // }
-}
-
-static inline void load_grammer_in_binary(FklGrammer *g, FILE *fp) {
-    FKL_TODO();
-    // uint64_t left_count = 0;
-    // fread(&left_count, sizeof(left_count), 1, fp);
-    // for (uint64_t i = 0; i < left_count; ++i) {
-    //     FklGrammerNonterm nt;
-    //     uint64_t prod_count = 0;
-    //     fread(&prod_count, sizeof(prod_count), 1, fp);
-    //
-    //     load_nonterm(&nt, g, fp);
-    //     FKL_ASSERT(!(nt.group == 0 && nt.sid == 0));
-    //
-    //     for (uint64_t i = 0; i < prod_count; ++i) {
-    //         uint64_t prod_len;
-    //         fread(&prod_len, sizeof(prod_len), 1, fp);
-    //         FklGrammerProduction *prod = fklCreateEmptyProduction(nt.group,
-    //                 nt.sid,
-    //                 prod_len,
-    //                 NULL,
-    //                 NULL,
-    //                 NULL,
-    //                 fklProdCtxDestroyDoNothing,
-    //                 fklProdCtxCopyerDoNothing);
-    //
-    //         FklGrammerSym *syms = prod->syms;
-    //
-    //         for (size_t i = 0; i < prod_len; ++i) {
-    //             uint8_t type;
-    //             fread(&type, sizeof(type), 1, fp);
-    //             FklGrammerSym *cur = &syms[i];
-    //             cur->type = type;
-    //             switch (cur->type) {
-    //             case FKL_TERM_NONTERM:
-    //                 load_nonterm(&cur->nt, g, fp);
-    //                 break;
-    //
-    //             case FKL_TERM_STRING:
-    //             case FKL_TERM_KEYWORD: {
-    //                 FklString *str = fklLoadString(fp);
-    //                 cur->str = fklAddString(&g->terminals, str);
-    //                 if (type == FKL_TERM_STRING)
-    //                     fklAddString(&g->delimiters, str);
-    //                 fklZfree(str);
-    //             } break;
-    //
-    //             case FKL_TERM_BUILTIN: {
-    //                 FklString *str = fklLoadString(fp);
-    //                 FklSid_t id = fklAddSymbol(str, g->st);
-    //                 const FklLalrBuiltinMatch *t =
-    //                         fklGetBuiltinMatch(&g->builtins, id);
-    //                 FKL_ASSERT(t);
-    //                 cur->b.t = t;
-    //
-    //                 uint64_t len = 0;
-    //                 fread(&len, sizeof(len), 1, fp);
-    //                 cur->b.len = len;
-    //                 cur->b.args = fklZmalloc(len * sizeof(FklString *));
-    //                 FKL_ASSERT(cur->b.args);
-    //                 for (size_t i = 0; i < len; ++len) {
-    //                     FklString *s = fklLoadString(fp);
-    //                     cur->b.args[i] = fklAddString(&g->terminals, s);
-    //                     fklAddString(&g->delimiters, s);
-    //                     fklZfree(s);
-    //                 }
-    //                 fklZfree(str);
-    //             } break;
-    //
-    //             case FKL_TERM_REGEX: {
-    //                 FklString *s = fklLoadString(fp);
-    //                 cur->re = fklAddRegexStr(&g->regexes, s);
-    //                 FKL_ASSERT(cur->re);
-    //                 fklZfree(s);
-    //             } break;
-    //
-    //             case FKL_TERM_IGNORE:
-    //                 break;
-    //             case FKL_TERM_NONE:
-    //             case FKL_TERM_EOF:
-    //                 FKL_UNREACHABLE();
-    //                 break;
-    //             }
-    //         }
-    //
-    //         read_production_rule_action(g->st, prod, fp);
-    //         if (fklAddProdToProdTableNoRepeat(g, prod)) {
-    //             FKL_UNREACHABLE();
-    //         }
-    //     }
-    // }
-    //
-    // uint64_t ignore_count = 0;
-    // fread(&ignore_count, sizeof(ignore_count), 1, fp);
-    // for (size_t i = 0; i < ignore_count; ++i) {
-    //     uint64_t len = 0;
-    //     fread(&len, sizeof(len), 1, fp);
-    //     FklGrammerIgnore *ig = fklCreateEmptyGrammerIgnore(len);
-    //     for (uint64_t i = 0; i < len; ++i) {
-    //         FklGrammerIgnoreSym *cur = &ig->ig[i];
-    //         fread(&cur->term_type, 1, 1, fp);
-    //         switch (cur->term_type) {
-    //         case FKL_TERM_STRING: {
-    //             FklString *str = fklLoadString(fp);
-    //             cur->str = fklAddString(&g->terminals, str);
-    //             fklAddString(&g->delimiters, str);
-    //             fklZfree(str);
-    //         } break;
-    //         case FKL_TERM_REGEX: {
-    //             FklString *str = fklLoadString(fp);
-    //             cur->re = fklAddRegexStr(&g->regexes, str);
-    //             FKL_ASSERT(cur->re);
-    //             fklZfree(str);
-    //         } break;
-    //
-    //         case FKL_TERM_BUILTIN: {
-    //             FklString *str = fklLoadString(fp);
-    //             FklSid_t id = fklAddSymbol(str, g->st);
-    //             const FklLalrBuiltinMatch *t =
-    //                     fklGetBuiltinMatch(&g->builtins, id);
-    //             FKL_ASSERT(t);
-    //             cur->b.t = t;
-    //
-    //             uint64_t len = 0;
-    //             fread(&len, sizeof(len), 1, fp);
-    //             cur->b.len = len;
-    //             cur->b.args = fklZmalloc(len * sizeof(FklString *));
-    //             FKL_ASSERT(cur->b.args);
-    //             for (size_t i = 0; i < len; ++len) {
-    //                 FklString *s = fklLoadString(fp);
-    //                 cur->b.args[i] = fklAddString(&g->terminals, s);
-    //                 fklAddString(&g->delimiters, s);
-    //                 fklZfree(s);
-    //             }
-    //             fklZfree(str);
-    //         } break;
-    //
-    //         case FKL_TERM_NONTERM:
-    //         case FKL_TERM_KEYWORD:
-    //         case FKL_TERM_IGNORE:
-    //         case FKL_TERM_EOF:
-    //         case FKL_TERM_NONE:
-    //             FKL_UNREACHABLE();
-    //         }
-    //     }
-    //
-    //     if (fklAddIgnoreToIgnoreList(&g->ignores, ig)) {
-    //         fklDestroyIgnore(ig);
-    //     }
-    // }
-}
-
-void fklLoadNamedProds(FklGraProdGroupHashMap *ht,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        FILE *fp)
-
-{
-    FKL_TODO();
-    // uint8_t has_named_prod = 0;
-    // fread(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    // if (has_named_prod) {
-    //     fklGraProdGroupHashMapInit(ht);
-    //     uint32_t num = 0;
-    //     fread(&num, sizeof(num), 1, fp);
-    //     for (; num > 0; num--) {
-    //         FklSid_t group_id = 0;
-    //         fread(&group_id, sizeof(group_id), 1, fp);
-    //         FklGrammerProdGroupItem *group =
-    //                 add_production_group(ht, &ctx->public_st, group_id);
-    //         fklLoadStringTable(fp, &group->delimiters);
-    //         load_grammer_in_binary(&group->g, fp);
-    //     }
-    // }
 }
 
 // void fklRecomputeSidForNamedProdGroups(FklGraProdGroupHashMap *ht,

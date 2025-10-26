@@ -2,6 +2,7 @@
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/dis.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/parser_grammer.h>
@@ -9,6 +10,8 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+
+#include <fakeLisp/cb_helper.h>
 
 #include <ctype.h>
 #include <inttypes.h>
@@ -56,7 +59,7 @@ static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
 FklGrammerProduction *fklCreateProduction(struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         const char *name,
         FklProdActionFunc func,
         void *ctx,
@@ -98,16 +101,6 @@ FklGrammerProduction *fklCreateEmptyProduction(struct FklVMvalue *group,
     r->ctx_copy = copyer;
     return r;
 }
-
-#define CB_LINE(...) fklCodeBuilderLine(build, __VA_ARGS__)
-#define CB_FMT(...) fklCodeBuilderFmt(build, __VA_ARGS__)
-
-#define CB_LINE_START(...) fklCodeBuilderLineStart(build, __VA_ARGS__)
-#define CB_LINE_END(...) fklCodeBuilderLineEnd(build, __VA_ARGS__)
-
-#define CB_INDENT(flag)                                                        \
-    for (uint8_t flag = (fklCodeBuilderIndent(build), 0); flag < 1;            \
-            fklCodeBuilderUnindent(build), ++flag)
 
 #define DEFINE_DEFAULT_C_MATCH_COND(NAME)                                      \
     static void builtin_match_##NAME##_print_c_match_cond(                     \
@@ -1717,6 +1710,20 @@ static inline void print_as_regex(const FklString *str, FILE *fp) {
     fputc('/', fp);
 }
 
+static inline void print_as_regex2(const FklString *str,
+        FklCodeBuilder *build) {
+    const char *cur = str->str;
+    const char *const end = cur + str->size;
+    CB_FMT("/");
+    for (; cur < end; ++cur) {
+        if (*cur == '/')
+            CB_FMT("\\/");
+        else
+            CB_FMT("%c", *cur);
+    }
+    CB_FMT("/");
+}
+
 static inline void print_as_regex_to_string_buffer(FklStringBuffer *buf,
         const FklString *str) {
     const char *cur = str->str;
@@ -1769,6 +1776,60 @@ print_prod_sym(FILE *fp, const FklGrammerSym *u, const FklRegexTable *rt) {
         break;
     case FKL_TERM_IGNORE:
         fputs("?e", fp);
+        break;
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
+static inline void print_prod_sym2(const FklGrammerSym *u,
+        const FklRegexTable *rt,
+        FklStringBuffer *buf,
+        FklCodeBuilder *build) {
+    switch (u->type) {
+    case FKL_TERM_BUILTIN:
+        CB_FMT(u->b.t->name);
+        if (u->b.len) {
+            CB_FMT("[");
+            size_t i = 0;
+            for (; i < u->b.len - 1; ++i) {
+                fklPrintRawSymbolToStringBuffer(buf, u->b.args[i]);
+                CB_FMT("%s , ", fklStringBufferBody(buf));
+                fklStringBufferClear(buf);
+            }
+            fklPrintRawSymbolToStringBuffer(buf, u->b.args[i]);
+            CB_FMT("%s]", fklStringBufferBody(buf));
+            fklStringBufferClear(buf);
+        }
+        break;
+    case FKL_TERM_REGEX:
+        print_as_regex2(fklGetStringWithRegex(rt, u->re, NULL), build);
+        break;
+    case FKL_TERM_STRING:
+        fklPrintStringLiteralToStringBuffer(buf, u->str);
+        CB_FMT(fklStringBufferBody(buf));
+        fklStringBufferClear(buf);
+        break;
+    case FKL_TERM_KEYWORD:
+        fklPrintRawSymbolToStringBuffer(buf, u->str);
+        CB_FMT("#%s", fklStringBufferBody(buf));
+        fklStringBufferClear(buf);
+        break;
+    case FKL_TERM_NONTERM:
+        if (u->nt.group) {
+            CB_FMT("(");
+            fklPrintValue(u->nt.group, buf, build);
+            CB_FMT(" , ");
+            fklPrintValue(u->nt.sid, buf, build);
+            CB_FMT(")");
+        } else {
+            fklPrintValue(u->nt.sid, buf, build);
+        }
+        break;
+    case FKL_TERM_IGNORE:
+        CB_FMT("?e");
         break;
     case FKL_TERM_NONE:
     case FKL_TERM_EOF:
@@ -4680,6 +4741,86 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
         }
         fputc('\n', fp);
     }
+}
+
+void fklPrintGrammerIgnores2(const FklGrammer *g,
+        const FklRegexTable *rt,
+        FklCodeBuilder *build) {
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+    const FklGrammerIgnore *ig = g->ignores;
+    for (; ig; ig = ig->next) {
+        CB_LINE_START("");
+        for (size_t i = 0; i < ig->len; i++) {
+            const FklGrammerIgnoreSym *u = &ig->ig[i];
+            switch (u->term_type) {
+            case FKL_TERM_BUILTIN: {
+                CB_FMT(u->b.t->name);
+                if (u->b.len) {
+                    CB_FMT("[");
+                    size_t i = 0;
+                    for (; i < u->b.len - 1; ++i) {
+                        fklPrintStringLiteralToStringBuffer(&buf, u->b.args[i]);
+                        CB_FMT("%s , ", fklStringBufferBody(&buf));
+                        fklStringBufferClear(&buf);
+                    }
+                    fklPrintRawSymbolToStringBuffer(&buf, u->b.args[i]);
+                    CB_FMT("%s]", fklStringBufferBody(&buf));
+                    fklStringBufferClear(&buf);
+                }
+            } break;
+
+            case FKL_TERM_REGEX:
+                print_as_regex2(fklGetStringWithRegex(rt, u->re, NULL), build);
+                break;
+            case FKL_TERM_STRING: {
+                fklPrintStringLiteralToStringBuffer(&buf, u->b.args[i]);
+                CB_FMT(fklStringBufferBody(&buf));
+                fklStringBufferClear(&buf);
+            } break;
+            default:
+                FKL_UNREACHABLE();
+                break;
+            }
+            CB_FMT(" ");
+        }
+        CB_LINE_END("");
+    }
+
+    fklUninitStringBuffer(&buf);
+}
+
+void fklPrintGrammerProduction2(const FklGrammerProduction *prod,
+        const FklRegexTable *rt,
+        FklCodeBuilder *build) {
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+    if (!is_Sq_nt(&prod->left)) {
+        if (prod->left.group) {
+            CB_FMT("(");
+            fklPrintValue(prod->left.group, &buf, build);
+            CB_FMT(" , ");
+            fklPrintValue(prod->left.sid, &buf, build);
+            CB_FMT(")");
+        } else {
+            fklPrintValue(prod->left.sid, &buf, build);
+        }
+    } else
+        CB_FMT("S'");
+    CB_FMT(" -> ");
+    size_t len = prod->len;
+    const FklGrammerSym *syms = prod->syms;
+    for (size_t i = 0; i < len;) {
+		fklStringBufferClear(&buf);
+        CB_FMT(" ");
+        print_prod_sym2(&syms[i], rt, &buf, build);
+        ++i;
+        if (i < len && syms[i].type != FKL_TERM_IGNORE)
+            CB_FMT(" .. ");
+        else
+            ++i;
+    }
+    fklUninitStringBuffer(&buf);
 }
 
 void fklPrintGrammer(FILE *fp, const FklGrammer *grammer) {

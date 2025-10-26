@@ -10,6 +10,7 @@
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+#include <uv.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -1967,12 +1968,7 @@ static int custom_parser_finalizer(FklVMud *p) {
 
 static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
     FKL_DECL_UD_DATA(g, FklGrammer, p);
-    for (FklProdHashMapNode *item = g->productions.first; item;
-            item = item->next) {
-        for (FklGrammerProduction *prod = item->v; prod; prod = prod->next)
-            fklVMgcToGray(prod->ctx, gc);
-    }
-    FKL_TODO();
+    fklVMgcMarkGrammer(gc, g, NULL);
 }
 
 static void *custom_parser_prod_action(void *action_ctx,
@@ -1981,7 +1977,8 @@ static void *custom_parser_prod_action(void *action_ctx,
         size_t num,
         size_t line) {
     FklVMvalue *proc = (FklVMvalue *)action_ctx;
-    FklVM *exe = (FklVM *)ctx;
+    const FklVMparseCtx *c = FKL_TYPE_CAST(const FklVMparseCtx *, ctx);
+    FklVM *exe = c->exe;
     FklVMvalue *line_value = line > FKL_FIX_INT_MAX
                                    ? fklCreateVMvalueBigIntWithU64(exe, line)
                                    : FKL_MAKE_VM_FIX(line);
@@ -2320,9 +2317,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
             fklCreateVMvalueUd(exe, &CustomParserMetaTable, FKL_VM_NIL);
     FKL_DECL_VM_UD_DATA(grammer, FklGrammer, retval);
 
-    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        fklInitEmptyGrammer(grammer, exe);
-    }
+    fklInitEmptyGrammer(grammer, exe);
 
     grammer->start =
             (FklGrammerNonterm){ .group = 0, .sid = FKL_GET_SYM(start) };
@@ -5213,28 +5208,28 @@ void fklInitGlobCodegenEnv(FklVMvalueCodegenEnv *curEnv, FklVM *vm) {
     }
 }
 
-static inline FklVMvalue **init_builtin_refs(void) {
-    static alignas(8) FklVMvalueVarRef
-            builtin_symbol_var_refs[FKL_BUILTIN_SYMBOL_NUM] = {};
+static alignas(8)
+        FklVMvalueVarRef builtin_symbol_var_refs[FKL_BUILTIN_SYMBOL_NUM] = {};
 
-    static FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
+static FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
 
-    static int once;
-    if (!once) {
-        fklInitVMvalueFp(&StdinUserDataValue, stdin, FKL_VM_FP_R);
-        fklInitVMvalueFp(&StdoutUserDataValue, stdout, FKL_VM_FP_W);
-        fklInitVMvalueFp(&StderrUserDataValue, stderr, FKL_VM_FP_W);
+static uv_once_t init_builtin_refs_once = UV_ONCE_INIT;
 
-        for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
-            FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, builtInSymbolList[i].v);
-            fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[i], v);
-            builtin_refs[i] =
-                    FKL_TYPE_CAST(FklVMvalue *, &builtin_symbol_var_refs[i]);
-        }
+static void init_builtin_refs_once_cb(void) {
+    fklInitVMvalueFp(&StdinUserDataValue, stdin, FKL_VM_FP_R);
+    fklInitVMvalueFp(&StdoutUserDataValue, stdout, FKL_VM_FP_W);
+    fklInitVMvalueFp(&StderrUserDataValue, stderr, FKL_VM_FP_W);
 
-        once = 1;
+    for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
+        FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, builtInSymbolList[i].v);
+        fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[i], v);
+        builtin_refs[i] =
+                FKL_TYPE_CAST(FklVMvalue *, &builtin_symbol_var_refs[i]);
     }
+}
 
+static inline FklVMvalue **init_builtin_refs(void) {
+    uv_once(&init_builtin_refs_once, init_builtin_refs_once_cb);
     return builtin_refs;
 }
 

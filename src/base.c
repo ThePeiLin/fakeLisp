@@ -109,6 +109,11 @@ size_t fklQuotedCharBufMatch(const char *cstr,
     return 0;
 }
 
+void fklWriteString(const FklString *s, FILE *fp) {
+    fwrite(&s->size, sizeof(s->size), 1, fp);
+    fwrite(s->str, s->size * sizeof(*(s->str)), 1, fp);
+}
+
 FklString *fklLoadString(FILE *fp) {
     uint64_t str_len;
     fread(&str_len, sizeof(str_len), 1, fp);
@@ -571,6 +576,19 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv) {
     for (size_t i = 0; i < size; i++)
         h = 31 * h + val[i];
     return h;
+}
+
+FklBytevector *fklLoadBytevector(FILE *fp) {
+    uint64_t len;
+    fread(&len, sizeof(len), 1, fp);
+    FklBytevector *b = fklCreateBytevector(len, NULL);
+    fread(b->ptr, len, 1, fp);
+    return b;
+}
+
+void fklWriteBytevector(const FklBytevector *b, FILE *fp) {
+    fwrite(&b->size, sizeof(b->size), 1, fp);
+    fwrite(b->ptr, b->size, 1, fp);
 }
 
 static char *string_buffer_alloc(void *ptr, size_t len) {

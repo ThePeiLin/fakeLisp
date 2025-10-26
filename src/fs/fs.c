@@ -333,7 +333,6 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
         symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
-    // fklAddSymbolCstr(exports_and_func[i].sym, st);
     return symbols;
 }
 

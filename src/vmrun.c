@@ -164,6 +164,13 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     FklVMproc *proc = FKL_VM_PROC(proc_obj);
     FklVMvalueProtos *pts = proc->pts;
     FklFuncPrototype *pt = &pts->p.pa[proc->protoId];
+
+    if (proc->closure) {
+        proc->rcount = 0;
+        fklZfree(proc->closure);
+        proc->closure = NULL;
+    }
+
     proc->rcount = pt->rcount;
     FklVMvalue **closure;
     if (!proc->rcount)
@@ -208,7 +215,6 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->pts = pts;
     exe->libs = libs;
-    fklInitGlobalVMclosureForGC(exe->gc);
     vm_stack_init(exe);
     if (mainCode != NULL) {
         FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
@@ -248,7 +254,6 @@ FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->libs = libs;
     exe->pts = pts;
-    fklInitGlobalVMclosureForGC(exe->gc);
     vm_stack_init(exe);
     if (mainCode != NULL) {
         FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
@@ -668,7 +673,7 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
-    FklInstruction *ins;
+    const FklInstruction *ins;
     FklVMlib *plib;
     uint32_t idx;
     uint32_t idx1;
@@ -1229,7 +1234,7 @@ void fklCreateVMvalueClosureFrom(FklVM *vm,
         FklVMvalue **closure,
         FklVMframe *f,
         uint32_t i,
-        FklFuncPrototype *pt) {
+        const FklFuncPrototype *pt) {
     uint32_t count = pt->rcount;
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalue **ref = lr->ref;
@@ -1256,7 +1261,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
         FklVMframe *f,
         size_t cpc,
         uint32_t pid,
-        FklVMvalueProtos *pts) {
+        const FklVMvalueProtos *pts) {
     FklVMvalue *codeObj = get_compound_frame_code_obj(f);
     FklFuncPrototype *pt = &pts->p.pa[pid];
     FklVMvalue *r = fklCreateVMvalueProc2(exe,

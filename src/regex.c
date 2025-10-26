@@ -1,8 +1,11 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
+
+#include <fakeLisp/cb_helper.h>
 
 #include <ctype.h>
 #include <inttypes.h>
@@ -878,16 +881,6 @@ size_t fklRegexLexMatchp(const FklRegexCode *re,
     *last_is_true = 0;
     return lex_matchpattern(re, text, len, last_is_true);
 }
-
-#define CB_LINE(...) fklCodeBuilderLine(build, __VA_ARGS__)
-#define CB_FMT(...) fklCodeBuilderFmt(build, __VA_ARGS__)
-
-#define CB_LINE_START(...) fklCodeBuilderLineStart(build, __VA_ARGS__)
-#define CB_LINE_END(...) fklCodeBuilderLineEnd(build, __VA_ARGS__)
-
-#define CB_INDENT(flag)                                                        \
-    for (uint8_t flag = (fklCodeBuilderIndent(build), 0); flag < 1;            \
-            fklCodeBuilderUnindent(build), ++flag)
 
 static inline void
 build_objs(const FklRegexObj *obj, uint32_t objs_num, FklCodeBuilder *build) {

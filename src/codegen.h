@@ -36,6 +36,7 @@ static inline FklGrammerProdGroupItem *add_production_group(
     return group;
 }
 
+FKL_DEPRECATED
 static inline void print_nast_node_with_null_chr(const FklVMvalue *node,
         FILE *fp) {
     FKL_TODO();

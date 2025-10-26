@@ -153,16 +153,9 @@ typedef struct {
 #include "cont/hash.h"
 
 typedef struct FklSimpleProdAction {
-    const char *name;
-    FklProdActionFunc func;
-    size_t size;
-    size_t (*get_size)(FklVMvalue *rest[], size_t rest_len);
-    void (*atomic)(void *c, FklVMgc *gc);
-    int (*init)(void *c, FklVMvalue *rest[], size_t rest_len);
-    void (*ctx_destroy)(void *);
-    void (*write)(void *, FILE *fp);
-    void *(*read)(FklVM *pst, FILE *fp);
-    void (*print)(void *ctx, FILE *fp);
+    const char *const name;
+    FklProdActionFunc const func;
+    int (*const check)(FklVMvalue *rest[], size_t rest_len);
 } FklSimpleProdAction;
 
 typedef enum {
@@ -302,7 +295,7 @@ typedef enum {
     XX(simple)                                                                 \
     XX(replace)
 
-typedef struct {
+typedef struct FklCodegenCtx {
     struct FklCodegenActionVector *action_vector;
     struct FklVMvalueCodegenEnv *global_env;
     struct FklVMvalueCodegenInfo *global_info;
@@ -451,33 +444,6 @@ typedef struct FklCodegenAction {
     FklByteCodelntVector bcl_vector;
 } FklCodegenAction;
 
-typedef struct {
-    const FklVMobarray *obarray;
-    const FklVMvalueProtos *pts;
-    const FklByteCodelnt *main_func;
-    const FklVMvalueLibs *libs;
-} FklWriteCodeFileArgs;
-
-typedef struct FklReadCodeFileArgs {
-    FklVMobarray *const obarray;
-
-    size_t const lib_size;
-    void *const lib_init_args;
-    void (*const library_initer)(struct FklReadCodeFileArgs *read_args,
-            void *lib,
-            void *lib_init_args,
-            FklCodegenLibType type,
-            uint32_t prototypeId,
-            uint64_t epc,
-            const FklByteCodelnt *bcl,
-            const FklString *dll_name);
-
-    FklFuncPrototypes *pts;
-    FklByteCodelnt *main_func;
-    uint64_t lib_count;
-    void *libs;
-} FklReadCodeFileArgs;
-
 // FklCodegenActionVector
 #define FKL_VECTOR_ELM_TYPE FklCodegenAction *
 #define FKL_VECTOR_ELM_TYPE_NAME CodegenAction
@@ -522,7 +488,7 @@ struct FklCustomActionCtx {
 
 typedef struct FklSimpleActionCtx {
     const FklSimpleProdAction *mt;
-    void *data[];
+    struct FklVMvalue *vec;
 } FklSimpleActionCtx;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, { FklSimpleActionCtx c; });
@@ -676,27 +642,12 @@ void fklUpdateVMlibsWithCodegenLibVector(FklVM *vm,
         const FklCodegenLibVector *clibs,
         const FklVMvalueProtos *pts);
 
+FKL_DEPRECATED
 void fklInitPreLibReaderMacros(FklCodegenLibVector *libs,
         FklVMgc *gc,
         FklCodegenCtx *ctx,
         FklFuncPrototypes *pts,
         FklCodegenLibVector *macroLibs);
-
-int fklLoadPreCompile(FklFuncPrototypes *info_pts,
-        FklFuncPrototypes *info_macro_pts,
-        FklCodegenLibVector *info_scriptLibs,
-        FklCodegenLibVector *info_macroScriptLibs,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        const char *rp,
-        FILE *fp,
-        char **errorStr);
-
-void fklWritePreCompile(FklVMvalueCodegenInfo *codegen,
-        const char *main_dir,
-        const char *target_dir,
-        FklByteCodelnt *bcl,
-        FILE *outfp);
 
 FKL_DEPRECATED
 FklProdActionFunc fklFindBuiltinProdActionByName(const char *str);
@@ -707,44 +658,39 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         uint32_t prototypeId);
+int fklIsCustomActionProd(const FklGrammerProduction *p);
 
 FklGrammerProduction *fklCreateSimpleActionProd(FklCodegenCtx *cg_ctx,
-        struct FklVMvalue *action,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms);
+        const FklGrammerSym *syms,
+        struct FklVMvalue *action);
+int fklIsSimpleActionProd(const FklGrammerProduction *p);
 
 FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms,
+        const FklGrammerSym *syms,
         FklVMvalue *ast);
+int fklIsReplaceActionProd(const FklGrammerProduction *p);
 
 FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
-        FklVMvalue *id,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        FklGrammerSym *syms);
-
-void fklMarkCodegenProd(FklVMgc *gc, const FklGrammerProduction *prod);
+        const FklGrammerSym *syms,
+        FklVMvalue *id);
 
 FKL_DEPRECATED
 const FklSimpleProdAction *fklGetSimpleProdActions(void);
 
-void fklWriteNamedProds(const FklGraProdGroupHashMap *named_prod_groups,
-        FILE *fp);
-
+FKL_DEPRECATED
 void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod);
 
-void fklLoadNamedProds(FklGraProdGroupHashMap *ht,
-        FklVMgc *st,
-        FklCodegenCtx *ctx,
-        FILE *fp);
-
+FKL_DEPRECATED
 void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
         uint32_t lib_count,
         uint32_t macro_lib_count,
@@ -754,13 +700,6 @@ void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
 FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
         FklVMvalue *group,
         FklVMvalue *sid);
-
-void fklWriteExportNamedProds(const FklVMvalueHashSet *export_named_prod_groups,
-        const FklGraProdGroupHashMap *named_prod_groups,
-        FILE *fp);
-
-void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *args);
-void fklReadCodeFile(FILE *fp, FklReadCodeFileArgs *args);
 
 #ifdef __cplusplus
 }

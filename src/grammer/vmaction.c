@@ -241,7 +241,8 @@ static inline void *prod_action_quote(void *ctx,
         size_t line) {
     const FklVMparseCtx *c = ctx;
     FklVM *exe = c->exe;
-    FklVMvalue *head = fklVMaddSymbolCstr(exe, "quote");
+    FKL_ASSERT(exe->gc->sym_quote);
+    FklVMvalue *head = exe->gc->sym_quote;
     FklVMvalue *rest = nodes[1].ast;
 
     FklVMvalue *items[] = { head, rest };
@@ -255,7 +256,8 @@ static inline void *prod_action_unquote(void *ctx,
         size_t line) {
     const FklVMparseCtx *c = ctx;
     FklVM *exe = c->exe;
-    FklVMvalue *head = fklVMaddSymbolCstr(exe, "unquote");
+    FKL_ASSERT(exe->gc->sym_unquote);
+    FklVMvalue *head = exe->gc->sym_unquote;
     FklVMvalue *rest = nodes[1].ast;
 
     FklVMvalue *items[] = { head, rest };
@@ -269,7 +271,8 @@ static inline void *prod_action_qsquote(void *ctx,
         size_t line) {
     const FklVMparseCtx *c = ctx;
     FklVM *exe = c->exe;
-    FklVMvalue *head = fklVMaddSymbolCstr(exe, "qsquote");
+    FKL_ASSERT(exe->gc->sym_qsquote);
+    FklVMvalue *head = exe->gc->sym_qsquote;
     FklVMvalue *rest = nodes[1].ast;
 
     FklVMvalue *items[] = { head, rest };
@@ -283,7 +286,8 @@ static inline void *prod_action_unqtesp(void *ctx,
         size_t line) {
     const FklVMparseCtx *c = ctx;
     FklVM *exe = c->exe;
-    FklVMvalue *head = fklVMaddSymbolCstr(exe, "unqtesp");
+    FKL_ASSERT(exe->gc->sym_unqtesp);
+    FklVMvalue *head = exe->gc->sym_unqtesp;
     FklVMvalue *rest = nodes[1].ast;
 
     FklVMvalue *items[] = { head, rest };

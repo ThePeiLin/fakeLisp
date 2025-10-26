@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
+#include <fakeLisp/code_lw.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
@@ -6946,24 +6947,35 @@ static inline void codegen_import_helper(FklVMvalue *origExp,
     else if (fklIsAccessibleRegFile(preCompileFileName)) {
         size_t libId = check_loaded_lib(preCompileFileName, codegen->libraries);
         if (!libId) {
-            char *errorStr = NULL;
-            if (fklLoadPreCompile(&codegen->pts->p,
-                        &codegen->ctx->macro_pts->p,
-                        codegen->libraries,
-                        &codegen->ctx->macro_libraries,
-                        codegen->ctx->gc,
-                        codegen->ctx,
-                        preCompileFileName,
-                        NULL,
-                        &errorStr)) {
-                if (errorStr) {
-                    fprintf(stderr, "%s\n", errorStr);
-                    fklZfree(errorStr);
-                }
+            FILE *fp = fopen(preCompileFileName, "rb");
+            if (fp == NULL) {
                 errorState->type = FKL_ERR_IMPORTFAILED;
                 errorState->place = name;
                 goto exit;
             }
+
+            FklCodegenCtx *ctx = codegen->ctx;
+
+            FklLoadPreCompileArgs args = {
+                .ctx = ctx,
+                .libraries = codegen->libraries,
+                .macro_libraries = &ctx->macro_libraries,
+                .pts = codegen->pts,
+                .macro_pts = ctx->pts,
+            };
+
+            if (fklLoadPreCompile(fp, preCompileFileName, &args)) {
+                if (args.error) {
+                    fprintf(stderr, "%s\n", args.error);
+                    fklZfree(args.error);
+                    args.error = NULL;
+                }
+
+                errorState->type = FKL_ERR_IMPORTFAILED;
+                errorState->place = name;
+                goto exit;
+            }
+
             libId = codegen->libraries->size;
         }
         const FklCodegenLib *lib = &codegen->libraries->base[libId - 1];
@@ -7885,7 +7897,7 @@ static void _adding_production_ctx_finalizer(void *data) {
 static void _adding_production_ctx_atomic(FklVMgc *gc, void *data) {
     AddingProductionCtx *ctx = data;
     if (ctx->prod) {
-        fklMarkCodegenProd(gc, ctx->prod);
+        fklVMgcMarkGrammerProd(gc, ctx->prod, NULL);
     }
     // fklDestroyNastNode(ctx->vec);
     fklVMgcToGray(ctx->vec, gc);
@@ -8062,11 +8074,11 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
             goto error_happened;
         }
         FklGrammerProduction *prod = fklCreateBuiltinActionProd(codegen->ctx,
-                action_ast,
                 left_group,
                 left_sid,
                 other_args.len,
-                other_args.syms);
+                other_args.syms,
+                action_ast);
 
         if (prod == NULL) {
             args->err_node = action_ast;
@@ -8121,11 +8133,11 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
         // }
 
         FklGrammerProduction *prod = fklCreateSimpleActionProd(codegen->ctx,
-                action_ast,
                 left_group,
                 left_sid,
                 other_args.len,
-                other_args.syms);
+                other_args.syms,
+                action_ast);
 
         if (prod == NULL) {
             args->err_node = action_ast;
@@ -8782,6 +8794,13 @@ static inline void mark_codegen_lib(FklVMgc *gc, const FklCodegenLib *lib) {
             fklVMgcToGray(cur->k, gc);
             fklVMgcToGray(cur->v, gc);
         }
+        for (const FklGraProdGroupHashMapNode *cur =
+                        lib->named_prod_groups.first;
+                cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
+        }
 
         break;
     case FKL_CODEGEN_LIB_DLL:
@@ -8861,8 +8880,6 @@ void fklInitCodegenCtxExceptPattern(FklCodegenCtx *ctx,
                            : fklCreateVMvalueProtos(&gc->gcvm, 0);
 
     ctx->gc = gc;
-
-    fklInitGlobalVMclosureForGC(ctx->gc);
 
     fklVMpushExtraMarkFunc(ctx->gc, codegen_ctx_extra_mark_func, NULL, ctx);
 

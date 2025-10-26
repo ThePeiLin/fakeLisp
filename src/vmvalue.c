@@ -1363,11 +1363,11 @@ FklVMvalue *fklVMbigIntSubI(FklVM *exe, const FklVMbigInt *a, int64_t b) {
 }
 
 FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
-        FklInstruction *spc,
+        const FklInstruction *spc,
         uint64_t cpc,
         FklVMvalue *codeObj,
         uint32_t pid,
-        FklVMvalueProtos *pts) {
+        const FklVMvalueProtos *pts) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueProc);
     FKL_ASSERT(r);
     r->type = FKL_TYPE_PROC;
@@ -1375,7 +1375,7 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
 
     FklFuncPrototype *pt = &pts->p.pa[pid];
 
-    proc->pts = pts;
+    proc->pts = FKL_TYPE_CAST(FklVMvalueProtos *, pts);
     proc->spc = spc;
     proc->end = spc + cpc;
     proc->name = pt->name;
@@ -1391,7 +1391,7 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
 FklVMvalue *fklCreateVMvalueProc(FklVM *exe,
         FklVMvalue *codeObj,
         uint32_t pid,
-        FklVMvalueProtos *pts) {
+        const FklVMvalueProtos *pts) {
     FklByteCode *bc = &FKL_VM_CO(codeObj)->bc;
     return fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, pid, pts);
 }
@@ -1456,6 +1456,12 @@ static FklVMudMetaTable CodeObjUserDataMetaTable = {
     .__atomic = __code_obj_atomic,
     .__finalizer = _code_obj_userdata_finalizer,
 };
+
+FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *exe) {
+    FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
+    fklInitByteCodelnt(FKL_VM_CO(r), 0);
+    return r;
+}
 
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
@@ -1578,6 +1584,14 @@ int fklIsVMvalueLibs(FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LibsUserDataMetaTable;
 }
 
+void fklVMvalueLibsReserve(FklVMvalueLibs *l, uint64_t count) {
+    size_t new_size = (count + 1) * sizeof(FklVMlib);
+    l->libs = (FklVMlib *)fklZrealloc(l->libs, new_size);
+    FKL_ASSERT(l->libs);
+
+    l->count = count;
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_protos_userdata_as_print, "protos");
 
 static void _protos_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
@@ -1661,7 +1675,10 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
 
 #undef NEW_OBJ
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_eof_userdata_as_print, "eof");
+static void
+_eof_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+    fklStringBufferPrintf(buf, "#<eof>", ud);
+}
 
 static FklVMudMetaTable EofUserDataMetaTable = {
     .size = 0,

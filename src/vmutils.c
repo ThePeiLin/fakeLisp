@@ -465,15 +465,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
     fklVMvalueVectorUninit(&stack);
 }
 
-static inline void scan_cir_ref(const FklVMvalue *s,
-        VmCircleHeadHashMap *circle_head_set) {
-    VmValueDegreeHashMap degree_table;
-    vmValueDegreeHashMapInit(&degree_table);
-    scan_value_and_find_value_in_circle(&degree_table, circle_head_set, s);
-    vmValueDegreeHashMapUninit(&degree_table);
-}
-
-static inline void traverse_value(const FklVMvalue *first_value,
+static inline void traverse_value_dfs(const FklVMvalue *first_value,
         int (*callback)(const FklVMvalue *v, void *ctx),
         void *ctx) {
     FklVMvalueHashSet value_set;
@@ -516,6 +508,51 @@ static inline void traverse_value(const FklVMvalue *first_value,
 
     fklVMvalueHashSetUninit(&value_set);
     fklVMvalueVectorUninit(&stack);
+}
+
+static inline void traverse_value_bfs(const FklVMvalue *first_value,
+        int (*callback)(const FklVMvalue *v, void *ctx),
+        void *ctx) {
+    FklVMvalueHashSet value_set;
+    fklVMvalueHashSetInit(&value_set);
+
+    FklVMvalueQueue queue;
+    fklVMvalueQueueInit(&queue);
+
+    fklVMvalueQueuePush2(&queue, FKL_TYPE_CAST(FklVMvalue *, first_value));
+    while (!fklVMvalueQueueIsEmpty(&queue)) {
+        FklVMvalue *v = *fklVMvalueQueuePopNonNull(&queue);
+        if (callback(v, ctx))
+            break;
+        if (FKL_IS_PAIR(v)) {
+            if (!fklVMvalueHashSetPut2(&value_set, v)) {
+                fklVMvalueQueuePush2(&queue, FKL_VM_CDR(v));
+                fklVMvalueQueuePush2(&queue, FKL_VM_CAR(v));
+            }
+        } else if (FKL_IS_VECTOR(v)) {
+            if (!fklVMvalueHashSetPut2(&value_set, v)) {
+                FklVMvec *vec = FKL_VM_VEC(v);
+                for (size_t i = vec->size; i > 0; i--)
+                    fklVMvalueQueuePush2(&queue, vec->base[i - 1]);
+            }
+        } else if (FKL_IS_BOX(v)) {
+            if (!fklVMvalueHashSetPut2(&value_set, v)) {
+                fklVMvalueQueuePush2(&queue, FKL_VM_BOX(v));
+            }
+        } else if (FKL_IS_HASHTABLE(v)) {
+            if (!fklVMvalueHashSetPut2(&value_set, v)) {
+                for (FklVMvalueHashMapNode *tail = FKL_VM_HASH(v)->ht.last;
+                        tail;
+                        tail = tail->prev) {
+                    fklVMvalueQueuePush2(&queue, tail->v);
+                    fklVMvalueQueuePush2(&queue, tail->k);
+                }
+            }
+        }
+    }
+
+    fklVMvalueHashSetUninit(&value_set);
+    fklVMvalueQueueUninit(&queue);
 }
 
 static int has_circle_ref_cb(const FklVMvalue *v, void *ctx) {
@@ -580,7 +617,7 @@ int fklHasCircleRef(const FklVMvalue *v) {
     VmValueDegreeHashMap degree_table;
     vmValueDegreeHashMapInit(&degree_table);
 
-    traverse_value(v, has_circle_ref_cb, &degree_table);
+    traverse_value_dfs(v, has_circle_ref_cb, &degree_table);
 
     dec_value_degree(&degree_table, FKL_TYPE_CAST(FklVMvalue *, v));
 
@@ -592,7 +629,7 @@ int fklHasCircleRef(const FklVMvalue *v) {
     return r;
 }
 
-static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
+int fklIsSerializableLeafNode(const FklVMvalue *v) {
     return v == FKL_VM_NIL ||      //
            FKL_IS_FIX(v) ||        //
            FKL_IS_CHR(v) ||        //
@@ -600,12 +637,16 @@ static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
            FKL_IS_BIGINT(v) ||     //
            FKL_IS_STR(v) ||        //
            FKL_IS_SYM(v) ||        //
-           FKL_IS_VECTOR(v) ||     //
-           FKL_IS_PAIR(v) ||       //
-           FKL_IS_BOX(v) ||        //
            FKL_IS_BYTEVECTOR(v) || //
-           FKL_IS_HASHTABLE(v) ||  //
            fklIsVMvalueSlot(v);
+}
+
+static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
+    return fklIsSerializableLeafNode(v) || //
+           FKL_IS_VECTOR(v) ||             //
+           FKL_IS_PAIR(v) ||               //
+           FKL_IS_BOX(v) ||                //
+           FKL_IS_HASHTABLE(v);
 }
 
 struct SerializableCtx {
@@ -643,7 +684,7 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *v) {
     struct SerializableCtx ctx = { .degree_table = &degree_table, .r = 0 };
 
     int r = 1;
-    traverse_value(v, serializable_to_bytecode_file_cb, &ctx);
+    traverse_value_dfs(v, serializable_to_bytecode_file_cb, &ctx);
     if (ctx.r) {
         r = 0;
         goto exit;
@@ -874,6 +915,14 @@ static inline void init_common_print_ctx(PrintCtx *ctx, FklValueType type) {
     ctx->type = type;
     ctx->state = PRINT_METHOD_FIRST;
     ctx->place = PRT_CAR;
+}
+
+static inline void scan_cir_ref(const FklVMvalue *s,
+        VmCircleHeadHashMap *circle_head_set) {
+    VmValueDegreeHashMap degree_table;
+    vmValueDegreeHashMapInit(&degree_table);
+    scan_value_and_find_value_in_circle(&degree_table, circle_head_set, s);
+    vmValueDegreeHashMapUninit(&degree_table);
 }
 
 #define PRINT_INCLUDED
@@ -2166,9 +2215,76 @@ void fklUninitValueTable(FklValueTable *t) {
 }
 
 uint64_t fklValueTableAdd(FklValueTable *t, FklVMvalue *v) {
-    FKL_ASSERT(v);
+    if (v == NULL)
+        return 0;
     uint64_t *n = fklVMvalueIdHashMapPut2(&t->ht, v, t->next_id);
-    if (n != NULL)
-        return *n;
-    return t->next_id++;
+    uint64_t r = n == NULL ? t->next_id++ : *n;
+    FKL_ASSERT(r);
+    return r;
+}
+
+uint64_t fklValueTableGet(const FklValueTable *t, FklVMvalue *v) {
+    if (v == NULL)
+        return 0;
+    uint64_t *n = fklVMvalueIdHashMapGet2(&t->ht, v);
+    if (n == NULL)
+        return 0;
+    return *n;
+}
+
+struct TraverseSerializableArgs {
+    FklVMvalueVector *leafs;
+    FklVMvalueVector *non_leafs;
+};
+
+static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
+    struct TraverseSerializableArgs *args = ctx;
+    FKL_ASSERT(is_serializable_to_bytecode_value(v));
+    if (fklIsSerializableLeafNode(v))
+        fklVMvalueVectorPushBack2(args->leafs, FKL_TYPE_CAST(FklVMvalue *, v));
+    else
+        fklVMvalueVectorPushBack2(args->non_leafs,
+                FKL_TYPE_CAST(FklVMvalue *, v));
+    return 0;
+}
+
+void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v) {
+    if (v == NULL)
+        return;
+    if (fklIsSerializableLeafNode(v)) {
+        if (fklIsVMvalueSlot(v))
+            fklValueTableAdd(t, v);
+        fklValueTableAdd(t, v);
+        return;
+    }
+
+    FklVMvalueVector leafs;
+    FklVMvalueVector non_leafs;
+
+    fklVMvalueVectorInit(&leafs, 8);
+    fklVMvalueVectorInit(&non_leafs, 8);
+
+    struct TraverseSerializableArgs args = {
+        .leafs = &leafs,
+        .non_leafs = &non_leafs,
+    };
+
+    traverse_value_bfs(v, traverse_serializable_value_cb, &args);
+
+    for (size_t i = 0; i < leafs.size; ++i) {
+        FklVMvalue *v = leafs.base[i];
+        if (fklIsVMvalueSlot(v)) {
+            FklVMvalueSlot *s = FKL_TYPE_CAST(FklVMvalueSlot *, v);
+            fklValueTableAdd(t, s->s);
+        }
+        fklValueTableAdd(t, v);
+    }
+
+    for (size_t i = non_leafs.size; i > 0; --i) {
+        FklVMvalue *v = non_leafs.base[i - 1];
+        fklValueTableAdd(t, v);
+    }
+
+    fklVMvalueVectorUninit(&leafs);
+    fklVMvalueVectorUninit(&non_leafs);
 }

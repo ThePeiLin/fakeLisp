@@ -59,9 +59,9 @@ typedef struct FklFuncPrototype {
     uint32_t lcount;
     struct FklVMvalue *name;
     struct FklVMvalue *file;
+    uint64_t line;
     struct FklVMvalue **konsts;
 	uint32_t konsts_count;
-    uint64_t line;
 } FklFuncPrototype;
 
 typedef struct {
@@ -73,9 +73,6 @@ void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
 void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
 
 uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts);
-
-void fklWriteFuncPrototypes(const FklFuncPrototypes *pts, FILE *fp);
-FklFuncPrototypes *fklLoadFuncPrototypes(FILE *fp);
 
 void fklUninitFuncPrototype(FklFuncPrototype *p);
 void fklDestroyFuncPrototypes(FklFuncPrototypes *p);

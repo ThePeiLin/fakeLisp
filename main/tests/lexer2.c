@@ -31,6 +31,7 @@ int main() {
 
     fklInitParserGrammerParseArg(&args,
             g,
+			gc,
             1,
             builtin_prod_action_resolver,
             NULL);

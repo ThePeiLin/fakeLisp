@@ -98,7 +98,12 @@ static inline FklGrammer *create_grammer_with_cstr(FklVM *vm,
     FklParserGrammerParseArg args;
     FklGrammer *g = fklCreateEmptyGrammer(vm);
 
-    fklInitParserGrammerParseArg(&args, g, 1, test_prod_action_resolver, NULL);
+    fklInitParserGrammerParseArg(&args,
+            g,
+            vm->gc,
+            1,
+            test_prod_action_resolver,
+            NULL);
     int err = fklParseProductionRuleWithCstr(&args, rules);
     if (err) {
         fklPrintParserGrammerParseError(err, &args, stderr);

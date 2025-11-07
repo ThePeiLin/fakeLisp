@@ -1618,7 +1618,6 @@ void fklInitEmptyGrammer(FklGrammer *r, struct FklVM *vm) {
     fklInitStringTable(&r->terminals);
     fklInitStringTable(&r->delimiters);
     fklInitRegexTable(&r->regexes);
-    r->gc = vm->gc;
     fklFirstSetHashMapInit(&r->firstSets);
     fklProdHashMapInit(&r->productions);
     fklInitBuiltinGrammerSymTable(&r->builtins, vm);
@@ -4811,7 +4810,7 @@ void fklPrintGrammerProduction2(const FklGrammerProduction *prod,
     size_t len = prod->len;
     const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
-		fklStringBufferClear(&buf);
+        fklStringBufferClear(&buf);
         CB_FMT(" ");
         print_prod_sym2(&syms[i], rt, &buf, build);
         ++i;
@@ -4997,6 +4996,7 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklVM *vm) {
 
     fklInitParserGrammerParseArg(&args,
             g,
+            vm->gc,
             1,
             builtin_prod_action_resolver,
             NULL);
@@ -5023,10 +5023,11 @@ FklGrammer *fklCreateBuiltinGrammer(FklVM *vm) {
     return g;
 }
 
-FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g) {
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g, FklVMgc *gc) {
     FklParserGrammerParseArg args;
     fklInitParserGrammerParseArg(&args,
             g,
+            gc,
             1,
             builtin_prod_action_resolver,
             NULL);

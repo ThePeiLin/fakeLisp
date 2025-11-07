@@ -165,10 +165,12 @@ typedef enum {
     FKL_CODEGEN_PROD_REPLACE,
 } FklCodegenProdActionType;
 
+#define FKL_GRAMMER_GROUP_INITED (0x1)
+#define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
 typedef struct {
-    int is_ref_outer;
     FklStringTable delimiters;
     FklGrammer g;
+    int flags;
 } FklGrammerProdGroupItem;
 
 // FklGraProdGroupHashMap

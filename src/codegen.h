@@ -29,9 +29,10 @@ static inline FklGrammerProdGroupItem *add_production_group(
         FklVMvalue *group_id) {
     FklGrammerProdGroupItem *group =
             fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
-    if (!group->g.gc) {
+    if ((group->flags & FKL_GRAMMER_GROUP_INITED) == 0) {
         fklInitEmptyGrammer(&group->g, &gc->gcvm);
         fklInitStringTable(&group->delimiters);
+        group->flags |= FKL_GRAMMER_GROUP_INITED;
     }
     return group;
 }

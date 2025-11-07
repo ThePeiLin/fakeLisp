@@ -21,6 +21,7 @@ struct FklGrammerSym;
 struct FklAnalysisSymbol;
 struct FklVMvalue;
 struct FklVM;
+struct FklVMgc;
 
 typedef struct {
     size_t maxNonterminalLen;
@@ -453,7 +454,6 @@ typedef struct FklGrammerIgnore {
 } FklGrammerIgnore;
 
 typedef struct FklGrammer {
-    struct FklVMgc *gc;
     FklStringTable terminals;
 
     FklStringTable delimiters;
@@ -664,7 +664,8 @@ typedef union FklParseState {
 #define FKL_VECTOR_ELM_TYPE_NAME ParseState
 #include "cont/vector.h"
 
-FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g);
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g,
+        struct FklVMgc *gc);
 
 void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s,
         struct FklVM *st);

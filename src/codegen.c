@@ -5718,7 +5718,7 @@ static inline int is_exporting_outer_ref_group(FklVMvalueCodegenInfo *codegen) {
         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, sid_list->k);
         FklGrammerProdGroupItem *group =
                 fklGraProdGroupHashMapGet2(codegen->named_prod_groups, id);
-        if (group->is_ref_outer)
+        if ((group->flags & FKL_GRAMMER_GROUP_HAS_OUTER_REF) != 0)
             return 1;
     }
     return 0;
@@ -7962,6 +7962,16 @@ static inline int check_group_outer_ref(FklVMvalueCodegenInfo *codegen,
     return is_ref_outer;
 }
 
+static inline int has_outer_ref(const FklVMvalueCodegenInfo *c,
+        FklVMvalue *id) {
+    return (c->export_named_prod_groups
+            && fklVMvalueHashSetHas2(c->export_named_prod_groups, id)
+            && (FKL_GRAMMER_GROUP_HAS_OUTER_REF
+                       & fklGraProdGroupHashMapGet2(c->named_prod_groups, id)
+                               ->flags)
+                       != 0);
+}
+
 BC_PROCESS(process_adding_production) {
     AddingProductionCtx *prod_ctx = FKL_TYPE_CAST(AddingProductionCtx *, data);
     FklVMvalue *group_id = prod_ctx->group_id;
@@ -8007,14 +8017,12 @@ BC_PROCESS(process_adding_production) {
                 goto reader_macro_error;
             }
         }
-        group->is_ref_outer =
-                check_group_outer_ref(codegen, &group->g.productions, group_id);
+
+        if (check_group_outer_ref(codegen, &group->g.productions, group_id))
+            group->flags |= FKL_GRAMMER_GROUP_HAS_OUTER_REF;
     }
-    if (codegen->export_named_prod_groups
-            && fklVMvalueHashSetHas2(codegen->export_named_prod_groups,
-                    group_id)
-            && fklGraProdGroupHashMapGet2(codegen->named_prod_groups, group_id)
-                    ->is_ref_outer) {
+
+    if (has_outer_ref(codegen, group_id)) {
         errorState->type = FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP;
         errorState->line = line;
         errorState->place = NULL;

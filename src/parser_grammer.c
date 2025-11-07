@@ -555,7 +555,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
     fklGraSymVectorInit(&gsym_vector, 2);
 
     int has_ignore = 0;
-    FklVM *gcvm = &arg->g->gc->gcvm;
+    FklVM *gcvm = &arg->gc->gcvm;
 
     const char *action_name = NULL;
     FklProdActionFunc action_func = NULL;
@@ -842,9 +842,8 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
                 invalid_left_part_error(arg, &token);
             }
 
-            arg->current_nonterm = fklVMaddSymbolCharBuf(&arg->g->gc->gcvm,
-                    token.str,
-                    token.len);
+            arg->current_nonterm =
+                    fklVMaddSymbolCharBuf(&arg->gc->gcvm, token.str, token.len);
             arg->state = FKL_PARSER_GRAMMER_ADDING_PRODUCTION;
             buf = parse_right_part(arg, &err, buf, end);
             if (err)

@@ -42,7 +42,7 @@ int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklGrammer *g = fklCreateEmptyGrammer(&gc->gcvm);
     FklParserGrammerParseArg args;
-    fklInitParserGrammerParseArg(&args, g, 1, resolver, NULL);
+    fklInitParserGrammerParseArg(&args, g, gc, 1, resolver, NULL);
 
     int err = fklParseProductionRuleWithCstr(&args, prod_rule);
     if (err) {

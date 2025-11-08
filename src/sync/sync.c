@@ -460,7 +460,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
     FKL_DECL_VM_UD_DATA(pd, SyncPublicData, spd);
 
-    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) { init_sync_public_data(pd, exe); }
+    init_sync_public_data(pd, exe);
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;

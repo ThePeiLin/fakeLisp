@@ -38,7 +38,7 @@ void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption opt) {
     }
 }
 
-static inline int fuv_req_ud_finalizer(FklVMud *ud) {
+static inline int fuv_req_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(req, FuvReq, ud);
     if (req->data.loop) {
         FklVMvalue *v = FKL_VM_VALUE_OF(ud);
@@ -49,9 +49,9 @@ static inline int fuv_req_ud_finalizer(FklVMud *ud) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static int fuv_fs_req_ud_finalizer(FklVMud *ud) {
+static int fuv_fs_req_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(req, FuvFsReq, ud);
-    if (fuv_req_ud_finalizer(ud))
+    if (fuv_req_ud_finalizer(ud, gc))
         return FKL_VM_UD_FINALIZE_DELAY;
     fuvFsReqCleanUp(req, FUV_FS_REQ_CLEANUP_IN_FINALIZING);
     return FKL_VM_UD_FINALIZE_NOW;

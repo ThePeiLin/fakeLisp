@@ -40,7 +40,7 @@
     (sync)
     (cir-ref)
     (remq)
-    ;; (fuv)
+    (fuv)
     (lisp-by-lisp)
     (dvec-and-append)
     (sort)

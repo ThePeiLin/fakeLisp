@@ -917,8 +917,6 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *,
         uint32_t llast,
         uint32_t *pllast);
 
-#define FKL_VM_ACQUIRE_ST_BLOCK(gc, flag) fklDeprecatedFunc();
-
 FklVMvalue *fklVMaddSymbol(FklVM *, const FklString *str);
 FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
 FklVMvalue *fklVMaddSymbolCharBuf(FklVM *, const char *str, size_t);

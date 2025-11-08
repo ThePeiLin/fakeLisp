@@ -317,10 +317,25 @@ add_fkl_native_module(bdb
     SRC ${BDB_SOURCE}
     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
+# fuv-header
+set(FUV_HEADER fuv-header)
+set(FUV_MACRO_HEADER "${GENERATED_HEADER_DIR}/fuv-macros.h")
+file(GLOB FUV_HEADER_SOURCE
+	"main/fuv-header.c")
+
+add_executable(${FUV_HEADER} ${FUV_HEADER_SOURCE})
+target_link_libraries(${FUV_HEADER} argtable3 ${LINK_TARGET})
+
+add_custom_command(OUTPUT ${FUV_MACRO_HEADER}
+	COMMAND $<TARGET_FILE:${FUV_HEADER}>
+	"-o" ${FUV_MACRO_HEADER}
+	DEPENDS ${FUV_HEADER} ${GENERATED_HEADER_DIR}
+	VERBATIM)
+
 #fuv.so
 file(GLOB FUV_SOURCE "src/fuv/*.c")
 add_fkl_native_module(fuv
-    SRC ${FUV_SOURCE}
+	SRC ${FUV_SOURCE} ${FUV_MACRO_HEADER}
     LIB $<$<BOOL:${MSVC}>:ws2_32>
     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
@@ -405,11 +420,11 @@ add_custom_target(MAKE_GENERATED_HEADER_DIR ALL
 
 function(add_bin2h dir name)
 	add_custom_command(OUTPUT "${GENERATED_HEADER_DIR}/${name}.h"
-	COMMAND $<TARGET_FILE:${BIN2H}>
-	"-o" "${GENERATED_HEADER_DIR}/${name}.h"
-	"-i" "${dir}/${name}"
-	DEPENDS ${BIN2H} ${dir}/${name} ${GENERATED_HEADER_DIR}
-	VERBATIM)
+		COMMAND $<TARGET_FILE:${BIN2H}>
+		"-o" "${GENERATED_HEADER_DIR}/${name}.h"
+		"-i" "${dir}/${name}"
+		DEPENDS ${BIN2H} ${dir}/${name} ${GENERATED_HEADER_DIR}
+		VERBATIM)
 endfunction()
 
 add_bin2h(${PROJECT_SOURCE_DIR} "lisp.g")

@@ -75,9 +75,78 @@
         raiseUvError((R), (EXE), PD);                                          \
     }
 
+#define COUNT_ARRAY(A) (sizeof(A) / sizeof(A[0]))
+
+static void fuv_public_data_atomic(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(fpd, FuvPublicData, ud);
+#define XX(A, B, C) fklVMgcToGray(fpd->A##_sid, gc);
+    FUV_SYMBOLS_MAP(XX)
+#undef XX
+}
+
 static FklVMudMetaTable FuvPublicDataMetaTable = {
     .size = sizeof(FuvPublicData),
+    .__atomic = fuv_public_data_atomic,
 };
+
+static inline FklVMvalue *
+create_uv_error(int err_id, FklVM *exe, const FuvPublicData *fpd) {
+    FklVMvalue *id = 0;
+    switch (err_id) {
+#define XX(code, b, _)                                                         \
+    case code:                                                                 \
+        id = fpd->code##_sid;                                                  \
+        break;
+
+        FUV_UV_ERRNO_MAP(XX);
+    default:
+        id = fpd->UV_UNKNOWN_sid;
+    }
+    return fklCreateVMvalueError(exe,
+            id,
+            fklCreateVMvalueStrFromCstr(exe, uv_strerror(err_id)));
+#undef XX
+}
+
+static inline FklVMvalue *
+createUvError2(int err_id, FklVM *exe, const FuvPublicData *fpd) {
+    return create_uv_error(err_id, exe, fpd);
+}
+
+static inline FklVMvalue *createUvError(int err_id, FklVM *exe, FklVMvalue *v) {
+    FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, v);
+    return create_uv_error(err_id, exe, fpd);
+}
+
+static inline noreturn void
+raiseUvError(int err_id, FklVM *exe, FklVMvalue *v) {
+    FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, v);
+    fklRaiseVMerror(create_uv_error(err_id, exe, fpd), exe);
+}
+
+static inline noreturn void
+raiseFuvError(FuvErrorType err, FklVM *exe, FklVMvalue *pd_obj) {
+    FKL_DECL_VM_UD_DATA(pd, FuvPublicData, pd_obj);
+    FklVMvalue *sid = NULL;
+    const char *msg = NULL;
+    switch (err) {
+    default:
+        FKL_UNREACHABLE();
+        break;
+#define XX(A, B, C)                                                            \
+    case A:                                                                    \
+        sid = pd->A##_sid;                                                     \
+        msg = C;                                                               \
+        break;
+        FUV_ERROR_MAP(XX)
+#undef XX
+    }
+
+    FklVMvalue *ev = fklCreateVMvalueError(exe,
+            sid,
+            fklCreateVMvalueStrFromCstr(exe, msg));
+    fklRaiseVMerror(ev, exe);
+}
 
 static inline void cleanup_handle(FklVMvalue *handle_obj,
         FklVMvalue *loop_obj) {
@@ -90,437 +159,10 @@ static inline void cleanup_handle(FklVMvalue *handle_obj,
     fuvHandleClose(fuv_handle, NULL);
 }
 
-static inline void init_fuv_public_data(FuvPublicData *pd, FklSymbolTable *st) {
-    static const char *loop_mode[] = {
-        "default",
-        "once",
-        "nowait",
-    };
-    pd->loop_mode[UV_RUN_DEFAULT] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_DEFAULT], st);
-    pd->loop_mode[UV_RUN_ONCE] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_ONCE], st);
-    pd->loop_mode[UV_RUN_NOWAIT] =
-            fklAddSymbolCstr(loop_mode[UV_RUN_NOWAIT], st);
-
-    static const char *fuv_err_sym[] = {
-        "dummy",
-        "fuv-handle-error",
-        "fuv-handle-error",
-        "fuv-req-error",
-        "fuv-dir-error",
-        "value-error",
-    };
-    for (size_t i = 0; i < FUV_ERR_NUM; i++)
-        pd->fuv_err_sid[i] = fklAddSymbolCstr(fuv_err_sym[i], st);
-
-    static const char *loop_config_sym[] = {
-        "loop-block-signal",
-        "metrics-idle-time",
-        "loop-use-io-uring-sqpoll",
-    };
-    pd->loop_block_signal_sid =
-            fklAddSymbolCstr(loop_config_sym[UV_LOOP_BLOCK_SIGNAL], st);
-    pd->metrics_idle_time_sid =
-            fklAddSymbolCstr(loop_config_sym[UV_METRICS_IDLE_TIME], st);
-    pd->loop_use_io_uring_sqpoll =
-            fklAddSymbolCstr(loop_config_sym[UV_LOOP_USE_IO_URING_SQPOLL], st)
-                    ;
-
-#define XX(code, _)                                                            \
-    pd->uv_err_sid_##code = fklAddSymbolCstr("UV_" #code, st);
-    UV_ERRNO_MAP(XX);
+static inline void init_fuv_public_data(FuvPublicData *fpd, FklVM *vm) {
+#define XX(A, B, C) fpd->A##_sid = fklVMaddSymbolCstr(vm, B);
+    FUV_SYMBOLS_MAP(XX)
 #undef XX
-
-    pd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid =
-            fklAddSymbolCstr("verbatim", st);
-    pd->UV_PROCESS_DETACHED_sid = fklAddSymbolCstr("detached", st);
-    pd->UV_PROCESS_WINDOWS_HIDE_sid = fklAddSymbolCstr("hide", st);
-    pd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid =
-            fklAddSymbolCstr("hide-console", st);
-    pd->UV_PROCESS_WINDOWS_HIDE_GUI_sid = fklAddSymbolCstr("hide-gui", st);
-
-    pd->UV_TTY_MODE_NORMAL_sid = fklAddSymbolCstr("normal", st);
-    pd->UV_TTY_MODE_RAW_sid = fklAddSymbolCstr("raw", st);
-    pd->UV_TTY_MODE_IO_sid = fklAddSymbolCstr("io", st);
-
-    pd->UV_TTY_SUPPORTED_sid = fklAddSymbolCstr("supported", st);
-    pd->UV_TTY_UNSUPPORTED_sid = fklAddSymbolCstr("unsupported", st);
-
-    pd->UV_UDP_IPV6ONLY_sid = fklAddSymbolCstr("ipv6only", st);
-    pd->UV_UDP_PARTIAL_sid = fklAddSymbolCstr("partial", st);
-    pd->UV_UDP_REUSEADDR_sid = fklAddSymbolCstr("reuseaddr", st);
-    pd->UV_UDP_MMSG_CHUNK_sid = fklAddSymbolCstr("mmsg-chunk", st);
-    pd->UV_UDP_MMSG_FREE_sid = fklAddSymbolCstr("mmsg-free", st);
-    pd->UV_UDP_LINUX_RECVERR_sid = fklAddSymbolCstr("linux-recverr", st);
-    pd->UV_UDP_RECVMMSG_sid = fklAddSymbolCstr("recvmmsg", st);
-
-    pd->UV_LEAVE_GROUP_sid = fklAddSymbolCstr("leave", st);
-    pd->UV_JOIN_GROUP_sid = fklAddSymbolCstr("join", st);
-
-    pd->AI_ADDRCONFIG_sid = fklAddSymbolCstr("addrconfig", st);
-#ifdef AI_V4MAPPED
-    pd->AI_V4MAPPED_sid = fklAddSymbolCstr("v4mapped", st);
-#endif
-#ifdef AI_ALL
-    pd->AI_ALL_sid = fklAddSymbolCstr("all", st);
-#endif
-    pd->AI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st);
-    pd->AI_PASSIVE_sid = fklAddSymbolCstr("passive", st);
-    pd->AI_NUMERICSERV_sid = fklAddSymbolCstr("numerserv", st);
-    pd->AI_CANONNAME_sid = fklAddSymbolCstr("canonname", st);
-
-    pd->f_ip_sid = fklAddSymbolCstr("ip", st);
-    pd->f_addr_sid = fklAddSymbolCstr("addr", st);
-    pd->f_port_sid = fklAddSymbolCstr("port", st);
-    pd->f_family_sid = fklAddSymbolCstr("family", st);
-    pd->f_socktype_sid = fklAddSymbolCstr("socktype", st);
-    pd->f_protocol_sid = fklAddSymbolCstr("protocol", st);
-    pd->f_canonname_sid = fklAddSymbolCstr("canonname", st);
-    pd->f_hostname_sid = fklAddSymbolCstr("hostname", st);
-    pd->f_service_sid = fklAddSymbolCstr("service", st);
-
-    pd->f_args_sid = fklAddSymbolCstr("args", st);
-    pd->f_env_sid = fklAddSymbolCstr("env", st);
-    pd->f_cwd_sid = fklAddSymbolCstr("cwd", st);
-    pd->f_stdio_sid = fklAddSymbolCstr("stdio", st);
-    pd->f_uid_sid = fklAddSymbolCstr("uid", st);
-    pd->f_gid_sid = fklAddSymbolCstr("gid", st);
-
-#ifdef AF_UNSPEC
-    pd->AF_UNSPEC_sid = fklAddSymbolCstr("unspec", st);
-#endif
-#ifdef AF_UNIX
-    pd->AF_UNIX_sid = fklAddSymbolCstr("unix", st);
-#endif
-#ifdef AF_INET
-    pd->AF_INET_sid = fklAddSymbolCstr("inet", st);
-#endif
-#ifdef AF_INET6
-    pd->AF_INET6_sid = fklAddSymbolCstr("inet6", st);
-#endif
-#ifdef AF_IPX
-    pd->AF_IPX_sid = fklAddSymbolCstr("ipx", st);
-#endif
-#ifdef AF_NETLINK
-    pd->AF_NETLINK_sid = fklAddSymbolCstr("netlink", st);
-#endif
-#ifdef AF_X25
-    pd->AF_X25_sid = fklAddSymbolCstr("x25", st);
-#endif
-#ifdef AF_AX25
-    pd->AF_AX25_sid = fklAddSymbolCstr("ax25", st);
-#endif
-#ifdef AF_ATMPVC
-    pd->AF_ATMPVC_sid = fklAddSymbolCstr("atmpvc", st);
-#endif
-#ifdef AF_APPLETALK
-    pd->AF_APPLETALK_sid = fklAddSymbolCstr("appletalk", st);
-#endif
-#ifdef AF_PACKET
-    pd->AF_PACKET_sid = fklAddSymbolCstr("packet", st);
-#endif
-
-#ifdef SOCK_STREAM
-    pd->SOCK_STREAM_sid = fklAddSymbolCstr("stream", st);
-#endif
-#ifdef SOCK_DGRAM
-    pd->SOCK_DGRAM_sid = fklAddSymbolCstr("dgram", st);
-#endif
-#ifdef SOCK_SEQPACKET
-    pd->SOCK_SEQPACKET_sid = fklAddSymbolCstr("seqpacket", st);
-#endif
-#ifdef SOCK_RAW
-    pd->SOCK_RAW_sid = fklAddSymbolCstr("raw", st);
-#endif
-#ifdef SOCK_RDM
-    pd->SOCK_RDM_sid = fklAddSymbolCstr("rdm", st);
-#endif
-
-#ifdef SIGHUP
-    pd->SIGHUP_sid = fklAddSymbolCstr("sighup", st);
-#endif
-#ifdef SIGINT
-    pd->SIGINT_sid = fklAddSymbolCstr("sigint", st);
-#endif
-#ifdef SIGQUIT
-    pd->SIGQUIT_sid = fklAddSymbolCstr("sigquit", st);
-#endif
-#ifdef SIGILL
-    pd->SIGILL_sid = fklAddSymbolCstr("sigill", st);
-#endif
-#ifdef SIGTRAP
-    pd->SIGTRAP_sid = fklAddSymbolCstr("sigtrap", st);
-#endif
-#ifdef SIGABRT
-    pd->SIGABRT_sid = fklAddSymbolCstr("sigabrt", st);
-#endif
-#ifdef SIGIOT
-    pd->SIGIOT_sid = fklAddSymbolCstr("sigiot", st);
-#endif
-#ifdef SIGBUS
-    pd->SIGBUS_sid = fklAddSymbolCstr("sigbus", st);
-#endif
-#ifdef SIGFPE
-    pd->SIGFPE_sid = fklAddSymbolCstr("sigfpe", st);
-#endif
-#ifdef SIGKILL
-    pd->SIGKILL_sid = fklAddSymbolCstr("sigkill", st);
-#endif
-#ifdef SIGUSR1
-    pd->SIGUSR1_sid = fklAddSymbolCstr("sigusr1", st);
-#endif
-#ifdef SIGSEGV
-    pd->SIGSEGV_sid = fklAddSymbolCstr("sigsegv", st);
-#endif
-#ifdef SIGUSR2
-    pd->SIGUSR2_sid = fklAddSymbolCstr("sigusr2", st);
-#endif
-#ifdef SIGPIPE
-    pd->SIGPIPE_sid = fklAddSymbolCstr("sigpipe", st);
-#endif
-#ifdef SIGALRM
-    pd->SIGALRM_sid = fklAddSymbolCstr("sigalrm", st);
-#endif
-#ifdef SIGTERM
-    pd->SIGTERM_sid = fklAddSymbolCstr("sigterm", st);
-#endif
-#ifdef SIGCHLD
-    pd->SIGCHLD_sid = fklAddSymbolCstr("sigchld", st);
-#endif
-#ifdef SIGSTKFLT
-    pd->SIGSTKFLT_sid = fklAddSymbolCstr("sigstkflt", st);
-#endif
-#ifdef SIGCONT
-    pd->SIGCONT_sid = fklAddSymbolCstr("sigcont", st);
-#endif
-#ifdef SIGSTOP
-    pd->SIGSTOP_sid = fklAddSymbolCstr("sigstop", st);
-#endif
-#ifdef SIGTSTP
-    pd->SIGTSTP_sid = fklAddSymbolCstr("sigtstp", st);
-#endif
-#ifdef SIGBREAK
-    pd->SIGBREAK_sid = fklAddSymbolCstr("sigbreak", st);
-#endif
-#ifdef SIGTTIN
-    pd->SIGTTIN_sid = fklAddSymbolCstr("sigttin", st);
-#endif
-#ifdef SIGTTOU
-    pd->SIGTTOU_sid = fklAddSymbolCstr("sigttou", st);
-#endif
-#ifdef SIGURG
-    pd->SIGURG_sid = fklAddSymbolCstr("sigurg", st);
-#endif
-#ifdef SIGXCPU
-    pd->SIGXCPU_sid = fklAddSymbolCstr("sigxcpu", st);
-#endif
-#ifdef SIGXFSZ
-    pd->SIGXFSZ_sid = fklAddSymbolCstr("sigxfsz", st);
-#endif
-#ifdef SIGVTALRM
-    pd->SIGVTALRM_sid = fklAddSymbolCstr("sigvtalrm", st);
-#endif
-#ifdef SIGPROF
-    pd->SIGPROF_sid = fklAddSymbolCstr("sigprof", st);
-#endif
-#ifdef SIGWINCH
-    pd->SIGWINCH_sid = fklAddSymbolCstr("sigwinch", st);
-#endif
-#ifdef SIGIO
-    pd->SIGIO_sid = fklAddSymbolCstr("sigio", st);
-#endif
-#ifdef SIGPOLL
-    pd->SIGPOLL_sid = fklAddSymbolCstr("sigpoll", st);
-#endif
-#ifdef SIGLOST
-    pd->SIGLOST_sid = fklAddSymbolCstr("siglost", st);
-#endif
-#ifdef SIGPWR
-    pd->SIGPWR_sid = fklAddSymbolCstr("sigpwr", st);
-#endif
-#ifdef SIGSYS
-    pd->SIGSYS_sid = fklAddSymbolCstr("sigsys", st);
-#endif
-
-#ifdef NI_NAMEREQD
-    pd->NI_NAMEREQD_sid = fklAddSymbolCstr("namereqd", st);
-#endif
-#ifdef NI_DGRAM
-    pd->NI_DGRAM_sid = fklAddSymbolCstr("dgram", st);
-#endif
-#ifdef NI_NOFQDN
-    pd->NI_NOFQDN_sid = fklAddSymbolCstr("nofqdn", st);
-#endif
-#ifdef NI_NUMERICHOST
-    pd->NI_NUMERICHOST_sid = fklAddSymbolCstr("numerichost", st);
-#endif
-#ifdef NI_NUMERICSERV
-    pd->NI_NUMERICSERV_sid = fklAddSymbolCstr("numericserv", st);
-#endif
-#ifdef NI_IDN
-    pd->NI_IDN_sid = fklAddSymbolCstr("idn", st);
-#endif
-#ifdef NI_IDN_ALLOW_UNASSIGNED
-    pd->NI_IDN_ALLOW_UNASSIGNED_sid =
-            fklAddSymbolCstr("idn-allow-unassigned", st);
-#endif
-#ifdef NI_IDN_USE_STD3_ASCII_RULES
-    pd->NI_IDN_USE_STD3_ASCII_RULES_sid =
-            fklAddSymbolCstr("idn-use-std3-ascii-rules", st);
-#endif
-
-    pd->UV_FS_O_APPEND_sid = fklAddSymbolCstr("append", st);
-    pd->UV_FS_O_CREAT_sid = fklAddSymbolCstr("creat", st);
-    pd->UV_FS_O_EXCL_sid = fklAddSymbolCstr("excl", st);
-    pd->UV_FS_O_FILEMAP_sid = fklAddSymbolCstr("filemap", st);
-    pd->UV_FS_O_RANDOM_sid = fklAddSymbolCstr("random", st);
-    pd->UV_FS_O_RDONLY_sid = fklAddSymbolCstr("rdonly", st);
-    pd->UV_FS_O_RDWR_sid = fklAddSymbolCstr("rdwr", st);
-    pd->UV_FS_O_SEQUENTIAL_sid = fklAddSymbolCstr("sequential", st);
-    pd->UV_FS_O_SHORT_LIVED_sid = fklAddSymbolCstr("short_lived", st);
-    pd->UV_FS_O_TEMPORARY_sid = fklAddSymbolCstr("temporary", st);
-    pd->UV_FS_O_TRUNC_sid = fklAddSymbolCstr("trunc", st);
-    pd->UV_FS_O_WRONLY_sid = fklAddSymbolCstr("wronly", st);
-    pd->UV_FS_O_DIRECT_sid = fklAddSymbolCstr("direct", st);
-    pd->UV_FS_O_DIRECTORY_sid = fklAddSymbolCstr("directory", st);
-    pd->UV_FS_O_DSYNC_sid = fklAddSymbolCstr("dsync", st);
-    pd->UV_FS_O_EXLOCK_sid = fklAddSymbolCstr("exlock", st);
-    pd->UV_FS_O_NOATIME_sid = fklAddSymbolCstr("noatime", st);
-    pd->UV_FS_O_NOCTTY_sid = fklAddSymbolCstr("noctty", st);
-    pd->UV_FS_O_NOFOLLOW_sid = fklAddSymbolCstr("nofollow", st);
-    pd->UV_FS_O_NONBLOCK_sid = fklAddSymbolCstr("nonblock", st);
-    pd->UV_FS_O_SYMLINK_sid = fklAddSymbolCstr("symlink", st);
-    pd->UV_FS_O_SYNC_sid = fklAddSymbolCstr("sync", st);
-
-    pd->UV_FS_SYMLINK_DIR_sid = fklAddSymbolCstr("dir", st);
-    pd->UV_FS_SYMLINK_JUNCTION_sid = fklAddSymbolCstr("junction", st);
-
-    pd->UV_FS_COPYFILE_EXCL_sid = fklAddSymbolCstr("excl", st);
-    pd->UV_FS_COPYFILE_FICLONE_sid = fklAddSymbolCstr("ficlone", st);
-    pd->UV_FS_COPYFILE_FICLONE_FORCE_sid =
-            fklAddSymbolCstr("ficlone-force", st);
-
-    pd->stat_f_dev_sid = fklAddSymbolCstr("dev", st);
-    pd->stat_f_mode_sid = fklAddSymbolCstr("mode", st);
-    pd->stat_f_nlink_sid = fklAddSymbolCstr("nlink", st);
-    pd->stat_f_uid_sid = fklAddSymbolCstr("uid", st);
-    pd->stat_f_gid_sid = fklAddSymbolCstr("gid", st);
-    pd->stat_f_rdev_sid = fklAddSymbolCstr("rdev", st);
-    pd->stat_f_ino_sid = fklAddSymbolCstr("ino", st);
-    pd->stat_f_size_sid = fklAddSymbolCstr("size", st);
-    pd->stat_f_blksize_sid = fklAddSymbolCstr("blksize", st);
-    pd->stat_f_blocks_sid = fklAddSymbolCstr("blocks", st);
-    pd->stat_f_flags_sid = fklAddSymbolCstr("flags", st);
-    pd->stat_f_gen_sid = fklAddSymbolCstr("gen", st);
-    pd->stat_f_atime_sid = fklAddSymbolCstr("atime", st);
-    pd->stat_f_mtime_sid = fklAddSymbolCstr("mtime", st);
-    pd->stat_f_ctime_sid = fklAddSymbolCstr("ctime", st);
-    pd->stat_f_birthtime_sid = fklAddSymbolCstr("birthtime", st);
-    pd->stat_f_type_sid = fklAddSymbolCstr("type", st);
-
-    pd->stat_type_file_sid = fklAddSymbolCstr("file", st);
-    pd->stat_type_directory_sid = fklAddSymbolCstr("directory", st);
-    pd->stat_type_link_sid = fklAddSymbolCstr("link", st);
-    pd->stat_type_fifo_sid = fklAddSymbolCstr("fifo", st);
-    pd->stat_type_socket_sid = fklAddSymbolCstr("socket", st);
-    pd->stat_type_char_sid = fklAddSymbolCstr("char", st);
-    pd->stat_type_block_sid = fklAddSymbolCstr("block", st);
-    pd->stat_type_unknown_sid = fklAddSymbolCstr("unknown", st);
-
-    pd->timespec_f_sec_sid = fklAddSymbolCstr("sec", st);
-    pd->timespec_f_nsec_sid = fklAddSymbolCstr("nsec", st);
-    pd->timeval_f_usec_sid = fklAddSymbolCstr("usec", st);
-
-    pd->statfs_f_type_sid = fklAddSymbolCstr("type", st);
-    pd->statfs_f_bsize_sid = fklAddSymbolCstr("bsize", st);
-    pd->statfs_f_blocks_sid = fklAddSymbolCstr("blocks", st);
-    pd->statfs_f_bfree_sid = fklAddSymbolCstr("bfree", st);
-    pd->statfs_f_bavail_sid = fklAddSymbolCstr("bavail", st);
-    pd->statfs_f_files_sid = fklAddSymbolCstr("files", st);
-    pd->statfs_f_ffree_sid = fklAddSymbolCstr("ffree", st);
-
-    pd->dirent_f_name_sid = fklAddSymbolCstr("name", st);
-    pd->dirent_f_type_sid = fklAddSymbolCstr("type", st);
-
-    pd->UV_DIRENT_UNKNOWN_sid = fklAddSymbolCstr("unknown", st);
-    pd->UV_DIRENT_FILE_sid = fklAddSymbolCstr("file", st);
-    pd->UV_DIRENT_DIR_sid = fklAddSymbolCstr("dir", st);
-    pd->UV_DIRENT_LINK_sid = fklAddSymbolCstr("link", st);
-    pd->UV_DIRENT_FIFO_sid = fklAddSymbolCstr("fifo", st);
-    pd->UV_DIRENT_SOCKET_sid = fklAddSymbolCstr("socket", st);
-    pd->UV_DIRENT_CHAR_sid = fklAddSymbolCstr("char", st);
-    pd->UV_DIRENT_BLOCK_sid = fklAddSymbolCstr("block", st);
-
-    pd->UV_FS_EVENT_WATCH_ENTRY_sid = fklAddSymbolCstr("watch-entry", st);
-    pd->UV_FS_EVENT_STAT_sid = fklAddSymbolCstr("stat", st);
-    pd->UV_FS_EVENT_RECURSIVE_sid = fklAddSymbolCstr("recursive", st);
-
-    pd->UV_RENAME_sid = fklAddSymbolCstr("rename", st);
-    pd->UV_CHANGE_sid = fklAddSymbolCstr("change", st);
-
-    pd->UV_CLOCK_MONOTONIC_sid = fklAddSymbolCstr("monotonic", st);
-    pd->UV_CLOCK_REALTIME_sid = fklAddSymbolCstr("realtime", st);
-
-    pd->utsname_sysname_sid = fklAddSymbolCstr("sysname", st);
-    pd->utsname_release_sid = fklAddSymbolCstr("release", st);
-    pd->utsname_version_sid = fklAddSymbolCstr("version", st);
-    pd->utsname_machine_sid = fklAddSymbolCstr("machine", st);
-
-    pd->rusage_utime_sid = fklAddSymbolCstr("utime", st);
-    pd->rusage_stime_sid = fklAddSymbolCstr("stime", st);
-    pd->rusage_maxrss_sid = fklAddSymbolCstr("maxrss", st);
-    pd->rusage_ixrss_sid = fklAddSymbolCstr("ixrss", st);
-    pd->rusage_idrss_sid = fklAddSymbolCstr("idrss", st);
-    pd->rusage_isrss_sid = fklAddSymbolCstr("isrss", st);
-    pd->rusage_minflt_sid = fklAddSymbolCstr("minflt", st);
-    pd->rusage_majflt_sid = fklAddSymbolCstr("majflt", st);
-    pd->rusage_nswap_sid = fklAddSymbolCstr("nswap", st);
-    pd->rusage_inblock_sid = fklAddSymbolCstr("inblock", st);
-    pd->rusage_oublock_sid = fklAddSymbolCstr("oublock", st);
-    pd->rusage_msgsnd_sid = fklAddSymbolCstr("msgsnd", st);
-    pd->rusage_msgrcv_sid = fklAddSymbolCstr("msgrcv", st);
-    pd->rusage_nsignals_sid = fklAddSymbolCstr("nsignals", st);
-    pd->rusage_nvcsw_sid = fklAddSymbolCstr("nvcsw", st);
-    pd->rusage_nivcsw_sid = fklAddSymbolCstr("nivcsw", st);
-
-    pd->cpu_info_model_sid = fklAddSymbolCstr("model", st);
-    pd->cpu_info_speed_sid = fklAddSymbolCstr("speed", st);
-    pd->cpu_info_times_sid = fklAddSymbolCstr("times", st);
-    pd->cpu_info_times_user_sid = fklAddSymbolCstr("user", st);
-    pd->cpu_info_times_nice_sid = fklAddSymbolCstr("nice", st);
-    pd->cpu_info_times_sys_sid = fklAddSymbolCstr("sys", st);
-    pd->cpu_info_times_idle_sid = fklAddSymbolCstr("idle", st);
-    pd->cpu_info_times_irq_sid = fklAddSymbolCstr("irq", st);
-
-    pd->passwd_username_sid = fklAddSymbolCstr("username", st);
-    pd->passwd_uid_sid = fklAddSymbolCstr("uid", st);
-    pd->passwd_gid_sid = fklAddSymbolCstr("gid", st);
-    pd->passwd_shell_sid = fklAddSymbolCstr("shell", st);
-    pd->passwd_homedir_sid = fklAddSymbolCstr("homedir", st);
-
-    pd->UV_PRIORITY_LOW_sid = fklAddSymbolCstr("low", st);
-    pd->UV_PRIORITY_BELOW_NORMAL_sid = fklAddSymbolCstr("below-normal", st);
-    pd->UV_PRIORITY_NORMAL_sid = fklAddSymbolCstr("normal", st);
-    pd->UV_PRIORITY_ABOVE_NORMAL_sid = fklAddSymbolCstr("above-normal", st);
-    pd->UV_PRIORITY_HIGH_sid = fklAddSymbolCstr("high", st);
-    pd->UV_PRIORITY_HIGHEST_sid = fklAddSymbolCstr("highest", st);
-
-    pd->ifa_f_name_sid = fklAddSymbolCstr("name", st);
-    pd->ifa_f_mac_sid = fklAddSymbolCstr("mac", st);
-    pd->ifa_f_internal_sid = fklAddSymbolCstr("internal", st);
-    pd->ifa_f_ip_sid = fklAddSymbolCstr("ip", st);
-    pd->ifa_f_netmask_sid = fklAddSymbolCstr("netmask", st);
-    pd->ifa_f_family_sid = fklAddSymbolCstr("family", st);
-
-    pd->metrics_loop_count_sid = fklAddSymbolCstr("loop-count", st);
-    pd->metrics_events_sid = fklAddSymbolCstr("events", st);
-    pd->metrics_events_waiting_sid = fklAddSymbolCstr("events-waiting", st);
-
-    pd->UV_READABLE_sid = fklAddSymbolCstr("readable", st);
-    pd->UV_WRITABLE_sid = fklAddSymbolCstr("writable", st);
-    pd->UV_DISCONNECT_sid = fklAddSymbolCstr("disconnect", st);
-    pd->UV_PRIORITIZED_sid = fklAddSymbolCstr("prioritized", st);
 }
 
 static int fuv_loop_p(FKL_CPROC_ARGL) { PREDICATE(isFuvLoop(val)) }
@@ -553,22 +195,84 @@ static int fuv_loop_close(FKL_CPROC_ARGL) {
     return 0;
 }
 
+static inline FklVMvalue *uvErrToSid(int err_id, const FuvPublicData *fpd) {
+    FklVMvalue *id = 0;
+    switch (err_id) {
+#define XX(code, b, c)                                                         \
+    case code:                                                                 \
+        id = fpd->code##_sid;                                                  \
+        break;
+        FUV_UV_ERRNO_MAP(XX);
+
+    default:
+        id = fpd->UV_UNKNOWN_sid;
+    }
+    return id;
+#undef XX
+}
+
+static inline int symbolToSignum(FklVMvalue *id, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (id == fpd->A##_sid)                                                    \
+        return A;
+
+    FUV_SIGNAL_MAP(XX)
+#undef XX
+
+    return -1;
+}
+
+static inline FklVMvalue *signumToSymbol(int signum, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (signum == A)                                                           \
+        return fpd->A##_sid;
+
+    FUV_SIGNAL_MAP(XX)
+
+#undef XX
+
+    return FKL_VM_NIL;
+}
+static inline FklVMvalue *loop_mode_to_sid(int mode, const FuvPublicData *fpd) {
+    switch (mode) {
+    default:
+        FKL_UNREACHABLE();
+        return NULL;
+        break;
+#define XX(A, B, C)                                                            \
+    case A:                                                                    \
+        return fpd->A##_sid;
+        FUV_UV_LOOP_MODE_MAP(XX)
+#undef XX
+    }
+
+    FKL_UNREACHABLE();
+    return NULL;
+}
+
+static inline int sid_to_loop_mode(FklVMvalue *v, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (v == fpd->A##_sid)                                                     \
+        return A;
+    FUV_UV_LOOP_MODE_MAP(XX)
+#undef XX
+
+    return -1;
+}
+
 static int fuv_loop_run(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *mode_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
+    FklVMvalue *mode_id = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     fuv_loop->data.exe = exe;
     int mode = UV_RUN_DEFAULT;
-    if (mode_obj) {
-        FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
-        FKL_DECL_VM_UD_DATA(pbd, FuvPublicData, ctx->pd);
-        FklSid_t mode_id = FKL_GET_SYM(mode_obj);
-        for (; mode < (int)(sizeof(pbd->loop_mode) / sizeof(FklSid_t)); mode++)
-            if (pbd->loop_mode[mode] == mode_id)
-                break;
-        if (mode > UV_RUN_NOWAIT)
+    if (mode_id) {
+        FKL_CHECK_TYPE(mode_id, FKL_IS_SYM, exe);
+        FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
+        mode = sid_to_loop_mode(mode_id, fpd);
+        if (mode < 0)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     }
 
@@ -650,25 +354,31 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
 #undef LOOP_RUN_STATE_RUN
 #undef LOOP_RUN_STATE_RETURN
 
+static inline int sid_to_loop_option(FklVMvalue *v, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (v == fpd->A##_sid)                                                     \
+        return A;
+    FUV_UV_LOOP_CONF_MAP(XX)
+#undef XX
+    return -1;
+}
+
 static int fuv_loop_configure(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 2, argc);
     FklVMvalue **const arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *loop_obj = arg_base[0];
-    FklVMvalue *option_obj = arg_base[1];
+    FklVMvalue *option_id = arg_base[1];
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
-    FKL_CHECK_TYPE(option_obj, FKL_IS_SYM, exe);
-    FklSid_t option_id = FKL_GET_SYM(option_obj);
-    uv_loop_option option = UV_LOOP_BLOCK_SIGNAL;
+    FKL_CHECK_TYPE(option_id, FKL_IS_SYM, exe);
+
+    int option = UV_LOOP_BLOCK_SIGNAL;
     FklVMvalue *pd = ctx->pd;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
-    if (option_id == fpd->loop_block_signal_sid)
-        option = UV_LOOP_BLOCK_SIGNAL;
-    else if (option_id == fpd->metrics_idle_time_sid)
-        option = UV_METRICS_IDLE_TIME;
-    else if (option_id == fpd->loop_use_io_uring_sqpoll)
-        option = UV_LOOP_USE_IO_URING_SQPOLL;
-    else
+
+    option = sid_to_loop_option(option_id, fpd);
+    if (option < 0)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     uv_loop_t *loop = &fuv_loop->loop;
     switch (option) {
@@ -681,8 +391,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL) {
                 int r = uv_loop_configure(loop, UV_LOOP_BLOCK_SIGNAL, i);
                 CHECK_UV_RESULT(r, exe, pd);
             } else if (FKL_IS_SYM(cur)) {
-                FklSid_t sid = FKL_GET_SYM(cur);
-                int signum = symbolToSignum(sid, fpd);
+                int signum = symbolToSignum(cur, fpd);
                 if (signum <= 0)
                     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
                 int r = uv_loop_configure(loop, UV_LOOP_BLOCK_SIGNAL, signum);
@@ -734,7 +443,7 @@ static int fuv_loop_mode(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     else {
         FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-        FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_SYM(fpd->loop_mode[r]));
+        FKL_CPROC_RETURN(exe, ctx, loop_mode_to_sid(r, fpd));
     }
     return 0;
 }
@@ -1269,14 +978,13 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
 }
 
 struct SignalCbValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     int num;
 };
 
 static void fuv_signal_cb_value_creator(FklVM *exe, void *a) {
     struct SignalCbValueCreateArg *arg = a;
-    FklVMvalue *signum_val =
-            FKL_MAKE_VM_SYM(signumToSymbol(arg->num, arg->fpd));
+    FklVMvalue *signum_val = signumToSymbol(arg->num, arg->fpd);
     FKL_VM_PUSH_VALUE(exe, signum_val);
 }
 
@@ -1458,18 +1166,17 @@ static int fuv_make_socket_poll(FKL_CPROC_ARGL) {
 static inline FklBuiltinErrorType get_poll_start_events(FklVMvalue **cur_arg,
         FklVMvalue **const arg_end,
         int *events,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     for (; cur_arg < arg_end; ++cur_arg) {
         FklVMvalue *v = *cur_arg;
         if (FKL_IS_SYM(v)) {
-            FklSid_t sid = FKL_GET_SYM(v);
-            if (sid == fpd->UV_READABLE_sid)
+            if (v == fpd->UV_READABLE_sid)
                 (*events) |= UV_READABLE;
-            else if (sid == fpd->UV_WRITABLE_sid)
+            else if (v == fpd->UV_WRITABLE_sid)
                 (*events) |= UV_WRITABLE;
-            else if (sid == fpd->UV_DISCONNECT_sid)
+            else if (v == fpd->UV_DISCONNECT_sid)
                 (*events) |= UV_DISCONNECT;
-            else if (sid == fpd->UV_PRIORITIZED_sid)
+            else if (v == fpd->UV_PRIORITIZED_sid)
                 (*events) |= UV_PRIORITIZED;
             else
                 return FKL_ERR_INVALID_VALUE;
@@ -1480,44 +1187,30 @@ static inline FklBuiltinErrorType get_poll_start_events(FklVMvalue **cur_arg,
 }
 
 struct PollCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     int status;
     int events;
 };
 
 static inline FklVMvalue *
-poll_events_to_list(FklVM *exe, int events, FuvPublicData *fpd) {
+poll_events_to_list(FklVM *exe, int events, const FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
 
-    if (events & UV_READABLE) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_READABLE_sid));
-        pr = &FKL_VM_CDR(*pr);
+#define XX(A, B, C)                                                            \
+    if (events & A) {                                                          \
+        *pr = fklCreateVMvaluePairWithCar(exe, fpd->A##_sid);                  \
+        pr = &FKL_VM_CDR(*pr);                                                 \
     }
-    if (events & UV_WRITABLE) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_WRITABLE_sid));
-        pr = &FKL_VM_CDR(*pr);
-    }
-    if (events & UV_DISCONNECT) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_DISCONNECT_sid));
-        pr = &FKL_VM_CDR(*pr);
-    }
-    if (events & UV_PRIORITIZED) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_PRIORITIZED_sid));
-        pr = &FKL_VM_CDR(*pr);
-    }
-
+    FUV_UV_POLL_EVENT_MAP(XX)
+#undef XX
     return r;
 }
 
 static void fuv_poll_cb_value_creator(FklVM *exe, void *a) {
     struct PollCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
+                            ? createUvError2(arg->status, exe, arg->fpd)
                             : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe,
@@ -1624,75 +1317,23 @@ static int get_protonum_with_cstr(const char *name) {
     return -1;
 }
 
-static inline int sid_to_af_name(FklSid_t family_id, FuvPublicData *fpd) {
-#ifdef AF_UNIX
-    if (family_id == fpd->AF_UNIX_sid)
-        return AF_UNIX;
-#endif
-#ifdef AF_INET
-    if (family_id == fpd->AF_INET_sid)
-        return AF_INET;
-#endif
-#ifdef AF_INET6
-    if (family_id == fpd->AF_INET6_sid)
-        return AF_INET6;
-#endif
-#ifdef AF_IPX
-    if (family_id == fpd->AF_IPX_sid)
-        return AF_IPX;
-#endif
-#ifdef AF_NETLINK
-    if (family_id == fpd->AF_NETLINK_sid)
-        return AF_NETLINK;
-#endif
-#ifdef AF_X25
-    if (family_id == fpd->AF_X25_sid)
-        return AF_X25;
-#endif
-#ifdef AF_AX25
-    if (family_id == fpd->AF_AX25_sid)
-        return AF_AX25;
-#endif
-#ifdef AF_ATMPVC
-    if (family_id == fpd->AF_ATMPVC_sid)
-        return AF_ATMPVC;
-#endif
-#ifdef AF_APPLETALK
-    if (family_id == fpd->AF_APPLETALK_sid)
-        return AF_APPLETALK;
-#endif
-#ifdef AF_PACKET
-    if (family_id == fpd->AF_PACKET_sid)
-        return AF_PACKET;
-#endif
-#ifdef AF_UNSPEC
-    if (family_id == fpd->AF_UNSPEC_sid)
-        return AF_UNSPEC;
-#endif
+static inline int sid_to_af_name(FklVMvalue *family_id,
+        const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (family_id == fpd->A##_sid)                                             \
+        return A;
+    FUV_AF_MAP(XX)
+#undef XX
     return -1;
 }
 
-static inline int sid_to_socktype(FklSid_t socktype_id, FuvPublicData *fpd) {
-#ifdef SOCK_STREAM
-    if (socktype_id == fpd->SOCK_STREAM_sid)
-        return SOCK_STREAM;
-#endif
-#ifdef SOCK_DGRAM
-    if (socktype_id == fpd->SOCK_DGRAM_sid)
-        return SOCK_STREAM;
-#endif
-#ifdef SOCK_SEQPACKET
-    if (socktype_id == fpd->SOCK_SEQPACKET_sid)
-        return SOCK_SEQPACKET;
-#endif
-#ifdef SOCK_RAW
-    if (socktype_id == fpd->SOCK_RAW_sid)
-        return SOCK_RAW;
-#endif
-#ifdef SOCK_RDM
-    if (socktype_id == fpd->SOCK_RDM_sid)
-        return SOCK_RDM;
-#endif
+static inline int sid_to_socktype(FklVMvalue *socktype_id,
+        const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (socktype_id == fpd->A##_sid)                                           \
+        return A;
+    FUV_SOCKET_TYPES_MAP(XX)
+#undef XX
     return -1;
 }
 
@@ -1700,13 +1341,12 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
         FklVMvalue **parg,
         FklVMvalue **const arg_end,
         struct addrinfo *hints,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
 #define GET_NEXT_ARG() ((parg < (arg_end - 1)) ? *(++parg) : NULL)
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->f_family_sid) {
+            if (cur == fpd->f_family_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -1717,7 +1357,7 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
                     return FKL_ERR_INVALID_VALUE;
                 hints->ai_family = af_num;
                 continue;
-            } else if (id == fpd->f_socktype_sid) {
+            } else if (cur == fpd->f_socktype_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -1728,7 +1368,7 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
                     return FKL_ERR_INVALID_VALUE;
                 hints->ai_socktype = socktype;
                 continue;
-            } else if (id == fpd->f_protocol_sid) {
+            } else if (cur == fpd->f_protocol_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -1739,8 +1379,7 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
                         return FKL_ERR_INVALID_VALUE;
                     hints->ai_protocol = proto;
                 } else if (FKL_IS_SYM(cur)) {
-                    const char *name =
-                            fklVMgetSymbolWithId(gc, FKL_GET_SYM(cur))->str;
+                    const char *name = FKL_VM_SYM(cur)->str;
                     int proto = get_protonum_with_cstr(name);
                     if (proto < 0)
                         return FKL_ERR_INVALID_VALUE;
@@ -1749,38 +1388,14 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
                     return FKL_ERR_INCORRECT_TYPE_VALUE;
                 continue;
             }
-            if (id == fpd->AI_ADDRCONFIG_sid) {
-                hints->ai_flags |= AI_ADDRCONFIG;
-                continue;
-            }
-#ifdef AI_V4MAPPED
-            if (id == fpd->AI_V4MAPPED_sid) {
-                hints->ai_flags |= AI_V4MAPPED;
-                continue;
-            }
-#endif
-#ifdef AI_ALL
-            if (id == fpd->AI_ALL_sid) {
-                hints->ai_flags |= AI_ALL;
-                continue;
-            }
-#endif
-            if (id == fpd->AI_NUMERICHOST_sid) {
-                hints->ai_flags |= AI_NUMERICHOST;
-                continue;
-            }
-            if (id == fpd->AI_PASSIVE_sid) {
-                hints->ai_flags |= AI_PASSIVE;
-                continue;
-            }
-            if (id == fpd->AI_NUMERICSERV_sid) {
-                hints->ai_flags |= AI_NUMERICSERV;
-                continue;
-            }
-            if (id == fpd->AI_CANONNAME_sid) {
-                hints->ai_flags |= AI_CANONNAME;
-                continue;
-            }
+
+#define XX(A, B)                                                               \
+    if (id == fpd->A##_sid) {                                                  \
+        hints->ai_flags |= A;                                                  \
+        continue;                                                              \
+    }                                                                          \
+    FUV_AI_FLAGS_MAP(XX)
+#undef XX
             return FKL_ERR_INVALID_VALUE;
         } else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
@@ -1789,84 +1404,37 @@ static inline FklBuiltinErrorType get_addrinfo_hints(FklVMgc *gc,
 #undef GET_NEXT_ARG
 }
 
-static inline FklVMvalue *af_num_to_symbol(int ai_family, FuvPublicData *fpd) {
-#ifdef AF_UNIX
-    if (ai_family == AF_UNIX)
-        return FKL_MAKE_VM_SYM(fpd->AF_UNIX_sid);
-#endif
-#ifdef AF_INET
-    if (ai_family == AF_INET)
-        return FKL_MAKE_VM_SYM(fpd->AF_INET_sid);
-#endif
-#ifdef AF_INET6
-    if (ai_family == AF_INET6)
-        return FKL_MAKE_VM_SYM(fpd->AF_INET6_sid);
-#endif
-#ifdef AF_IPX
-    if (ai_family == AF_IPX)
-        return FKL_MAKE_VM_SYM(fpd->AF_IPX_sid);
-#endif
-#ifdef AF_NETLINK
-    if (ai_family == AF_NETLINK)
-        return FKL_MAKE_VM_SYM(fpd->AF_NETLINK_sid);
-#endif
-#ifdef AF_X25
-    if (ai_family == AF_X25)
-        return FKL_MAKE_VM_SYM(fpd->AF_X25_sid);
-#endif
-#ifdef AF_AX25
-    if (ai_family == AF_AX25)
-        return FKL_MAKE_VM_SYM(fpd->AF_AX25_sid);
-#endif
-#ifdef AF_ATMPVC
-    if (ai_family == AF_ATMPVC)
-        return FKL_MAKE_VM_SYM(fpd->AF_ATMPVC_sid);
-#endif
-#ifdef AF_APPLETALK
-    if (ai_family == AF_APPLETALK)
-        return FKL_MAKE_VM_SYM(fpd->AF_APPLETALK_sid);
-#endif
-#ifdef AF_PACKET
-    if (ai_family == AF_PACKET)
-        return FKL_MAKE_VM_SYM(fpd->AF_PACKET_sid);
-#endif
+static inline FklVMvalue *af_num_to_symbol(int af_family,
+        const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (af_family == A)                                                        \
+        return fpd->A##_sid;
+    FUV_AF_MAP(XX)
+#undef XX
+
     return FKL_VM_NIL;
 }
 
 static inline FklVMvalue *sock_num_to_symbol(int ai_socktype,
-        FuvPublicData *fpd) {
-#ifdef SOCK_STREAM
-    if (ai_socktype == SOCK_STREAM)
-        return FKL_MAKE_VM_SYM(fpd->SOCK_STREAM_sid);
-#endif
-#ifdef SOCK_DGRAM
-    if (ai_socktype == SOCK_DGRAM)
-        return FKL_MAKE_VM_SYM(fpd->SOCK_DGRAM_sid);
-#endif
-#ifdef SOCK_SEQPACKET
-    if (ai_socktype == SOCK_SEQPACKET)
-        return FKL_MAKE_VM_SYM(fpd->SOCK_SEQPACKET_sid);
-#endif
-#ifdef SOCK_RAW
-    if (ai_socktype == SOCK_RAW)
-        return FKL_MAKE_VM_SYM(fpd->SOCK_RAW_sid);
-#endif
-#ifdef SOCK_RDM
-    if (ai_socktype == SOCK_RDM)
-        return FKL_MAKE_VM_SYM(fpd->SOCK_RDM_sid);
-#endif
+        const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (ai_socktype == A)                                                      \
+        return fpd->A##_sid;
+    FUV_SOCKET_TYPES_MAP(XX)
+#undef XX
     return FKL_VM_NIL;
 }
 
 static inline FklVMvalue *proto_num_to_symbol(int num, FklVM *exe) {
     struct protoent *proto = getprotobynumber(num);
     if (proto)
-        return FKL_MAKE_VM_SYM(fklVMaddSymbolCstr(exe->gc, proto->p_name));
+        return fklVMaddSymbolCstr(exe, proto->p_name);
     return FKL_VM_NIL;
 }
 
-static inline FklVMvalue *
-addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info, FuvPublicData *fpd) {
+static inline FklVMvalue *addrinfo_to_vmhash(FklVM *exe,
+        struct addrinfo *info,
+        const FuvPublicData *fpd) {
     char ip[INET6_ADDRSTRLEN];
     FklVMvalue *v = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(v);
@@ -1880,33 +1448,31 @@ addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info, FuvPublicData *fpd) {
         port = ((struct sockaddr_in6 *)info->ai_addr)->sin6_port;
     }
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_family_sid),
+            fpd->f_family_sid,
             af_num_to_symbol(info->ai_family, fpd));
     uv_inet_ntop(info->ai_family, addr, ip, INET6_ADDRSTRLEN);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_addr_sid),
+            fpd->f_addr_sid,
             fklCreateVMvalueStrFromCstr(exe, ip));
 
     if (ntohs(port))
-        fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->f_port_sid),
-                FKL_MAKE_VM_FIX(ntohs(port)));
+        fklVMhashTableSet(ht, fpd->f_port_sid, FKL_MAKE_VM_FIX(ntohs(port)));
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_socktype_sid),
+            fpd->f_socktype_sid,
             sock_num_to_symbol(info->ai_socktype, fpd));
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_protocol_sid),
+            fpd->f_protocol_sid,
             proto_num_to_symbol(info->ai_protocol, exe));
     if (info->ai_canonname)
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->f_canonname_sid),
+                fpd->f_canonname_sid,
                 fklCreateVMvalueStrFromCstr(exe, info->ai_canonname));
     return v;
 }
 
 static inline FklVMvalue *
-addrinfo_to_value(FklVM *exe, struct addrinfo *info, FuvPublicData *fpd) {
+addrinfo_to_value(FklVM *exe, struct addrinfo *info, const FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (; info; info = info->ai_next) {
@@ -1991,9 +1557,8 @@ static void fuv_getaddrinfo_cb_value_creator(FklVM *exe, void *a) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
 
     struct GetaddrinfoValueCreateArg *arg = a;
-    FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, fpd)
-                            : FKL_VM_NIL;
+    FklVMvalue *err = arg->status < 0 ? createUvError2(arg->status, exe, fpd)
+                                      : FKL_VM_NIL;
     FklVMvalue *res = addrinfo_to_value(exe, arg->res, fpd);
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
@@ -2101,7 +1666,7 @@ static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
         FklVMvalue **const arg_end,
         struct sockaddr_storage *addr,
         int *flags,
-        FuvPublicData *fpd,
+        const FuvPublicData *fpd,
         FklVMvalue **pip_obj,
         FklVMvalue **pport_obj,
         int *uv_err) {
@@ -2113,21 +1678,19 @@ static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->f_family_sid) {
+            if (cur == fpd->f_family_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
                 if (!FKL_IS_SYM(cur))
                     return FKL_ERR_INCORRECT_TYPE_VALUE;
-                FklSid_t family_id = FKL_GET_SYM(cur);
-                af_num = sid_to_af_name(family_id, fpd);
+                af_num = sid_to_af_name(cur, fpd);
                 if (af_num < 0)
                     return FKL_ERR_INVALID_VALUE;
                 has_af = 1;
                 continue;
             }
-            if (id == fpd->f_ip_sid) {
+            if (cur == fpd->f_ip_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2137,7 +1700,7 @@ static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
                 *pip_obj = cur;
                 continue;
             }
-            if (id == fpd->f_port_sid) {
+            if (cur == fpd->f_port_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2147,54 +1710,14 @@ static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
                 *pport_obj = cur;
                 continue;
             }
-#ifdef NI_NAMEREQD
-            if (id == fpd->NI_NAMEREQD_sid) {
-                (*flags) |= NI_NAMEREQD;
-                continue;
-            }
-#endif
-#ifdef NI_DGRAM
-            if (id == fpd->NI_DGRAM_sid) {
-                (*flags) |= NI_DGRAM;
-                continue;
-            }
-#endif
-#ifdef NI_NOFQDN
-            if (id == fpd->NI_NOFQDN_sid) {
-                (*flags) |= NI_NOFQDN;
-                continue;
-            }
-#endif
-#ifdef NI_NUMERICHOST
-            if (id == fpd->NI_NUMERICHOST_sid) {
-                (*flags) |= NI_NUMERICHOST;
-                continue;
-            }
-#endif
-#ifdef NI_NUMERICSERV
-            if (id == fpd->NI_NUMERICSERV_sid) {
-                (*flags) |= NI_NUMERICSERV;
-                continue;
-            }
-#endif
-#ifdef NI_IDN
-            if (id == fpd->NI_IDN_sid) {
-                (*flags) |= NI_IDN;
-                continue;
-            }
-#endif
-#ifdef NI_IDN_ALLOW_UNASSIGNED
-            if (id == fpd->NI_IDN_ALLOW_UNASSIGNED_sid) {
-                (*flags) |= NI_IDN_ALLOW_UNASSIGNED;
-                continue;
-            }
-#endif
-#ifdef NI_IDN_USE_STD3_ASCII_RULES
-            if (id == fpd->NI_IDN_USE_STD3_ASCII_RULES_sid) {
-                (*flags) |= NI_IDN_USE_STD3_ASCII_RULES;
-                continue;
-            }
-#endif
+
+#define XX(A, B, C)                                                            \
+    if (cur == fpd->A##_sid) {                                                 \
+        (*flags) |= A;                                                         \
+        continue;                                                              \
+    }
+            FUV_NI_FLAGS_MAP(XX)
+#undef XX
             return FKL_ERR_INVALID_VALUE;
         } else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
@@ -2221,14 +1744,14 @@ static inline FklBuiltinErrorType get_sockaddr_flags(FklVMvalue **parg,
 static inline FklVMvalue *host_service_to_hash(FklVM *exe,
         const char *hostname,
         const char *service,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_hostname_sid),
+            fpd->f_hostname_sid,
             hostname ? fklCreateVMvalueStrFromCstr(exe, hostname) : FKL_VM_NIL);
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_service_sid),
+            fpd->f_service_sid,
             service ? fklCreateVMvalueStrFromCstr(exe, service) : FKL_VM_NIL);
     return hash;
 }
@@ -2347,7 +1870,7 @@ static inline FklBuiltinErrorType get_process_options(
         FklVMvalue **const rest_args,
         FklVMvalue **const arg_end,
         uv_process_options_t *options,
-        FuvPublicData *fpd,
+        const FuvPublicData *fpd,
         int *uv_err,
         FklVMvalue **args_obj,
         FklVMvalue **env_obj,
@@ -2358,8 +1881,7 @@ static inline FklBuiltinErrorType get_process_options(
     for (FklVMvalue **parg = rest_args; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->f_args_sid) {
+            if (cur == fpd->f_args_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2377,7 +1899,7 @@ static inline FklBuiltinErrorType get_process_options(
                 options->args = args;
                 continue;
             }
-            if (id == fpd->f_env_sid) {
+            if (cur == fpd->f_env_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2395,7 +1917,7 @@ static inline FklBuiltinErrorType get_process_options(
                 options->env = env;
                 continue;
             }
-            if (id == fpd->f_cwd_sid) {
+            if (cur == fpd->f_cwd_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2405,7 +1927,7 @@ static inline FklBuiltinErrorType get_process_options(
                 *cwd_obj = cur;
                 continue;
             }
-            if (id == fpd->f_stdio_sid) {
+            if (cur == fpd->f_stdio_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2460,7 +1982,7 @@ static inline FklBuiltinErrorType get_process_options(
                 }
                 continue;
             }
-            if (id == fpd->f_uid_sid) {
+            if (cur == fpd->f_uid_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2470,7 +1992,7 @@ static inline FklBuiltinErrorType get_process_options(
                 options->uid = FKL_GET_FIX(cur);
                 continue;
             }
-            if (id == fpd->f_gid_sid) {
+            if (cur == fpd->f_gid_sid) {
                 cur = GET_NEXT_ARG();
                 if (cur == NULL)
                     return FKL_ERR_TOOFEWARG;
@@ -2480,26 +2002,14 @@ static inline FklBuiltinErrorType get_process_options(
                 options->gid = FKL_GET_FIX(cur);
                 continue;
             }
-            if (id == fpd->UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS_sid) {
-                options->flags |= UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS;
-                continue;
-            }
-            if (id == fpd->UV_PROCESS_DETACHED_sid) {
-                options->flags |= UV_PROCESS_DETACHED;
-                continue;
-            }
-            if (id == fpd->UV_PROCESS_WINDOWS_HIDE_sid) {
-                options->flags |= UV_PROCESS_WINDOWS_HIDE;
-                continue;
-            }
-            if (id == fpd->UV_PROCESS_WINDOWS_HIDE_CONSOLE_sid) {
-                options->flags |= UV_PROCESS_WINDOWS_HIDE_CONSOLE;
-                continue;
-            }
-            if (id == fpd->UV_PROCESS_WINDOWS_HIDE_GUI_sid) {
-                options->flags |= UV_PROCESS_WINDOWS_HIDE_GUI;
-                continue;
-            }
+
+#define XX(A, B, C)                                                            \
+    if (cur == fpd->A##_sid) {                                                 \
+        options->flags |= A;                                                   \
+        continue;                                                              \
+    }
+            FUV_UV_PROCESS_MAP(XX)
+#undef XX
             return FKL_ERR_INVALID_VALUE;
         } else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
@@ -2515,18 +2025,17 @@ static inline void clean_options(uv_process_options_t *options) {
 }
 
 struct ProcessExitValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     int64_t exit_status;
     int term_signal;
 };
 
 static void fuv_process_exit_cb_value_creator(FklVM *exe, void *a) {
     struct ProcessExitValueCreateArg *arg = a;
-    FklSid_t id = signumToSymbol(arg->term_signal, arg->fpd);
-    FklVMvalue *signum_val = id ? FKL_MAKE_VM_SYM(id) : FKL_VM_NIL;
+    FklVMvalue *id = signumToSymbol(arg->term_signal, arg->fpd);
     FklVMvalue *exit_status = fklMakeVMint(arg->exit_status, exe);
     FKL_VM_PUSH_VALUE(exe, exit_status);
-    FKL_VM_PUSH_VALUE(exe, signum_val);
+    FKL_VM_PUSH_VALUE(exe, id);
 }
 
 static void fuv_process_exit_cb(uv_process_t *handle,
@@ -2721,7 +2230,7 @@ fuv_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
 }
 
 struct ReadValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     ssize_t nread;
     const uv_buf_t *buf;
 };
@@ -2730,7 +2239,7 @@ static void fuv_read_cb_value_creator(FklVM *exe, void *a) {
     struct ReadValueCreateArg *arg = (struct ReadValueCreateArg *)a;
     ssize_t nread = arg->nread;
     if (nread < 0) {
-        FklVMvalue *err = createUvErrorWithFpd(nread, exe, arg->fpd);
+        FklVMvalue *err = createUvError2(nread, exe, arg->fpd);
         FKL_VM_PUSH_VALUE(exe, err);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } else {
@@ -2798,7 +2307,7 @@ static void fuv_req_cb_error_value_creator(FklVM *exe, void *a) {
 
     int status = *(int *)a;
     FklVMvalue *err =
-            status < 0 ? createUvErrorWithFpd(status, exe, fpd) : FKL_VM_NIL;
+            status < 0 ? createUvError2(status, exe, fpd) : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
 }
 
@@ -2985,14 +2494,14 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
 }
 
 struct ConnectionValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     int status;
 };
 
 static void fuv_connection_cb_value_creator(FklVM *exe, void *a) {
     struct ConnectionValueCreateArg *arg = a;
     FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, arg->fpd)
+                            ? createUvError2(arg->status, exe, arg->fpd)
                             : FKL_VM_NIL;
     FKL_VM_PUSH_VALUE(exe, err);
 }
@@ -3285,7 +2794,7 @@ static int fuv_tcp_p(FKL_CPROC_ARGL) { PREDICATE(isFuvTcp(val)) }
 
 static inline FklBuiltinErrorType get_tcp_flags(FklVMvalue **parg,
         FklVMvalue **const arg_end,
-        FuvPublicData *fpd,
+        const FuvPublicData *fpd,
         unsigned int *flags) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
@@ -3388,7 +2897,7 @@ static int fuv_tcp_simultaneous_accepts(FKL_CPROC_ARGL) {
 
 static inline FklVMvalue *parse_sockaddr_with_fpd(FklVM *exe,
         struct sockaddr_storage *address,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     char ip[INET6_ADDRSTRLEN] = { 0 };
     int port = 0;
     if (address->ss_family == AF_INET) {
@@ -3405,16 +2914,12 @@ static inline FklVMvalue *parse_sockaddr_with_fpd(FklVM *exe,
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_family_sid),
+            fpd->f_family_sid,
             af_num_to_symbol(address->ss_family, fpd));
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_ip_sid),
-            fklCreateVMvalueStrFromCstr(exe, ip));
+    fklVMhashTableSet(ht, fpd->f_ip_sid, fklCreateVMvalueStrFromCstr(exe, ip));
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->f_port_sid),
-            FKL_MAKE_VM_FIX(port));
+    fklVMhashTableSet(ht, fpd->f_port_sid, FKL_MAKE_VM_FIX(port));
 
     return hash;
 }
@@ -3555,8 +3060,7 @@ static int fuv_socketpair(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
         protocol = proto;
     } else if (FKL_IS_SYM(protocol_obj)) {
-        const char *name =
-                fklVMgetSymbolWithId(exe->gc, FKL_GET_SYM(protocol_obj))->str;
+        const char *name = FKL_VM_SYM(protocol_obj)->str;
         int proto = get_protonum_with_cstr(name);
         if (proto < 0)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
@@ -3610,13 +3114,12 @@ static int fuv_make_tty(FKL_CPROC_ARGL) {
 static int fuv_tty_mode_set1(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *tty_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *mode_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklVMvalue *mode_id = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(tty_obj, isFuvTty, exe);
-    FKL_CHECK_TYPE(mode_obj, FKL_IS_SYM, exe);
+    FKL_CHECK_TYPE(mode_id, FKL_IS_SYM, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle_ud, tty_obj, exe, ctx->pd);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     uv_tty_mode_t mode = 0;
-    FklSid_t mode_id = FKL_GET_SYM(mode_obj);
     if (mode_id == fpd->UV_TTY_MODE_NORMAL_sid)
         mode = UV_TTY_MODE_NORMAL;
     else if (mode_id == fpd->UV_TTY_MODE_RAW_sid)
@@ -3657,7 +3160,7 @@ static int fuv_tty_vterm_state(FKL_CPROC_ARGL) {
     int r = uv_tty_get_vterm_state(&state);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-    FklSid_t id = 0;
+    FklVMvalue *id = FKL_VM_NIL;
     switch (state) {
     case UV_TTY_SUPPORTED:
         id = fpd->UV_TTY_SUPPORTED_sid;
@@ -3665,17 +3168,19 @@ static int fuv_tty_vterm_state(FKL_CPROC_ARGL) {
     case UV_TTY_UNSUPPORTED:
         id = fpd->UV_TTY_UNSUPPORTED_sid;
         break;
+    default:
+        FKL_UNREACHABLE();
+        break;
     }
-    FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_SYM(id));
+    FKL_CPROC_RETURN(exe, ctx, id);
     return 0;
 }
 
 static int fuv_tty_vterm_state_set1(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
-    FklVMvalue *state_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(state_obj, FKL_IS_SYM, exe);
+    FklVMvalue *state_id = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(state_id, FKL_IS_SYM, exe);
 
-    FklSid_t state_id = FKL_GET_SYM(state_obj);
     uv_tty_vtermstate_t state = 0;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
     if (state_id == fpd->UV_TTY_SUPPORTED_sid)
@@ -3712,10 +3217,9 @@ static int fuv_make_udp(FKL_CPROC_ARGL) {
     for (FklVMvalue **parg = &arg_base[1]; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            int family = sid_to_af_name(id, fpd);
+            int family = sid_to_af_name(cur, fpd);
             if (family < 0) {
-                if (id == fpd->UV_UDP_RECVMMSG_sid) {
+                if (cur == fpd->UV_UDP_RECVMMSG_sid) {
                     flags |= UV_UDP_RECVMMSG;
                     cur = ((parg < (arg_end - 1)) ? *(++parg) : NULL);
                     if (cur == NULL)
@@ -3899,33 +3403,23 @@ static int fuv_udp_connect(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline int sid_to_udp_flag(FklSid_t id, FuvPublicData *fpd) {
-    if (id == fpd->UV_UDP_IPV6ONLY_sid)
-        return UV_UDP_IPV6ONLY;
-    if (id == fpd->UV_UDP_PARTIAL_sid)
-        return UV_UDP_PARTIAL;
-    if (id == fpd->UV_UDP_REUSEADDR_sid)
-        return UV_UDP_REUSEADDR;
-    if (id == fpd->UV_UDP_MMSG_CHUNK_sid)
-        return UV_UDP_MMSG_CHUNK;
-    if (id == fpd->UV_UDP_MMSG_FREE_sid)
-        return UV_UDP_MMSG_FREE;
-    if (id == fpd->UV_UDP_LINUX_RECVERR_sid)
-        return UV_UDP_LINUX_RECVERR;
-    if (id == fpd->UV_UDP_RECVMMSG_sid)
-        return UV_UDP_RECVMMSG;
+static inline int sid_to_udp_flag(FklVMvalue *id, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (id == fpd->A##_sid)                                                    \
+        return A;
+    FUV_UV_UDP_MAP(XX)
+#undef XX
     return -1;
 }
 
 static inline FklBuiltinErrorType get_udp_flags(FklVMvalue **parg,
         FklVMvalue **const arg_end,
         unsigned int *flags,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            int flag = sid_to_udp_flag(id, fpd);
+            int flag = sid_to_udp_flag(cur, fpd);
             if (flag < 0)
                 return FKL_ERR_INVALID_VALUE;
             *flags |= flag;
@@ -4029,8 +3523,9 @@ static int fuv_udp_sockname(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline int
-sid_to_membership(FklSid_t id, FuvPublicData *fpd, uv_membership *membership) {
+static inline int sid_to_membership(FklVMvalue *id,
+        const FuvPublicData *fpd,
+        uv_membership *membership) {
     if (id == fpd->UV_LEAVE_GROUP_sid) {
         *membership = UV_LEAVE_GROUP;
         return 0;
@@ -4059,9 +3554,8 @@ static int fuv_udp_membership_set1(FKL_CPROC_ARGL) {
                                        ? NULL
                                        : FKL_VM_STR(interface_addr_obj)->str;
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-    FklSid_t id = FKL_GET_SYM(membership_obj);
     uv_membership membership = 0;
-    if (sid_to_membership(id, fpd, &membership))
+    if (sid_to_membership(membership_obj, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     int ret = uv_udp_set_membership((uv_udp_t *)GET_HANDLE(udp_ud),
             multicast_addr,
@@ -4093,9 +3587,8 @@ static int fuv_udp_source_membership_set1(FKL_CPROC_ARGL) {
     const char *source_addr = FKL_VM_STR(source_addr_obj)->str;
 
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-    FklSid_t id = FKL_GET_SYM(membership_obj);
     uv_membership membership = 0;
-    if (sid_to_membership(id, fpd, &membership))
+    if (sid_to_membership(membership_obj, fpd, &membership))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     int ret = uv_udp_set_source_membership((uv_udp_t *)GET_HANDLE(udp_ud),
             multicast_addr,
@@ -4223,14 +3716,14 @@ struct UdpRecvArg {
     const struct sockaddr *addr;
     const uv_buf_t *buf;
     unsigned flags;
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
 };
 
 static void fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     struct UdpRecvArg *arg = (struct UdpRecvArg *)a;
     ssize_t nread = arg->nread;
     FklVMvalue *err =
-            nread < 0 ? createUvErrorWithFpd(nread, exe, arg->fpd) : FKL_VM_NIL;
+            nread < 0 ? createUvError2(nread, exe, arg->fpd) : FKL_VM_NIL;
     FklVMvalue *res = FKL_VM_NIL;
     if (nread == 0) {
         if (arg->addr)
@@ -4241,7 +3734,7 @@ static void fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     if (arg->buf && !(arg->flags & UV_UDP_MMSG_CHUNK))
         fklZfree(arg->buf->base);
 
-    FuvPublicData *fpd = arg->fpd;
+    const FuvPublicData *fpd = arg->fpd;
     FklVMvalue *addr = arg->addr ? parse_sockaddr_with_fpd(exe,
                                            (struct sockaddr_storage *)arg->addr,
                                            fpd)
@@ -4250,41 +3743,15 @@ static void fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     FklVMvalue *flags = FKL_VM_NIL;
 
     FklVMvalue **pcur = &flags;
-    if (arg->flags & UV_UDP_IPV6ONLY) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_IPV6ONLY_sid));
-        pcur = &FKL_VM_CDR(*pcur);
+#define XX(A, B, C)                                                            \
+    if (arg->flags & UV_UDP_IPV6ONLY) {                                        \
+        *pcur = fklCreateVMvaluePairWithCar(exe, fpd->A##_sid);                \
+        pcur = &FKL_VM_CDR(*pcur);                                             \
     }
-    if (arg->flags & UV_UDP_PARTIAL) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_PARTIAL_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
-    if (arg->flags & UV_UDP_REUSEADDR) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_REUSEADDR_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
-    if (arg->flags & UV_UDP_MMSG_CHUNK) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_CHUNK_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
-    if (arg->flags & UV_UDP_MMSG_FREE) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_MMSG_FREE_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
-    if (arg->flags & UV_UDP_LINUX_RECVERR) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_LINUX_RECVERR_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
-    if (arg->flags & UV_UDP_RECVMMSG) {
-        *pcur = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_UDP_RECVMMSG_sid));
-        pcur = &FKL_VM_CDR(*pcur);
-    }
+
+    FUV_UV_UDP_MAP(XX)
+#undef XX
+
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
     FKL_VM_PUSH_VALUE(exe, addr);
@@ -4393,15 +3860,16 @@ static inline FklBuiltinErrorType get_fs_event_flags(FklVMvalue **parg,
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->UV_FS_EVENT_WATCH_ENTRY_sid)
-                (*flags) |= UV_FS_EVENT_WATCH_ENTRY;
-            else if (id == fpd->UV_FS_EVENT_STAT_sid)
-                (*flags) |= UV_FS_EVENT_STAT;
-            else if (id == fpd->UV_FS_EVENT_RECURSIVE_sid)
-                (*flags) |= UV_FS_EVENT_RECURSIVE;
-            else
-                return FKL_ERR_INVALID_VALUE;
+#define XX(A, B, C)                                                            \
+    if (cur == fpd->A##_sid) {                                                 \
+        (*flags) |= A;                                                         \
+        continue;                                                              \
+    }
+
+            FUV_UV_FS_EVENT_MAP(XX)
+#undef XX
+
+            return FKL_ERR_INVALID_VALUE;
         } else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
     }
@@ -4409,7 +3877,7 @@ static inline FklBuiltinErrorType get_fs_event_flags(FklVMvalue **parg,
 }
 
 struct FsEventCbValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     const char *path;
     int events;
     int status;
@@ -4417,23 +3885,20 @@ struct FsEventCbValueCreateArg {
 
 static void fuv_fs_event_value_creator(FklVM *exe, void *a) {
     struct FsEventCbValueCreateArg *arg = a;
-    FuvPublicData *fpd = arg->fpd;
-    FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, fpd)
-                            : FKL_VM_NIL;
+    const FuvPublicData *fpd = arg->fpd;
+    FklVMvalue *err = arg->status < 0 ? createUvError2(arg->status, exe, fpd)
+                                      : FKL_VM_NIL;
     FklVMvalue *path = arg->path ? fklCreateVMvalueStrFromCstr(exe, arg->path)
                                  : FKL_VM_NIL;
 
     FklVMvalue *events = FKL_VM_NIL;
     FklVMvalue **pevents = &events;
     if (arg->events & UV_RENAME) {
-        *pevents = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_RENAME_sid));
+        *pevents = fklCreateVMvaluePairWithCar(exe, fpd->UV_RENAME_sid);
         pevents = &FKL_VM_CDR(*pevents);
     }
     if (arg->events & UV_CHANGE) {
-        *pevents = fklCreateVMvaluePairWithCar(exe,
-                FKL_MAKE_VM_SYM(fpd->UV_CHANGE_sid));
+        *pevents = fklCreateVMvaluePairWithCar(exe, fpd->UV_CHANGE_sid);
         pevents = &FKL_VM_CDR(*pevents);
     }
 
@@ -4531,92 +3996,91 @@ static int fuv_make_fs_poll(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *
-timespec_to_vmtable(FklVM *exe, const uv_timespec_t *spec, FuvPublicData *fpd) {
+static inline FklVMvalue *timespec_to_vmtable(FklVM *exe,
+        const uv_timespec_t *spec,
+        const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-            fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+            fpd->timespec_f_nsec_sid,
             fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
 
 static inline FklVMvalue *
-stat_to_vmtable(FklVM *exe, const uv_stat_t *stat, FuvPublicData *fpd) {
+stat_to_vmtable(FklVM *exe, const uv_stat_t *stat, const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_dev_sid),
+            fpd->stat_f_dev_sid,
             fklMakeVMuint(stat->st_dev, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_mode_sid),
+            fpd->stat_f_mode_sid,
             fklMakeVMuint(stat->st_mode, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_nlink_sid),
+            fpd->stat_f_nlink_sid,
             fklMakeVMuint(stat->st_nlink, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_uid_sid),
+            fpd->stat_f_uid_sid,
             fklMakeVMuint(stat->st_uid, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_gid_sid),
+            fpd->stat_f_gid_sid,
             fklMakeVMuint(stat->st_gid, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_rdev_sid),
+            fpd->stat_f_rdev_sid,
             fklMakeVMuint(stat->st_rdev, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_ino_sid),
+            fpd->stat_f_ino_sid,
             fklMakeVMuint(stat->st_ino, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_size_sid),
+            fpd->stat_f_size_sid,
             fklMakeVMuint(stat->st_size, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_blksize_sid),
+            fpd->stat_f_blksize_sid,
             fklMakeVMuint(stat->st_blksize, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_blocks_sid),
+            fpd->stat_f_blocks_sid,
             fklMakeVMuint(stat->st_blocks, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_flags_sid),
+            fpd->stat_f_flags_sid,
             fklMakeVMuint(stat->st_flags, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_gen_sid),
+            fpd->stat_f_gen_sid,
             fklMakeVMuint(stat->st_gen, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_atime_sid),
+            fpd->stat_f_atime_sid,
             timespec_to_vmtable(exe, &stat->st_atim, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_mtime_sid),
+            fpd->stat_f_mtime_sid,
             timespec_to_vmtable(exe, &stat->st_mtim, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_ctime_sid),
+            fpd->stat_f_ctime_sid,
             timespec_to_vmtable(exe, &stat->st_ctim, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_birthtime_sid),
+            fpd->stat_f_birthtime_sid,
             timespec_to_vmtable(exe, &stat->st_birthtim, fpd));
 
-    FklSid_t type = 0;
+    FklVMvalue *type = FKL_VM_NIL;
     if (S_ISREG(stat->st_mode))
         type = fpd->stat_type_file_sid;
     else if (S_ISDIR(stat->st_mode))
@@ -4636,14 +4100,12 @@ stat_to_vmtable(FklVM *exe, const uv_stat_t *stat, FuvPublicData *fpd) {
     else
         type = fpd->stat_type_unknown_sid;
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->stat_f_type_sid),
-            FKL_MAKE_VM_SYM(type));
+    fklVMhashTableSet(ht, fpd->stat_f_type_sid, type);
     return hash;
 }
 
 struct FsPollCbValueCreateArg {
-    FuvPublicData *fpd;
+    const FuvPublicData *fpd;
     const uv_stat_t *prev;
     const uv_stat_t *curr;
     int status;
@@ -4651,10 +4113,9 @@ struct FsPollCbValueCreateArg {
 
 static void fuv_fs_poll_value_creator(FklVM *exe, void *a) {
     struct FsPollCbValueCreateArg *arg = a;
-    FuvPublicData *fpd = arg->fpd;
-    FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, fpd)
-                            : FKL_VM_NIL;
+    const FuvPublicData *fpd = arg->fpd;
+    FklVMvalue *err = arg->status < 0 ? createUvError2(arg->status, exe, fpd)
+                                      : FKL_VM_NIL;
     FklVMvalue *prev =
             arg->prev ? stat_to_vmtable(exe, arg->prev, fpd) : FKL_VM_NIL;
     FklVMvalue *curr =
@@ -4770,89 +4231,74 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
                 fklCreateVMvalueStr2(exe, buf.index, buf.buf));
         fklUninitStringBuffer(&buf);
     } else
-        err = createUvErrorWithFpd(r, exe, fpd);
+        err = createUvError2(r, exe, fpd);
     return err;
 }
 
 static inline FklVMvalue *
-statfs_to_vmtable(FklVM *exe, uv_statfs_t *s, FuvPublicData *fpd) {
+statfs_to_vmtable(FklVM *exe, uv_statfs_t *s, const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_type_sid),
+            fpd->statfs_f_type_sid,
             fklMakeVMuint(s->f_type, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_bsize_sid),
+            fpd->statfs_f_bsize_sid,
             fklMakeVMuint(s->f_bsize, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_blocks_sid),
+            fpd->statfs_f_blocks_sid,
             fklMakeVMuint(s->f_blocks, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_bfree_sid),
+            fpd->statfs_f_bfree_sid,
             fklMakeVMuint(s->f_bfree, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_bavail_sid),
+            fpd->statfs_f_bavail_sid,
             fklMakeVMuint(s->f_bavail, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_files_sid),
+            fpd->statfs_f_files_sid,
             fklMakeVMuint(s->f_files, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->statfs_f_ffree_sid),
+            fpd->statfs_f_ffree_sid,
             fklMakeVMuint(s->f_ffree, exe));
 
     return hash;
 }
 
-static inline FklSid_t dirent_type_to_sid(uv_dirent_type_t type,
-        FuvPublicData *fpd) {
+static inline FklVMvalue *dirent_type_to_sid(uv_dirent_type_t type,
+        const FuvPublicData *fpd) {
     switch (type) {
-    case UV_DIRENT_FILE:
-        return fpd->UV_DIRENT_FILE_sid;
-        break;
-    case UV_DIRENT_DIR:
-        return fpd->UV_DIRENT_DIR_sid;
-        break;
-    case UV_DIRENT_LINK:
-        return fpd->UV_DIRENT_LINK_sid;
-        break;
-    case UV_DIRENT_FIFO:
-        return fpd->UV_DIRENT_FIFO_sid;
-        break;
-    case UV_DIRENT_SOCKET:
-        return fpd->UV_DIRENT_SOCKET_sid;
-        break;
-    case UV_DIRENT_CHAR:
-        return fpd->UV_DIRENT_CHAR_sid;
-        break;
-    case UV_DIRENT_BLOCK:
-        return fpd->UV_DIRENT_BLOCK_sid;
-        break;
 
-    case UV_DIRENT_UNKNOWN:
     default:
         return fpd->UV_DIRENT_UNKNOWN_sid;
         break;
+
+#define XX(A, B, C)                                                            \
+    case A:                                                                    \
+        return fpd->A##_sid;                                                   \
+        break;
+        FUV_UV_DIRENT_TYPE_MAP(XX)
+#undef XX
     }
 }
 
 static inline FklVMvalue *
-dirent_to_vmtable(FklVM *exe, uv_dirent_t *d, FuvPublicData *fpd) {
+dirent_to_vmtable(FklVM *exe, uv_dirent_t *d, const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->dirent_f_type_sid),
-            FKL_MAKE_VM_SYM(dirent_type_to_sid(d->type, fpd)));
+            fpd->dirent_f_type_sid,
+            dirent_type_to_sid(d->type, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->dirent_f_name_sid),
+            fpd->dirent_f_name_sid,
             fklCreateVMvalueStrFromCstr(exe, d->name));
 
     return hash;
@@ -4861,7 +4307,7 @@ dirent_to_vmtable(FklVM *exe, uv_dirent_t *d, FuvPublicData *fpd) {
 static inline FklVMvalue *readdir_result_to_list(FklVM *exe,
         ssize_t result,
         uv_dir_t *dir,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (ssize_t i = 0; i < result; i++) {
@@ -5291,51 +4737,12 @@ static int fuv_fs_close(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int sid_to_fs_flags(FklSid_t id, FuvPublicData *fpd) {
-    if (id == fpd->UV_FS_O_APPEND_sid)
-        return UV_FS_O_APPEND;
-    if (id == fpd->UV_FS_O_CREAT_sid)
-        return UV_FS_O_CREAT;
-    if (id == fpd->UV_FS_O_EXCL_sid)
-        return UV_FS_O_EXCL;
-    if (id == fpd->UV_FS_O_FILEMAP_sid)
-        return UV_FS_O_FILEMAP;
-    if (id == fpd->UV_FS_O_RANDOM_sid)
-        return UV_FS_O_RANDOM;
-    if (id == fpd->UV_FS_O_RDONLY_sid)
-        return UV_FS_O_RDONLY;
-    if (id == fpd->UV_FS_O_RDWR_sid)
-        return UV_FS_O_RDWR;
-    if (id == fpd->UV_FS_O_SEQUENTIAL_sid)
-        return UV_FS_O_SEQUENTIAL;
-    if (id == fpd->UV_FS_O_SHORT_LIVED_sid)
-        return UV_FS_O_SHORT_LIVED;
-    if (id == fpd->UV_FS_O_TEMPORARY_sid)
-        return UV_FS_O_TEMPORARY;
-    if (id == fpd->UV_FS_O_TRUNC_sid)
-        return UV_FS_O_TRUNC;
-    if (id == fpd->UV_FS_O_WRONLY_sid)
-        return UV_FS_O_WRONLY;
-    if (id == fpd->UV_FS_O_DIRECT_sid)
-        return UV_FS_O_DIRECT;
-    if (id == fpd->UV_FS_O_DIRECTORY_sid)
-        return UV_FS_O_DIRECTORY;
-    if (id == fpd->UV_FS_O_DSYNC_sid)
-        return UV_FS_O_DSYNC;
-    if (id == fpd->UV_FS_O_EXLOCK_sid)
-        return UV_FS_O_EXLOCK;
-    if (id == fpd->UV_FS_O_NOATIME_sid)
-        return UV_FS_O_NOATIME;
-    if (id == fpd->UV_FS_O_NOCTTY_sid)
-        return UV_FS_O_NOCTTY;
-    if (id == fpd->UV_FS_O_NOFOLLOW_sid)
-        return UV_FS_O_NOFOLLOW;
-    if (id == fpd->UV_FS_O_NONBLOCK_sid)
-        return UV_FS_O_NONBLOCK;
-    if (id == fpd->UV_FS_O_SYMLINK_sid)
-        return UV_FS_O_SYMLINK;
-    if (id == fpd->UV_FS_O_SYNC_sid)
-        return UV_FS_O_SYNC;
+static int sid_to_fs_flags(FklVMvalue *id, const FuvPublicData *fpd) {
+#define XX(A, B, C)                                                            \
+    if (id == fpd->A##_sid)                                                    \
+        return A;
+    FUV_UV_FS_O_MAP(XX)
+#undef XX
     return -1;
 }
 
@@ -6212,12 +5619,11 @@ list_to_copyfile_flags(FklVMvalue *cur_pair, int *flags, FklVMvalue *pd) {
     for (; cur_pair != FKL_VM_NIL; cur_pair = FKL_VM_CDR(cur_pair)) {
         FklVMvalue *cur = FKL_VM_CAR(cur_pair);
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->UV_FS_COPYFILE_EXCL_sid)
+            if (cur == fpd->UV_FS_COPYFILE_EXCL_sid)
                 (*flags) |= UV_FS_COPYFILE_EXCL;
-            else if (id == fpd->UV_FS_COPYFILE_FICLONE_sid)
+            else if (cur == fpd->UV_FS_COPYFILE_FICLONE_sid)
                 (*flags) |= UV_FS_COPYFILE_FICLONE;
-            else if (id == fpd->UV_FS_COPYFILE_FICLONE_FORCE_sid)
+            else if (cur == fpd->UV_FS_COPYFILE_FICLONE_FORCE_sid)
                 (*flags) |= UV_FS_COPYFILE_FICLONE_FORCE;
             else
                 return FKL_ERR_INVALID_VALUE;
@@ -6615,10 +6021,9 @@ list_to_symlink_flags(FklVMvalue *cur_pair, int *flags, FklVMvalue *pd) {
     for (; cur_pair != FKL_VM_NIL; cur_pair = FKL_VM_CDR(cur_pair)) {
         FklVMvalue *cur = FKL_VM_CAR(cur_pair);
         if (FKL_IS_SYM(cur)) {
-            FklSid_t id = FKL_GET_SYM(cur);
-            if (id == fpd->UV_FS_SYMLINK_DIR_sid)
+            if (cur == fpd->UV_FS_SYMLINK_DIR_sid)
                 (*flags) |= UV_FS_SYMLINK_DIR;
-            else if (id == fpd->UV_FS_SYMLINK_JUNCTION_sid)
+            else if (cur == fpd->UV_FS_SYMLINK_JUNCTION_sid)
                 (*flags) |= UV_FS_SYMLINK_JUNCTION;
             else
                 return FKL_ERR_INVALID_VALUE;
@@ -6916,17 +6321,16 @@ static int fuv_uptime(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static inline FklVMvalue *
-timeval_to_vmtable(FklVM *exe, const uv_timeval_t *spec, FuvPublicData *fpd) {
+static inline FklVMvalue *timeval_to_vmtable(FklVM *exe,
+        const uv_timeval_t *spec,
+        const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-            fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+            fpd->timeval_f_usec_sid,
             fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
@@ -6939,67 +6343,67 @@ rusage_to_vmtable(FklVM *exe, uv_rusage_t *r, FklVMvalue *pd) {
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_utime_sid),
+            fpd->rusage_utime_sid,
             timeval_to_vmtable(exe, &r->ru_utime, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_stime_sid),
+            fpd->rusage_stime_sid,
             timeval_to_vmtable(exe, &r->ru_stime, fpd));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_maxrss_sid),
+            fpd->rusage_maxrss_sid,
             fklMakeVMuint(r->ru_maxrss, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_ixrss_sid),
+            fpd->rusage_ixrss_sid,
             fklMakeVMuint(r->ru_ixrss, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_idrss_sid),
+            fpd->rusage_idrss_sid,
             fklMakeVMuint(r->ru_idrss, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_isrss_sid),
+            fpd->rusage_isrss_sid,
             fklMakeVMuint(r->ru_isrss, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_minflt_sid),
+            fpd->rusage_minflt_sid,
             fklMakeVMuint(r->ru_minflt, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_majflt_sid),
+            fpd->rusage_majflt_sid,
             fklMakeVMuint(r->ru_majflt, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_nswap_sid),
+            fpd->rusage_nswap_sid,
             fklMakeVMuint(r->ru_nswap, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_inblock_sid),
+            fpd->rusage_inblock_sid,
             fklMakeVMuint(r->ru_inblock, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_oublock_sid),
+            fpd->rusage_oublock_sid,
             fklMakeVMuint(r->ru_oublock, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_msgsnd_sid),
+            fpd->rusage_msgsnd_sid,
             fklMakeVMuint(r->ru_msgsnd, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_msgrcv_sid),
+            fpd->rusage_msgrcv_sid,
             fklMakeVMuint(r->ru_msgrcv, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_nsignals_sid),
+            fpd->rusage_nsignals_sid,
             fklMakeVMuint(r->ru_nsignals, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_nvcsw_sid),
+            fpd->rusage_nvcsw_sid,
             fklMakeVMuint(r->ru_nvcsw, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->rusage_nivcsw_sid),
+            fpd->rusage_nivcsw_sid,
             fklMakeVMuint(r->ru_nivcsw, exe));
     return hash;
 }
@@ -7044,41 +6448,41 @@ static int fuv_available_parallelism(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *
-cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info, FuvPublicData *fpd) {
+cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info, const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_model_sid),
+            fpd->cpu_info_model_sid,
             fklCreateVMvalueStrFromCstr(exe, info->model));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_speed_sid),
+            fpd->cpu_info_speed_sid,
             FKL_MAKE_VM_FIX(info->speed));
 
     FklVMvalue *cpu_times = fklCreateVMvalueHashEq(exe);
     FklVMhash *cht = FKL_VM_HASH(cpu_times);
 
     fklVMhashTableSet(cht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_times_user_sid),
+            fpd->cpu_info_times_user_sid,
             fklMakeVMuint(info->cpu_times.user, exe));
 
     fklVMhashTableSet(cht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_times_nice_sid),
+            fpd->cpu_info_times_nice_sid,
             fklMakeVMuint(info->cpu_times.nice, exe));
 
     fklVMhashTableSet(cht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_times_sys_sid),
+            fpd->cpu_info_times_sys_sid,
             fklMakeVMuint(info->cpu_times.sys, exe));
 
     fklVMhashTableSet(cht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_times_idle_sid),
+            fpd->cpu_info_times_idle_sid,
             fklMakeVMuint(info->cpu_times.idle, exe));
 
     fklVMhashTableSet(cht,
-            FKL_MAKE_VM_SYM(fpd->cpu_info_times_irq_sid),
+            fpd->cpu_info_times_irq_sid,
             fklMakeVMuint(info->cpu_times.irq, exe));
 
-    fklVMhashTableSet(ht, FKL_MAKE_VM_SYM(fpd->cpu_info_times_sid), cpu_times);
+    fklVMhashTableSet(ht, fpd->cpu_info_times_sid, cpu_times);
     return hash;
 }
 
@@ -7130,17 +6534,17 @@ static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
         FklVMhash *ht = FKL_VM_HASH(hash);
 
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_name_sid),
+                fpd->ifa_f_name_sid,
                 fklCreateVMvalueStrFromCstr(exe, cur->name));
 
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_mac_sid),
+                fpd->ifa_f_mac_sid,
                 fklCreateVMvalueBvec2(exe,
                         sizeof(cur->phys_addr),
                         FKL_TYPE_CAST(const uint8_t *, cur->phys_addr)));
 
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_internal_sid),
+                fpd->ifa_f_internal_sid,
                 cur->is_internal ? FKL_VM_TRUE : FKL_VM_NIL);
 
         if (cur->address.address4.sin_family == AF_INET) {
@@ -7155,13 +6559,13 @@ static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
         }
 
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_ip_sid),
+                fpd->ifa_f_ip_sid,
                 fklCreateVMvalueStrFromCstr(exe, ip));
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_netmask_sid),
+                fpd->ifa_f_netmask_sid,
                 fklCreateVMvalueStrFromCstr(exe, netmask));
         fklVMhashTableSet(ht,
-                FKL_MAKE_VM_SYM(fpd->ifa_f_family_sid),
+                fpd->ifa_f_family_sid,
                 af_num_to_symbol(cur->address.address4.sin_family, fpd));
     }
     return v;
@@ -7279,24 +6683,20 @@ passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd, FklVMvalue *pd) {
     FklVMhash *ht = FKL_VM_HASH(hash);
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->passwd_username_sid),
+            fpd->passwd_username_sid,
             fklCreateVMvalueStrFromCstr(exe, passwd->username));
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->passwd_uid_sid),
-            fklMakeVMint(passwd->uid, exe));
+    fklVMhashTableSet(ht, fpd->passwd_uid_sid, fklMakeVMint(passwd->uid, exe));
+
+    fklVMhashTableSet(ht, fpd->passwd_gid_sid, fklMakeVMint(passwd->gid, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->passwd_gid_sid),
-            fklMakeVMint(passwd->gid, exe));
-
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->passwd_shell_sid),
+            fpd->passwd_shell_sid,
             passwd->shell ? fklCreateVMvalueStrFromCstr(exe, passwd->shell)
                           : FKL_VM_NIL);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->passwd_homedir_sid),
+            fpd->passwd_homedir_sid,
             passwd->homedir ? fklCreateVMvalueStrFromCstr(exe, passwd->homedir)
                             : FKL_VM_NIL);
     return hash;
@@ -7349,24 +6749,21 @@ static int fuv_hrtime(FKL_CPROC_ARGL) {
 
 static inline FklVMvalue *timespec64_to_vmtable(FklVM *exe,
         const uv_timespec64_t *spec,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-            fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_nsec_sid),
+            fpd->timespec_f_nsec_sid,
             fklMakeVMint(spec->tv_nsec, exe));
 
     return hash;
 }
 
 static inline FklBuiltinErrorType
-sid_to_clockid(FklVMvalue *obj, uv_clock_id *id, FuvPublicData *fpd) {
-    FklSid_t sid = FKL_GET_SYM(obj);
+sid_to_clockid(FklVMvalue *sid, uv_clock_id *id, const FuvPublicData *fpd) {
     if (sid == fpd->UV_CLOCK_MONOTONIC_sid)
         *id = UV_CLOCK_MONOTONIC;
     else if (sid == fpd->UV_CLOCK_REALTIME_sid)
@@ -7513,31 +6910,30 @@ static int fuv_os_getpriority(FKL_CPROC_ARGL) {
     return 0;
 }
 
+static inline int
+sid_to_priority(FklVMvalue *v, const FuvPublicData *fpd, int *r) {
+#define XX(A, B, C)                                                            \
+    if (v == fpd->A##_sid) {                                                   \
+        *r = A;                                                                \
+        return 0;                                                              \
+    }
+    FUV_UV_PRIORITY_MAP(XX)
+#undef XX
+    return 1;
+}
+
 static int fuv_os_setpriority(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *pid_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FklVMvalue *priority_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklVMvalue *id = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(pid_obj, FKL_IS_FIX, exe);
     uv_pid_t pid = FKL_GET_FIX(pid_obj);
     int priority = 0;
-    if (FKL_IS_FIX(priority_obj))
-        priority = FKL_GET_FIX(priority_obj);
-    else if (FKL_IS_SYM(priority_obj)) {
+    if (FKL_IS_FIX(id))
+        priority = FKL_GET_FIX(id);
+    else if (FKL_IS_SYM(id)) {
         FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, ctx->pd);
-        FklSid_t id = FKL_GET_SYM(priority_obj);
-        if (id == fpd->UV_PRIORITY_LOW_sid)
-            priority = UV_PRIORITY_LOW;
-        else if (id == fpd->UV_PRIORITY_BELOW_NORMAL_sid)
-            priority = UV_PRIORITY_BELOW_NORMAL;
-        else if (id == fpd->UV_PRIORITY_NORMAL_sid)
-            priority = UV_PRIORITY_NORMAL;
-        else if (id == fpd->UV_PRIORITY_ABOVE_NORMAL_sid)
-            priority = UV_PRIORITY_ABOVE_NORMAL;
-        else if (id == fpd->UV_PRIORITY_HIGH_sid)
-            priority = UV_PRIORITY_HIGH;
-        else if (id == fpd->UV_PRIORITY_HIGHEST_sid)
-            priority = UV_PRIORITY_HIGHEST;
-        else
+        if (sid_to_priority(id, fpd, &priority))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -7549,40 +6945,38 @@ static int fuv_os_setpriority(FKL_CPROC_ARGL) {
 
 static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
         const uv_timeval64_t *spec,
-        FuvPublicData *fpd) {
+        const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
-    fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timespec_f_sec_sid),
-            fklMakeVMint(spec->tv_sec, exe));
+    fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->timeval_f_usec_sid),
+            fpd->timeval_f_usec_sid,
             fklMakeVMint(spec->tv_usec, exe));
 
     return hash;
 }
 
 static inline FklVMvalue *
-utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf, FuvPublicData *fpd) {
+utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf, const FuvPublicData *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->utsname_sysname_sid),
+            fpd->utsname_sysname_sid,
             fklCreateVMvalueStrFromCstr(exe, buf->sysname));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->utsname_release_sid),
+            fpd->utsname_release_sid,
             fklCreateVMvalueStrFromCstr(exe, buf->release));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->utsname_version_sid),
+            fpd->utsname_version_sid,
             fklCreateVMvalueStrFromCstr(exe, buf->version));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->utsname_machine_sid),
+            fpd->utsname_machine_sid,
             fklCreateVMvalueStrFromCstr(exe, buf->machine));
     return hash;
 }
@@ -7618,9 +7012,8 @@ static void fuv_random_cb_value_creator(FklVM *exe, void *a) {
     FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpd_obj);
 
     struct RandomCbValueCreateArg *arg = a;
-    FklVMvalue *err = arg->status < 0
-                            ? createUvErrorWithFpd(arg->status, exe, fpd)
-                            : FKL_VM_NIL;
+    FklVMvalue *err = arg->status < 0 ? createUvError2(arg->status, exe, fpd)
+                                      : FKL_VM_NIL;
     FklVMvalue *res = fklCreateVMvalueBvec2(exe, arg->buflen, arg->buf);
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
@@ -7708,15 +7101,15 @@ metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics, FklVMvalue *pd) {
     FklVMhash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->metrics_loop_count_sid),
+            fpd->metrics_loop_count_sid,
             fklMakeVMuint(metrics->loop_count, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->metrics_events_sid),
+            fpd->metrics_events_sid,
             fklMakeVMuint(metrics->events, exe));
 
     fklVMhashTableSet(ht,
-            FKL_MAKE_VM_SYM(fpd->metrics_events_waiting_sid),
+            fpd->metrics_events_waiting_sid,
             fklMakeVMuint(metrics->events_waiting, exe));
 
     return hash;
@@ -8024,13 +7417,13 @@ struct SymFunc {
 static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklSid_t *_fklExportSymbolInit(
-        FKL_CODEGEN_DLL_LIB_INIT_EXPORT_FUNC_ARGS) {
+FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
     *num = EXPORT_NUM;
-    FklSid_t *symbols = (FklSid_t *)fklZmalloc(sizeof(FklSid_t) * EXPORT_NUM);
+    FklVMvalue **symbols =
+            (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklAddSymbolCstr(exports_and_func[i].sym, st);
+        symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
     return symbols;
 }
 
@@ -8040,20 +7433,18 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
 
-    FklVMvalue *fpd = fklCreateVMvalueUd(exe, &FuvPublicDataMetaTable, dll);
+    FklVMvalue *fpdv = fklCreateVMvalueUd(exe, &FuvPublicDataMetaTable, dll);
 
-    FKL_DECL_VM_UD_DATA(pd, FuvPublicData, fpd);
+    FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, fpdv);
 
-    FKL_VM_ACQUIRE_ST_BLOCK(exe->gc, flag) {
-        init_fuv_public_data(pd, exe->gc->st);
-    }
+    init_fuv_public_data(fpd, exe);
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;
         FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
                 func,
                 dll,
-                fpd,
+                fpdv,
                 exports_and_func[i].sym);
         loc[i] = dlproc;
     }

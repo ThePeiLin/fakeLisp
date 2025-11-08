@@ -45,7 +45,7 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
     }
 }
 
-static int fuv_loop_finalizer(FklVMud *ud) {
+static int fuv_loop_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
     if (fuvLoopIsClosed(fuv_loop))
         goto closed;
@@ -56,7 +56,7 @@ static int fuv_loop_finalizer(FklVMud *ud) {
         fuv_loop_remove_obj_ref(fuv_loop->data.refs);
     }
 closed:
-    fklVMgcSweep(fuv_loop->data.gclist);
+    fklVMgcSweep(gc, fuv_loop->data.gclist);
     fuv_loop->data.gclist = NULL;
     return FKL_VM_UD_FINALIZE_NOW;
 }

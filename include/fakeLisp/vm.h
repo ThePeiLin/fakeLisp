@@ -563,7 +563,7 @@ typedef struct FklVMudMetaTable {
     size_t size;
     void (*__as_princ)(const FklVMud *, FklStringBuffer *, struct FklVM *);
     void (*__as_prin1)(const FklVMud *, FklStringBuffer *, struct FklVM *);
-    int (*__finalizer)(FklVMud *);
+    int (*__finalizer)(FklVMud *, struct FklVMgc *gc);
     int (*__equal)(const FklVMud *, const FklVMud *);
     void (*__call)(FklVMvalue *, FklVM *);
     int (*__cmp)(const FklVMud *, const FklVMvalue *, int *);
@@ -1534,13 +1534,6 @@ int fklIsWritableUd(const FklVMud *);
 int fklIsAbleToStringUd(const FklVMud *);
 int fklIsAbleAsPrincUd(const FklVMud *);
 int fklUdHasLength(const FklVMud *);
-
-static inline int fklFinalizeVMud(FklVMud *a) {
-    int (*finalize)(FklVMud *) = a->t->__finalizer;
-    if (finalize)
-        return finalize(a);
-    return FKL_VM_UD_FINALIZE_NOW;
-}
 
 int fklEqualVMud(const FklVMud *, const FklVMud *);
 void fklCallVMud(const FklVMud *, const FklVMud *);

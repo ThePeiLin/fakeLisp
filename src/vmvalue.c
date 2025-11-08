@@ -1140,7 +1140,7 @@ int fklIsVMvalueChanl(FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &ChanlUserDataMetaTable;
 }
 
-static int _fp_userdata_finalizer(FklVMud *ud) {
+static int _fp_userdata_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(fp, FklVMfp, ud);
     fklUninitVMfp(fp);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -1438,7 +1438,7 @@ FklVMvalue *fklCreateVMvalueHashEqual(FklVM *exe) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, "code-obj");
 
-static int _code_obj_userdata_finalizer(FklVMud *v) {
+static int _code_obj_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     fklUninitByteCodelnt(t);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -1486,7 +1486,7 @@ static void _dll_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
     fklVMgcToGray(dll->pd, gc);
 }
 
-static int _dll_userdata_finalizer(FklVMud *v) {
+static int _dll_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     FKL_DECL_UD_DATA(dll, FklVMdll, v);
     FklDllUninitFunc uninit =
             (FklDllUninitFunc)fklGetAddress("_fklUninit", &dll->dll);
@@ -1552,7 +1552,7 @@ static void _libs_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
     }
 }
 
-static int _libs_userdata_finalizer(FklVMud *v) {
+static int _libs_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
     uv_mutex_destroy(&t->lock);
     for (size_t i = 1; i <= t->count; i++)
@@ -1599,7 +1599,7 @@ static void _protos_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
     fklVMgcMarkPrototypes(gc, t);
 }
 
-static int _protos_userdata_finalizer(FklVMud *v) {
+static int _protos_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     FKL_DECL_UD_DATA(t, FklFuncPrototypes, v);
     fklUninitFuncPrototypes(t);
     return FKL_VM_UD_FINALIZE_NOW;

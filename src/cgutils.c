@@ -1578,7 +1578,7 @@ static void macro_scope_atomic(const FklVMud *ud, FklVMgc *gc) {
     FKL_TODO();
 }
 
-static int macro_scope_finalizer(FklVMud *ud) {
+static int macro_scope_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(ms, struct FklCodegenMacroScope, ud);
     for (FklCodegenMacro *cur = ms->head; cur;) {
         FklCodegenMacro *t = cur;
@@ -1640,7 +1640,7 @@ static void env_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-static int env_finalizer(FklVMud *ud) {
+static int env_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(cur, struct FklCodegenEnv, ud);
     uint32_t sc = cur->sc;
     FklCodegenEnvScope *scopes = cur->scopes;
@@ -1745,7 +1745,7 @@ static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
     }
 }
 
-static int info_finalizer(FklVMud *ud) {
+static int info_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(i, struct FklCodegenInfo, ud);
 
     fklZfree(i->dir);
@@ -1923,7 +1923,7 @@ static void custom_action_ctx_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
     fklVMgcMarkCodeObject(gc, c->bcl);
 }
 
-static int custom_action_ctx_ud_finalizer(FklVMud *ud) {
+static int custom_action_ctx_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(c, struct FklCustomActionCtx, ud);
 
     if (c->bcl)
@@ -3434,7 +3434,7 @@ static void simple_action_ctx_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(simple_action_ctx_ud_as_print,
         "simple-action-ctx")
 
-static int simple_action_ctx_ud_finalizer(FklVMud *ud) {
+static int simple_action_ctx_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
     FKL_DECL_UD_DATA(c, struct FklSimpleActionCtx, ud);
     if (c->mt == NULL)
         return FKL_VM_UD_FINALIZE_NOW;

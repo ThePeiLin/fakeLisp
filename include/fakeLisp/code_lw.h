@@ -40,11 +40,6 @@ int fklLoadFuncPrototypes(FILE *fp,
         const FklLoadValueArgs *values,
         FklVMvalueProtos *pts);
 
-FKL_DEPRECATED
-void fklWriteConstTable(const FklConstTable *kt, FILE *fp);
-FKL_DEPRECATED
-void fklLoadConstTable(FILE *fp, FklConstTable *kt);
-
 // write and load bytecodes
 
 void fklWriteLineNumberTable(const FklLineNumberTableItem *,

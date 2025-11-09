@@ -1083,20 +1083,20 @@ static inline FklVMvalue **init_mainframe_lref(FklVMvalue **lref,
     return lref;
 }
 
-struct ConstArrayCount {
-    uint32_t i64_count;
-    uint32_t f64_count;
-    uint32_t str_count;
-    uint32_t bvec_count;
-    uint32_t bi_count;
-};
-
-static inline int is_need_update_const_array(const struct ConstArrayCount *cc,
-        const FklConstTable *kt) {
-    return cc->i64_count != kt->ki64t.count || cc->f64_count != kt->kf64t.count
-        || cc->str_count != kt->kstrt.count
-        || cc->bvec_count != kt->kbvect.count || cc->bi_count != kt->kbit.count;
-}
+// struct ConstArrayCount {
+//     uint32_t i64_count;
+//     uint32_t f64_count;
+//     uint32_t str_count;
+//     uint32_t bvec_count;
+//     uint32_t bi_count;
+// };
+//
+// static inline int is_need_update_const_array(const struct ConstArrayCount *cc,
+//         const FklConstTable *kt) {
+//     return cc->i64_count != kt->ki64t.count || cc->f64_count != kt->kf64t.count
+//         || cc->str_count != kt->kstrt.count
+//         || cc->bvec_count != kt->kbvect.count || cc->bi_count != kt->kbit.count;
+// }
 
 static int repl_frame_ret_callback(FklVM *exe, FklVMframe *frame) {
     FklVMvarRefList *lrefl = frame->c.lr.lrefl;

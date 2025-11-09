@@ -145,8 +145,6 @@ static inline void disassemble_byte_code_lnt(int digits_count,
             ++i;
         }
     }
-    return;
-    FKL_TODO();
 }
 
 static inline int compute_digits_count(uint64_t len) {

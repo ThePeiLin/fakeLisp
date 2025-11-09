@@ -644,18 +644,6 @@ void fklUpdateVMlibsWithCodegenLibVector(FklVM *vm,
         const FklCodegenLibVector *clibs,
         const FklVMvalueProtos *pts);
 
-FKL_DEPRECATED
-void fklInitPreLibReaderMacros(FklCodegenLibVector *libs,
-        FklVMgc *gc,
-        FklCodegenCtx *ctx,
-        FklFuncPrototypes *pts,
-        FklCodegenLibVector *macroLibs);
-
-FKL_DEPRECATED
-FklProdActionFunc fklFindBuiltinProdActionByName(const char *str);
-FKL_DEPRECATED
-const FklSimpleProdAction *fklFindSimpleProdActionByName(const char *str);
-
 FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
@@ -685,19 +673,6 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
         size_t len,
         const FklGrammerSym *syms,
         FklVMvalue *id);
-
-FKL_DEPRECATED
-const FklSimpleProdAction *fklGetSimpleProdActions(void);
-
-FKL_DEPRECATED
-void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod);
-
-FKL_DEPRECATED
-void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
-        uint32_t lib_count,
-        uint32_t macro_lib_count,
-        uint32_t pts_count,
-        uint32_t macro_pts_count);
 
 FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
         FklVMvalue *group,

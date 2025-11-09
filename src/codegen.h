@@ -37,33 +37,6 @@ static inline FklGrammerProdGroupItem *add_production_group(
     return group;
 }
 
-FKL_DEPRECATED
-static inline void print_nast_node_with_null_chr(const FklVMvalue *node,
-        FILE *fp) {
-    FKL_TODO();
-    // fklPrintNastNode(node, fp, st);
-    // fputc('\0', fp);
-}
-
-// static inline FklNastNode *load_nast_node_with_null_chr(FklSymbolTable *st,
-//         FILE *fp) {
-//     FklStringBuffer buf;
-//     fklInitStringBuffer(&buf);
-//     char ch = 0;
-//     while ((ch = fgetc(fp)))
-//         fklStringBufferPutc(&buf, ch);
-//     FklNastNode *node = fklCreateNastNodeFromCstr(buf.buf, st);
-//     fklUninitStringBuffer(&buf);
-//     return node;
-// }
-
-// static inline void replace_sid(FklSid_t *id,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st) {
-//     FklSid_t sid = *id;
-//     *id = fklAddSymbol(fklGetSymbolWithId(sid, origin_st), target_st);
-// }
-
 static inline void merge_group(FklGrammerProdGroupItem *group,
         const FklGrammerProdGroupItem *other,
         const FklRecomputeGroupIdArgs *args) {

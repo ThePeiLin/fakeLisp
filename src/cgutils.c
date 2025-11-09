@@ -582,428 +582,6 @@ FklSymDef *fklAddCodegenDefBySid(FklVMvalue *id,
     return el;
 }
 
-// struct RecomputeSidAndConstIdCtx {
-//     const FklSymbolTable *origin_st;
-//     FklSymbolTable *target_st;
-//
-//     const FklConstTable *origin_kt;
-//     FklConstTable *target_kt;
-// };
-//
-// #define IS_PUSH_SYM_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_SYM && (OP) <= FKL_OP_PUSH_SYM_X)
-// #define IS_PUSH_F64_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_F64 && (OP) <= FKL_OP_PUSH_F64_X)
-// #define IS_PUSH_I64F_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_I64F && (OP) <= FKL_OP_PUSH_I64F_X)
-// #define IS_PUSH_I64B_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_I64B && (OP) <= FKL_OP_PUSH_I64B_X)
-// #define IS_PUSH_STR_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_STR && (OP) <= FKL_OP_PUSH_STR_X)
-// #define IS_PUSH_BVEC_OP(OP)
-//     ((OP) >= FKL_OP_PUSH_BVEC && (OP) <= FKL_OP_PUSH_BVEC_X)
-// #define IS_PUSH_BI_OP(OP) ((OP) >= FKL_OP_PUSH_BI && (OP) <=
-// FKL_OP_PUSH_BI_X)
-//
-// static int recompute_sid_and_const_id_predicate(FklOpcode op) {
-//     return IS_PUSH_SYM_OP(op) || IS_PUSH_I64F_OP(op) || IS_PUSH_I64B_OP(op)
-//         || IS_PUSH_F64_OP(op) || IS_PUSH_STR_OP(op) || IS_PUSH_BVEC_OP(op)
-//         || IS_PUSH_BI_OP(op);
-// }
-//
-// static int recompute_sid_and_const_id_func(void *cctx,
-//         FklOpcode *popcode,
-//         FklOpcodeMode *pmode,
-//         FklInstructionArg *ins_arg) {
-//     struct RecomputeSidAndConstIdCtx *ctx = cctx;
-//     FklOpcode op = *popcode;
-//     *pmode = FKL_OP_MODE_IuB;
-//     if (IS_PUSH_SYM_OP(op)) {
-//         replace_sid(&ins_arg->ux, ctx->origin_st, ctx->target_st);
-//         *popcode = FKL_OP_PUSH_SYM;
-//     } else if (IS_PUSH_I64F_OP(op)) {
-//         ins_arg->ux = fklAddI64Const(ctx->target_kt,
-//                 fklGetI64ConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_I64F;
-//     } else if (IS_PUSH_I64B_OP(op)) {
-//         ins_arg->ux = fklAddI64Const(ctx->target_kt,
-//                 fklGetI64ConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_I64B;
-//     } else if (IS_PUSH_F64_OP(op)) {
-//         ins_arg->ux = fklAddF64Const(ctx->target_kt,
-//                 fklGetF64ConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_F64;
-//     } else if (IS_PUSH_STR_OP(op)) {
-//         ins_arg->ux = fklAddStrConst(ctx->target_kt,
-//                 fklGetStrConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_STR;
-//     } else if (IS_PUSH_BVEC_OP(op)) {
-//         ins_arg->ux = fklAddBvecConst(ctx->target_kt,
-//                 fklGetBvecConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_BVEC;
-//     } else if (IS_PUSH_BI_OP(op)) {
-//         ins_arg->ux = fklAddBigIntConst(ctx->target_kt,
-//                 fklGetBiConstWithIdx(ctx->origin_kt, ins_arg->ux));
-//         *popcode = FKL_OP_PUSH_BI;
-//     }
-//     return 0;
-// }
-//
-// #undef IS_PUSH_SYM_OP
-// #undef IS_PUSH_F64_OP
-// #undef IS_PUSH_I64F_OP
-// #undef IS_PUSH_I64B_OP
-// #undef IS_PUSH_STR_OP
-// #undef IS_PUSH_BVEC_OP
-// #undef IS_PUSH_BI_OP
-//
-// void fklRecomputeSidAndConstIdForBcl(FklByteCodelnt *bcl,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt) {
-//     struct RecomputeSidAndConstIdCtx ctx = {
-//         .origin_st = origin_st,
-//         .target_st = target_st,
-//         .origin_kt = origin_kt,
-//         .target_kt = target_kt,
-//     };
-//     fklRecomputeInsImm(bcl,
-//             &ctx,
-//             recompute_sid_and_const_id_predicate,
-//             recompute_sid_and_const_id_func);
-//
-//     FklLineNumberTableItem *lnt_start = bcl->l;
-//     FklLineNumberTableItem *lnt_end = lnt_start + bcl->ls;
-//     for (; lnt_start < lnt_end; lnt_start++)
-//         replace_sid(&lnt_start->fid, origin_st, target_st);
-// }
-//
-// void fklRecomputeSidForNastNode(FklNastNode *node,
-//         const FklSymbolTable *origin_table,
-//         FklSymbolTable *target_table,
-//         FklCodegenRecomputeNastSidOption option) {
-//     FklNastNodeVector pending;
-//     fklNastNodeVectorInit(&pending, 16);
-//     fklNastNodeVectorPushBack2(&pending, node);
-//     while (!fklNastNodeVectorIsEmpty(&pending)) {
-//         FklNastNode *top = *fklNastNodeVectorPopBack(&pending);
-//         switch (top->type) {
-//         case FKL_NAST_SLOT:
-//             FKL_UNREACHABLE();
-//             break;
-//         case FKL_NAST_SYM:
-//             replace_sid(&top->sym, origin_table, target_table);
-//             if (option == FKL_CODEGEN_SID_RECOMPUTE_MARK_SYM_AS_RC_SYM)
-//                 top->type = FKL_NAST_RC_SYM;
-//             break;
-//         case FKL_NAST_BOX:
-//             fklNastNodeVectorPushBack2(&pending, top->box);
-//             break;
-//         case FKL_NAST_PAIR:
-//             fklNastNodeVectorPushBack2(&pending, top->pair->car);
-//             fklNastNodeVectorPushBack2(&pending, top->pair->cdr);
-//             break;
-//         case FKL_NAST_VECTOR:
-//             for (size_t i = 0; i < top->vec->size; i++)
-//                 fklNastNodeVectorPushBack2(&pending, top->vec->base[i]);
-//             break;
-//         case FKL_NAST_HASHTABLE:
-//             for (size_t i = 0; i < top->hash->num; i++) {
-//                 fklNastNodeVectorPushBack2(&pending,
-//                 top->hash->items[i].car);
-//                 fklNastNodeVectorPushBack2(&pending,
-//                 top->hash->items[i].cdr);
-//             }
-//             break;
-//         default:
-//             break;
-//         }
-//     }
-//
-//     fklNastNodeVectorUninit(&pending);
-// }
-//
-// static inline void recompute_sid_for_prototypes(FklFuncPrototypes *pts,
-//         const FklSymbolTable *origin_table,
-//         FklSymbolTable *target_table) {
-//     uint32_t end = pts->count + 1;
-//
-//     for (uint32_t i = 1; i < end; i++) {
-//         FklFuncPrototype *cur = &pts->pa[i];
-//         replace_sid(&cur->fid, origin_table, target_table);
-//         if (cur->sid)
-//             replace_sid(&cur->sid, origin_table, target_table);
-//
-//         for (uint32_t i = 0; i < cur->rcount; i++) {
-//             if (cur->refs[i].k.id) {
-//                 replace_sid(FKL_TYPE_CAST(FklSid_t *, &cur->refs[i].k.id),
-//                         origin_table,
-//                         target_table);
-//             }
-//         }
-//     }
-// }
-//
-// static inline void recompute_sid_for_export_sid_index(
-//         FklCgExportSidIdxHashMap *t,
-//         const FklSymbolTable *origin_table,
-//         FklSymbolTable *target_table) {
-//     for (FklCgExportSidIdxHashMapNode *sid_idx_list = t->first; sid_idx_list;
-//             sid_idx_list = sid_idx_list->next) {
-//         replace_sid(FKL_TYPE_CAST(FklSid_t *, &sid_idx_list->k),
-//                 origin_table,
-//                 target_table);
-//     }
-// }
-//
-// static inline void recompute_sid_for_compiler_macros(FklCodegenMacro *m,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     for (; m; m = m->next) {
-//         fklRecomputeSidForNastNode(m->origin_exp, origin_st, target_st,
-//         option); fklRecomputeSidAndConstIdForBcl(m->bcl,
-//                 origin_st,
-//                 target_st,
-//                 origin_kt,
-//                 target_kt);
-//     }
-// }
-//
-// static inline void recompute_sid_for_replacements(FklReplacementHashMap *t,
-//         const FklSymbolTable *origin_table,
-//         FklSymbolTable *target_table,
-//         FklCodegenRecomputeNastSidOption option) {
-//     if (t == NULL)
-//         return;
-//     for (FklReplacementHashMapNode *rep_list = t->first; rep_list;
-//             rep_list = rep_list->next) {
-//         replace_sid(FKL_TYPE_CAST(FklSid_t *, &rep_list->k),
-//                 origin_table,
-//                 target_table);
-//         fklRecomputeSidForNastNode(rep_list->v,
-//                 origin_table,
-//                 target_table,
-//                 option);
-//     }
-// }
-//
-// static inline void recompute_sid_for_script_lib(FklCodegenLib *lib,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     fklRecomputeSidAndConstIdForBcl(lib->bcl,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt);
-//     recompute_sid_for_export_sid_index(&lib->exports, origin_st, target_st);
-//     recompute_sid_for_compiler_macros(lib->head,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-//     recompute_sid_for_replacements(lib->replacements,
-//             origin_st,
-//             target_st,
-//             option);
-//     fklRecomputeSidForNamedProdGroups(&lib->named_prod_groups,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-// }
-//
-// static inline void recompute_sid_for_dll_lib(FklCodegenLib *lib,
-//         const FklSymbolTable *origin_table,
-//         FklSymbolTable *target_table) {
-//     recompute_sid_for_export_sid_index(&lib->exports,
-//             origin_table,
-//             target_table);
-// }
-//
-// static inline void recompute_sid_for_lib_stack(
-//         FklCodegenLibVector *loaded_libraries,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     for (size_t i = 0; i < loaded_libraries->size; i++) {
-//         FklCodegenLib *lib = &loaded_libraries->base[i];
-//         switch (lib->type) {
-//         case FKL_CODEGEN_LIB_SCRIPT:
-//             recompute_sid_for_script_lib(lib,
-//                     origin_st,
-//                     target_st,
-//                     origin_kt,
-//                     target_kt,
-//                     option);
-//             break;
-//         case FKL_CODEGEN_LIB_DLL:
-//             recompute_sid_for_dll_lib(lib, origin_st, target_st);
-//             break;
-//         case FKL_CODEGEN_LIB_UNINIT:
-//             FKL_UNREACHABLE();
-//             break;
-//         }
-//     }
-// }
-//
-// static inline void recompute_sid_for_double_st_script_lib(FklCodegenLib *lib,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *runtime_st,
-//         FklSymbolTable *public_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *runtime_kt,
-//         FklConstTable *public_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     fklRecomputeSidAndConstIdForBcl(lib->bcl,
-//             origin_st,
-//             runtime_st,
-//             origin_kt,
-//             runtime_kt);
-//     recompute_sid_for_export_sid_index(&lib->exports, origin_st, public_st);
-//     recompute_sid_for_compiler_macros(lib->head,
-//             origin_st,
-//             public_st,
-//             origin_kt,
-//             public_kt,
-//             option);
-//     recompute_sid_for_replacements(lib->replacements,
-//             origin_st,
-//             public_st,
-//             option);
-//     fklRecomputeSidForNamedProdGroups(&lib->named_prod_groups,
-//             origin_st,
-//             public_st,
-//             origin_kt,
-//             public_kt,
-//             option);
-// }
-//
-// static inline void recompute_sid_for_double_st_lib_stack(
-//         FklCodegenLibVector *loaded_libraries,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *runtime_st,
-//         FklSymbolTable *public_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *runtime_kt,
-//         FklConstTable *public_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     for (size_t i = 0; i < loaded_libraries->size; i++) {
-//         FklCodegenLib *lib = &loaded_libraries->base[i];
-//         switch (lib->type) {
-//         case FKL_CODEGEN_LIB_SCRIPT:
-//             recompute_sid_for_double_st_script_lib(lib,
-//                     origin_st,
-//                     runtime_st,
-//                     public_st,
-//                     origin_kt,
-//                     runtime_kt,
-//                     public_kt,
-//                     option);
-//             break;
-//         case FKL_CODEGEN_LIB_DLL:
-//             recompute_sid_for_dll_lib(lib, origin_st, public_st);
-//             break;
-//         case FKL_CODEGEN_LIB_UNINIT:
-//             FKL_UNREACHABLE();
-//             break;
-//         }
-//     }
-// }
-//
-// static inline void recompute_sid_for_sid_set(FklSidHashSet *ht,
-//         const FklSymbolTable *ost,
-//         FklSymbolTable *tst) {
-//     for (FklSidHashSetNode *l = ht->first; l; l = l->next) {
-//         FklSid_t *id = FKL_TYPE_CAST(FklSid_t *, &l->k);
-//         replace_sid(id, ost, tst);
-//         *FKL_TYPE_CAST(uintptr_t *, &l->hashv) =
-//                 fklGraProdGroupHashMap__hashv(id);
-//     }
-//     fklSidHashSetRehash(ht);
-// }
-//
-// static inline void recompute_sid_for_main_file(FklVMvalueCodegenInfo
-// *codegen,
-//         FklByteCodelnt *bcl,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     fklRecomputeSidAndConstIdForBcl(bcl,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt);
-//     recompute_sid_for_export_sid_index(&codegen->exports, origin_st,
-//     target_st); recompute_sid_for_compiler_macros(codegen->export_macro,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-//     recompute_sid_for_replacements(codegen->export_replacement,
-//             origin_st,
-//             target_st,
-//             option);
-//     recompute_sid_for_sid_set(codegen->export_named_prod_groups,
-//             origin_st,
-//             target_st);
-//     fklRecomputeSidForNamedProdGroups(codegen->named_prod_groups,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-// }
-//
-// void fklRecomputeSidForSingleTableInfo(FklVMvalueCodegenInfo *codegen,
-//         FklByteCodelnt *bcl,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     FklCodegenCtx *ctx = codegen->ctx;
-//     FklFuncPrototypes *pts = ctx->pts;
-//     FklFuncPrototypes *macro_pts = ctx->macro_pts;
-//     FklCodegenLibVector *libs = &ctx->libraries;
-//     FklCodegenLibVector *macro_libs = &ctx->macro_libraries;
-//
-//     recompute_sid_for_prototypes(pts, origin_st, target_st);
-//     recompute_sid_for_prototypes(macro_pts, origin_st, target_st);
-//     recompute_sid_for_main_file(codegen,
-//             bcl,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-//     recompute_sid_for_lib_stack(libs,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-//     recompute_sid_for_lib_stack(macro_libs,
-//             origin_st,
-//             target_st,
-//             origin_kt,
-//             target_kt,
-//             option);
-// }
-
 #include <fakeLisp/parser.h>
 #include <string.h>
 
@@ -1253,9 +831,6 @@ void fklInitCodegenDllLib(FklCodegenCtx *ctx,
     }
     if (exports)
         fklZfree(exports);
-
-    return;
-    FKL_TODO();
 }
 
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
@@ -1573,9 +1148,6 @@ static void macro_scope_atomic(const FklVMud *ud, FklVMgc *gc) {
         fklVMgcToGray(cur->k, gc);
         fklVMgcToGray(cur->v, gc);
     }
-
-    return;
-    FKL_TODO();
 }
 
 static int macro_scope_finalizer(FklVMud *ud, FklVMgc *gc) {
@@ -2051,33 +1623,6 @@ static int simple_action_nth_check(FklVMvalue *rest[], size_t rest_len) {
     return 0;
 }
 
-static void simple_action_nth_write(void *ctx,
-        FklWriteCodePass pass,
-        FklValueTable *vt,
-        FILE *fp) {
-    FKL_TODO();
-    // if (pass == FKL_WRITE_CODE_PASS_FIRST)
-    //     return;
-    // struct SimpleActionNthCtx *c = ctx;
-    // fwrite(&c->nth, sizeof(c->nth), 1, fp);
-}
-
-static void simple_action_nth_print(void *ctx, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionNthCtx *c = ctx;
-    // fprintf(fp, "%" PRIu64, c->nth);
-}
-
-static void *simple_action_nth_read(FklVM *vm, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionNthCtx *c = (struct SimpleActionNthCtx *)fklZmalloc(
-    //         sizeof(struct SimpleActionNthCtx));
-    // FKL_ASSERT(c);
-    // fread(&c->nth, sizeof(c->nth), 1, fp);
-
-    // return c;
-}
-
 static inline uint64_t get_nth(FklVMvalue *vec) {
     FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 2);
     FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
@@ -2106,16 +1651,6 @@ static int simple_action_cons_check(FklVMvalue *rest[], size_t rest_len) {
     return 0;
 }
 
-static void *simple_action_cons_copy(const void *c) {
-    FKL_TODO();
-    // struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx
-    // *)fklZmalloc(
-    //         sizeof(struct SimpleActionConsCtx));
-    // FKL_ASSERT(ctx);
-    // *ctx = *(struct SimpleActionConsCtx *)c;
-    // return ctx;
-}
-
 static inline void get_car_cdr(FklVMvalue *vec, uint64_t *car, uint64_t *cdr) {
     FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 3);
     FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
@@ -2140,42 +1675,6 @@ static void *simple_action_cons(void *c,
             fklCreateVMvaluePair(ct->exe, nodes[car].ast, nodes[cdr].ast);
     put_line_number(ct->ln, retval, line);
     return retval;
-
-    FKL_TODO();
-    // FklNastNode *retval = fklCreateNastNode(FKL_NAST_PAIR, line);
-    // retval->pair = fklCreateNastPair();
-    // retval->pair->car = fklMakeNastNodeRef(nodes[cc->car].ast);
-    // retval->pair->cdr = fklMakeNastNodeRef(nodes[cc->cdr].ast);
-    // return retval;
-}
-
-static void simple_action_cons_write(void *c,
-        FklWriteCodePass pass,
-        FklValueTable *vt,
-        FILE *fp) {
-    FKL_TODO();
-    // if (pass == FKL_WRITE_CODE_PASS_FIRST)
-    //     return;
-    // struct SimpleActionConsCtx *ctx = c;
-    // fwrite(&ctx->car, sizeof(ctx->car), 1, fp);
-    // fwrite(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
-}
-
-static void simple_action_cons_print(void *c, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionConsCtx *ctx = c;
-    // fprintf(fp, "%" PRIu64 ", %" PRIu64, ctx->car, ctx->cdr);
-}
-
-static void *simple_action_cons_read(FklVM *pst, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionConsCtx *ctx = (struct SimpleActionConsCtx
-    // *)fklZmalloc(
-    //         sizeof(struct SimpleActionConsCtx));
-    // FKL_ASSERT(ctx);
-    // fread(&ctx->car, sizeof(ctx->car), 1, fp);
-    // fread(&ctx->cdr, sizeof(ctx->cdr), 1, fp);
-    // return ctx;
 }
 
 static void *simple_action_head(void *c,
@@ -2210,23 +1709,6 @@ static void *simple_action_head(void *c,
     r = fklCreateVMvaluePair(ct->exe, head, r);
     put_line_number(ct->ln, r, line);
     return r;
-    FKL_TODO();
-    // FklNastNode *head = fklMakeNastNodeRef(cc->head);
-    // FklNastNode **exps = (FklNastNode **)fklZmalloc(
-    //         (1 + cc->idx_num) * sizeof(FklNastNode *));
-    // FKL_ASSERT(exps);
-    // exps[0] = head;
-    // for (size_t i = 0; i < cc->idx_num; i++)
-    //     exps[i + 1] = fklMakeNastNodeRef(nodes[cc->idx[i]].ast);
-    // FklNastNode *retval = create_nast_list(exps, 1 + cc->idx_num, line);
-    // fklZfree(exps);
-    // return retval;
-}
-
-static size_t simple_action_head_get_size(FklVMvalue *rest[], size_t rest_len) {
-    FKL_TODO();
-    // return sizeof(struct SimpleActionHeadCtx)
-    //      + ((rest_len - 1) * sizeof(uint64_t));
 }
 
 static int simple_action_head_check(FklVMvalue *rest[], size_t rest_len) {
@@ -2240,87 +1722,6 @@ static int simple_action_head_check(FklVMvalue *rest[], size_t rest_len) {
             return 1;
 
     return 0;
-    FKL_TODO();
-    // for (size_t i = 1; i < rest_len; i++)
-    //     if (rest[i]->type != FKL_NAST_FIX || rest[i]->fix < 0)
-    //         return NULL;
-    // struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx
-    // *)fklZmalloc(
-    //         sizeof(struct SimpleActionHeadCtx)
-    //         + ((rest_len - 1) * sizeof(uint64_t)));
-    // FKL_ASSERT(ctx);
-    // ctx->head = fklMakeNastNodeRef(rest[0]);
-    // ctx->idx_num = rest_len - 1;
-    // for (size_t i = 1; i < rest_len; i++)
-    //     ctx->idx[i - 1] = rest[i]->fix;
-    // return ctx;
-}
-
-static void simple_action_head_atomic(void *c, FklVMgc *gc) {
-    FKL_TODO();
-    // struct SimpleActionHeadCtx *cc = c;
-    // fklVMgcToGray(cc->head, gc);
-}
-
-static void simple_action_head_write(void *c,
-        FklWriteCodePass pass,
-        FklValueTable *vt,
-        FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionHeadCtx *ctx = c;
-    // if (pass == FKL_WRITE_CODE_PASS_FIRST) {
-    //     fklTraverseSerializableValue(vt, ctx->head);
-    //     return;
-    // }
-    //
-    // fklWriteValueId(vt, ctx->head, fp);
-    // fwrite(&ctx->idx_num, sizeof(ctx->idx_num), 1, fp);
-    // fwrite(&ctx->idx[0], sizeof(ctx->idx[0]), ctx->idx_num, fp);
-}
-
-static void simple_action_head_print(void *c, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionHeadCtx *ctx = c;
-    // fklPrintNastNode(ctx->head, fp, pst);
-    // for (size_t i = 0; i < ctx->idx_num; ++i) {
-    //     fprintf(fp, ", %" PRIu64, ctx->idx[i]);
-    // }
-}
-
-static void *simple_action_head_read(FklVM *pst, FILE *fp) {
-    FKL_TODO();
-    // FklNastNode *node = load_nast_node_with_null_chr(pst, fp);
-    // uint64_t idx_num = 0;
-    // fread(&idx_num, sizeof(idx_num), 1, fp);
-    // struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx
-    // *)fklZmalloc(
-    //         sizeof(struct SimpleActionHeadCtx) + (idx_num *
-    //         sizeof(uint64_t)));
-    // FKL_ASSERT(ctx);
-    // ctx->head = node;
-    // ctx->idx_num = idx_num;
-    // fread(&ctx->idx[0], sizeof(ctx->idx[0]), ctx->idx_num, fp);
-    //
-    // return ctx;
-}
-
-static void *simple_action_head_copy(const void *c) {
-    FKL_TODO();
-    // struct SimpleActionHeadCtx *cc = (struct SimpleActionHeadCtx *)c;
-    // size_t size = sizeof(struct SimpleActionHeadCtx)
-    //             + (sizeof(uint64_t) * cc->idx_num);
-    // struct SimpleActionHeadCtx *ctx =
-    //         (struct SimpleActionHeadCtx *)fklZmalloc(size);
-    // FKL_ASSERT(ctx);
-    // memcpy(ctx, cc, size);
-    // fklMakeNastNodeRef(ctx->head);
-    // return ctx;
-}
-
-static void simple_action_head_destroy(void *cc) {
-    struct SimpleActionHeadCtx *ctx = (struct SimpleActionHeadCtx *)cc;
-    // fklDestroyNastNode(ctx->head);
-    fklZfree(ctx);
 }
 
 static inline void *simple_action_box(void *action_ctx,
@@ -2336,10 +1737,6 @@ static inline void *simple_action_box(void *action_ctx,
     FklVMvalue *box = fklCreateVMvalueBox(c->exe, nodes[nth].ast);
     put_line_number(c->ln, box, line);
     return box;
-    FKL_TODO();
-    // FklNastNode *box = fklCreateNastNode(FKL_NAST_BOX, line);
-    // box->box = fklMakeNastNodeRef(nodes[nth].ast);
-    // return box;
 }
 
 static inline void *simple_action_vector(void *action_ctx,
@@ -2360,16 +1757,6 @@ static inline void *simple_action_vector(void *action_ctx,
     for (size_t i = 0; FKL_IS_PAIR(list); list = FKL_VM_CDR(list), ++i)
         FKL_VM_VEC(r)->base[i] = FKL_VM_CAR(list);
     return r;
-    FKL_TODO();
-    // FklNastNode *list = nodes[nth].ast;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_VECTOR, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastVector *vec = fklCreateNastVector(len);
-    // r->vec = vec;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++)
-    //     vec->base[i] = fklMakeNastNodeRef(list->pair->car);
-    // return r;
 }
 
 static inline void *simple_action_hasheq(void *action_ctx,
@@ -2386,20 +1773,6 @@ static inline void *simple_action_hasheq(void *action_ctx,
     if (!is_pair_list(list))
         return NULL;
     return codegen_create_hash(c, FKL_HASH_EQ, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[nth].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQ, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void *simple_action_hasheqv(void *action_ctx,
@@ -2416,20 +1789,6 @@ static inline void *simple_action_hasheqv(void *action_ctx,
     if (!is_pair_list(list))
         return NULL;
     return codegen_create_hash(c, FKL_HASH_EQV, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[nth].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQV, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void *simple_action_hashequal(void *action_ctx,
@@ -2446,20 +1805,6 @@ static inline void *simple_action_hashequal(void *action_ctx,
     if (!is_pair_list(list))
         return NULL;
     return codegen_create_hash(c, FKL_HASH_EQUAL, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[nth].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQUAL, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void get_nth_start_end(FklVMvalue *v,
@@ -2530,24 +1875,6 @@ static inline void *simple_action_bytevector(void *actx,
                 (uint8_t *)FKL_VM_STR(node)->str);
         return v;
     }
-
-    FKL_TODO();
-    // FklNastNode *list = nodes[nth].ast;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_BYTEVECTOR, line);
-    // size_t len = fklNastListLength(list);
-    // FklBytevector *bv = fklCreateBytevector(len, NULL);
-    // r->bvec = bv;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     FklNastNode *cur = list->pair->car;
-    //     if (cur->type == FKL_NAST_FIX)
-    //         bv->ptr[i] = cur->fix > UINT8_MAX ? UINT8_MAX
-    //                                           : (cur->fix < 0 ? 0 :
-    //                                           cur->fix);
-    //     else
-    //         bv->ptr[i] = cur->bigInt->num < 0 ? 0 : UINT8_MAX;
-    // }
-    // return r;
 }
 
 static int simple_action_symbol_check(FklVMvalue *rest[], size_t rest_len) {
@@ -2573,94 +1900,6 @@ static int simple_action_symbol_check(FklVMvalue *rest[], size_t rest_len) {
     }
 
     return 0;
-}
-
-static void simple_action_symbol_atomic(void *c, FklVMgc *gc) {
-    FKL_TODO();
-    // struct SimpleActionSymbolCtx *cc = c;
-    // fklVMgcToGray(cc->start, gc);
-    // fklVMgcToGray(cc->end, gc);
-}
-
-static void simple_action_symbol_write(void *c,
-        FklWriteCodePass pass,
-        FklValueTable *vt,
-        FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionSymbolCtx *ctx = c;
-    // if (pass == FKL_WRITE_CODE_PASS_FIRST) {
-    //     fklTraverseSerializableValue(vt, ctx->start);
-    //     fklTraverseSerializableValue(vt, ctx->end);
-    //     return;
-    // }
-    // fwrite(&ctx->nth, sizeof(ctx->nth), 1, fp);
-    // fklWriteValueId(vt, ctx->start, fp);
-    // fklWriteValueId(vt, ctx->end, fp);
-    // if (ctx->start) {
-    //     fwrite(ctx->start, sizeof(ctx->start->size) + ctx->start->size, 1,
-    //     fp);
-    // } else {
-    //     uint64_t len = 0;
-    //     fwrite(&len, sizeof(len), 1, fp);
-    // }
-    // if (ctx->end) {
-    //     fwrite(ctx->end, sizeof(ctx->end->size) + ctx->end->size, 1, fp);
-    // } else {
-    //     uint64_t len = 0;
-    //     fwrite(&len, sizeof(len), 1, fp);
-    // }
-}
-
-static void simple_action_symbol_print(void *c, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionSymbolCtx *ctx = c;
-    // fprintf(fp, "%" PRIu64, ctx->nth);
-    // if (ctx->start) {
-    //     fputs(", ", fp);
-    //     fklPrintRawString(FKL_VM_STR(ctx->start), fp);
-    // }
-    // if (ctx->end) {
-    //     fputs(", ", fp);
-    //     fklPrintRawString(FKL_VM_STR(ctx->end), fp);
-    // }
-}
-static void *simple_action_symbol_read(FklVM *pst, FILE *fp) {
-    FKL_TODO();
-    // struct SimpleActionSymbolCtx *ctx =
-    //         (struct SimpleActionSymbolCtx *)fklZmalloc(
-    //                 sizeof(struct SimpleActionSymbolCtx));
-    // FKL_ASSERT(ctx);
-    // fread(&ctx->nth, sizeof(ctx->nth), 1, fp);
-    //
-    // {
-    //     uint64_t len = 0;
-    //     fread(&len, sizeof(len), 1, fp);
-    //     if (len == 0)
-    //         ctx->start = NULL;
-    //     else {
-    //         ctx->start = fklCreateString(len, NULL);
-    //         fread(ctx->start->str, len, 1, fp);
-    //     }
-    // }
-    // {
-    //     uint64_t len = 0;
-    //     fread(&len, sizeof(len), 1, fp);
-    //     if (len == 0)
-    //         ctx->end = NULL;
-    //     else {
-    //         ctx->end = fklCreateString(len, NULL);
-    //         fread(ctx->end->str, len, 1, fp);
-    //     }
-    // }
-    //
-    // return ctx;
-}
-
-static void simple_action_symbol_destroy(void *cc) {
-    FKL_TODO();
-    // struct SimpleActionSymbolCtx *ctx = (struct SimpleActionSymbolCtx *)cc;
-    // ctx->end = NULL;
-    // ctx->start = NULL;
 }
 
 static void *simple_action_symbol(void *c,
@@ -2726,62 +1965,6 @@ static void *simple_action_symbol(void *c,
         sym = fklVMaddSymbol(ct->exe, FKL_VM_STR(node));
     }
     return sym;
-    FKL_TODO();
-    // FklNastNode *node = nodes[action_ctx->nth].ast;
-    // if (node->type != FKL_NAST_STR)
-    //     return NULL;
-    // FklNastNode *sym = NULL;
-    // if (action_ctx->start) {
-    //     const char *start = action_ctx->start->str;
-    //     size_t start_size = action_ctx->start->size;
-    //     const char *end = action_ctx->end->str;
-    //     size_t end_size = action_ctx->end->size;
-    //
-    //     const FklString *str = node->str;
-    //     const char *cstr = str->str;
-    //     size_t cstr_size = str->size;
-    //
-    //     FklStringBuffer buffer;
-    //     fklInitStringBuffer(&buffer);
-    //     const char *end_cstr = cstr + str->size;
-    //     while (cstr < end_cstr) {
-    //         if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
-    //             cstr += start_size;
-    //             cstr_size -= start_size;
-    //             size_t len =
-    //                     fklQuotedCharBufMatch(cstr, cstr_size, end,
-    //                     end_size);
-    //             if (!len)
-    //                 return 0;
-    //             size_t size = 0;
-    //             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
-    //             fklStringBufferBincpy(&buffer, s, size);
-    //             fklZfree(s);
-    //             cstr += len;
-    //             cstr_size -= len;
-    //             continue;
-    //         }
-    //         size_t len = 0;
-    //         for (; (cstr + len) < end_cstr; len++)
-    //             if (fklCharBufMatch(start,
-    //                         start_size,
-    //                         cstr + len,
-    //                         cstr_size - len)
-    //                     >= 0)
-    //                 break;
-    //         fklStringBufferBincpy(&buffer, cstr, len);
-    //         cstr += len;
-    //         cstr_size -= len;
-    //     }
-    //     FklSid_t id = fklAddSymbolCharBuf(buffer.buf, buffer.index, ctx);
-    //     sym = fklCreateNastNode(FKL_NAST_SYM, node->curline);
-    //     sym->sym = id;
-    //     fklUninitStringBuffer(&buffer);
-    // } else {
-    //     FklNastNode *sym = fklCreateNastNode(FKL_NAST_SYM, node->curline);
-    //     sym->sym = fklAddSymbol(node->str, ctx);
-    // }
-    // return sym;
 }
 
 static inline void *simple_action_string(void *c,
@@ -2815,27 +1998,6 @@ static inline void *simple_action_string(void *c,
         return retval;
     } else
         return node;
-    FKL_TODO();
-    // FklNastNode *node = nodes[action_ctx->nth].ast;
-    // if (node->type != FKL_NAST_STR)
-    //     return NULL;
-    // if (action_ctx->start) {
-    //     size_t start_size = action_ctx->start->size;
-    //     size_t end_size = action_ctx->end->size;
-    //
-    //     const FklString *str = node->str;
-    //     const char *cstr = str->str;
-    //
-    //     size_t size = 0;
-    //     char *s = fklCastEscapeCharBuf(&cstr[start_size],
-    //             str->size - end_size - start_size,
-    //             &size);
-    //     FklNastNode *retval = fklCreateNastNode(FKL_NAST_STR, node->curline);
-    //     retval->str = fklCreateString(size, s);
-    //     fklZfree(s);
-    //     return retval;
-    // } else
-    //     return fklMakeNastNodeRef(node);
 }
 
 static struct FklSimpleProdAction
@@ -2906,16 +2068,11 @@ static void *simple_action(void *actx,
     return cc->c.mt->func((void *)cc->c.vec, ctx, nodes, num, line);
 }
 
-const FklSimpleProdAction *fklGetSimpleProdActions(void) {
-    return CodegenProdCreatorActions;
-}
-
 static inline void init_simple_prod_action_list(FklCodegenCtx *ctx) {
     FklVMvalue **const simple_prod_action_id = ctx->simple_prod_action_id;
     for (size_t i = 0; i < FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM; i++)
         simple_prod_action_id[i] =
                 add_symbol_cstr(ctx, CodegenProdCreatorActions[i].name);
-    // fklAddSymbolCstr(CodegenProdCreatorActions[i].name, pst);
 }
 
 static void *replace_action(void *action_ctx,
@@ -2982,13 +2139,6 @@ static void *builtin_prod_action_symbol(void *action_ctx,
     if (!FKL_IS_STR(node))
         return NULL;
     return fklVMaddSymbol(c->exe, FKL_VM_STR(node));
-    FKL_TODO();
-    // FklNastNode *node = nodes[0].ast;
-    // if (node->type != FKL_NAST_STR)
-    //     return NULL;
-    // FklNastNode *sym = fklCreateNastNode(FKL_NAST_SYM, node->curline);
-    // sym->sym = fklAddSymbol(node->str, ctx);
-    // return sym;
 }
 
 static void *builtin_prod_action_second(void *action_ctx,
@@ -3028,14 +2178,6 @@ static inline void *builtin_prod_action_pair(void *action_ctx,
     FklVMvalue *pair = fklCreateVMvaluePair(c->exe, car, cdr);
     put_line_number(c->ln, pair, line);
     return pair;
-    FKL_TODO();
-    // FklNastNode *car = nodes[0].ast;
-    // FklNastNode *cdr = nodes[2].ast;
-    // FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-    // pair->pair = fklCreateNastPair();
-    // pair->pair->car = fklMakeNastNodeRef(car);
-    // pair->pair->cdr = fklMakeNastNodeRef(cdr);
-    // return pair;
 }
 
 static inline void *builtin_prod_action_cons(void *action_ctx,
@@ -3049,27 +2191,12 @@ static inline void *builtin_prod_action_cons(void *action_ctx,
         FklVMvalue *pair = fklCreateVMvaluePairWithCar(c->exe, car);
         put_line_number(c->ln, pair, line);
         return pair;
-        FKL_TODO();
-        // FklNastNode *car = nodes[0].ast;
-        // FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-        // pair->pair = fklCreateNastPair();
-        // pair->pair->car = fklMakeNastNodeRef(car);
-        // pair->pair->cdr = fklCreateNastNode(FKL_NAST_NIL, line);
-        // return pair;
     } else if (num == 2) {
         FklVMvalue *car = nodes[0].ast;
         FklVMvalue *cdr = nodes[1].ast;
         FklVMvalue *pair = fklCreateVMvaluePair(c->exe, car, cdr);
         put_line_number(c->ln, pair, line);
         return pair;
-        FKL_TODO();
-        // FklNastNode *car = nodes[0].ast;
-        // FklNastNode *cdr = nodes[1].ast;
-        // FklNastNode *pair = fklCreateNastNode(FKL_NAST_PAIR, line);
-        // pair->pair = fklCreateNastPair();
-        // pair->pair->car = fklMakeNastNodeRef(car);
-        // pair->pair->cdr = fklMakeNastNodeRef(cdr);
-        // return pair;
     } else
         return NULL;
 }
@@ -3085,10 +2212,6 @@ static inline void *builtin_prod_action_box(void *action_ctx,
     FklVMvalue *box = fklCreateVMvalueBox(c->exe, nodes[1].ast);
     put_line_number(c->ln, box, line);
     return box;
-    FKL_TODO();
-    // FklNastNode *box = fklCreateNastNode(FKL_NAST_BOX, line);
-    // box->box = fklMakeNastNodeRef(nodes[1].ast);
-    // return box;
 }
 
 static inline void *builtin_prod_action_vector(void *action_ctx,
@@ -3107,16 +2230,6 @@ static inline void *builtin_prod_action_vector(void *action_ctx,
     for (size_t i = 0; FKL_IS_PAIR(list); list = FKL_VM_CDR(list), ++i)
         FKL_VM_VEC(r)->base[i] = FKL_VM_CAR(list);
     return r;
-    FKL_TODO();
-    // FklNastNode *list = nodes[1].ast;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_VECTOR, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastVector *vec = fklCreateNastVector(len);
-    // r->vec = vec;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++)
-    //     vec->base[i] = fklMakeNastNodeRef(list->pair->car);
-    // return r;
 }
 
 static inline FklVMvalue *add_header(FklVMparseCtx *c,
@@ -3141,13 +2254,6 @@ static inline void *builtin_prod_action_quote(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return add_header(c, nodes, "quote", line);
-    FKL_TODO();
-    // FklSid_t id = fklAddSymbolCstr("quote", ctx);
-    // FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
-    // FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    // head->sym = id;
-    // FklNastNode *s_exps[] = { head, s_exp };
-    // return create_nast_list(s_exps, 2, line);
 }
 
 static inline void *builtin_prod_action_unquote(void *action_ctx,
@@ -3159,13 +2265,6 @@ static inline void *builtin_prod_action_unquote(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return add_header(c, nodes, "unquote", line);
-    FKL_TODO();
-    // FklSid_t id = fklAddSymbolCstr("unquote", ctx);
-    // FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
-    // FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    // head->sym = id;
-    // FklNastNode *s_exps[] = { head, s_exp };
-    // return create_nast_list(s_exps, 2, line);
 }
 
 static inline void *builtin_prod_action_qsquote(void *action_ctx,
@@ -3177,13 +2276,6 @@ static inline void *builtin_prod_action_qsquote(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return add_header(c, nodes, "qsquote", line);
-    FKL_TODO();
-    // FklSid_t id = fklAddSymbolCstr("qsquote", ctx);
-    // FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
-    // FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    // head->sym = id;
-    // FklNastNode *s_exps[] = { head, s_exp };
-    // return create_nast_list(s_exps, 2, line);
 }
 
 static inline void *builtin_prod_action_unqtesp(void *action_ctx,
@@ -3195,13 +2287,6 @@ static inline void *builtin_prod_action_unqtesp(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return add_header(c, nodes, "unqtesp", line);
-    FKL_TODO();
-    // FklSid_t id = fklAddSymbolCstr("unqtesp", tx);
-    // FklNastNode *s_exp = fklMakeNastNodeRef(nodes[1].ast);
-    // FklNastNode *head = fklCreateNastNode(FKL_NAST_SYM, line);
-    // head->sym = id;
-    // FklNastNode *s_exps[] = { head, s_exp };
-    // return create_nast_list(s_exps, 2, line);
 }
 
 static inline void *builtin_prod_action_hasheq(void *action_ctx,
@@ -3216,20 +2301,6 @@ static inline void *builtin_prod_action_hasheq(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return codegen_create_hash(c, FKL_HASH_EQ, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[1].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQ, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void *builtin_prod_action_hasheqv(void *action_ctx,
@@ -3244,20 +2315,6 @@ static inline void *builtin_prod_action_hasheqv(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return codegen_create_hash(c, FKL_HASH_EQV, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[1].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQV, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void *builtin_prod_action_hashequal(void *action_ctx,
@@ -3272,20 +2329,6 @@ static inline void *builtin_prod_action_hashequal(void *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     return codegen_create_hash(c, FKL_HASH_EQUAL, list, line);
-    FKL_TODO();
-    // FklNastNode *list = nodes[1].ast;
-    // if (!fklIsNastNodeListAndHasSameType(list, FKL_NAST_PAIR))
-    //     return NULL;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_HASHTABLE, line);
-    // size_t len = fklNastListLength(list);
-    // FklNastHashTable *ht = fklCreateNastHash(FKL_HASH_EQUAL, len);
-    // r->hash = ht;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     ht->items[i].car = fklMakeNastNodeRef(list->pair->car->pair->car);
-    //     ht->items[i].cdr = fklMakeNastNodeRef(list->pair->car->pair->cdr);
-    // }
-    // return r;
 }
 
 static inline void *builtin_prod_action_bytevector(void *action_ctx,
@@ -3302,23 +2345,6 @@ static inline void *builtin_prod_action_bytevector(void *action_ctx,
     return fklCreateVMvalueBvec2(c->exe,
             FKL_VM_STR(node)->size,
             (const uint8_t *)FKL_VM_STR(node)->str);
-    FKL_TODO();
-    // FklNastNode *list = nodes[1].ast;
-    // FklNastNode *r = fklCreateNastNode(FKL_NAST_BYTEVECTOR, line);
-    // size_t len = fklNastListLength(list);
-    // FklBytevector *bv = fklCreateBytevector(len, NULL);
-    // r->bvec = bv;
-    // size_t i = 0;
-    // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr, i++) {
-    //     FklNastNode *cur = list->pair->car;
-    //     if (cur->type == FKL_NAST_FIX)
-    //         bv->ptr[i] = cur->fix > UINT8_MAX ? UINT8_MAX
-    //                                           : (cur->fix < 0 ? 0 :
-    //                                           cur->fix);
-    //     else
-    //         bv->ptr[i] = cur->bigInt->num < 0 ? 0 : UINT8_MAX;
-    // }
-    // return r;
 }
 
 static struct CstrIdProdAction {
@@ -3390,32 +2416,6 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
             fklProdCtxDestroyDoNothing,
             fklProdCtxCopyerDoNothing);
 }
-
-static inline const char *find_builtin_prod_action_name(
-        FklProdActionFunc func) {
-    for (size_t i = 0; i < FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM; i++) {
-        if (BuiltinProdActions[i].func == func)
-            return BuiltinProdActions[i].name;
-    }
-    return NULL;
-}
-
-// static inline int is_simple_action(FklProdActionFunc func) {
-//     for (size_t i = 0; i < FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM; i++) {
-//         if (fklGetSimpleProdActions()[i].func == func)
-//             return 1;
-//     }
-//     return 0;
-// }
-
-// static inline const struct FklSimpleProdAction *find_simple_prod_action_name(
-//         FklProdActionFunc func) {
-//     for (size_t i = 0; i < FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM; i++) {
-//         if (fklGetSimpleProdActions()[i].func == func)
-//             return &fklGetSimpleProdActions()[i];
-//     }
-//     return NULL;
-// }
 
 static inline const struct FklSimpleProdAction *
 find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
@@ -3502,14 +2502,6 @@ int fklIsSimpleActionProd(const FklGrammerProduction *p) {
     return p->func == simple_action;
 }
 
-FklProdActionFunc fklFindBuiltinProdActionByName(const char *str) {
-    for (size_t i = 0; i < FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM; i++) {
-        if (strcmp(BuiltinProdActions[i].name, str) == 0)
-            return BuiltinProdActions[i].func;
-    }
-    return NULL;
-}
-
 FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
         FklVMvalue *group,
         FklVMvalue *sid) {
@@ -3530,226 +2522,4 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
-}
-
-// void fklRecomputeSidForNamedProdGroups(FklGraProdGroupHashMap *ht,
-//         const FklSymbolTable *origin_st,
-//         FklSymbolTable *target_st,
-//         const FklConstTable *origin_kt,
-//         FklConstTable *target_kt,
-//         FklCodegenRecomputeNastSidOption option) {
-//     if (ht && ht->buckets) {
-//         for (FklGraProdGroupHashMapNode *list = ht->first; list;
-//                 list = list->next) {
-//             replace_sid(FKL_TYPE_CAST(FklSid_t *, &list->k),
-//                     origin_st,
-//                     target_st);
-//             *FKL_TYPE_CAST(uintptr_t *, &list->hashv) =
-//                     fklGraProdGroupHashMap__hashv(&list->k);
-//
-//             for (FklProdHashMapNode *cur = list->v.g.productions.first; cur;
-//                     cur = cur->next) {
-//                 for (FklGrammerProduction *prod = cur->v; prod;
-//                         prod = prod->next) {
-//                     if (prod->func == custom_action) {
-//                         struct CustomActionCtx *ctx = prod->ctx;
-//                         if (!ctx->is_recomputed) {
-//                             fklRecomputeSidAndConstIdForBcl(ctx->bcl,
-//                                     origin_st,
-//                                     target_st,
-//                                     origin_kt,
-//                                     target_kt);
-//                             ctx->is_recomputed = 1;
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         fklGraProdGroupHashMapRehash(ht);
-//     }
-// }
-
-void fklInitPreLibReaderMacros(FklCodegenLibVector *libraries,
-        FklVMgc *st,
-        FklCodegenCtx *ctx,
-        FklFuncPrototypes *pts,
-        FklCodegenLibVector *macro_libraries) {
-    FKL_TODO();
-    // uint32_t top = libraries->size;
-    // for (uint32_t i = 0; i < top; i++) {
-    //     FklCodegenLib *lib = &libraries->base[i];
-    //     if (lib->named_prod_groups.buckets) {
-    //         for (FklGraProdGroupHashMapNode *l =
-    //         lib->named_prod_groups.first;
-    //                 l;
-    //                 l = l->next) {
-    //
-    //             for (const FklStrHashSetNode *cur = l->v.delimiters.first;
-    //             cur;
-    //                     cur = cur->next)
-    //                 fklAddString(&l->v.g.delimiters, cur->k);
-    //
-    //             for (FklProdHashMapNode *cur = l->v.g.productions.first; cur;
-    //                     cur = cur->next) {
-    //                 for (FklGrammerProduction *prod = cur->v; prod;
-    //                         prod = prod->next) {
-    //                     if (prod->func == custom_action) {
-    //                         FklCustomActionCtx *action_ctx = prod->ctx;
-    //                         action_ctx->ctx = ctx;
-    //                         action_ctx->macro_libraries = macro_libraries;
-    //                         action_ctx->pts = pts;
-    //                         action_ctx->is_recomputed = 0;
-    //                         prod->func = custom_action;
-    //                         prod->ctx = action_ctx;
-    //                         prod->ctx_destroyer = custom_action_ctx_destroy;
-    //                         prod->ctx_copyer = custom_action_ctx_copy;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-}
-
-void fklPrintReaderMacroAction(FILE *fp, const FklGrammerProduction *prod) {
-    FKL_TODO();
-    // if (prod->func == custom_action) {
-    //     struct CustomActionCtx *ctx = prod->ctx;
-    //     fputs("custom\n", fp);
-    //     fklPrintByteCodelnt(ctx->bcl, fp, pst, pkt);
-    //     fputc('\n', fp);
-    // } else if (is_simple_action(prod->func)) {
-    //     struct FklSimpleProdAction *a =
-    //             find_simple_prod_action_name(prod->func);
-    //     FKL_ASSERT(a);
-    //     fprintf(fp, "simple %s(", a->name);
-    //     a->print(prod->ctx, pst, fp);
-    //     fputc(')', fp);
-    // } else {
-    //     const char *name = find_builtin_prod_action_name(prod->func);
-    //     FKL_ASSERT(name);
-    //     fprintf(fp, "builtin %s", name);
-    // }
-}
-
-#define IS_LOAD_DLL_OP(OP)                                                     \
-    ((OP) >= FKL_OP_LOAD_DLL && (OP) <= FKL_OP_LOAD_DLL_X)
-#define IS_LOAD_LIB_OP(OP)                                                     \
-    ((OP) >= FKL_OP_LOAD_LIB && (OP) <= FKL_OP_LOAD_LIB_X)
-#define IS_PUSH_PROC_OP(OP)                                                    \
-    ((OP) >= FKL_OP_PUSH_PROC && (OP) <= FKL_OP_PUSH_PROC_XXX)
-#define IS_EXPORT_TO_OP(OP)                                                    \
-    ((OP) >= FKL_OP_EXPORT_TO && (OP) <= FKL_OP_EXPORT_TO_XX)
-
-struct IncreaseBclLibPrototypeCtx {
-    uint32_t lib_count;
-    uint32_t pts_count;
-};
-
-static int increase_bcl_lib_prototype_id_predicate(FklOpcode op) {
-    return IS_LOAD_LIB_OP(op) || IS_LOAD_DLL_OP(op) || IS_PUSH_PROC_OP(op)
-        || IS_EXPORT_TO_OP(op);
-}
-
-static int increase_bcl_lib_prototype_id_func(void *cctx,
-        FklOpcode *popcode,
-        FklOpcodeMode *pmode,
-        FklInstructionArg *ins_arg) {
-    struct IncreaseBclLibPrototypeCtx *ctx = cctx;
-    FklOpcode op = *popcode;
-    if (IS_LOAD_DLL_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_LOAD_DLL;
-        *pmode = FKL_OP_MODE_IuB;
-    } else if (IS_LOAD_LIB_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_LOAD_LIB;
-        *pmode = FKL_OP_MODE_IuB;
-    } else if (IS_EXPORT_TO_OP(op)) {
-        ins_arg->ux += ctx->lib_count;
-        *popcode = FKL_OP_EXPORT_TO;
-        *pmode = FKL_OP_MODE_IuAuB;
-    } else if (IS_PUSH_PROC_OP(op)) {
-        ins_arg->ux += ctx->pts_count;
-        *popcode = FKL_OP_PUSH_PROC;
-        *pmode = FKL_OP_MODE_IuAuB;
-    }
-    return 0;
-}
-
-static inline void increase_bcl_lib_prototype_id(FklByteCodelnt *bcl,
-        uint32_t lib_count,
-        uint32_t pts_count) {
-    struct IncreaseBclLibPrototypeCtx ctx = {
-        .lib_count = lib_count,
-        .pts_count = pts_count,
-    };
-    fklRecomputeInsImm(bcl,
-            &ctx,
-            increase_bcl_lib_prototype_id_predicate,
-            increase_bcl_lib_prototype_id_func);
-}
-
-static inline void increase_compiler_macros_lib_prototype_id(
-        FklCodegenMacro *head,
-        uint32_t macro_lib_count,
-        uint32_t macro_pts_count) {
-    for (; head; head = head->next) {
-        head->prototype_id += macro_pts_count;
-        increase_bcl_lib_prototype_id(head->bcl,
-                macro_lib_count,
-                macro_pts_count);
-    }
-}
-
-static inline void increase_reader_macro_lib_prototype_id(
-        FklGraProdGroupHashMap *named_prod_groups,
-        uint32_t lib_count,
-        uint32_t count) {
-    FKL_TODO();
-    // if (named_prod_groups->buckets) {
-    //     for (FklGraProdGroupHashMapNode *list = named_prod_groups->first;
-    //     list;
-    //             list = list->next) {
-    //
-    //         for (const FklProdHashMapNode *cur = list->v.g.productions.first;
-    //                 cur;
-    //                 cur = cur->next) {
-    //             for (const FklGrammerProduction *prod = cur->v; prod;
-    //                     prod = prod->next) {
-    //                 if (prod->func == custom_action) {
-    //                     FklCustomActionCtx *ctx = prod->ctx;
-    //                     ctx->prototype_id += count;
-    //                     increase_bcl_lib_prototype_id(ctx->bcl,
-    //                             lib_count,
-    //                             count);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-}
-
-void fklIncreaseLibIdAndPrototypeId(FklCodegenLib *lib,
-        uint32_t lib_count,
-        uint32_t macro_lib_count,
-        uint32_t pts_count,
-        uint32_t macro_pts_count) {
-    switch (lib->type) {
-    case FKL_CODEGEN_LIB_SCRIPT:
-        lib->prototypeId += pts_count;
-        increase_bcl_lib_prototype_id(lib->bcl, lib_count, pts_count);
-        increase_compiler_macros_lib_prototype_id(lib->head,
-                macro_lib_count,
-                macro_pts_count);
-        increase_reader_macro_lib_prototype_id(&lib->named_prod_groups,
-                macro_lib_count,
-                macro_pts_count);
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        break;
-    case FKL_CODEGEN_LIB_UNINIT:
-        FKL_UNREACHABLE();
-        break;
-    }
 }

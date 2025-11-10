@@ -4645,33 +4645,12 @@ void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
     graItemStateIdxHashMapUninit(&idxTable);
 }
 
-void fklPrintGrammerProduction(FILE *fp,
-        const FklGrammerProduction *prod,
-        const FklRegexTable *rt) {
-    if (!is_Sq_nt(&prod->left)) {
-        if (prod->left.group) {
-            fputc('(', fp);
-            fklPrintRawSymbol(FKL_VM_SYM(prod->left.group), fp);
-            fputs(" , ", fp);
-            fklPrintRawSymbol(FKL_VM_SYM(prod->left.sid), fp);
-            fputc(')', fp);
-        } else {
-            fklPrintString(FKL_VM_SYM(prod->left.sid), fp);
-        }
-    } else
-        fputs("S'", fp);
-    fputs(" ->", fp);
-    size_t len = prod->len;
-    const FklGrammerSym *syms = prod->syms;
-    for (size_t i = 0; i < len;) {
-        putc(' ', fp);
-        print_prod_sym(fp, &syms[i], rt);
-        ++i;
-        if (i < len && syms[i].type != FKL_TERM_IGNORE)
-            fputs(" ..", fp);
-        else
-            ++i;
-    }
+void fklPrintGrammerProduction(const FklGrammerProduction *prod,
+        const FklRegexTable *rt,
+        FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintGrammerProduction2(prod, rt, &builder);
 }
 
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
@@ -4707,39 +4686,9 @@ FklGrammerProduction *fklGetProductions(const FklProdHashMap *prods,
 void fklPrintGrammerIgnores(const FklGrammer *g,
         const FklRegexTable *rt,
         FILE *fp) {
-    const FklGrammerIgnore *ig = g->ignores;
-    for (; ig; ig = ig->next) {
-        for (size_t i = 0; i < ig->len; i++) {
-            const FklGrammerIgnoreSym *u = &ig->ig[i];
-            switch (u->term_type) {
-            case FKL_TERM_BUILTIN: {
-                fputs(u->b.t->name, fp);
-                if (u->b.len) {
-                    fputc('[', fp);
-                    size_t i = 0;
-                    for (; i < u->b.len - 1; ++i) {
-                        fklPrintRawString(u->b.args[i], fp);
-                        fputs(" , ", fp);
-                    }
-                    fklPrintRawString(u->b.args[i], fp);
-                    fputc(']', fp);
-                }
-            } break;
-
-            case FKL_TERM_REGEX:
-                print_as_regex(fklGetStringWithRegex(rt, u->re, NULL), fp);
-                break;
-            case FKL_TERM_STRING: {
-                fklPrintRawString(u->str, fp);
-            } break;
-            default:
-                FKL_UNREACHABLE();
-                break;
-            }
-            fputc(' ', fp);
-        }
-        fputc('\n', fp);
-    }
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintGrammerIgnores2(g, rt, &builder);
 }
 
 void fklPrintGrammerIgnores2(const FklGrammer *g,
@@ -4822,14 +4771,14 @@ void fklPrintGrammerProduction2(const FklGrammerProduction *prod,
     fklUninitStringBuffer(&buf);
 }
 
-void fklPrintGrammer(FILE *fp, const FklGrammer *grammer) {
+void fklPrintGrammer(const FklGrammer *grammer, FILE *fp) {
     const FklRegexTable *rt = &grammer->regexes;
     for (FklProdHashMapNode *list = grammer->productions.first; list;
             list = list->next) {
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
             fprintf(fp, "(%" PRIu64 ") ", prods->idx);
-            fklPrintGrammerProduction(fp, prods, rt);
+            fklPrintGrammerProduction(prods, rt, fp);
             putc('\n', fp);
         }
     }

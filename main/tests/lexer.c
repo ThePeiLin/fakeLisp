@@ -114,7 +114,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(stdout, g);
+    fklPrintGrammer(g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
 
     fputc('\n', stdout);

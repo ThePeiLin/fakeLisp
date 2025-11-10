@@ -58,7 +58,7 @@ int main() {
         exit(1);
     }
 
-    fklPrintGrammer(stdout, g);
+    fklPrintGrammer(g, stdout);
     fklUninitParserGrammerParseArg(&args);
 
     fklDestroyVMgc(gc);

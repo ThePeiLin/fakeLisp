@@ -3,6 +3,7 @@
 
 #include "bigint.h"
 #include "common.h"
+#include "str_buf.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -71,16 +72,23 @@ static inline uintptr_t fklStringHash(const FklString *s) {
     return fklCharBufHash(s->str, s->size);
 }
 
-struct FklStringBuffer;
+static inline void fklStringBufferConcatWithString(FklStringBuffer *b,
+        const FklString *s) {
+    fklStringBufferBincpy(b, s->str, s->size);
+}
 
-void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s,
+static inline FklString *fklStringBufferToString(FklStringBuffer *b) {
+    return fklCreateString(b->index, b->buf);
+}
+
+void fklPrintRawCharBufToStringBuffer(FklStringBuffer *s,
         size_t len,
         const char *fstr,
         const char *begin_str,
         const char *end_str,
         char se);
 
-static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
+static inline void fklPrintRawCstrToStringBuffer(FklStringBuffer *s,
         const char *str,
         const char *begin_str,
         const char *end_str,
@@ -93,18 +101,17 @@ static inline void fklPrintRawCstrToStringBuffer(struct FklStringBuffer *s,
             se);
 }
 
-static inline void fklPrintRawSymbolToStringBuffer(struct FklStringBuffer *s,
+static inline void fklPrintRawSymbolToStringBuffer(FklStringBuffer *s,
         const FklString *fstr) {
     fklPrintRawCharBufToStringBuffer(s, fstr->size, fstr->str, "|", "|", '|');
 }
 
-static inline void fklPrintStringLiteralToStringBuffer(
-        struct FklStringBuffer *s,
+static inline void fklPrintStringLiteralToStringBuffer(FklStringBuffer *s,
         const FklString *fstr) {
     fklPrintRawCharBufToStringBuffer(s, fstr->size, fstr->str, "\"", "\"", '"');
 }
 
-static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer *s,
+static inline void fklPrintRawStringToStringBuffer(FklStringBuffer *s,
         const FklString *fstr,
         const char *begin_str,
         const char *end_str,
@@ -119,43 +126,6 @@ static inline void fklPrintRawStringToStringBuffer(struct FklStringBuffer *s,
 
 FklString *fklStringToRawString(const FklString *str);
 FklString *fklStringToRawSymbol(const FklString *str);
-
-typedef struct FklStringBuffer {
-    uint32_t size;
-    uint32_t index;
-    char *buf;
-} FklStringBuffer;
-
-#define FKL_STRING_BUFFER_INIT { 0, 0, NULL }
-
-static inline uint32_t fklStringBufferLen(FklStringBuffer *b) {
-    return b->index;
-}
-
-static inline char *fklStringBufferBody(FklStringBuffer *b) { return b->buf; }
-
-FklStringBuffer *fklCreateStringBuffer(void);
-void fklInitStringBuffer(FklStringBuffer *);
-void fklInitStringBufferWithCapacity(FklStringBuffer *, size_t s);
-void fklStringBufferReserve(FklStringBuffer *, size_t s);
-void fklStringBufferShrinkTo(FklStringBuffer *, size_t s);
-void fklStringBufferResize(FklStringBuffer *, size_t s, char content);
-void fklUninitStringBuffer(FklStringBuffer *);
-void fklDestroyStringBuffer(FklStringBuffer *);
-void fklStringBufferClear(FklStringBuffer *);
-void fklStringBufferMoveToFront(FklStringBuffer *buf, uint32_t idx);
-void fklStringBufferFill(FklStringBuffer *, char);
-void fklStringBufferBincpy(FklStringBuffer *, const void *, size_t);
-void fklStringBufferConcatWithCstr(FklStringBuffer *, const char *);
-void fklStringBufferConcatWithString(FklStringBuffer *, const FklString *);
-void fklStringBufferConcatWithStringBuffer(FklStringBuffer *,
-        const FklStringBuffer *);
-void fklStringBufferPutc(FklStringBuffer *, char);
-long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap);
-long fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
-FklString *fklStringBufferToString(FklStringBuffer *);
-int fklIsSpecialCharAndPrintToStringBuffer(FklStringBuffer *s, char ch);
-int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b);
 
 typedef struct FklBytevector {
     uint64_t size;

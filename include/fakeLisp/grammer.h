@@ -545,7 +545,10 @@ int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
         FklLalrItemSetHashMap *states,
         FklStringBuffer *error_msg);
 void fklPrintAnalysisTable(const FklGrammer *grammer, FILE *fp);
+void fklPrintAnalysisTable2(const FklGrammer *grammer, FklCodeBuilder *build);
+
 void fklPrintAnalysisTableForGraphEasy(const FklGrammer *grammer, FILE *fp);
+
 void fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
         FILE *action_src_fp,
         const char *ast_creator_name,
@@ -615,15 +618,15 @@ void fklPrintGrammerIgnores2(const FklGrammer *g,
         const FklRegexTable *rt,
         FklCodeBuilder *build);
 
-void fklPrintGrammerProduction(FILE *fp,
-        const FklGrammerProduction *prod,
-        const FklRegexTable *rt);
+void fklPrintGrammerProduction(const FklGrammerProduction *prod,
+        const FklRegexTable *rt,
+        FILE *fp);
 
 void fklPrintGrammerProduction2(const FklGrammerProduction *prod,
         const FklRegexTable *rt,
         FklCodeBuilder *build);
 
-void fklPrintGrammer(FILE *fp, const FklGrammer *grammer);
+void fklPrintGrammer(const FklGrammer *grammer, FILE *fp);
 
 typedef enum {
     FKL_PARSE_TERMINAL_MATCH_FAILED = 1,

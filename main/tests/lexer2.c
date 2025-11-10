@@ -31,7 +31,7 @@ int main() {
 
     fklInitParserGrammerParseArg(&args,
             g,
-			gc,
+            gc,
             1,
             builtin_prod_action_resolver,
             NULL);
@@ -63,7 +63,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(stdout, g);
+    fklPrintGrammer(g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     fputs("item sets:\n", stdout);

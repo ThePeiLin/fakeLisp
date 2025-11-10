@@ -160,7 +160,7 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 
-    fklPrintGrammer(stdout, g);
+    fklPrintGrammer(g, stdout);
     fputs("\n===\n\n", stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     printf("lr0 item set:\n");

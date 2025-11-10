@@ -90,7 +90,7 @@ if(MSVC)
 	add_compile_options(/wd4457 /wd4459)
 elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
-	add_compile_options(-Werror=return-type)
+	add_compile_options(-Werror=return-type -Werror=incompatible-pointer-types)
 endif()
 
 # steal from: https://www.rayalto.org/2024/03/21/cmake-relative-file-macro/
@@ -313,10 +313,10 @@ add_fkl_native_module(fs
     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bdb.so
-file(GLOB BDB_SOURCE "src/bdb/*.c")
-add_fkl_native_module(bdb
-    SRC ${BDB_SOURCE}
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+# file(GLOB BDB_SOURCE "src/bdb/*.c")
+# add_fkl_native_module(bdb
+#     SRC ${BDB_SOURCE}
+#     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 # fuv-header
 set(FUV_HEADER fuv-header)

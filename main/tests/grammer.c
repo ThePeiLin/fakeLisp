@@ -1,8 +1,8 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/grammer.h>
+#include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
-#include <fakeLisp/parser.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +23,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(stdout, g);
+    fklPrintGrammer(g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     // fputs("item sets:\n",stdout);

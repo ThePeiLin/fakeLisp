@@ -6,11 +6,9 @@
 #include <string.h>
 
 static void
-_slot_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+_slot_userdata_as_print(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
     FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
-    fklStringBufferConcatWithCstr(buf, "#<slot ");
-    fklPrintRawStringToStringBuffer(buf, FKL_VM_SYM(s->v), "|", "|", '|');
-    fklStringBufferPutc(buf, '>');
+    fklVMformat(exe, build, "#<slot %S>", NULL, 1, (FklVMvalue *[]){ s->v });
 }
 
 static void _slot_userdata_atomic(const FklVMud *ud, FklVMgc *gc) {

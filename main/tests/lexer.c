@@ -100,7 +100,7 @@ int main() {
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fputs("nonterm: ", stderr);
-        fklPrintRawSymbol(FKL_VM_SYM(nonterm.sid), stderr);
+        fklPrintSymbolLiteral(FKL_VM_SYM(nonterm.sid), stderr);
         fputs(" is not defined\n", stderr);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);

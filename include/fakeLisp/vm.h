@@ -57,7 +57,6 @@ typedef enum {
     FKL_TAG_NIL,
     FKL_TAG_FIX,
     FKL_TAG_CHR,
-    FKL_TAG_SYM FKL_DEPRECATED,
     FKL_PTR_TAG_NUM,
 } FklVMptrTag;
 
@@ -561,13 +560,13 @@ typedef int (*FklVMudAppender)(FklVMud *, //
 
 typedef struct FklVMudMetaTable {
     size_t size;
-    void (*__as_princ)(const FklVMud *, FklStringBuffer *, struct FklVM *);
-    void (*__as_prin1)(const FklVMud *, FklStringBuffer *, struct FklVM *);
+    void (*__as_princ)(const FklVMud *, FklCodeBuilder *, struct FklVM *);
+    void (*__as_prin1)(const FklVMud *, FklCodeBuilder *, struct FklVM *);
     int (*__finalizer)(FklVMud *, struct FklVMgc *gc);
     int (*__equal)(const FklVMud *, const FklVMud *);
     void (*__call)(FklVMvalue *, FklVM *);
     int (*__cmp)(const FklVMud *, const FklVMvalue *, int *);
-    void (*__write)(const FklVMud *, FILE *);
+    void (*__write)(const FklVMud *, FklCodeBuilder *);
     void (*__atomic)(const FklVMud *, struct FklVMgc *);
     size_t (*__length)(const FklVMud *);
     FklVMudCopyAppender __copy_append;
@@ -965,50 +964,35 @@ void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVM *exe);
 void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVM *exe);
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe);
 
-FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *);
-FklVMvalue *fklVMstringifyAsPrinc(FklVMvalue *, FklVM *);
-
-void fklVMstringify2(FklStringBuffer *buf, FklVMvalue *, FklVM *);
-void fklVMstringifyAsPrinc2(FklStringBuffer *buf, FklVMvalue *, FklVM *);
+FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *, char mode);
 
 void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVM *vm);
+void fklPrin1VMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
+
 void fklPrincVMvalue(FklVMvalue *, FILE *, FklVM *vm);
-
-FklBuiltinErrorType fklVMprintf(FklVM *,
-        FILE *fp,
-        const char *fmt,
-        uint64_t *plen,
-        FklVMvalue **start,
-        FklVMvalue **const end);
-
-FklBuiltinErrorType fklVMprintf2(FklVM *,
-        FILE *fp,
-        const FklString *fmt,
-        uint64_t *plen,
-        FklVMvalue **start,
-        FklVMvalue **const end);
+void fklPrincVMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
 
 FklBuiltinErrorType fklVMformat(FklVM *,
-        FklStringBuffer *buf,
+        FklCodeBuilder *buf,
         const char *fmt,
         uint64_t *plen,
-        FklVMvalue **start,
-        FklVMvalue **const end);
+        size_t value_count,
+        FklVMvalue *values[]);
 
 FklBuiltinErrorType fklVMformat2(FklVM *,
-        FklStringBuffer *buf,
+        FklCodeBuilder *buf,
         const FklString *fmt,
         uint64_t *plen,
-        FklVMvalue **start,
-        FklVMvalue **const end);
+        size_t value_count,
+        FklVMvalue *values[]);
 
 FklBuiltinErrorType fklVMformat3(FklVM *,
-        FklStringBuffer *result,
+        FklCodeBuilder *result,
+        size_t fmt_len,
         const char *fmt,
-        const char *end,
         uint64_t *plen,
-        FklVMvalue **cur_val,
-        FklVMvalue **const val_end);
+        size_t value_count,
+        FklVMvalue *values[]);
 
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
@@ -1533,10 +1517,8 @@ int fklIsAbleToStringUd(const FklVMud *);
 int fklIsAbleAsPrincUd(const FklVMud *);
 int fklUdHasLength(const FklVMud *);
 
-int fklEqualVMud(const FklVMud *, const FklVMud *);
-void fklCallVMud(const FklVMud *, const FklVMud *);
-int fklCmpVMud(const FklVMud *, const FklVMvalue *, int *);
-void fklWriteVMud(const FklVMud *, FILE *fp);
+void fklWriteVMud(const FklVMud *, FklCodeBuilder *fp);
+
 size_t fklLengthVMud(const FklVMud *);
 size_t fklHashvVMud(const FklVMud *);
 void fklUdAsPrin1(const FklVMud *, FklStringBuffer *, FklVM *);
@@ -1686,8 +1668,8 @@ HASH_P(EQUAL);
 #undef HASH_P
 
 #define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME, DATA_TYPE_NAME)                \
-    static void NAME(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {    \
-        fklStringBufferPrintf(buf, "#<" DATA_TYPE_NAME " %p>", ud);            \
+    static void NAME(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {   \
+        fklCodeBuilderFmt(build, "#<" DATA_TYPE_NAME " %p>", ud);              \
     }
 
 // inlines
@@ -1746,7 +1728,7 @@ FKL_VM_BIGINT_CALL_2R(fklIsVMbigIntAddkInFixIntRange,
         int8_t,
         fklIsBigIntAddkInFixIntRange);
 FKL_VM_BIGINT_CALL_1R(fklCreateBigIntWithVMbigInt, FklBigInt *, fklCopyBigInt);
-FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FILE *, fklPrintBigInt);
+FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FklCodeBuilder *, fklPrintBigInt2);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntEqual, int, fklBigIntEqual);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntCmp, int, fklBigIntCmp);
 FKL_VM_BIGINT_CALL_2R(fklVMbigIntCmpI, int, int64_t, fklBigIntCmpI);

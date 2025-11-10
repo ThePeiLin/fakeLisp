@@ -82,7 +82,7 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe) {
 void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
     if (name) {
         fprintf(fp, "at cproc: ");
-        fklPrintRawSymbolWithCstr(name, fp);
+        fklPrintSymLiteral(name, fp);
         fputc('\n', fp);
     } else
         fputs("at <cproc>\n", fp);

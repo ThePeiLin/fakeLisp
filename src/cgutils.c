@@ -65,7 +65,7 @@ void fklPrintCodegenError(FklCodegenErrorState *error_state,
 
     if (type == FKL_ERR_DUMMY || type == FKL_ERR_SYMUNDEFINE)
         return;
-    fklPrintRawCstr(builtInErrorType[type], "|", "|", '|', stderr);
+    fklPrintSymLiteral(builtInErrorType[type], stderr);
     fputs(": ", stderr);
     if (msg || msg2) {
         if (msg)
@@ -731,7 +731,7 @@ void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env) {
     for (uint32_t i = urefs->size; i > 0; i--) {
         FklUnReSymbolRef *ref = &urefs->base[i - 1];
         fprintf(stderr, "warning: Symbol ");
-        fklPrintRawSymbol(FKL_VM_SYM(ref->id), stderr);
+        fklPrintSymbolLiteral(FKL_VM_SYM(ref->id), stderr);
         fprintf(stderr, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
             fputs(" of ", stderr);

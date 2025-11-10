@@ -1,7 +1,8 @@
 #ifndef FKL_STR_BUF_H
 #define FKL_STR_BUF_H
 
-#include "common.h"
+#include "code_builder.h"
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
@@ -33,8 +34,10 @@ void fklStringBufferBincpy(FklStringBuffer *, const void *, size_t);
 
 void fklStringBufferPutc(FklStringBuffer *, char);
 long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap);
+
+FKL_FMT_ATTR(2, 3)
 long fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
-int fklStringBufferPutEscSeq(FklStringBuffer *s, char ch);
+
 int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b);
 
 static inline uint32_t fklStringBufferLen(FklStringBuffer *b) {
@@ -52,6 +55,10 @@ static inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer *a,
         const FklStringBuffer *b) {
     fklStringBufferBincpy(a, b->buf, b->index);
 }
+
+void fklInitCodeBuilderStrBuf(FklCodeBuilder *b,
+        FklStringBuffer *buf,
+        const char *indent_str);
 
 #ifdef __cplusplus
 }

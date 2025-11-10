@@ -1514,12 +1514,18 @@ static char *print_bigint_alloc(void *ptr, size_t len) {
 }
 
 void fklPrintBigInt(const FklBigInt *a, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintBigInt2(a, &builder);
+}
+
+void fklPrintBigInt2(const FklBigInt *a, FklCodeBuilder *build) {
     if (a->num == 0)
-        fputc('0', fp);
+        fklCodeBuilderPutc(build, '0');
     else {
         char *str = NULL;
         bigint_to_dec_string_buffer(a, print_bigint_alloc, &str);
-        fputs(str, fp);
+        fklCodeBuilderPuts(build, str);
         fklZfree(str);
     }
 }

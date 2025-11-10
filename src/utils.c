@@ -96,19 +96,6 @@ int fklPower(int first, int second) {
     return result;
 }
 
-void fklPrintRawCstr(const char *objStr,
-        const char *begin_str,
-        const char *end_str,
-        char escaped_char,
-        FILE *out) {
-    fklPrintRawCharBuf((const uint8_t *)objStr,
-            strlen(objStr),
-            begin_str,
-            end_str,
-            escaped_char,
-            out);
-}
-
 int fklIsValidCharBuf(const char *str, size_t len) {
     if (len == 0)
         return 0;
@@ -236,27 +223,6 @@ int fklIsNumberCstr(const char *objStr) {
     return 1;
 }
 
-int fklIsSpecialCharAndPrint(uint8_t ch, FILE *out) {
-    int r = 0;
-    if ((r = ch == '\n'))
-        fputs("\\n", out);
-    else if ((r = ch == '\t'))
-        fputs("\\t", out);
-    else if ((r = ch == '\v'))
-        fputs("\\v", out);
-    else if ((r = ch == '\a'))
-        fputs("\\a", out);
-    else if ((r = ch == '\b'))
-        fputs("\\b", out);
-    else if ((r = ch == '\f'))
-        fputs("\\f", out);
-    else if ((r = ch == '\r'))
-        fputs("\\r", out);
-    else if ((r = ch == '\x20'))
-        putc(ch, out);
-    return r;
-}
-
 unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
 #define UTF8_ASCII (0x80)
 #define UTF8_M (0xC0)
@@ -330,74 +296,29 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
     }
 }
 
-int fklWriteCharAsCstr(char chr, char *buf, size_t s) {
-    if (s <= 3)
-        return 1;
-    buf[0] = '#';
-    buf[1] = '\\';
-    if (isgraph(chr)) {
-        if (chr == '\\') {
-            if (s <= 4)
-                return 1;
-            buf[2] = '\\';
-            buf[3] = '\\';
-            buf[4] = '\0';
-        } else {
-            buf[2] = chr;
-            buf[3] = '\0';
-        }
-    } else {
-        if (s <= 6)
-            return 1;
-        uint8_t j = chr;
-        uint8_t h = j / 16;
-        uint8_t l = j % 16;
-        buf[2] = '\\';
-        buf[3] = 'x';
-        buf[4] = h < 10 ? '0' + h : 'A' + (h - 10);
-        buf[5] = l < 10 ? '0' + l : 'A' + (l - 10);
-        buf[6] = '\0';
-    }
-    return 0;
+void fklPrintCharLiteral(char chr, FILE *out) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, out, NULL);
+    fklPrintCharLiteral2(chr, &builder);
 }
 
-void fklPrintRawChar(char chr, FILE *out) {
-    fprintf(out, "#\\");
+void fklPrintCharLiteral2(char chr, FklCodeBuilder *build) {
+    fklCodeBuilderPuts(build, "#\\");
     if (chr == ' ')
-        fputs("\\s", out);
+        fklCodeBuilderPuts(build, "\\s");
     else if (chr == '\0')
-        fputs("\\0", out);
-    else if (fklIsSpecialCharAndPrint(chr, out))
+        fklCodeBuilderPuts(build, "\\0");
+    else if (fklCodeBuilderPutEscSeq(build, chr))
         ;
     else if (isgraph(chr)) {
         if (chr == '\\')
-            fprintf(out, "\\");
+            fklCodeBuilderPuts(build, "\\");
         else
-            fprintf(out, "%c", chr);
+            fklCodeBuilderFmt(build, "%c", chr);
     } else {
         uint8_t j = chr;
-        fputs("\\x", out);
-        fprintf(out, "%02X", j);
+        fklCodeBuilderFmt(build, "\\x%02X", j);
     }
-}
-
-int fklIsSymbolShouldBeExport(const FklString *str,
-        const FklString **pStr,
-        uint32_t n) {
-    int32_t l = 0;
-    int32_t h = n - 1;
-    int32_t mid = 0;
-    while (l <= h) {
-        mid = l + (h - l) / 2;
-        int resultOfCmp = fklStringCmp(pStr[mid], str);
-        if (resultOfCmp > 0)
-            h = mid - 1;
-        else if (resultOfCmp < 0)
-            l = mid + 1;
-        else
-            return 1;
-    }
-    return 0;
 }
 
 static inline int check_file_ext(const char *filename, const char *ext) {
@@ -577,41 +498,6 @@ char *fklCharBufToCstr(const char *buf, size_t size) {
     FKL_ASSERT(str);
     str = tstr;
     return str;
-}
-
-void fklPrintRawCharBuf(const uint8_t *str,
-        size_t size,
-        const char *begin_str,
-        const char *end_str,
-        char se,
-        FILE *out) {
-    fputs(begin_str, out);
-    uint64_t i = 0;
-    while (i < size) {
-        unsigned int l = fklGetByteNumOfUtf8(&str[i], size - i);
-        if (l == 7) {
-            fprintf(out, "\\x%02X", (uint8_t)str[i]);
-            i++;
-        } else if (l == 1) {
-            if (str[i] == se) {
-                fputc('\\', out);
-                fputc(se, out);
-            } else if (str[i] == '\\')
-                fputs("\\\\", out);
-            else if (isgraph(str[i]))
-                putc(str[i], out);
-            else if (fklIsSpecialCharAndPrint(str[i], out))
-                ;
-            else
-                fprintf(out, "\\x%02X", (uint8_t)str[i]);
-            i++;
-        } else {
-            for (unsigned int j = 0; j < l; j++)
-                putc(str[i + j], out);
-            i += l;
-        }
-    }
-    fputs(end_str, out);
 }
 
 int fklIsI64AddOverflow(int64_t a, int64_t b) {

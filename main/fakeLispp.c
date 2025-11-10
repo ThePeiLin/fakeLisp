@@ -344,13 +344,11 @@ static void print_compiler_macros(const FklCodegenMacro *cur,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
-    FklStringBuffer buf = { 0 };
-    fklInitStringBuffer(&buf);
     CB_LINE("\ncompiler macros:");
     for (; cur; cur = cur->next) {
         CB_LINE("pattern:");
         CB_LINE_START("");
-        fklPrintValue(cur->pattern, &buf, build);
+        fklPrin1VMvalue2(cur->pattern, build, NULL);
         CB_LINE_END("");
 
         fklDisassembleByteCodelnt(cur->bcl,
@@ -361,12 +359,10 @@ static void print_compiler_macros(const FklCodegenMacro *cur,
             do_gather_statistics(cur->bcl, opcode_count);
         CB_LINE("");
     }
-    fklUninitStringBuffer(&buf);
 }
 
 static void print_reader_macro_action(const FklGrammerProduction *prod,
         const FklVMvalueProtos *macro_pts,
-        FklStringBuffer *buf,
         FklCodeBuilder *build) {
     if (fklIsCustomActionProd(prod)) {
         CB_LINE_END("custom");
@@ -379,7 +375,7 @@ static void print_reader_macro_action(const FklGrammerProduction *prod,
         if (prod->ctx == NULL) {
             CB_FMT("|first|");
         } else {
-            fklPrintValue(prod->ctx, buf, build);
+            fklPrin1VMvalue2(prod->ctx, build, NULL);
         }
         CB_LINE_END("");
     }
@@ -389,17 +385,15 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
-    FklStringBuffer buf = { 0 };
-    fklInitStringBuffer(&buf);
     CB_LINE("\nreader macros:");
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         CB_LINE_START("group name: ");
-        fklPrintValue(l->k, &buf, build);
+        fklPrin1VMvalue2(l->k, build, NULL);
         CB_LINE_END("");
 
         if (l->v.g.ignores) {
             CB_LINE("\nignores:");
-            fklPrintGrammerIgnores2(&l->v.g, &l->v.g.regexes, build);
+            fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, build);
         }
 
         if (l->v.g.productions.first) {
@@ -409,9 +403,9 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
                 for (const FklGrammerProduction *prod = cur->v; prod;
                         prod = prod->next) {
                     CB_LINE_START("");
-                    fklPrintGrammerProduction2(prod, &l->v.g.regexes, build);
+                    fklPrintGrammerProduction(prod, &l->v.g.regexes, build);
                     CB_FMT(" => ");
-                    print_reader_macro_action(prod, macro_pts, &buf, build);
+                    print_reader_macro_action(prod, macro_pts, build);
                 }
                 CB_LINE("");
             }
@@ -419,25 +413,19 @@ static void print_reader_macros(const FklGraProdGroupHashMap *ht,
 
         CB_LINE("");
     }
-
-    fklUninitStringBuffer(&buf);
 }
 
 static void print_replacements(const FklReplacementHashMap *replacements,
         FklCodeBuilder *build) {
     if (replacements->count == 0)
         return;
-    FklStringBuffer buf = { 0 };
-    fklInitStringBuffer(&buf);
-
     CB_LINE("\nreplacements:");
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {
         CB_LINE_START("");
-        fklPrintValue(cur->k, &buf, build);
+        fklPrin1VMvalue2(cur->k, build, NULL);
         CB_FMT(" => ");
-        fklPrintValue(cur->v, &buf, build);
+        fklPrin1VMvalue2(cur->v, build, NULL);
         CB_LINE_END("");
     }
-    fklUninitStringBuffer(&buf);
 }

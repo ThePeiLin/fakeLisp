@@ -1,4 +1,5 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/code_builder.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -19,27 +20,22 @@ static int strbuf_finalizer(FklVMud *p, FklVMgc *gc) {
 }
 
 static void
-strbuf_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+strbuf_as_prin1(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
     FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
-    fklStringBufferConcatWithCstr(buf, "#<strbuf ");
-    fklPrintRawCharBufToStringBuffer(buf,
-            bufa->index,
-            bufa->buf,
-            "\"",
-            "\"",
-            '"');
-    fklStringBufferPutc(buf, '>');
+    fklCodeBuilderPuts(build, "#<strbuf ");
+    fklPrintBufLiteralExt(bufa->index, bufa->buf, "\"", "\"", '"', build);
+    fklCodeBuilderPutc(build, '>');
 }
 
 static void
-strbuf_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+strbuf_as_princ(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
     FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
-    fklStringBufferConcatWithStringBuffer(buf, bufa);
+    fklCodeBuilderWrite(build, bufa->index, bufa->buf);
 }
 
-static void strbuf_write(const FklVMud *ud, FILE *fp) {
+static void strbuf_write(const FklVMud *ud, FklCodeBuilder *build) {
     FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    fwrite(buf->buf, buf->index, 1, fp);
+    fklCodeBuilderWrite(build, buf->index, buf->buf);
 }
 
 static FklVMudMetaTable StringBufferMetaTable;
@@ -390,22 +386,24 @@ static int export_strbuf_fmt(FKL_CPROC_ARGL) {
     FKL_DECL_VM_UD_DATA(buf, FklStringBuffer, buf_obj);
     FklBuiltinErrorType err_type;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
-    if (FKL_IS_STR(fmt_obj))
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
+    if (FKL_IS_STR(fmt_obj)) {
         err_type = fklVMformat2(exe,
-                buf,
+                &builder,
                 FKL_VM_STR(fmt_obj),
                 &len,
-                start,
-                start + argc - 2);
-    else {
+                argc - 2,
+                start);
+    } else {
         FKL_DECL_VM_UD_DATA(fmt_buf, FklStringBuffer, fmt_obj);
         err_type = fklVMformat3(exe,
-                buf,
+                &builder,
+                fmt_buf->index,
                 fmt_buf->buf,
-                &fmt_buf->buf[fmt_buf->index],
                 &len,
-                start,
-                start + argc - 2);
+                argc - 2,
+                start);
     }
 
     if (err_type)

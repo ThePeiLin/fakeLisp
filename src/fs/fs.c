@@ -1,5 +1,7 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+#include <string.h>
 
 static int fs_facce_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
@@ -229,9 +231,11 @@ static int fs_fwrite(FKL_CPROC_ARGL) {
         } else if (FKL_IS_BYTEVECTOR(r)) {
             FklBytevector *bvec = FKL_VM_BVEC(r);
             fwrite(bvec->ptr, bvec->size, 1, fp);
-        } else if (FKL_IS_USERDATA(r) && fklIsWritableUd(FKL_VM_UD(r)))
-            fklWriteVMud(FKL_VM_UD(r), fp);
-        else
+        } else if (FKL_IS_USERDATA(r) && fklIsWritableUd(FKL_VM_UD(r))) {
+            FklCodeBuilder b = { 0 };
+            fklInitCodeBuilderFp(&b, fp, NULL);
+            fklWriteVMud(FKL_VM_UD(r), &b);
+        } else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -276,12 +280,10 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
 
     uint64_t len = 0;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklBuiltinErrorType err_type = fklVMprintf2(exe,
-            FKL_VM_FP(fp)->fp,
-            FKL_VM_STR(fmt_obj),
-            &len,
-            start,
-            start + argc - 2);
+    FklCodeBuilder b = { 0 };
+    fklInitCodeBuilderFp(&b, FKL_VM_FP(fp)->fp, NULL);
+    FklBuiltinErrorType err_type =
+            fklVMformat2(exe, &b, FKL_VM_STR(fmt_obj), &len, argc - 2, start);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 

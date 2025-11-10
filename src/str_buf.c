@@ -2,7 +2,6 @@
 #include <fakeLisp/zmalloc.h>
 
 #include <stdarg.h>
-#include <stdio.h>
 
 FklStringBuffer *fklCreateStringBuffer(void) {
     FklStringBuffer *r = (FklStringBuffer *)fklZmalloc(sizeof(FklStringBuffer));
@@ -138,27 +137,6 @@ long fklStringBufferPrintf(FklStringBuffer *b, const char *fmt, ...) {
     return r;
 }
 
-int fklStringBufferPutEscSeq(FklStringBuffer *s, char ch) {
-    int r = 0;
-    if ((r = ch == '\n'))
-        fklStringBufferConcatWithCstr(s, "\\n");
-    else if ((r = ch == '\t'))
-        fklStringBufferConcatWithCstr(s, "\\t");
-    else if ((r = ch == '\v'))
-        fklStringBufferConcatWithCstr(s, "\\v");
-    else if ((r = ch == '\a'))
-        fklStringBufferConcatWithCstr(s, "\\a");
-    else if ((r = ch == '\b'))
-        fklStringBufferConcatWithCstr(s, "\\b");
-    else if ((r = ch == '\f'))
-        fklStringBufferConcatWithCstr(s, "\\f");
-    else if ((r = ch == '\r'))
-        fklStringBufferConcatWithCstr(s, "\\r");
-    else if ((r = ch == '\x20'))
-        fklStringBufferPutc(s, ' ');
-    return r;
-}
-
 int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b) {
     size_t size = a->index < b->index ? a->index : b->index;
     int r = memcmp(a->buf, b->buf, size);
@@ -169,4 +147,40 @@ int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b) {
     else if (a->index > b->index)
         return 1;
     return r;
+}
+
+static int strbuf_cb_printf(void *ctx, const char *fmt, va_list ap) {
+    FklStringBuffer *buf = FKL_TYPE_CAST(FklStringBuffer *, ctx);
+    return fklStringBufferPrintfVa(buf, fmt, ap);
+}
+
+static int strbuf_cb_puts(void *ctx, const char *fmt) {
+    FklStringBuffer *buf = FKL_TYPE_CAST(FklStringBuffer *, ctx);
+    fklStringBufferConcatWithCstr(buf, fmt);
+    return 0;
+}
+
+static int strbuf_cb_putc(void *ctx, char c) {
+    FklStringBuffer *fp = FKL_TYPE_CAST(FklStringBuffer *, ctx);
+    fklStringBufferPutc(fp, c);
+    return (uint8_t)c;
+}
+
+static size_t strbuf_cb_write(void *ctx, size_t len, const char *s) {
+    FklStringBuffer *fp = FKL_TYPE_CAST(FklStringBuffer *, ctx);
+    fklStringBufferBincpy(fp, s, len);
+    return len;
+}
+
+static const FklCodeBuilderMethodTable strbuf_cb_method_table = {
+    .cb_printf = strbuf_cb_printf,
+    .cb_puts = strbuf_cb_puts,
+    .cb_putc = strbuf_cb_putc,
+    .cb_write = strbuf_cb_write,
+};
+
+void fklInitCodeBuilderStrBuf(FklCodeBuilder *b,
+        FklStringBuffer *fp,
+        const char *indent_str) {
+    fklInitCodeBuilder(b, fp, &strbuf_cb_method_table, indent_str);
 }

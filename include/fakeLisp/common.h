@@ -41,18 +41,22 @@ typedef intptr_t ssize_t;
 
 #if defined(__GNUC__) || defined(__clang__)
 
+#define FKL_FMT_ATTR(A, B) __attribute__((format(printf, A, B)))
+
 #define FKL_DEPRECATED __attribute__((deprecated))
 #define FKL_ALWAYS_INLINE inline __attribute__((always_inline))
 #define __FKL_UNREACHABLE() __builtin_unreachable()
 
 #elif defined(_MSC_VER)
 
+#define FKL_FMT_ATTR(A, B)
 #define FKL_DEPRECATED __declspec(deprecated)
 #define FKL_ALWAYS_INLINE __forceinline
 #define __FKL_UNREACHABLE() __assume(0)
 
 #else
 
+#define FKL_FMT_ATTR(A, B)
 #define __FKL_UNREACHABLE()
 #define FKL_DEPRECATED
 #define FKL_ALWAYS_INLINE

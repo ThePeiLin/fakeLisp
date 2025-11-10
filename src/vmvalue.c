@@ -341,6 +341,10 @@ nested_equal:
     return r;
 }
 
+static inline int fklCmpVMud(const FklVMud *a, const FklVMvalue *b, int *err) {
+    return a->t->__cmp(a, b, err);
+}
+
 int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
     int r = 0;
     *err = 0;
@@ -1030,29 +1034,20 @@ FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
 }
 
 static void
-_error_userdata_as_princ(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+_error_userdata_as_princ(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
-    fklStringBufferConcatWithString(buf, FKL_VM_STR(err->message));
-}
-
-static inline void print_raw_symbol_to_string_buffer(FklStringBuffer *s,
-        const FklString *f) {
-    fklPrintRawStringToStringBuffer(s, f, "|", "|", '|');
-}
-
-static inline void print_raw_string_to_string_buffer(FklStringBuffer *s,
-        const FklString *f) {
-    fklPrintRawStringToStringBuffer(s, f, "\"", "\"", '"');
+    fklPrintString2(FKL_VM_STR(err->message), build);
 }
 
 static void
-_error_userdata_as_prin1(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+_error_userdata_as_prin1(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
     FKL_DECL_UD_DATA(err, FklVMerror, ud);
-    fklStringBufferConcatWithCstr(buf, "#<err t: ");
-    print_raw_symbol_to_string_buffer(buf, FKL_VM_SYM(err->type));
-    fklStringBufferConcatWithCstr(buf, ", message: ");
-    print_raw_string_to_string_buffer(buf, FKL_VM_STR(err->message));
-    fklStringBufferConcatWithCstr(buf, "> ");
+    fklVMformat(exe,
+            build,
+            "#<err t: %S, message: %S>",
+            NULL,
+            2,
+            (FklVMvalue *[]){ err->type, err->message });
 }
 
 static void _error_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
@@ -1147,9 +1142,9 @@ static int _fp_userdata_finalizer(FklVMud *ud, FklVMgc *gc) {
 }
 
 static void
-_fp_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
+_fp_userdata_as_print(const FklVMud *ud, FklCodeBuilder *buf, FklVM *exe) {
     FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
-    fklStringBufferPrintf(buf, "#<fp %p>", vfp);
+    fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
 }
 
 static FklVMudMetaTable FpUserDataMetaTable = {
@@ -1676,8 +1671,8 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
 #undef NEW_OBJ
 
 static void
-_eof_userdata_as_print(const FklVMud *ud, FklStringBuffer *buf, FklVM *exe) {
-    fklStringBufferPrintf(buf, "#<eof>", ud);
+_eof_userdata_as_print(const FklVMud *ud, FklCodeBuilder *buf, FklVM *exe) {
+    fklCodeBuilderPuts(buf, "#<eof>");
 }
 
 static FklVMudMetaTable EofUserDataMetaTable = {
@@ -1754,21 +1749,23 @@ int fklIsAbleAsPrincUd(const FklVMud *u) { return u->t->__as_princ != NULL; }
 
 int fklUdHasLength(const FklVMud *u) { return u->t->__length != NULL; }
 
-int fklCmpVMud(const FklVMud *a, const FklVMvalue *b, int *err) {
-    return a->t->__cmp(a, b, err);
-}
-
 size_t fklLengthVMud(const FklVMud *a) { return a->t->__length(a); }
 
 void fklUdAsPrin1(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
-    a->t->__as_prin1(a, buf, exe);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
+    a->t->__as_prin1(a, &builder, exe);
 }
 
 void fklUdAsPrinc(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
-    a->t->__as_princ(a, buf, exe);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
+    a->t->__as_princ(a, &builder, exe);
 }
 
-void fklWriteVMud(const FklVMud *a, FILE *fp) { a->t->__write(a, fp); }
+void fklWriteVMud(const FklVMud *a, FklCodeBuilder *fp) {
+    a->t->__write(a, fp);
+}
 
 size_t fklHashvVMud(const FklVMud *a) {
     size_t (*hashv)(const FklVMud *) = a->t->__hash;

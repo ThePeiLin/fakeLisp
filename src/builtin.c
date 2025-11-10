@@ -2635,10 +2635,10 @@ static int builtin_stringify(FKL_CPROC_ARGL) {
     FklVMvalue *v = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *is_princ = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FklVMvalue *retval = NULL;
-    if (is_princ && is_princ != FKL_VM_NIL)
-        retval = fklVMstringifyAsPrinc(v, exe);
-    else
-        retval = fklVMstringify(v, exe);
+
+    char mode = (is_princ && is_princ != FKL_VM_NIL) ? 'c' : '1';
+    retval = fklVMstringify(v, exe, mode);
+
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
@@ -2898,12 +2898,14 @@ static int builtin_printf(FKL_CPROC_ARGL) {
 
     uint64_t len = 0;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklBuiltinErrorType err_type = fklVMprintf2(exe,
-            stdout,
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, stdout, NULL);
+    FklBuiltinErrorType err_type = fklVMformat2(exe,
+            &builder,
             FKL_VM_STR(fmt_obj),
             &len,
-            start,
-            start + argc - 1);
+            argc - 1,
+            start);
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
@@ -2915,16 +2917,18 @@ static int builtin_format(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
-    uint64_t len = 0;
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+
     FklBuiltinErrorType err_type = fklVMformat2(exe,
-            &buf,
+            &builder,
             FKL_VM_STR(fmt_obj),
-            &len,
-            start,
-            start + argc - 1);
+            NULL,
+            argc - 1,
+            start);
     if (err_type) {
         fklUninitStringBuffer(&buf);
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
@@ -3402,7 +3406,7 @@ error_handler_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
     FklVMcproc *cproc = FKL_VM_CPROC(c->proc);
     if (cproc->name) {
         fprintf(fp, "at cproc: ");
-        fklPrintRawSymbolWithCstr(cproc->name, fp);
+        fklPrintStrLiteral(cproc->name, fp);
         fputc('\n', fp);
     } else
         fputs("at <cproc>\n", fp);

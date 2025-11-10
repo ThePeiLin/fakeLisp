@@ -8,10 +8,6 @@
 extern "C" {
 #endif
 
-void fklPrintValue(const FklVMvalue *v,
-        FklStringBuffer *buf,
-        FklCodeBuilder *fp);
-
 void fklPrintObarray(const FklVMobarray *array, FklCodeBuilder *fp);
 void fklDisassembleProc(const FklVMvalue *proc, FklCodeBuilder *fp);
 void fklDisassembleByteCodelnt(const FklByteCodelnt *bcl,

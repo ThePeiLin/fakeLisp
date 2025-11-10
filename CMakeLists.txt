@@ -90,7 +90,11 @@ if(MSVC)
 	add_compile_options(/wd4457 /wd4459)
 elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
+	add_compile_options(-Wno-format-zero-length)
 	add_compile_options(-Werror=return-type -Werror=incompatible-pointer-types)
+	add_compile_options(-Werror=implicit-function-declaration)
+	add_compile_options(-Werror=int-conversion)
+# add_compile_options(-Wfatal-errors)
 endif()
 
 # steal from: https://www.rayalto.org/2024/03/21/cmake-relative-file-macro/
@@ -325,7 +329,7 @@ file(GLOB FUV_HEADER_SOURCE
 	"main/fuv-header.c")
 
 add_executable(${FUV_HEADER} ${FUV_HEADER_SOURCE})
-target_link_libraries(${FUV_HEADER} argtable3 ${LINK_TARGET})
+target_link_libraries(${FUV_HEADER} argtable3 grammer_lib ${LINK_TARGET})
 
 add_custom_command(OUTPUT ${FUV_MACRO_HEADER}
 	COMMAND $<TARGET_FILE:${FUV_HEADER}>

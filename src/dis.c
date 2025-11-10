@@ -13,7 +13,6 @@ static inline int print_single_ins(int digits_count,
         const FklInstruction *ins,
         uint64_t i,
         const FklFuncPrototype *pt,
-        FklStringBuffer *buf,
         FklCodeBuilder *build) {
     FklOpcode op = ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
@@ -30,23 +29,13 @@ static inline int print_single_ins(int digits_count,
         goto end;
     switch (ins->op) {
     case FKL_OP_PUSH_CONST: {
-        uint64_t len = 0;
-        FklVMvalue *v[1] = { pt->konsts[ins_arg.ux] };
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
-        fklVMformat(NULL, buf, "%S", &len, &v[0], &v[1]);
-
-        CB_FMT("%s", fklStringBufferBody(buf));
-        fklStringBufferClear(buf);
+        fklPrin1VMvalue2(pt->konsts[ins_arg.ux], build, NULL);
     } break;
 
     case FKL_OP_PUSH_CHAR: {
-        uint64_t len = 0;
-        FklVMvalue *v[1] = { FKL_MAKE_VM_CHR(ins_arg.ux) };
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
-        fklVMformat(NULL, buf, "%S", &len, &v[0], &v[1]);
-
-        CB_FMT("%s", fklStringBufferBody(buf));
-        fklStringBufferClear(buf);
+        fklPrin1VMvalue2(FKL_MAKE_VM_CHR(ins_arg.ux), build, NULL);
     } break;
 
     case FKL_OP_PUSH_PROC:
@@ -111,11 +100,10 @@ static inline void disassemble_byte_code_lnt(int digits_count,
         uint32_t prototype_id,
         const FklVMvalueProtos *pts,
         uint64_t i,
-        FklStringBuffer *buffer,
         FklCodeBuilder *build) {
     const FklFuncPrototype *pt = &pts->p.pa[prototype_id];
     while (pc < end) {
-        print_single_ins(digits_count, pc, i, pt, buffer, build);
+        print_single_ins(digits_count, pc, i, pt, build);
         if (fklIsPushProcIns(pc)) {
             FklInstructionArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
@@ -123,7 +111,7 @@ static inline void disassemble_byte_code_lnt(int digits_count,
             ++pc;
             ++i;
             for (int j = 1; j < len; ++j) {
-                print_single_ins(digits_count, pc++, i++, pt, buffer, build);
+                print_single_ins(digits_count, pc++, i++, pt, build);
             }
 
             CB_INDENT(flag) {
@@ -134,7 +122,6 @@ static inline void disassemble_byte_code_lnt(int digits_count,
                         ins_arg.ux,
                         pts,
                         i,
-                        buffer,
                         build);
             }
 
@@ -165,8 +152,6 @@ void fklDisassembleByteCodelnt(const FklByteCodelnt *bcl,
         FklCodeBuilder *build) {
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
     CB_INDENT(flag) {
         disassemble_byte_code_lnt(digits_count,
                 bcl,
@@ -175,11 +160,8 @@ void fklDisassembleByteCodelnt(const FklByteCodelnt *bcl,
                 proto_id,
                 protos,
                 i,
-                &buffer,
                 build);
     }
-
-    fklUninitStringBuffer(&buffer);
 }
 
 void fklDisassembleProc(const FklVMvalue *proc, FklCodeBuilder *build) {
@@ -189,8 +171,6 @@ void fklDisassembleProc(const FklVMvalue *proc, FklCodeBuilder *build) {
 
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
     CB_INDENT(flag) {
         disassemble_byte_code_lnt(digits_count,
                 bcl,
@@ -199,60 +179,24 @@ void fklDisassembleProc(const FklVMvalue *proc, FklCodeBuilder *build) {
                 p->protoId,
                 p->pts,
                 i,
-                &buffer,
                 build);
-    }
-
-    fklUninitStringBuffer(&buffer);
-}
-
-void fklPrintValue(const FklVMvalue *vv,
-        FklStringBuffer *buf,
-        FklCodeBuilder *build) {
-    FklStringBuffer buffer = { 0 };
-    if (buf == NULL) {
-        fklInitStringBuffer(&buffer);
-        buf = &buffer;
-    }
-
-    uint64_t len = 0;
-    FklVMvalue *v[1] = { FKL_TYPE_CAST(FklVMvalue *, vv) };
-    fklVMformat(NULL, buf, "%S", &len, &v[0], &v[1]);
-
-    CB_FMT("%s", fklStringBufferBody(buf));
-
-    if (buf == &buffer) {
-        fklUninitStringBuffer(&buffer);
-        buf = NULL;
-    } else {
-        fklStringBufferClear(buf);
     }
 }
 
 void fklPrintObarray(const FklVMobarray *a, FklCodeBuilder *build) {
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
 
     int digits_count = compute_digits_count(a->map.count);
 
-    CB_LINE("count:\t%" PRIu64 "", a->map.count);
+    CB_LINE("count:\t%" PRIu32 "", a->map.count);
 
     size_t i = 0;
     for (const FklStrValueHashMapNode *cur = a->map.first; cur;
             cur = cur->next) {
 
-        uint64_t len = 0;
-        FklVMvalue *v[1] = { cur->v };
-        fklVMformat(NULL, &buffer, "%S", &len, &v[0], &v[1]);
-
-        CB_LINE("%-*zu:\t%s",
-                digits_count,
-                i + 1,
-                fklStringBufferBody(&buffer));
-        fklStringBufferClear(&buffer);
+        CB_LINE_START("%-*zu:\t", digits_count, i + 1);
+        fklPrin1VMvalue2(cur->v, build, NULL);
+        CB_LINE_END("");
 
         ++i;
     }
-
-    fklUninitStringBuffer(&buffer);
 }

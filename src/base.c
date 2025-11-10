@@ -1,3 +1,4 @@
+#include "fakeLisp/code_builder.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/bytecode.h>
@@ -8,6 +9,7 @@
 
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -161,81 +163,68 @@ FklString *fklCreateEmptyString() {
     return tmp;
 }
 
-void fklPrintRawString(const FklString *str, FILE *fp) {
-    fklPrintRawCharBuf((const uint8_t *)str->str,
-            str->size,
-            "\"",
-            "\"",
-            '"',
-            fp);
+void fklPrintStringLiteral(const FklString *str, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintStringLiteral2(str, &builder);
 }
 
-void fklPrintRawSymbol(const FklString *str, FILE *fp) {
-    fklPrintRawCharBuf((const uint8_t *)str->str, str->size, "|", "|", '|', fp);
+void fklPrintSymbolLiteral(const FklString *str, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintSymbolLiteral2(str, &builder);
 }
 
 void fklPrintString(const FklString *str, FILE *fp) {
-    fwrite(str->str, str->size, 1, fp);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintString2(str, &builder);
 }
 
-void fklPrintRawSymbolWithCstr(const char *str, FILE *fp) {
-    fklPrintRawCharBuf((const uint8_t *)str, strlen(str), "|", "|", '|', fp);
+void fklPrintSymLiteral(const char *str, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintSymLiteral2(str, &builder);
 }
 
-void fklPrintRawStringWithCstr(const char *str, FILE *fp) {
-    fklPrintRawCharBuf((const uint8_t *)str, strlen(str), "\"", "\"", '"', fp);
+void fklPrintStrLiteral(const char *str, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintStrLiteral2(str, &builder);
 }
 
-void fklPrintRawCharBufToStringBuffer(struct FklStringBuffer *s,
-        size_t size,
-        const char *fstr,
+void fklPrintBufLiteralExt(size_t size,
+        const char *str,
         const char *begin_str,
         const char *end_str,
-        char se) {
-    fklStringBufferConcatWithCstr(s, begin_str);
-    uint8_t *str = (uint8_t *)fstr;
+        char se,
+        FklCodeBuilder *b) {
+    fklCodeBuilderPuts(b, begin_str);
     for (size_t i = 0; i < size;) {
-        unsigned int l = fklGetByteNumOfUtf8(&str[i], size - i);
+        unsigned int l =
+                fklGetByteNumOfUtf8((const uint8_t *)&str[i], size - i);
         if (l == 7) {
-            fklStringBufferPrintf(s, "\\x%02X", (uint8_t)str[i]);
+            fklCodeBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
             i++;
         } else if (l == 1) {
             if (str[i] == se) {
-                fklStringBufferPutc(s, '\\');
-                fklStringBufferPutc(s, se);
+                fklCodeBuilderPutc(b, '\\');
+                fklCodeBuilderPutc(b, se);
             } else if (str[i] == '\\')
-                fklStringBufferConcatWithCstr(s, "\\\\");
+                fklCodeBuilderPuts(b, "\\\\");
             else if (isgraph(str[i]))
-                fklStringBufferPutc(s, str[i]);
-            else if (fklStringBufferPutEscSeq(s, str[i]))
+                fklCodeBuilderPutc(b, str[i]);
+            else if (fklCodeBuilderPutEscSeq(b, str[i]))
                 ;
             else
-                fklStringBufferPrintf(s, "\\x%02X", (uint8_t)str[i]);
+                fklCodeBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
             i++;
         } else {
-            fklStringBufferBincpy(s, &str[i], l);
+            fklCodeBuilderWrite(b, l, &str[i]);
             i += l;
         }
     }
-    fklStringBufferConcatWithCstr(s, end_str);
-}
-
-FklString *fklStringToRawString(const FklString *str) {
-    FklStringBuffer buf = FKL_STRING_BUFFER_INIT;
-    fklInitStringBuffer(&buf);
-    fklPrintRawStringToStringBuffer(&buf, str, "\"", "\"", '"');
-    FklString *retval = fklStringBufferToString(&buf);
-    fklUninitStringBuffer(&buf);
-    return retval;
-}
-
-FklString *fklStringToRawSymbol(const FklString *str) {
-    FklStringBuffer buf = FKL_STRING_BUFFER_INIT;
-    fklInitStringBuffer(&buf);
-    fklPrintRawStringToStringBuffer(&buf, str, "|", "|", '|');
-    FklString *retval = fklStringBufferToString(&buf);
-    fklUninitStringBuffer(&buf);
-    return retval;
+    fklCodeBuilderPuts(b, end_str);
 }
 
 FklString *fklStringAppend(const FklString *a, const FklString *b) {
@@ -321,58 +310,33 @@ int fklBytevectorEqual(const FklBytevector *fir, const FklBytevector *sec) {
     return 0;
 }
 
-void fklPrintRawBytevector(const FklBytevector *bv, FILE *fp) {
-#define SE ('"')
-    fputs("#\"", fp);
-    const uint8_t *const end = bv->ptr + bv->size;
-    for (const uint8_t *c = bv->ptr; c < end; c++) {
-        uint8_t ch = *c;
-        if (ch == SE) {
-            putc('\\', fp);
-            putc(SE, fp);
-        } else if (ch == '\\')
-            fputs("\\\\", fp);
-        else if (isgraph(ch))
-            putc(ch, fp);
-        else if (fklIsSpecialCharAndPrint(ch, fp))
-            ;
-        else
-            fprintf(fp, "\\x%02X", ch);
-    }
-
-    fputc('"', fp);
+void fklPrintBytesLiteral(const FklBytevector *bv, FILE *fp) {
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, fp, NULL);
+    fklPrintBytesLiteral2(bv, &builder);
 }
 
-void fklPrintBytevectorToStringBuffer(FklStringBuffer *s,
-        const FklBytevector *bvec) {
-    fklStringBufferConcatWithCstr(s, "#\"");
+void fklPrintBytesLiteral2(const FklBytevector *bvec, FklCodeBuilder *b) {
+#define SE ('"')
+    fklCodeBuilderPuts(b, "#\"");
     const uint8_t *const end = bvec->ptr + bvec->size;
     for (const uint8_t *c = bvec->ptr; c < end; c++) {
         uint8_t ch = *c;
         if (ch == SE) {
-            fklStringBufferPutc(s, '\\');
-            fklStringBufferPutc(s, SE);
+            fklCodeBuilderPutc(b, '\\');
+            fklCodeBuilderPutc(b, SE);
         } else if (ch == '\\')
-            fklStringBufferConcatWithCstr(s, "\\\\");
+            fklCodeBuilderPuts(b, "\\\\");
         else if (isgraph(ch))
-            fklStringBufferPutc(s, ch);
-        else if (fklStringBufferPutEscSeq(s, ch))
+            fklCodeBuilderPutc(b, ch);
+        else if (fklCodeBuilderPutEscSeq(b, ch))
             ;
         else
-            fklStringBufferPrintf(s, "\\x%02X", ch);
+            fklCodeBuilderFmt(b, "\\x%02X", ch);
     }
 
-    fklStringBufferPutc(s, '"');
+    fklCodeBuilderPutc(b, '"');
 #undef SE
-}
-
-FklString *fklBytevectorToString(const FklBytevector *bv) {
-    FklStringBuffer buf = FKL_STRING_BUFFER_INIT;
-    fklInitStringBuffer(&buf);
-    fklPrintBytevectorToStringBuffer(&buf, bv);
-    FklString *r = fklStringBufferToString(&buf);
-    fklUninitStringBuffer(&buf);
-    return r;
 }
 
 FklBytevector *fklCopyBytevector(const FklBytevector *obj) {
@@ -506,4 +470,35 @@ int fklIsBigIntAddkInFixIntRange(const FklBigInt *a, int8_t k) {
             return 1;
     } else
         return 0;
+}
+
+static int fp_cb_printf(void *ctx, const char *fmt, va_list ap) {
+    FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
+    return vfprintf(fp, fmt, ap);
+}
+
+static int fp_cb_puts(void *ctx, const char *fmt) {
+    FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
+    return fputs(fmt, fp);
+}
+
+static int fp_cb_putc(void *ctx, char c) {
+    FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
+    return fputc(c, fp);
+}
+
+static size_t fp_cb_write(void *ctx, size_t len, const char *s) {
+    FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
+    return fwrite(s, 1, len, fp);
+}
+
+static const FklCodeBuilderMethodTable fp_cb_method_table = {
+    .cb_printf = fp_cb_printf,
+    .cb_puts = fp_cb_puts,
+    .cb_putc = fp_cb_putc,
+    .cb_write = fp_cb_write,
+};
+
+void fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp, const char *indent_str) {
+    fklInitCodeBuilder(b, fp, &fp_cb_method_table, indent_str);
 }

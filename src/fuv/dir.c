@@ -11,7 +11,7 @@ static int fuv_dir_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable FuvDirUdMetaTable = {
+static FklVMudMetaTable const FuvDirUdMetaTable = {
     .size = sizeof(FuvDir),
     .__as_prin1 = fuv_dir_as_print,
     .__as_princ = fuv_dir_as_print,

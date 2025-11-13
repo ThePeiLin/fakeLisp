@@ -808,7 +808,7 @@ void fklInitCodegenDllLib(FklCodegenCtx *ctx,
         FklCodegenLib *lib,
         char *rp,
         uv_lib_t dll,
-        FklCodegenDllLibInitExportFunc init) {
+        FklCgDllLibInitExportCb init) {
     memset(lib, 0, sizeof(*lib));
     lib->rp = rp;
     lib->type = FKL_CODEGEN_LIB_DLL;
@@ -935,6 +935,21 @@ void fklClearCodegenLibMacros(FklCodegenLib *lib) {
     }
     if (lib->named_prod_groups.buckets) {
         fklGraProdGroupHashMapUninit(&lib->named_prod_groups);
+    }
+}
+
+void fklClearCodegenLibMacros2(FklCodegenCtx *ctx) {
+
+    FklCodegenLib *cur = ctx->libraries.base;
+    FklCodegenLib *end = &cur[ctx->libraries.size];
+    for (; cur < end; ++cur) {
+        fklClearCodegenLibMacros(cur);
+    }
+
+    cur = ctx->macro_libraries.base;
+    end = &cur[ctx->macro_libraries.size];
+    for (; cur < end; ++cur) {
+        fklClearCodegenLibMacros(cur);
     }
 }
 
@@ -1160,7 +1175,7 @@ static int macro_scope_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable MacroScopeUserDataMetaTable = {
+static FklVMudMetaTable const MacroScopeUserDataMetaTable = {
     .size = sizeof(struct FklCodegenMacroScope),
     .__as_princ = macro_scope_as_print,
     .__as_prin1 = macro_scope_as_print,
@@ -1168,7 +1183,7 @@ static FklVMudMetaTable MacroScopeUserDataMetaTable = {
     .__finalizer = macro_scope_finalizer,
 };
 
-int fklIsVMvalueCodegenMacroScope(FklVMvalue *v) {
+int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
         && FKL_VM_UD(v)->t == &MacroScopeUserDataMetaTable;
 }
@@ -1228,7 +1243,7 @@ static int env_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable EnvUserDataMetaTable = {
+static FklVMudMetaTable const EnvUserDataMetaTable = {
     .size = sizeof(struct FklCodegenEnv),
     .__as_princ = env_as_print,
     .__as_prin1 = env_as_print,
@@ -1236,7 +1251,7 @@ static FklVMudMetaTable EnvUserDataMetaTable = {
     .__finalizer = env_finalizer,
 };
 
-int fklIsVMvalueCodegenEnv(FklVMvalue *v) {
+int fklIsVMvalueCodegenEnv(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &EnvUserDataMetaTable;
 }
 
@@ -1297,6 +1312,8 @@ static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->pts), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
+
     fklVMgcToGray(e->fid, gc);
 
     if (e->named_prod_groups == &e->self_named_prod_groups) {
@@ -1342,7 +1359,7 @@ static int info_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable InfoUserDataMetaTable = {
+static FklVMudMetaTable const InfoUserDataMetaTable = {
     .size = sizeof(struct FklCodegenInfo),
     .__as_princ = info_as_print,
     .__as_prin1 = info_as_print,
@@ -1350,7 +1367,7 @@ static FklVMudMetaTable InfoUserDataMetaTable = {
     .__finalizer = info_finalizer,
 };
 
-int fklIsVMvalueCodegenInfo(FklVMvalue *v) {
+int fklIsVMvalueCodegenInfo(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &InfoUserDataMetaTable;
 }
 
@@ -1432,6 +1449,7 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->libraries = libs;
     r->pts = pts;
+	r->lnt= fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
 
     if (is_lib)
         fklCgExportSidIdxHashMapInit(&r->exports);
@@ -2516,4 +2534,57 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
+}
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(lnt_ud_as_print, "ln-table")
+
+static int lnt_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    fklLineNumHashMapUninit(ht);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static void lnt_ud_update_weak_ref(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    const FklLineNumHashMapNode *cur = ht->first;
+    while (cur) {
+        const FklLineNumHashMapNode *next = cur->next;
+        if (cur->k->mark == FKL_MARK_W) {
+            fklLineNumHashMapDel2(ht, cur->k);
+        }
+        cur = next;
+    }
+}
+
+static FklVMudMetaTable const LntUserDataMetaTable = {
+    .size = sizeof(FklVMvalueIdHashMap),
+    .__as_prin1 = lnt_ud_as_print,
+    .__as_princ = lnt_ud_as_print,
+    .__finalizer = lnt_ud_finalizer,
+    .__update_weak_ref = lnt_ud_update_weak_ref,
+};
+
+int fklIsVMvalueCodegenLnt(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
+}
+
+FklVMvalueCodegenLnt *fklCreateVMvalueCodegenLnt(FklVM *vm) {
+
+    FklVMvalueCodegenLnt *r = (FklVMvalueCodegenLnt *)fklCreateVMvalueUd(vm,
+            &LntUserDataMetaTable,
+            NULL);
+
+    fklLineNumHashMapInit(&r->ht);
+    return r;
+}
+
+void fklVMvalueCodegenLntPut(FklVMvalueCodegenLnt *ht,
+        const FklVMvalue *v,
+        uint64_t line) {
+    fklLineNumHashMapPut2(&ht->ht, v, line);
+}
+
+uint64_t *fklVMvalueCodegenLntGet(FklVMvalueCodegenLnt *ht,
+        const FklVMvalue *v) {
+    return fklLineNumHashMapGet2(&ht->ht, v);
 }

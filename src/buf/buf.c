@@ -38,7 +38,7 @@ static void strbuf_write(const FklVMud *ud, FklCodeBuilder *build) {
     fklCodeBuilderWrite(build, buf->index, buf->buf);
 }
 
-static FklVMudMetaTable StringBufferMetaTable;
+static FklVMudMetaTable const StringBufferMetaTable;
 
 static inline int is_strbuf_ud(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &StringBufferMetaTable;
@@ -127,7 +127,7 @@ static int strbuf_cmp(const FklVMud *ud, const FklVMvalue *v, int *err) {
     return 0;
 }
 
-static FklVMudMetaTable StringBufferMetaTable = {
+static FklVMudMetaTable const StringBufferMetaTable = {
     .size = sizeof(FklStringBuffer),
     .__equal = strbuf_equal,
     .__as_prin1 = strbuf_as_prin1,

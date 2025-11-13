@@ -16,7 +16,7 @@ static void _slot_userdata_atomic(const FklVMud *ud, FklVMgc *gc) {
     fklVMgcToGray(s->v, gc);
 }
 
-static FklVMudMetaTable SlotUserDataMetaTable = {
+static FklVMudMetaTable const SlotUserDataMetaTable = {
     .size = sizeof(struct FklVMslot),
     .__as_princ = _slot_userdata_as_print,
     .__as_prin1 = _slot_userdata_as_print,

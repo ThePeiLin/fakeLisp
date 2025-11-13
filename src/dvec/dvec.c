@@ -1,7 +1,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-static FklVMudMetaTable DvecMetaTable;
+static FklVMudMetaTable const DvecMetaTable;
 
 static inline int is_dvec_ud(FklVMvalue *ud) {
     return FKL_IS_USERDATA(ud) && FKL_VM_UD(ud)->t == &DvecMetaTable;
@@ -146,7 +146,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dvec_as_print, "dvec");
 
-static FklVMudMetaTable DvecMetaTable = {
+static FklVMudMetaTable const DvecMetaTable = {
     .size = sizeof(FklVMvalueVector),
     .__equal = _dvec_equal,
     .__as_prin1 = _dvec_as_print,

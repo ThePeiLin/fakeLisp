@@ -4715,7 +4715,6 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
         FklParseStateVector *stateStack) {
-    FklLineNumHashMap *ln = NULL;
     // FklVMobarray *pst = &codegen->ctx->public_st;
     // FklSymbolTable *pst = &codegen->ctx->public_st;
     size_t size = 0;
@@ -4739,7 +4738,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                ln);
+                &codegen->lnt->ht);
     } else {
         fklVMvaluePushState0ToStack(stateStack);
         list = fklReadWithBuiltinParser(fp,
@@ -4753,7 +4752,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                ln);
+                &codegen->lnt->ht);
     }
     if (list)
         fklZfree(list);
@@ -6327,9 +6326,8 @@ static inline void process_import_script_common_header(FklVMvalue *origExp,
     }
 }
 
-FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll) {
-    return (FklCodegenDllLibInitExportFunc)fklGetAddress("_fklExportSymbolInit",
-            dll);
+FklCgDllLibInitExportCb fklGetCodegenInitExportFunc(uv_lib_t *dll) {
+    return (FklCgDllLibInitExportCb)fklGetAddress("_fklExportSymbolInit", dll);
 }
 
 static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *origExp,
@@ -6353,8 +6351,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *origExp,
             uv_dlclose(&dll);
             return NULL;
         }
-        FklCodegenDllLibInitExportFunc initExport =
-                fklGetCodegenInitExportFunc(&dll);
+        FklCgDllLibInitExportCb initExport = fklGetCodegenInitExportFunc(&dll);
         if (!initExport) {
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
@@ -6428,8 +6425,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(
             uv_dlclose(&dll);
             return NULL;
         }
-        FklCodegenDllLibInitExportFunc initExport =
-                fklGetCodegenInitExportFunc(&dll);
+        FklCgDllLibInitExportCb initExport = fklGetCodegenInitExportFunc(&dll);
         if (!initExport) {
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
@@ -6501,8 +6497,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(
             uv_dlclose(&dll);
             return NULL;
         }
-        FklCodegenDllLibInitExportFunc initExport =
-                fklGetCodegenInitExportFunc(&dll);
+        FklCgDllLibInitExportCb initExport = fklGetCodegenInitExportFunc(&dll);
         if (!initExport) {
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
@@ -6559,8 +6554,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(
             uv_dlclose(&dll);
             return NULL;
         }
-        FklCodegenDllLibInitExportFunc initExport =
-                fklGetCodegenInitExportFunc(&dll);
+        FklCgDllLibInitExportCb initExport = fklGetCodegenInitExportFunc(&dll);
         if (!initExport) {
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;
@@ -6621,8 +6615,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *origExp,
             uv_dlclose(&dll);
             return NULL;
         }
-        FklCodegenDllLibInitExportFunc initExport =
-                fklGetCodegenInitExportFunc(&dll);
+        FklCgDllLibInitExportCb initExport = fklGetCodegenInitExportFunc(&dll);
         if (!initExport) {
             uv_dlclose(&dll);
             errorState->type = FKL_ERR_IMPORTFAILED;

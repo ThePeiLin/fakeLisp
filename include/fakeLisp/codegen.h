@@ -75,6 +75,9 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, //
             };
         });
 
+// value line number table
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenLnt, { FklLineNumHashMap ht; });
+
 typedef struct {
     FklVMvalueCodegenEnv *top_env;
     int no_refs_to_builtins;
@@ -357,6 +360,7 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
     FklGrammer *unnamed_g;                                                     \
     FklGraProdGroupHashMap *named_prod_groups;                                 \
     FklVMvalueCodegenEnv *global_env;                                          \
+    FklVMvalueCodegenLnt *lnt;                                                 \
     uint64_t epc;                                                              \
     FklCgExportSidIdxHashMap exports;                                          \
     FklCodegenMacro *export_macro;                                             \
@@ -497,7 +501,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, { FklSimpleActionCtx c; });
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx,
         { struct FklCustomActionCtx c; });
 
-int fklIsVMvalueCodegenInfo(FklVMvalue *v);
+int fklIsVMvalueCodegenInfo(const FklVMvalue *v);
 FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
         FklVMvalueCodegenInfo *prev,
         const char *filename,
@@ -575,11 +579,20 @@ int fklIsReplacementDefined(FklVMvalue *sid, FklVMvalueCodegenEnv *);
 
 FklVMvalue *fklGetReplacement(FklVMvalue *sid, const FklReplacementHashMap *);
 
-int fklIsVMvalueCodegenEnv(FklVMvalue *);
+int fklIsVMvalueCodegenEnv(const FklVMvalue *);
 FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *ctx,
         FklVMvalueCodegenEnv *prev,
         uint32_t pscope,
         FklVMvalueCodegenMacroScope *);
+
+int fklIsVMvalueCodegenLnt(const FklVMvalue *v);
+FklVMvalueCodegenLnt *fklCreateVMvalueCodegenLnt(FklVM *v);
+void fklVMvalueCodegenLntPut(FklVMvalueCodegenLnt *ht,
+        const FklVMvalue *v,
+        uint64_t line);
+
+uint64_t *fklVMvalueCodegenLntGet(FklVMvalueCodegenLnt *ht,
+        const FklVMvalue *v);
 
 void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
         uint32_t p,
@@ -598,15 +611,16 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
         uint64_t epc,
         FklVMvalueCodegenEnv *env);
 
-FklCodegenDllLibInitExportFunc fklGetCodegenInitExportFunc(uv_lib_t *dll);
+FklCgDllLibInitExportCb fklGetCodegenInitExportFunc(uv_lib_t *dll);
 
 void fklInitCodegenDllLib(FklCodegenCtx *ctx,
         FklCodegenLib *lib,
         char *rp,
         uv_lib_t dll,
-        FklCodegenDllLibInitExportFunc init);
+        FklCgDllLibInitExportCb init);
 
 void fklClearCodegenLibMacros(FklCodegenLib *lib);
+void fklClearCodegenLibMacros2(FklCodegenCtx *ctx);
 
 void fklUninitCodegenLib(FklCodegenLib *);
 
@@ -617,7 +631,7 @@ FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
         FklCodegenMacro *next,
         uint32_t prototype_id);
 
-int fklIsVMvalueCodegenMacroScope(FklVMvalue *v);
+int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v);
 FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
         FklVMvalueCodegenMacroScope *prev);
 

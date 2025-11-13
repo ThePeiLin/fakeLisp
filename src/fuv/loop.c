@@ -61,7 +61,7 @@ closed:
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable FuvLoopMetaTable = {
+static FklVMudMetaTable const FuvLoopMetaTable = {
     .size = sizeof(FuvLoop),
     .__as_prin1 = fuv_loop_as_print,
     .__as_princ = fuv_loop_as_print,

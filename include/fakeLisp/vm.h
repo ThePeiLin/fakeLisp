@@ -569,6 +569,7 @@ typedef struct FklVMudMetaTable {
     void (*__write)(const FklVMud *, FklCodeBuilder *);
     void (*__atomic)(const FklVMud *, struct FklVMgc *);
     size_t (*__length)(const FklVMud *);
+    void (*__update_weak_ref)(const FklVMud *ud, struct FklVMgc *gc);
     FklVMudCopyAppender __copy_append;
     FklVMudAppender __append;
     uintptr_t (*__hash)(const FklVMud *);
@@ -663,6 +664,7 @@ typedef struct FklVMgc {
     char **argv;
 
     FklVMvalue *gray_list;
+    FklVMvalue *weak_refs;
 
     FklVMqueue q;
 
@@ -932,6 +934,7 @@ void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v);
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
 void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
 void fklVMgcMarkAllRootToGray(FklVM *curVM);
+void fklVMgcUpdateWeakRefs(FklVMgc *gc);
 int fklVMgcPropagate(FklVMgc *gc);
 void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw);
 void fklVMgcSweep(FklVMgc *gc, FklVMvalue *);
@@ -1450,8 +1453,7 @@ int fklVMfpFileno(FklVMfp *);
 
 int fklUninitVMfp(FklVMfp *);
 
-typedef FklVMvalue **(
-        *FklCodegenDllLibInitExportFunc)(FklVMgc *gc, uint32_t *num);
+typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
 
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
     FklVM *exe, FklVMvalue *dll, uint32_t *count

@@ -76,7 +76,7 @@ static size_t ht_length(const FklVMud *ud) {
     return ht->ht.count;
 }
 
-static FklVMudMetaTable HtUdMetaTable = {
+static FklVMudMetaTable const HtUdMetaTable = {
     .size = sizeof(HashTable),
     .__length = ht_length,
     .__atomic = ht_atomic,

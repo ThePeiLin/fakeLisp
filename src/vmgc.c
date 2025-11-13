@@ -215,6 +215,10 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
         atomic_value_func(root, gc);
 }
 
+static inline int is_weak_ref_value(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t->__update_weak_ref != NULL;
+}
+
 int fklVMgcPropagate(FklVMgc *gc) {
     FklVMvalue *v = gc->gray_list;
     if (v) {
@@ -223,9 +227,27 @@ int fklVMgcPropagate(FklVMgc *gc) {
         if (v->mark == FKL_MARK_G) {
             v->mark = FKL_MARK_B;
             propagateMark(v, gc);
+            if (is_weak_ref_value(v)) {
+                v->gray_next = gc->weak_refs;
+                gc->weak_refs = v;
+            }
         }
     }
     return gc->gray_list == NULL;
+}
+
+void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
+    FklVMvalue *v = gc->weak_refs;
+    while (v) {
+        FKL_ASSERT(is_weak_ref_value(v));
+        FklVMud *ud = FKL_VM_UD(v);
+        ud->t->__update_weak_ref(ud, gc);
+
+        gc->weak_refs = v->gray_next;
+        v->gray_next = NULL;
+
+        v = gc->weak_refs;
+    }
 }
 
 void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {

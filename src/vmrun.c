@@ -745,6 +745,7 @@ void fklCheckAndGC(FklVM *exe, int forced) {
         fklVMgcMarkAllRootToGray(exe);
         while (!fklVMgcPropagate(gc))
             ;
+        fklVMgcUpdateWeakRefs(gc);
         FklVMvalue *white = NULL;
         fklVMgcCollect(gc, &white);
         fklVMgcSweep(gc, white);
@@ -1038,6 +1039,7 @@ void fklVMidleLoop(FklVMgc *gc) {
             fklVMgcMarkAllRootToGray(exe);
             while (!fklVMgcPropagate(gc))
                 ;
+            fklVMgcUpdateWeakRefs(gc);
             FklVMvalue *white = NULL;
             fklVMgcCollect(gc, &white);
             fklVMgcSweep(gc, white);

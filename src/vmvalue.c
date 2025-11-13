@@ -1788,7 +1788,7 @@ int fklVMvalueLength(const FklVMvalue *obj, size_t *len) {
     if (obj == FKL_VM_NIL)
         *len = 0;
     else if (FKL_IS_PAIR(obj)) {
-        return fklIsList2(obj, len);
+        return !fklIsList2(obj, len);
     } else if (FKL_IS_STR(obj))
         *len = FKL_VM_STR(obj)->size;
     else if (FKL_IS_VECTOR(obj))
@@ -1799,8 +1799,9 @@ int fklVMvalueLength(const FklVMvalue *obj, size_t *len) {
         *len = FKL_VM_HASH(obj)->ht.count;
     else if (FKL_IS_USERDATA(obj) && is_ud_has_length(FKL_VM_UD(obj)))
         *len = ud_length(FKL_VM_UD(obj));
-    else
+    else {
         return 1;
+    }
     return 0;
 }
 

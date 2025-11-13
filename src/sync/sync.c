@@ -9,8 +9,16 @@ typedef struct SyncPublicData {
 #undef XX
 } SyncPublicData;
 
-static FklVMudMetaTable SyncPublicDataMetaTable = {
+static void sync_public_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(pd, SyncPublicData, ud);
+#define XX(code, _) fklVMgcToGray(pd->uv_err_sid_##code, gc);
+    UV_ERRNO_MAP(XX)
+#undef XX
+}
+
+static FklVMudMetaTable const SyncPublicDataMetaTable = {
     .size = sizeof(SyncPublicData),
+    .__atomic = sync_public_ud_atomic,
 };
 
 static inline FklVMvalue *
@@ -48,7 +56,7 @@ static int mutex_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable MutexUdMetaTable = {
+static FklVMudMetaTable const MutexUdMetaTable = {
     .size = sizeof(uv_mutex_t),
     .__as_princ = mutex_as_print,
     .__as_prin1 = mutex_as_print,
@@ -117,7 +125,7 @@ static int cond_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable CondUdMetaTable = {
+static FklVMudMetaTable const CondUdMetaTable = {
     .size = sizeof(uv_cond_t),
     .__as_prin1 = cond_as_print,
     .__as_princ = cond_as_print,
@@ -196,7 +204,7 @@ static int rwlock_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable RwlockUdMetaTable = {
+static FklVMudMetaTable const RwlockUdMetaTable = {
     .size = sizeof(uv_rwlock_t),
     .__as_prin1 = rwlock_as_print,
     .__as_princ = rwlock_as_print,
@@ -292,7 +300,7 @@ static int sem_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable SemUdMetaTable = {
+static FklVMudMetaTable const SemUdMetaTable = {
     .size = sizeof(uv_sem_t),
     .__as_prin1 = sem_as_print,
     .__as_princ = sem_as_print,
@@ -356,7 +364,7 @@ static int barrier_finalizer(FklVMud *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable BarrierUdMetaTable = {
+static FklVMudMetaTable const BarrierUdMetaTable = {
     .size = sizeof(uv_barrier_t),
     .__as_prin1 = barrier_as_print,
     .__as_princ = barrier_as_print,

@@ -22,10 +22,11 @@ static inline int pre_compile(const char *main_file_name,
         const char *output_dir,
         int argc,
         char *argv[]) {
+    int r = 0;
     FILE *fp = fopen(main_file_name, "r");
     if (fp == NULL) {
         perror(main_file_name);
-        return -1;
+        return EXIT_FAILURE;
     }
 
     char *rp = fklRealpath(main_file_name);
@@ -51,15 +52,18 @@ static inline int pre_compile(const char *main_file_name,
             codegen,
             ctx.global_env);
 
+    char *outputname = NULL;
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        return EXIT_FAILURE;
+        r = EXIT_FAILURE;
+        goto pre_compile_exit;
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev);
 
-    char *outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
+    outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
+
     FKL_ASSERT(outputname);
     strcpy(outputname, rp);
     strcat(outputname, FKL_PRE_COMPILE_FKL_SUFFIX_STR);
@@ -82,9 +86,11 @@ static inline int pre_compile(const char *main_file_name,
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create pre-compile file!", outputname);
-        return EXIT_FAILURE;
+        r = EXIT_FAILURE;
+        goto pre_compile_exit;
     }
 
+    fklClearCodegenLibMacros2(&ctx);
     fklWritePreCompile(outfp,
             output_dir,
             &(FklWritePreCompileArgs){
@@ -96,12 +102,14 @@ static inline int pre_compile(const char *main_file_name,
     fclose(outfp);
 
     fklDestroyByteCodelnt(mainByteCode);
+
+pre_compile_exit:
     fklVMclearExtraMarkFunc(gc);
     fklDestroyVMgc(gc);
     fklUninitCodegenCtx(&ctx);
 
     fklZfree(outputname);
-    return 0;
+    return r;
 }
 
 static inline int compile(const char *filename,

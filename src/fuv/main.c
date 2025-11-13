@@ -84,7 +84,7 @@ static void fuv_public_data_atomic(const FklVMud *ud, FklVMgc *gc) {
 #undef XX
 }
 
-static FklVMudMetaTable FuvPublicDataMetaTable = {
+static FklVMudMetaTable const FuvPublicDataMetaTable = {
     .size = sizeof(FuvPublicData),
     .__atomic = fuv_public_data_atomic,
 };

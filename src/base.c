@@ -487,7 +487,7 @@ static int fp_cb_putc(void *ctx, char c) {
     return fputc(c, fp);
 }
 
-static size_t fp_cb_write(void *ctx, size_t len, const char *s) {
+static size_t fp_cb_write(void *ctx, size_t len, const void *s) {
     FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
     return fwrite(s, 1, len, fp);
 }

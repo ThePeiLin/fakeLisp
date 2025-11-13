@@ -1043,12 +1043,6 @@ BC_PROCESS(_funcall_exp_bc_process) {
                 scope);
 }
 
-static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
-        const FklVMvalue *v) {
-    return info->curline;
-    FKL_TODO();
-}
-
 #define CURLINE(V) get_curline(codegen, V)
 
 static void codegen_funcall(FklVMvalue *rest,
@@ -8685,7 +8679,6 @@ static inline void mark_action_vector(FklVMgc *gc, FklCodegenActionVector *v) {
 }
 
 static inline void mark_codegen_lib(FklVMgc *gc, const FklCodegenLib *lib) {
-
     for (const FklCgExportSidIdxHashMapNode *cur = lib->exports.first; cur;
             cur = cur->next) {
         fklVMgcToGray(cur->k, gc);
@@ -8717,8 +8710,6 @@ static inline void mark_codegen_lib(FklVMgc *gc, const FklCodegenLib *lib) {
         FKL_UNREACHABLE();
         break;
     }
-    return;
-    FKL_TODO();
 }
 
 static inline void mark_codegen_lib_vector(FklVMgc *gc,

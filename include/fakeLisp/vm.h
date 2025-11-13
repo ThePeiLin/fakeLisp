@@ -1071,6 +1071,7 @@ FklVMvalue *fklMakeVMint(int64_t r64, FklVM *);
 FklVMvalue *fklMakeVMuint(uint64_t r64, FklVM *);
 FklVMvalue *fklMakeVMintD(double r64, FklVM *);
 int fklIsList(const FklVMvalue *p);
+int fklIsList2(const FklVMvalue *p, size_t *len);
 int64_t fklVMgetInt(const FklVMvalue *p);
 uint64_t fklVMintToHashv(const FklVMvalue *p);
 double fklVMgetDouble(const FklVMvalue *p);
@@ -1510,22 +1511,11 @@ int fklChanlRecvOk(FklVMchanl *, FklVMvalue **);
 #define FKL_DECL_VM_UD_DATA(NAME, TYPE, UD)                                    \
     TYPE *NAME = FKL_GET_UD_DATA(TYPE, FKL_VM_UD(UD))
 
-int fklIsCallableUd(const FklVMud *);
-int fklIsCmpableUd(const FklVMud *);
-int fklIsWritableUd(const FklVMud *);
-int fklIsAbleToStringUd(const FklVMud *);
-int fklIsAbleAsPrincUd(const FklVMud *);
-int fklUdHasLength(const FklVMud *);
-
-void fklWriteVMud(const FklVMud *, FklCodeBuilder *fp);
-
-size_t fklLengthVMud(const FklVMud *);
-size_t fklHashvVMud(const FklVMud *);
-void fklUdAsPrin1(const FklVMud *, FklStringBuffer *, FklVM *);
-void fklUdAsPrinc(const FklVMud *, FklStringBuffer *, FklVM *);
-FklBytevector *fklUdToBytevector(const FklVMud *);
+int fklWriteVMvalue(const FklVMvalue *v, FklCodeBuilder *fp);
+int fklVMvalueLength(const FklVMvalue *v, size_t *len);
 
 int fklIsCallable(FklVMvalue *);
+
 void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv);
 
 int fklIsVMnumberLt0(const FklVMvalue *);

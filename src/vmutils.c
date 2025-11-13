@@ -40,7 +40,8 @@ static inline FklVMvalue *get_initial_fast_value(const FklVMvalue *pr) {
 }
 
 static inline FklVMvalue *get_fast_value(const FklVMvalue *head) {
-    return (FKL_IS_PAIR(head) && FKL_IS_PAIR(FKL_VM_CDR(head))
+    return (FKL_IS_PAIR(head)                       //
+                   && FKL_IS_PAIR(FKL_VM_CDR(head)) //
                    && FKL_IS_PAIR(FKL_VM_CDR(FKL_VM_CDR(head))))
                  ? FKL_VM_CDR(FKL_VM_CDR(head))
                  : FKL_VM_NIL;
@@ -48,11 +49,31 @@ static inline FklVMvalue *get_fast_value(const FklVMvalue *head) {
 
 int fklIsList(const FklVMvalue *p) {
     FklVMvalue *fast = get_initial_fast_value(p);
-    for (; FKL_IS_PAIR(p); p = FKL_VM_CDR(p), fast = get_fast_value(fast))
+    while (FKL_IS_PAIR(p)) {
         if (fast == p)
             return 0;
+        p = FKL_VM_CDR(p);
+        fast = get_fast_value(fast);
+    }
     if (p != FKL_VM_NIL)
         return 0;
+    return 1;
+}
+
+int fklIsList2(const FklVMvalue *p, size_t *plen) {
+    size_t len = 0;
+    FklVMvalue *fast = get_initial_fast_value(p);
+    while (FKL_IS_PAIR(p)) {
+        if (fast == p)
+            return 0;
+        p = FKL_VM_CDR(p);
+        fast = get_fast_value(fast);
+        ++len;
+    }
+    if (p != FKL_VM_NIL)
+        return 0;
+    if (plen)
+        *plen = len;
     return 1;
 }
 
@@ -723,8 +744,11 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) =
-            ud->t->__as_princ;
+    const FklVMudMetaTable *const t = ud->t;
+    void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
+    as_princ = t->__as_princ //
+                     ? t->__as_princ
+                     : t->__as_prin1;
     if (as_princ) {
         as_princ(ud, build, exe);
     } else
@@ -811,8 +835,11 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    void (*as_prin1)(const FklVMud *, FklCodeBuilder *, FklVM *) =
-            ud->t->__as_prin1;
+    const FklVMudMetaTable *const t = ud->t;
+    void (*as_prin1)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
+    as_prin1 = t->__as_prin1 //
+                     ? t->__as_prin1
+                     : t->__as_princ;
     if (as_prin1) {
         as_prin1(ud, build, exe);
     } else

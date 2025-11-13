@@ -345,6 +345,10 @@ static inline int fklCmpVMud(const FklVMud *a, const FklVMvalue *b, int *err) {
     return a->t->__cmp(a, b, err);
 }
 
+static inline int is_cmpable_ud(const FklVMud *u) {
+    return u->t->__cmp != NULL;
+}
+
 int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
     int r = 0;
     *err = 0;
@@ -368,9 +372,9 @@ int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
         r = fklBytevectorCmp(FKL_VM_BVEC(a), FKL_VM_BVEC(b));
     else if (FKL_IS_CHR(a) && FKL_IS_CHR(b))
         r = FKL_GET_CHR(a) - FKL_GET_CHR(b);
-    else if (FKL_IS_USERDATA(a) && fklIsCmpableUd(FKL_VM_UD(a)))
+    else if (FKL_IS_USERDATA(a) && is_cmpable_ud(FKL_VM_UD(a)))
         r = fklCmpVMud(FKL_VM_UD(a), b, err);
-    else if (FKL_IS_USERDATA(b) && fklIsCmpableUd(FKL_VM_UD(b)))
+    else if (FKL_IS_USERDATA(b) && is_cmpable_ud(FKL_VM_UD(b)))
         r = -fklCmpVMud(FKL_VM_UD(b), a, err);
     else
         *err = 1;
@@ -647,7 +651,14 @@ static uintptr_t _box_hashFunc(const FklVMvalue *v) {
 }
 
 static size_t _userdata_hashFunc(const FklVMvalue *v) {
-    return fklHashvVMud(FKL_VM_UD(v));
+    const FklVMud *a = FKL_VM_UD(v);
+    size_t (*hashv)(const FklVMud *) = a->t->__hash;
+    if (hashv)
+        return hashv(a);
+    else {
+        uintptr_t t = FKL_TYPE_CAST(uintptr_t, a->data) >> FKL_UNUSEDBITNUM;
+        return fklHash64Shift(t);
+    }
 }
 
 static size_t _hashTable_hashFunc(const FklVMvalue *v) {
@@ -1055,7 +1066,7 @@ static void _error_userdata_atomic(const FklVMud *v, FklVMgc *gc) {
     fklVMgcToGray(err->message, gc);
 }
 
-static FklVMudMetaTable ErrorUserDataMetaTable = {
+static FklVMudMetaTable const ErrorUserDataMetaTable = {
     .size = sizeof(FklVMerror),
     .__as_princ = _error_userdata_as_princ,
     .__as_prin1 = _error_userdata_as_prin1,
@@ -1111,7 +1122,7 @@ static void _chanl_userdata_atomic(const FklVMud *root, FklVMgc *gc) {
         fklVMgcToGray(s->msg, gc);
 }
 
-static FklVMudMetaTable ChanlUserDataMetaTable = {
+static FklVMudMetaTable const ChanlUserDataMetaTable = {
     .size = sizeof(FklVMchanl),
     .__as_princ = _chanl_userdata_as_print,
     .__as_prin1 = _chanl_userdata_as_print,
@@ -1147,7 +1158,7 @@ _fp_userdata_as_print(const FklVMud *ud, FklCodeBuilder *buf, FklVM *exe) {
     fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
 }
 
-static FklVMudMetaTable FpUserDataMetaTable = {
+static FklVMudMetaTable const FpUserDataMetaTable = {
     .size = sizeof(FklVMfp),
     .__as_princ = _fp_userdata_as_print,
     .__as_prin1 = _fp_userdata_as_print,
@@ -1444,7 +1455,7 @@ static void __code_obj_atomic(const FklVMud *v, FklVMgc *gc) {
     fklVMgcMarkCodeObject(gc, t);
 }
 
-static FklVMudMetaTable CodeObjUserDataMetaTable = {
+static FklVMudMetaTable const CodeObjUserDataMetaTable = {
     .size = sizeof(FklByteCodelnt),
     .__as_princ = _code_obj_userdata_as_print,
     .__as_prin1 = _code_obj_userdata_as_print,
@@ -1491,7 +1502,7 @@ static int _dll_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable DllUserDataMetaTable = {
+static FklVMudMetaTable const DllUserDataMetaTable = {
     .size = sizeof(FklVMdll),
     .__as_princ = _dll_userdata_as_print,
     .__as_prin1 = _dll_userdata_as_print,
@@ -1559,7 +1570,7 @@ static int _libs_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable LibsUserDataMetaTable = {
+static FklVMudMetaTable const LibsUserDataMetaTable = {
     .size = sizeof(struct FklVMlibs),
     .__as_princ = _libs_userdata_as_print,
     .__as_prin1 = _libs_userdata_as_print,
@@ -1600,7 +1611,7 @@ static int _protos_userdata_finalizer(FklVMud *v, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable ProtosUserDataMetaTable = {
+static FklVMudMetaTable const ProtosUserDataMetaTable = {
     .size = sizeof(FklFuncPrototypes),
     .__as_princ = _protos_userdata_as_print,
     .__as_prin1 = _protos_userdata_as_print,
@@ -1675,7 +1686,7 @@ _eof_userdata_as_print(const FklVMud *ud, FklCodeBuilder *buf, FklVM *exe) {
     fklCodeBuilderPuts(buf, "#<eof>");
 }
 
-static FklVMudMetaTable EofUserDataMetaTable = {
+static FklVMudMetaTable const EofUserDataMetaTable = {
     .size = 0,
     .__as_princ = _eof_userdata_as_print,
     .__as_prin1 = _eof_userdata_as_print,
@@ -1732,48 +1743,65 @@ void fklAtomicVMuserdata(FklVMvalue *root, FklVMgc *gc) {
         ud->t->__atomic(ud, gc);
 }
 
-int fklIsCallableUd(const FklVMud *ud) { return ud->t->__call != NULL; }
+static inline int is_callable_ud(const FklVMud *ud) {
+    return ud->t->__call != NULL;
+}
 
 int fklIsCallable(FklVMvalue *v) {
     return FKL_IS_PROC(v) || FKL_IS_CPROC(v)
-        || (FKL_IS_USERDATA(v) && fklIsCallableUd(FKL_VM_UD(v)));
+        || (FKL_IS_USERDATA(v) && is_callable_ud(FKL_VM_UD(v)));
 }
 
-int fklIsCmpableUd(const FklVMud *u) { return u->t->__cmp != NULL; }
-
-int fklIsWritableUd(const FklVMud *u) { return u->t->__write != NULL; }
-
-int fklIsAbleToStringUd(const FklVMud *u) { return u->t->__as_prin1 != NULL; }
-
-int fklIsAbleAsPrincUd(const FklVMud *u) { return u->t->__as_princ != NULL; }
-
-int fklUdHasLength(const FklVMud *u) { return u->t->__length != NULL; }
-
-size_t fklLengthVMud(const FklVMud *a) { return a->t->__length(a); }
-
-void fklUdAsPrin1(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
-    a->t->__as_prin1(a, &builder, exe);
+static inline int is_writable_ud(const FklVMud *u) {
+    return u->t->__write != NULL;
 }
 
-void fklUdAsPrinc(const FklVMud *a, FklStringBuffer *buf, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
-    a->t->__as_princ(a, &builder, exe);
+static inline int is_to_string_castable_ud(const FklVMud *u) {
+    return u->t->__as_prin1 != NULL || u->t->__as_princ != NULL;
 }
 
-void fklWriteVMud(const FklVMud *a, FklCodeBuilder *fp) {
-    a->t->__write(a, fp);
+static inline int is_ud_has_length(const FklVMud *u) {
+    return u->t->__length != NULL;
 }
 
-size_t fklHashvVMud(const FklVMud *a) {
-    size_t (*hashv)(const FklVMud *) = a->t->__hash;
-    if (hashv)
-        return hashv(a);
+static inline size_t ud_length(const FklVMud *a) { return a->t->__length(a); }
+
+static inline void write_vm_ud(const FklVMud *a, FklCodeBuilder *b) {
+    a->t->__write(a, b);
+}
+
+int fklWriteVMvalue(const FklVMvalue *r, FklCodeBuilder *b) {
+    if (FKL_IS_STR(r)) {
+        FklString *str = FKL_VM_STR(r);
+        fklCodeBuilderWrite(b, str->size, str->str);
+    } else if (FKL_IS_BYTEVECTOR(r)) {
+        FklBytevector *bvec = FKL_VM_BVEC(r);
+        fklCodeBuilderWrite(b, bvec->size, bvec->ptr);
+    } else if (FKL_IS_USERDATA(r) && is_writable_ud(FKL_VM_UD(r))) {
+        write_vm_ud(FKL_VM_UD(r), b);
+    } else
+        return 1;
+    return 0;
+}
+
+int fklVMvalueLength(const FklVMvalue *obj, size_t *len) {
+    if (obj == FKL_VM_NIL)
+        *len = 0;
+    else if (FKL_IS_PAIR(obj)) {
+        return fklIsList2(obj, len);
+    } else if (FKL_IS_STR(obj))
+        *len = FKL_VM_STR(obj)->size;
+    else if (FKL_IS_VECTOR(obj))
+        *len = FKL_VM_VEC(obj)->size;
+    else if (FKL_IS_BYTEVECTOR(obj))
+        *len = FKL_VM_BVEC(obj)->size;
+    else if (FKL_IS_HASHTABLE(obj))
+        *len = FKL_VM_HASH(obj)->ht.count;
+    else if (FKL_IS_USERDATA(obj) && is_ud_has_length(FKL_VM_UD(obj)))
+        *len = ud_length(FKL_VM_UD(obj));
     else
-        return fklHash64Shift(
-                FKL_TYPE_CAST(uintptr_t, a->data) >> FKL_UNUSEDBITNUM);
+        return 1;
+    return 0;
 }
 
 void *

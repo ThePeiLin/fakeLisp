@@ -1889,7 +1889,7 @@ static inline FklLalrItem get_item_advance(const FklLalrItem *i) {
     return item;
 }
 
-static inline int lalr_look_ahead_cmp(const FklLalrItemLookAhead *la0,
+static inline int lalr_lookahead_cmp(const FklLalrItemLookAhead *la0,
         const FklLalrItemLookAhead *la1) {
     if (la0->t == la1->t) {
         switch (la0->t) {
@@ -1940,7 +1940,7 @@ static inline int lalr_item_cmp(const FklLalrItem *i0, const FklLalrItem *i1) {
         else if (i0->idx > i1->idx)
             return 1;
         else
-            return lalr_look_ahead_cmp(&i0->la, &i1->la);
+            return lalr_lookahead_cmp(&i0->la, &i1->la);
     } else if (nonterm_lt(&p0->left, &p1->left))
         return -1;
     else if (nonterm_gt(&p0->left, &p1->left))
@@ -2597,7 +2597,7 @@ static inline int lookahead_spread(FklLalrItemSetHashMapElm *itemset) {
     return change;
 }
 
-static inline void init_lalr_look_ahead(FklLalrItemSetHashMap *lr0,
+static inline void init_lalr_lookahead(FklLalrItemSetHashMap *lr0,
         FklGrammer *g,
         GraLaFirstSetCacheHashMap *cache) {
     for (FklLalrItemSetHashMapNode *isl = lr0->first; isl; isl = isl->next) {
@@ -2614,7 +2614,7 @@ static inline void init_lalr_look_ahead(FklLalrItemSetHashMap *lr0,
     }
 }
 
-static inline void add_look_ahead_to_items(FklLalrItemHashSet *items,
+static inline void add_lookahead_to_items(FklLalrItemHashSet *items,
         FklGrammer *g,
         GraLaFirstSetCacheHashMap *cache) {
     FklLalrItemHashSet add;
@@ -2632,11 +2632,11 @@ static inline void add_look_ahead_to_items(FklLalrItemHashSet *items,
     lalr_item_set_sort(items);
 }
 
-static inline void add_look_ahead_for_all_item_set(FklLalrItemSetHashMap *lr0,
+static inline void add_lookahead_for_all_item_set(FklLalrItemSetHashMap *lr0,
         FklGrammer *g,
         GraLaFirstSetCacheHashMap *cache) {
     for (FklLalrItemSetHashMapNode *isl = lr0->first; isl; isl = isl->next) {
-        add_look_ahead_to_items(FKL_TYPE_CAST(FklLalrItemHashSet *, &isl->k),
+        add_lookahead_to_items(FKL_TYPE_CAST(FklLalrItemHashSet *, &isl->k),
                 g,
                 cache);
     }
@@ -2645,7 +2645,7 @@ static inline void add_look_ahead_for_all_item_set(FklLalrItemSetHashMap *lr0,
 void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
     GraLaFirstSetCacheHashMap cache;
     graLaFirstSetCacheHashMapInit(&cache);
-    init_lalr_look_ahead(lr0, g, &cache);
+    init_lalr_lookahead(lr0, g, &cache);
     int change;
     do {
         change = 0;
@@ -2654,7 +2654,7 @@ void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
             change |= lookahead_spread(&isl->elm);
         }
     } while (change);
-    add_look_ahead_for_all_item_set(lr0, g, &cache);
+    add_lookahead_for_all_item_set(lr0, g, &cache);
     graLaFirstSetCacheHashMapUninit(&cache);
 }
 
@@ -2669,7 +2669,7 @@ void fklLr0ToLalrItems(FklLalrItemSetHashMap *lr0, FklGrammer *g) {
                           / alignof(FklLalrItemSetHashMapElm));
 #include <fakeLisp/cont/hash.h>
 
-static inline void print_look_ahead_as_dot(const FklLalrItemLookAhead *la,
+static inline void print_lookahead_as_dot(const FklLalrItemLookAhead *la,
         const FklRegexTable *rt,
         FklCodeBuilder *fp) {
     switch (la->t) {
@@ -2730,7 +2730,7 @@ static inline void print_item_as_dot(const FklLalrItem *item,
         print_prod_sym_as_dot(&syms[i], rt, fp);
     }
     fklCodeBuilderPuts(fp, " , ");
-    print_look_ahead_as_dot(&item->la, rt, fp);
+    print_lookahead_as_dot(&item->la, rt, fp);
 }
 
 static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
@@ -2747,7 +2747,7 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
             print_item_as_dot(curItem, &g->regexes, fp);
         } else {
             fklCodeBuilderPuts(fp, " / ");
-            print_look_ahead_as_dot(&list->k.la, &g->regexes, fp);
+            print_lookahead_as_dot(&list->k.la, &g->regexes, fp);
         }
     }
     fklCodeBuilderPuts(fp, "\\l\\\n");
@@ -2891,7 +2891,7 @@ static inline FklAnalysisStateGoto *create_state_goto(const FklGrammerSym *sym,
     return gt;
 }
 
-static inline int lalr_look_ahead_and_action_match_equal(
+static inline int lalr_lookahead_and_action_match_equal(
         const FklAnalysisStateActionMatch *match,
         const FklLalrItemLookAhead *la) {
     if (match->t == la->t) {
@@ -2923,12 +2923,12 @@ static inline int lalr_look_ahead_and_action_match_equal(
 static int check_reduce_conflict(const FklAnalysisStateAction *actions,
         const FklLalrItemLookAhead *la) {
     for (; actions; actions = actions->next)
-        if (lalr_look_ahead_and_action_match_equal(&actions->match, la))
+        if (lalr_lookahead_and_action_match_equal(&actions->match, la))
             return 1;
     return 0;
 }
 
-static inline void init_action_with_look_ahead(FklAnalysisStateAction *action,
+static inline void init_action_with_lookahead(FklAnalysisStateAction *action,
         const FklLalrItemLookAhead *la) {
     action->match.t = la->t;
     switch (action->match.t) {
@@ -2961,7 +2961,7 @@ static inline int add_reduce_action(FklGrammerSymType cur_type,
     FklAnalysisStateAction *action = (FklAnalysisStateAction *)fklZcalloc(1,
             sizeof(FklAnalysisStateAction));
     FKL_ASSERT(action);
-    init_action_with_look_ahead(action, la);
+    init_action_with_lookahead(action, la);
     if (is_Sq_nt(&prod->left))
         action->action = FKL_ANALYSIS_ACCEPT;
     else {
@@ -3299,7 +3299,7 @@ break_loop:
     return hasConflict;
 }
 
-static inline void print_look_ahead_of_analysis_table(const FklRegexTable *rt,
+static inline void print_lookahead_of_analysis_table(const FklRegexTable *rt,
         const FklAnalysisStateActionMatch *match,
         FklCodeBuilder *fp) {
     switch (match->t) {
@@ -3354,7 +3354,7 @@ void fklPrintAnalysisTable2(const FklGrammer *grammer, FklCodeBuilder *fp) {
             switch (actions->action) {
             case FKL_ANALYSIS_SHIFT:
                 fklCodeBuilderPuts(fp, "S(");
-                print_look_ahead_of_analysis_table(&grammer->regexes,
+                print_lookahead_of_analysis_table(&grammer->regexes,
                         &actions->match,
                         fp);
                 {
@@ -3364,14 +3364,14 @@ void fklPrintAnalysisTable2(const FklGrammer *grammer, FklCodeBuilder *fp) {
                 break;
             case FKL_ANALYSIS_REDUCE:
                 fklCodeBuilderPuts(fp, "R(");
-                print_look_ahead_of_analysis_table(&grammer->regexes,
+                print_lookahead_of_analysis_table(&grammer->regexes,
                         &actions->match,
                         fp);
                 fklCodeBuilderFmt(fp, " , %" PRIu64 " )", actions->prod->idx);
                 break;
             case FKL_ANALYSIS_ACCEPT:
                 fklCodeBuilderPuts(fp, "acc(");
-                print_look_ahead_of_analysis_table(&grammer->regexes,
+                print_lookahead_of_analysis_table(&grammer->regexes,
                         &actions->match,
                         fp);
                 fklCodeBuilderPutc(fp, ')');
@@ -3550,7 +3550,7 @@ static inline void print_string_for_grapheasy(const FklString *stri,
     }
 }
 
-static inline void print_look_ahead_for_grapheasy(
+static inline void print_lookahead_for_grapheasy(
         const FklAnalysisStateActionMatch *la,
         FklCodeBuilder *fp) {
     switch (la->t) {
@@ -3591,7 +3591,7 @@ static inline void print_table_header_for_grapheasy(
         FklCodeBuilder *fp) {
     fklCodeBuilderPuts(fp, "\\n|");
     for (GraActionMatchHashSetNode *al = la->first; al; al = al->next) {
-        print_look_ahead_for_grapheasy(&al->k, fp);
+        print_lookahead_for_grapheasy(&al->k, fp);
         fklCodeBuilderPutc(fp, '|');
     }
     fklCodeBuilderPuts(fp, "\\n|\\n");

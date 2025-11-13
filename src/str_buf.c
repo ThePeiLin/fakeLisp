@@ -166,7 +166,7 @@ static int strbuf_cb_putc(void *ctx, char c) {
     return (uint8_t)c;
 }
 
-static size_t strbuf_cb_write(void *ctx, size_t len, const char *s) {
+static size_t strbuf_cb_write(void *ctx, size_t len, const void *s) {
     FklStringBuffer *fp = FKL_TYPE_CAST(FklStringBuffer *, ctx);
     fklStringBufferBincpy(fp, s, len);
     return len;

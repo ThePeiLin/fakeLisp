@@ -944,6 +944,14 @@ i64_to_string(FklVM *exe, int64_t num, uint8_t radix, FklBigIntFmtFlags flags) {
     return bigint_to_string(exe, &b, radix, flags);
 }
 
+static inline int is_to_str_able_ud(const FklVMud *u) {
+    return u->t->__as_prin1 != NULL || u->t->__as_princ != NULL;
+}
+
+static inline int is_writable_ud(const FklVMud *u) {
+    return u->t->__write != NULL;
+}
+
 static inline int
 obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
     FklVMvalue *retval = FKL_VM_NIL;
@@ -992,13 +1000,19 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
             str->str[i] = FKL_GET_CHR(FKL_VM_CAR(obj));
             obj = FKL_VM_CDR(obj);
         }
-    } else if (FKL_IS_USERDATA(obj) && fklIsAbleToStringUd(FKL_VM_UD(obj))) {
+    } else if (FKL_IS_USERDATA(obj) && is_to_str_able_ud(FKL_VM_UD(obj))) {
         FklStringBuffer buf;
         fklInitStringBuffer(&buf);
-        fklUdAsPrinc(FKL_VM_UD(obj), &buf, exe);
+
+        FklCodeBuilder b = { 0 };
+        fklInitCodeBuilderStrBuf(&b, &buf, NULL);
+
+        fklPrincVMvalue2(obj, &b, exe);
+
         retval = fklCreateVMvalueStr2(exe,
                 fklStringBufferLen(&buf),
                 fklStringBufferBody(&buf));
+
         fklUninitStringBuffer(&buf);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -1591,19 +1605,7 @@ static int builtin_length(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     size_t len = 0;
-    if ((obj == FKL_VM_NIL || FKL_IS_PAIR(obj)) && fklIsList(obj))
-        len = fklVMlistLength(obj);
-    else if (FKL_IS_STR(obj))
-        len = FKL_VM_STR(obj)->size;
-    else if (FKL_IS_VECTOR(obj))
-        len = FKL_VM_VEC(obj)->size;
-    else if (FKL_IS_BYTEVECTOR(obj))
-        len = FKL_VM_BVEC(obj)->size;
-    else if (FKL_IS_HASHTABLE(obj))
-        len = FKL_VM_HASH(obj)->ht.count;
-    else if (FKL_IS_USERDATA(obj) && fklUdHasLength(FKL_VM_UD(obj)))
-        len = fklLengthVMud(FKL_VM_UD(obj));
-    else
+    if (fklVMvalueLength(obj, &len))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
     return 0;
@@ -4166,13 +4168,93 @@ static int builtin_box_cas(FKL_CPROC_ARGL) {
     return 0;
 }
 
+static inline uint8_t fix_or_chr_to_byte(FklVM *exe, FklVMvalue *v) {
+    if (FKL_IS_FIX(v)) {
+        int64_t i = FKL_GET_FIX(v);
+        if (i > UINT8_MAX || i < INT8_MIN) {
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+        }
+        return FKL_TYPE_CAST(uint8_t, i);
+    } else if (FKL_IS_CHR(v)) {
+        return FKL_GET_CHR(v);
+    } else
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    return 0;
+}
+
+static inline int
+obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
+    FklVMvalue *retval = FKL_VM_NIL;
+    size_t len = 0;
+    if (FKL_IS_FIX(obj)) {
+        int64_t i = FKL_GET_FIX(obj);
+        if (i > UINT8_MAX || i < INT8_MIN) {
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+        }
+        uint8_t r = FKL_TYPE_CAST(uint8_t, i);
+        retval = fklCreateVMvalueBvec2(exe, 1, &r);
+    } else if (FKL_IS_CHR(obj)) {
+        uint8_t r = FKL_GET_CHR(obj);
+        retval = fklCreateVMvalueBvec2(exe, 1, &r);
+    } else if (FKL_IS_STR(obj))
+        retval = fklCreateVMvalueBvec2(exe,
+                FKL_VM_STR(obj)->size,
+                (const uint8_t *)(FKL_VM_STR(obj)->str));
+    else if (FKL_IS_BYTEVECTOR(obj)) {
+        retval = fklCreateVMvalueBvec(exe, FKL_VM_BVEC(obj));
+    } else if (FKL_IS_VECTOR(obj)) {
+        FklVMvec *vec = FKL_VM_VEC(obj);
+        size_t size = vec->size;
+        retval = fklCreateVMvalueBvec2(exe, size, NULL);
+        FklBytevector *bvec = FKL_VM_BVEC(retval);
+        for (size_t i = 0; i < size; i++) {
+            bvec->ptr[i] = fix_or_chr_to_byte(exe, vec->base[i]);
+        }
+    } else if (fklIsList2(obj, &len)) {
+        retval = fklCreateVMvalueBvec2(exe, len, NULL);
+        FklBytevector *bvec = FKL_VM_BVEC(retval);
+        for (size_t i = 0; i < len; i++) {
+            bvec->ptr[i] = fix_or_chr_to_byte(exe, FKL_VM_CAR(obj));
+            obj = FKL_VM_CDR(obj);
+        }
+    } else if (FKL_IS_USERDATA(obj) && is_writable_ud(FKL_VM_UD(obj))) {
+        FklStringBuffer buf;
+        fklInitStringBuffer(&buf);
+
+        FklCodeBuilder b = { 0 };
+        fklInitCodeBuilderStrBuf(&b, &buf, NULL);
+
+        fklWriteVMvalue(obj, &b);
+
+        retval = fklCreateVMvalueBvec2(exe,
+                fklStringBufferLen(&buf),
+                (const uint8_t *)fklStringBufferBody(&buf));
+
+        fklUninitStringBuffer(&buf);
+    } else
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    FKL_CPROC_RETURN(exe, ctx, retval);
+    return 0;
+}
+
 static int builtin_bytevector(FKL_CPROC_ARGL) {
+    if (argc == 1)
+        return obj_to_bytes(exe, ctx, FKL_CPROC_GET_ARG(exe, ctx, 0));
     FklVMvalue *r = fklCreateVMvalueBvec2(exe, argc, NULL);
     FklBytevector *bytevec = FKL_VM_BVEC(r);
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = FKL_CPROC_GET_ARG(exe, ctx, i);
-        FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        bytevec->ptr[i] = fklVMgetInt(cur);
+        if (FKL_IS_FIX(cur)) {
+            int64_t i = FKL_GET_FIX(cur);
+            if (i > UINT8_MAX || i < INT8_MIN) {
+                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+            }
+            bytevec->ptr[i] = FKL_TYPE_CAST(uint8_t, i);
+        } else if (FKL_IS_CHR(cur)) {
+            bytevec->ptr[i] = FKL_GET_CHR(cur);
+        } else {
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+        }
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;

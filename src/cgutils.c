@@ -951,12 +951,6 @@ FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
     return r;
 }
 
-static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
-        const FklVMvalue *v) {
-    return info->curline;
-    FKL_TODO();
-}
-
 #define CURLINE(V) get_curline(codegen, V)
 
 FklVMvalue *fklTryExpandCodegenMacro(FklVMvalue *exp,

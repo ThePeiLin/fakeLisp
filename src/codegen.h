@@ -180,4 +180,10 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
     return r;
 }
 
+static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
+        const FklVMvalue *v) {
+    return info->curline;
+    FKL_TODO();
+}
+
 #endif

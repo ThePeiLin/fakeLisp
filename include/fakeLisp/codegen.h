@@ -284,7 +284,7 @@ typedef enum {
 
 #define FKL_BUILTIN_REPLACEMENT_NUM (7)
 #define FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM (17)
-#define FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM (11)
+#define FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM (12)
 
 #define FKL_CODEGEN_SYMBOL_MAP                                                 \
     XX(orig)                                                                   \

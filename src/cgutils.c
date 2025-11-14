@@ -978,7 +978,7 @@ FklVMvalue *fklTryExpandCodegenMacro(FklVMvalue *exp,
     for (FklCodegenMacro *macro = find_macro(r, macros, &ht);
             !errorState->type && macro;
             macro = find_macro(r, macros, &ht)) {
-        fklPmatchHashMapAdd2(&ht, codegen->ctx->builtInPatternVar_orig, exp);
+        fklPmatchHashMapAdd2(&ht, codegen->ctx->builtInPatternVar_orig, r);
         FklVMvalue *retval = NULL;
         FklLineNumHashMap lineHash;
         fklLineNumHashMapInit(&lineHash);
@@ -1016,6 +1016,7 @@ FklVMvalue *fklTryExpandCodegenMacro(FklVMvalue *exp,
             }
         }
         fklLineNumHashMapUninit(&lineHash);
+        fklPmatchHashMapClear(&ht);
         fklDestroyAllVMs(exe);
     }
     if (ht.buckets)
@@ -1449,7 +1450,7 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->libraries = libs;
     r->pts = pts;
-	r->lnt= fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
+    r->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
 
     if (is_lib)
         fklCgExportSidIdxHashMapInit(&r->exports);
@@ -1724,12 +1725,55 @@ static void *simple_action_head(void *c,
 }
 
 static int simple_action_head_check(FklVMvalue *rest[], size_t rest_len) {
-    if (rest_len < 2 ||          //
-            !FKL_IS_FIX(rest[1]) //
-            || FKL_GET_FIX(rest[1]) < 0) {
+    if (rest_len < 2) {
         return 1;
     }
+
     for (size_t i = 1; i < rest_len; i++)
+        if (!FKL_IS_FIX(rest[i]) || FKL_GET_FIX(rest[i]) < 0)
+            return 1;
+
+    return 0;
+}
+
+static void *simple_action_list(void *c,
+        void *ctx,
+        const FklAnalysisSymbol nodes[],
+        size_t num,
+        size_t line) {
+    FklVMvalue *vec = c;
+    FKL_ASSERT(FKL_IS_VECTOR(vec));
+
+    for (size_t i = 1; i < FKL_VM_VEC(vec)->size; i++) {
+        FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
+        FKL_ASSERT(FKL_IS_FIX(c) && FKL_GET_FIX(c) >= 0);
+        uint64_t idx = FKL_GET_FIX(c);
+        if (idx >= num)
+            return NULL;
+    }
+    FklVMparseCtx *ct = ctx;
+    FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **pr = &r;
+    for (size_t i = 1; i < FKL_VM_VEC(vec)->size; ++i) {
+        FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
+        uint64_t idx = FKL_GET_FIX(c);
+
+        const FklAnalysisSymbol *s = &nodes[idx];
+        *pr = fklCreateVMvaluePairWithCar(ct->exe, s->ast);
+        put_line_number(ct->ln, *pr, s->line);
+        pr = &FKL_VM_CDR(*pr);
+    }
+
+    put_line_number(ct->ln, r, line);
+    return r;
+}
+
+static int simple_action_list_check(FklVMvalue *rest[], size_t rest_len) {
+    if (rest_len < 1) {
+        return 1;
+    }
+
+    for (size_t i = 0; i < rest_len; i++)
         if (!FKL_IS_FIX(rest[i]) || FKL_GET_FIX(rest[i]) < 0)
             return 1;
 
@@ -2028,6 +2072,11 @@ static struct FklSimpleProdAction
                 "head",
                 .func = simple_action_head,
                 .check = simple_action_head_check,
+            },
+            {
+                "list",
+                .func = simple_action_list,
+                .check = simple_action_list_check,
             },
             {
                 "symbol",

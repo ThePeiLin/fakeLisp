@@ -423,8 +423,12 @@ typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklVMvalueCodegenInfo *,
         FklCodegenErrorState *errorState,
         FklCodegenCtx *ctx);
 
+typedef int (*CgGetNextExpCb)(void *, //
+        FklPmatchRes *res,            //
+        FklCodegenErrorState *);
+
 typedef struct {
-    FklVMvalue *(*getNextExpression)(void *, FklCodegenErrorState *);
+    CgGetNextExpCb get_next_exp;
     void (*finalizer)(void *);
     void (*atomic)(FklVMgc *, void *);
 } FklNextExpressionMethodTable;
@@ -516,7 +520,8 @@ FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env);
 
-FklByteCodelnt *fklGenExpressionCodeWithQueue(FklVMvalueQueue *,
+FKL_DEPRECATED
+FklByteCodelnt *fklGenExpressionCodeWithQueue(const FklVMvalueQueue *,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env);
 
@@ -635,7 +640,7 @@ int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v);
 FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
         FklVMvalueCodegenMacroScope *prev);
 
-FklVMvalue *fklTryExpandCodegenMacro(FklVMvalue *exp,
+FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *,
         FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *);

@@ -117,6 +117,7 @@ static inline int compile(const char *filename,
         const char *cwd,
         int argc,
         char *argv[]) {
+    int r = 0;
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         perror(filename);
@@ -140,19 +141,22 @@ static inline int compile(const char *filename,
                 .is_global = 1,
             });
 
+    char *outputname = NULL;
+    FklVM *anotherVM = NULL;
     FklByteCodelnt *mainByteCode =
             fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
     if (mainByteCode == NULL) {
         fklZfree(rp);
-        return EXIT_FAILURE;
+        r = EXIT_FAILURE;
+        goto compile_exit;
+        // return EXIT_FAILURE;
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev);
 
-    char *outputname = NULL;
     if (output) {
         outputname = fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR);
         outputname = fklStrCat(outputname, output);
@@ -167,7 +171,7 @@ static inline int compile(const char *filename,
 
     fklChdir(ctx.cwd);
 
-    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
+    anotherVM = fklCreateVMwithByteCode(mainByteCode,
             gc,
             1,
             0,
@@ -183,12 +187,12 @@ static inline int compile(const char *filename,
             codegen->libraries,
             anotherVM->pts);
 
-    fklUninitCodegenCtx(&ctx);
-
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
         fprintf(stderr, "%s: Can't create byte code file!\n", outputname);
-        return EXIT_FAILURE;
+        r = EXIT_FAILURE;
+        goto compile_exit;
+        // return EXIT_FAILURE;
     }
 
     fklVMclearSymbol(gc);
@@ -202,12 +206,15 @@ static inline int compile(const char *filename,
                 .libs = anotherVM->libs,
             });
 
+    fclose(outfp);
+compile_exit:
+    fklUninitCodegenCtx(&ctx);
+
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);
 
-    fclose(outfp);
     fklZfree(outputname);
-    return 0;
+    return r;
 }
 
 struct arg_lit *help;

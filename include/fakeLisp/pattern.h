@@ -7,9 +7,14 @@
 extern "C" {
 #endif
 
+typedef struct {
+    FklVMvalue *value;
+    const FklVMvalue *container;
+} FklPmatchRes;
+
 // FklPmatchHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
-#define FKL_HASH_VAL_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklPmatchRes
 #define FKL_HASH_ELM_NAME Pmatch
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
@@ -27,7 +32,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot,
         { //
             union {
                 struct FklVMslot _slot;
-               alignas(struct FklVMslot) FklVMvalue *s;
+                alignas(struct FklVMslot) FklVMvalue *s;
             };
         });
 

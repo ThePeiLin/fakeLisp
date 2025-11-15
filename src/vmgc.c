@@ -5,7 +5,8 @@
 
 #include <string.h>
 
-void fklVMgcToGray(FklVMvalue *v, FklVMgc *gc) {
+void fklVMgcToGray(const FklVMvalue *v_, FklVMgc *gc) {
+    FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, v_);
     if (v && FKL_IS_PTR(v) && v->mark < FKL_MARK_G) {
         v->mark = FKL_MARK_G;
         v->gray_next = gc->gray_list;

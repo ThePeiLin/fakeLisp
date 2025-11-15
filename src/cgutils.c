@@ -968,17 +968,19 @@ FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
 
 #define CURLINE(V) get_curline(codegen, V)
 
-FklVMvalue *fklTryExpandCodegenMacro(FklVMvalue *exp,
+FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *errorState) {
-    FklVMvalue *r = exp;
+    FklVMvalue *r = exp->value;
     FklPmatchHashMap ht = { .buckets = NULL };
-    uint64_t curline = CURLINE(exp);
+    uint64_t curline = CURLINE(exp->container);
     for (FklCodegenMacro *macro = find_macro(r, macros, &ht);
             !errorState->type && macro;
             macro = find_macro(r, macros, &ht)) {
-        fklPmatchHashMapAdd2(&ht, codegen->ctx->builtInPatternVar_orig, r);
+        fklPmatchHashMapAdd2(&ht,
+                codegen->ctx->builtInPatternVar_orig,
+                (FklPmatchRes){ .value = r, .container = exp->container });
         FklVMvalue *retval = NULL;
         FklLineNumHashMap lineHash;
         fklLineNumHashMapInit(&lineHash);
@@ -1075,7 +1077,7 @@ static void init_macro_match_local_variable(FklVM *exe,
     uint32_t count = mainPts->lcount;
     uint32_t idx = 0;
     for (FklPmatchHashMapNode *list = ht->first; list; list = list->next) {
-        FklVMvalue *v = list->v;
+        FklVMvalue *v = list->v.value;
         FKL_VM_GET_ARG(exe, frame, idx) = v;
         idx++;
     }
@@ -1550,14 +1552,15 @@ static void *custom_action(void *c,
         //       line_node->fix = line;
     }
 
+    put_line_number(&lineHash, nodes_vector, line);
     fklPmatchHashMapAdd2(&ht,
             add_symbol_cstr(cg_ctx, "$$"),
             // fklAddSymbolCstr("$$", action_ctx->pst),
-            nodes_vector);
+            (FklPmatchRes){ .value = nodes_vector, .container = nodes_vector });
     fklPmatchHashMapAdd2(&ht,
             add_symbol_cstr(cg_ctx, "line"),
             // fklAddSymbolCstr("line", action_ctx->pst),
-            line_node);
+            (FklPmatchRes){ .value = line_node, .container = nodes_vector });
 
     FklVMvalue *r = NULL;
     const char *cwd = cg_ctx->cwd;

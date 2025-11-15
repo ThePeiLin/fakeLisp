@@ -36,6 +36,19 @@ FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s) {
     return (FklVMvalue *)r;
 }
 
+typedef struct {
+    const FklVMvalue *pat;
+    FklVMvalue *exp;
+    const FklVMvalue *cont;
+} PmatchPair;
+
+#define FKL_VECTOR_TYPE_PREFIX Pa
+#define FKL_VECTOR_METHOD_PREFIX pa
+#define FKL_VECTOR_ELM_TYPE PmatchPair
+#define FKL_VECTOR_ELM_TYPE_NAME PmatchPair
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
+#include <fakeLisp/cont/vector.h>
+
 int fklPatternMatch(const FklVMvalue *pattern,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht) {
@@ -43,42 +56,46 @@ int fklPatternMatch(const FklVMvalue *pattern,
         return 0;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
-    FklVMpairVector s;
-    fklVMpairVectorInit(&s, 8);
-    fklVMpairVectorPushBack(&s,
-            &(FklVMpair){
-                .car = FKL_VM_CDR(pattern),
-                .cdr = FKL_VM_CDR(exp),
+    PaPmatchPairVector s;
+    paPmatchPairVectorInit(&s, 8);
+    paPmatchPairVectorPushBack(&s,
+            &(PmatchPair){
+                .pat = FKL_VM_CDR(pattern),
+                .exp = FKL_VM_CDR(exp),
+                .cont = FKL_TYPE_CAST(FklVMvalue *, exp),
             });
-    while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
-        const FklVMvalue *n0 = top->car;
-        FklVMvalue *n1 = top->cdr;
-        if (fklIsVMvalueSlot(n0)) {
+
+    while (!paPmatchPairVectorIsEmpty(&s)) {
+        const PmatchPair *top = paPmatchPairVectorPopBackNonNull(&s);
+        const FklVMvalue *pat = top->pat;
+        FklVMvalue *exp = top->exp;
+        if (fklIsVMvalueSlot(pat)) {
             if (ht != NULL)
                 fklPmatchHashMapAdd2(ht,
                         // n0->sym,
-                        FKL_VM_SLOT_SYM(n0),
+                        FKL_VM_SLOT_SYM(pat),
                         // FKL_TYPE_CAST(FklNastNode *, n1)
-                        n1);
-        } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
-                        .car = FKL_VM_CDR(n0),
-                        .cdr = FKL_VM_CDR(n1),
+                        (FklPmatchRes){ .value = exp, .container = top->cont });
+        } else if (FKL_IS_PAIR(pat) && FKL_IS_PAIR(exp)) {
+            paPmatchPairVectorPushBack(&s,
+                    &(PmatchPair){
+                        .pat = FKL_VM_CDR(pat),
+                        .exp = FKL_VM_CDR(exp),
+                        .cont = exp,
                     });
 
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
-                        .car = FKL_VM_CAR(n0),
-                        .cdr = FKL_VM_CAR(n1),
+            paPmatchPairVectorPushBack(&s,
+                    &(PmatchPair){
+                        .pat = FKL_VM_CAR(pat),
+                        .exp = FKL_VM_CAR(exp),
+                        .cont = exp,
                     });
-        } else if (!fklVMvalueEqual(n0, n1)) {
-            fklVMpairVectorUninit(&s);
+        } else if (!fklVMvalueEqual(pat, exp)) {
+            paPmatchPairVectorUninit(&s);
             return 0;
         }
     }
-    fklVMpairVectorUninit(&s);
+    paPmatchPairVectorUninit(&s);
     return 1;
 }
 

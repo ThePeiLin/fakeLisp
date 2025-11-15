@@ -961,7 +961,7 @@ void fklDestroyAllVMs(FklVM *cur);
 void fklDeleteCallChain(FklVM *);
 
 FklGCstate fklGetGCstate(FklVMgc *);
-void fklVMgcToGray(FklVMvalue *, FklVMgc *);
+void fklVMgcToGray(const FklVMvalue *, FklVMgc *);
 
 void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVM *exe);
 void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVM *exe);

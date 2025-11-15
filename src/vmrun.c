@@ -1424,6 +1424,8 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
 }
 
 void fklDestroyAllVMs(FklVM *curVM) {
+    if (curVM == NULL)
+        return;
     curVM->prev->next = NULL;
     curVM->prev = NULL;
     for (FklVM *cur = curVM; cur;) {

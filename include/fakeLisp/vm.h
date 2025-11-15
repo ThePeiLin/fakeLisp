@@ -1300,41 +1300,96 @@ FklVMvalue *fklVMvalueEof(void);
 
 // value getters
 
-#define FKL_VM_CAR(V) (((FklVMvaluePair *)(V))->pair.car)
-#define FKL_VM_CDR(V) (((FklVMvaluePair *)(V))->pair.cdr)
+static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CAR(const FklVMvalue *V) {
+    return &(((FklVMvaluePair *)(V))->pair.car);
+}
 
-#define FKL_VM_STR(V) (&((FklVMvalueStr *)(V))->str)
-#define FKL_VM_SYM(V) (&((FklVMvalueSym *)(V))->str)
-#define FKL_VM_SYM_INTERNED(V) (((FklVMvalueSym *)(V))->interned)
+static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CDR(const FklVMvalue *V) {
+    return &(((FklVMvaluePair *)(V))->pair.cdr);
+}
 
-#define FKL_VM_BVEC(V) (&((FklVMvalueBvec *)(V))->bvec)
+#define FKL_VM_CAR(V) (*FKL_VM_CAR(V))
+#define FKL_VM_CDR(V) (*FKL_VM_CDR(V))
 
-#define FKL_VM_VEC(V) (&(((FklVMvalueVec *)(V))->vec))
+static FKL_ALWAYS_INLINE FklString *FKL_VM_STR(const FklVMvalue *V) {
+    return (&((FklVMvalueStr *)(V))->str);
+}
+
+static FKL_ALWAYS_INLINE FklString *FKL_VM_SYM(const FklVMvalue *V) {
+    return (&((FklVMvalueSym *)(V))->str);
+}
+
+static FKL_ALWAYS_INLINE uint8_t *FKL_VM_SYM_INTERNED(const FklVMvalue *V) {
+    return &(((FklVMvalueSym *)(V))->interned);
+}
+
+// #define FKL_VM_STR(V) (&((FklVMvalueStr *)(V))->str)
+// #define FKL_VM_SYM(V) (&((FklVMvalueSym *)(V))->str)
+#define FKL_VM_SYM_INTERNED(V) (*FKL_VM_SYM_INTERNED(V))
+
+static FKL_ALWAYS_INLINE FklBytevector *FKL_VM_BVEC(const FklVMvalue *V) {
+    return (&((FklVMvalueBvec *)(V))->bvec);
+}
+
+// #define FKL_VM_BVEC(V) (&((FklVMvalueBvec *)(V))->bvec)
+
+static FKL_ALWAYS_INLINE FklVMvec *FKL_VM_VEC(const FklVMvalue *V) {
+    return (&((FklVMvalueVec *)(V))->vec);
+}
+
+// #define FKL_VM_VEC(V) (&(((FklVMvalueVec *)(V))->vec))
 
 #define FKL_VM_VEC_CAS(V, I, O, N)                                             \
-    (atomic_compare_exchange_strong(                                           \
-            FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,                             \
-                    &(((FklVMvalueVec *)(V))->vec.base[(I)])),                 \
+    (atomic_compare_exchange_strong(FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,     \
+                                            &((FKL_VM_VEC(V))->base[(I)])),    \
             (O),                                                               \
             (N)))
 
-#define FKL_VM_F64(V) (((FklVMvalueF64 *)(V))->f64)
+static FKL_ALWAYS_INLINE double *FKL_VM_F64(const FklVMvalue *V) {
+    return &(((FklVMvalueF64 *)(V))->f64);
+}
 
-#define FKL_VM_PROC(V) (&(((FklVMvalueProc *)(V))->proc))
+#define FKL_VM_F64(V) (*(FKL_VM_F64(V)))
 
-#define FKL_VM_CPROC(V) (&(((FklVMvalueCproc *)(V))->cproc))
+static FKL_ALWAYS_INLINE FklVMproc *FKL_VM_PROC(const FklVMvalue *V) {
+    return (&(((FklVMvalueProc *)(V))->proc));
+}
 
-#define FKL_VM_HASH(V) (&(((FklVMvalueHash *)(V))->hash))
+// #define FKL_VM_PROC(V) (&(((FklVMvalueProc *)(V))->proc))
 
-#define FKL_VM_BI(V) (&(((FklVMvalueBigInt *)(V))->bi))
+static FKL_ALWAYS_INLINE FklVMcproc *FKL_VM_CPROC(const FklVMvalue *V) {
+    return (&(((FklVMvalueCproc *)(V))->cproc));
+}
 
-#define FKL_VM_UD(V) (&(((FklVMvalueUd *)(V))->ud))
+// #define FKL_VM_CPROC(V) (&(((FklVMvalueCproc *)(V))->cproc))
 
-#define FKL_VM_BOX(V) (((FklVMvalueBox *)(V))->box)
+static FKL_ALWAYS_INLINE FklVMhash *FKL_VM_HASH(const FklVMvalue *V) {
+    return (&(((FklVMvalueHash *)(V))->hash));
+}
+
+// #define FKL_VM_HASH(V) (&(((FklVMvalueHash *)(V))->hash))
+
+static FKL_ALWAYS_INLINE FklVMbigInt *FKL_VM_BI(const FklVMvalue *V) {
+    return (&(((FklVMvalueBigInt *)(V))->bi));
+}
+
+// #define FKL_VM_BI(V) (&(((FklVMvalueBigInt *)(V))->bi))
+
+static FKL_ALWAYS_INLINE FklVMud *FKL_VM_UD(const FklVMvalue *V) {
+    return (&(((FklVMvalueUd *)(V))->ud));
+}
+
+// #define FKL_VM_UD(V) (&(((FklVMvalueUd *)(V))->ud))
+
+static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
+    return &(((FklVMvalueBox *)(V))->box);
+}
+
+#define FKL_VM_BOX(V) (*(FKL_VM_BOX(V)))
 
 #define FKL_VM_BOX_CAS(V, O, N)                                                \
-    (atomic_compare_exchange_strong(FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,     \
-                                            &(((FklVMvalueBox *)(V))->box)),   \
+    (atomic_compare_exchange_strong(                                           \
+            FKL_TYPE_CAST(_Atomic(FklVMvalue *) *, &(FKL_VM_BOX((V)))),        \
             (O),                                                               \
             (N)))
 

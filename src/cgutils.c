@@ -1433,7 +1433,7 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->prev = prev;
 
-    r->curline = prev ? prev->curline : 1;
+    r->curline = filename == NULL && prev ? prev->curline : 1;
 
     r->ctx = ctx;
 

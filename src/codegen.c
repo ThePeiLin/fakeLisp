@@ -1095,19 +1095,6 @@ static void codegen_funcall(const FklPmatchRes *rest,
     }
 }
 
-typedef struct {
-    FklVMvalue *orig;
-    FklPmatchHashMap *ht;
-    FklCodegenActionVector *actions;
-    uint32_t scope_id;
-    FklVMvalueCodegenMacroScope *macro_scope;
-    FklVMvalueCodegenEnv *env;
-    FklVMvalueCodegenInfo *info;
-    FklCodegenCtx *ctx;
-    FklCodegenErrorState *error_state;
-    uint8_t must_has_retval;
-} CgFnArgs;
-
 #define CODEGEN_ARGS                                                           \
     const FklPmatchRes *orig, FklPmatchHashMap *ht,                            \
             FklCodegenActionVector *actions, uint32_t scope,                   \
@@ -3189,7 +3176,7 @@ static inline void push_single_bcl_codegen_quest(FklByteCodelnt *bcl,
     fklCodegenActionVectorPushBack2(actions, quest);
 }
 
-typedef FklVMvalue *(*ReplacementFunc)(const FklVMvalue *orig,
+typedef FklVMvalue *(*ReplacementFunc)(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen);
 
@@ -3216,7 +3203,7 @@ static inline int is_replacement_define(FklVMvalue *value,
         return 0;
 }
 
-static inline int is_replacement_true(FklVMvalue *value,
+static inline int is_replacement_true(const FklPmatchRes *value,
         const FklVMvalueCodegenInfo *info,
         const FklCodegenCtx *ctx,
         const FklVMvalueCodegenMacroScope *macro_scope,
@@ -3226,11 +3213,11 @@ static inline int is_replacement_true(FklVMvalue *value,
     for (const FklVMvalueCodegenMacroScope *cs = macro_scope;
             cs && !replacement;
             cs = cs->prev)
-        replacement = fklGetReplacement(value, cs->replacements);
+        replacement = fklGetReplacement(value->value, cs->replacements);
     if (replacement) {
         int r = replacement != FKL_VM_NIL;
         return r;
-    } else if ((f = findBuiltInReplacementWithId(value,
+    } else if ((f = findBuiltInReplacementWithId(value->value,
                         ctx->builtin_replacement_id))) {
         FklVMvalue *t = f(value, env, info);
         int r = t != FKL_VM_NIL;
@@ -3240,7 +3227,7 @@ static inline int is_replacement_true(FklVMvalue *value,
         return 0;
 }
 
-static inline FklVMvalue *get_replacement(FklVMvalue *value,
+static inline FklVMvalue *get_replacement(const FklPmatchRes *value,
         const FklVMvalueCodegenInfo *info,
         const FklCodegenCtx *ctx,
         const FklVMvalueCodegenMacroScope *macro_scope,
@@ -3250,10 +3237,10 @@ static inline FklVMvalue *get_replacement(FklVMvalue *value,
     for (const FklVMvalueCodegenMacroScope *cs = macro_scope;
             cs && !replacement;
             cs = cs->prev)
-        replacement = fklGetReplacement(value, cs->replacements);
+        replacement = fklGetReplacement(value->value, cs->replacements);
     if (replacement)
         return replacement;
-    else if ((f = findBuiltInReplacementWithId(value,
+    else if ((f = findBuiltInReplacementWithId(value->value,
                       ctx->builtin_replacement_id)))
         return f(value, env, info);
     else
@@ -3517,8 +3504,7 @@ static inline int cfg_check_eq(FklVMvalue *exp,
         // fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
-    FklVMvalue *node =
-            get_replacement(arg0->value, info, ctx, macro_scope, env);
+    FklVMvalue *node = get_replacement(arg0, info, ctx, macro_scope, env);
     if (node) {
         int r = fklVMvalueEqual(node, arg1->value);
         // fklDestroyNastNode(node);
@@ -3545,8 +3531,7 @@ static inline int cfg_check_matched(FklVMvalue *exp,
         // fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
         return 0;
     }
-    FklVMvalue *node =
-            get_replacement(arg0->value, info, ctx, macro_scope, env);
+    FklVMvalue *node = get_replacement(arg0, info, ctx, macro_scope, env);
     if (node) {
         int r = is_compile_check_pattern_matched(arg1->value, node);
         // fklDestroyNastNode(node);
@@ -3586,23 +3571,24 @@ static FklVMvalue *cfg_check_or_method(CfgCtx *ctx, int r) {
     }
 }
 
-static inline int is_check_subpattern_true(FklVMvalue *exp,
+static inline int is_check_subpattern_true(const FklPmatchRes *exp_,
         const FklVMvalueCodegenInfo *info,
         const FklCodegenCtx *ctx,
         uint32_t scope,
         const FklVMvalueCodegenMacroScope *macro_scope,
         const FklVMvalueCodegenEnv *env,
         FklCodegenErrorState *error_state) {
+    FklPmatchRes exp = *exp_;
     int r = 0;
     FklPmatchHashMap ht;
     CgCfgCtxVector s;
     CfgCtx *cfg_ctx;
 
-    if (exp == FKL_VM_NIL)
+    if (exp.value == FKL_VM_NIL)
         return 0;
-    else if (FKL_IS_SYM(exp))
-        return is_replacement_true(exp, info, ctx, macro_scope, env);
-    else if (FKL_IS_PAIR(exp))
+    else if (FKL_IS_SYM(exp.value))
+        return is_replacement_true(&exp, info, ctx, macro_scope, env);
+    else if (FKL_IS_PAIR(exp.value))
         goto check_nested_sub_pattern;
     return 1;
 
@@ -3640,23 +3626,28 @@ check_nested_sub_pattern:
 
     for (;;) {
     loop_start:
-        if (exp == FKL_VM_NIL)
+        if (exp.value == FKL_VM_NIL)
             r = 0;
-        else if (FKL_IS_SYM(exp))
-            r = is_replacement_true(exp, info, ctx, macro_scope, env);
-        else if (FKL_IS_PAIR(exp)) {
+        else if (FKL_IS_SYM(exp.value))
+            r = is_replacement_true(&exp, info, ctx, macro_scope, env);
+        else if (FKL_IS_PAIR(exp.value)) {
             if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                         [FKL_CODEGEN_SUB_PATTERN_DEFINE],
-                        exp,
+                        exp.value,
                         &ht)) {
-                r = cfg_check_defined(exp, &ht, ctx, env, scope, error_state);
+                r = cfg_check_defined(exp.value,
+                        &ht,
+                        ctx,
+                        env,
+                        scope,
+                        error_state);
                 if (error_state->type)
                     goto exit;
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_IMPORT],
-                               exp,
+                               exp.value,
                                &ht)) {
-                r = cfg_check_importable(exp,
+                r = cfg_check_importable(exp.value,
                         &ht,
                         ctx,
                         env,
@@ -3667,9 +3658,9 @@ check_nested_sub_pattern:
             } else if (fklPatternMatch(
                                ctx->builtin_sub_pattern_node
                                        [FKL_CODEGEN_SUB_PATTERN_DEFMACRO],
-                               exp,
+                               exp.value,
                                &ht)) {
-                r = cfg_check_macro_defined(exp,
+                r = cfg_check_macro_defined(exp.value,
                         &ht,
                         ctx,
                         env,
@@ -3681,9 +3672,9 @@ check_nested_sub_pattern:
                     goto exit;
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_EQ],
-                               exp,
+                               exp.value,
                                &ht)) {
-                r = cfg_check_eq(exp,
+                r = cfg_check_eq(exp.value,
                         &ht,
                         ctx,
                         env,
@@ -3694,9 +3685,9 @@ check_nested_sub_pattern:
                     goto exit;
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_MATCH],
-                               exp,
+                               exp.value,
                                &ht)) {
-                r = cfg_check_matched(exp,
+                r = cfg_check_matched(exp.value,
                         &ht,
                         ctx,
                         env,
@@ -3707,18 +3698,17 @@ check_nested_sub_pattern:
                     goto exit;
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_NOT],
-                               exp,
+                               exp.value,
                                &ht)) {
                 cfg_ctx = cgCfgCtxVectorPushBack(&s, NULL);
                 cfg_ctx->r = 0;
                 cfg_ctx->rest = NULL;
                 cfg_ctx->method = cfg_check_not_method;
-                exp = fklPmatchHashMapGet2(&ht, ctx->builtInPatternVar_value)
-                              ->value;
+                exp = *fklPmatchHashMapGet2(&ht, ctx->builtInPatternVar_value);
                 continue;
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_AND],
-                               exp,
+                               exp.value,
                                &ht)) {
                 const FklPmatchRes *rest =
                         fklPmatchHashMapGet2(&ht, ctx->builtInPatternVar_rest);
@@ -3728,18 +3718,21 @@ check_nested_sub_pattern:
                     cfg_ctx = cgCfgCtxVectorPushBack(&s, NULL);
                     cfg_ctx->r = 1;
                     cfg_ctx->method = cfg_check_and_method;
-                    exp = FKL_VM_CAR(rest->value);
+                    exp = (FklPmatchRes){
+                        .value = FKL_VM_CAR(rest->value),
+                        .container = rest->value,
+                    };
                     cfg_ctx->rest = FKL_VM_CDR(rest->value);
                     continue;
                 } else {
                     error_state->type = FKL_ERR_SYNTAXERROR;
-                    error_state->place = exp;
+                    error_state->place = exp.value;
                     // fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
                     goto exit;
                 }
             } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                                [FKL_CODEGEN_SUB_PATTERN_OR],
-                               exp,
+                               exp.value,
                                &ht)) {
                 const FklPmatchRes *rest =
                         fklPmatchHashMapGet2(&ht, ctx->builtInPatternVar_rest);
@@ -3749,18 +3742,21 @@ check_nested_sub_pattern:
                     cfg_ctx = cgCfgCtxVectorPushBack(&s, NULL);
                     cfg_ctx->r = 0;
                     cfg_ctx->method = cfg_check_or_method;
-                    exp = FKL_VM_CAR(rest->value);
+                    exp = (FklPmatchRes){
+                        .value = FKL_VM_CAR(rest->value),
+                        .container = rest->value,
+                    };
                     cfg_ctx->rest = FKL_VM_CDR(rest->value);
                     continue;
                 } else {
                     error_state->type = FKL_ERR_SYNTAXERROR;
-                    error_state->place = exp;
+                    error_state->place = exp.value;
                     // fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
                     goto exit;
                 }
             } else {
                 error_state->type = FKL_ERR_SYNTAXERROR;
-                error_state->place = exp;
+                error_state->place = exp.value;
                 // fklMakeNastNodeRef(FKL_TYPE_CAST(FklNastNode *, exp));
                 goto exit;
             }
@@ -3769,8 +3765,8 @@ check_nested_sub_pattern:
 
         while (!cgCfgCtxVectorIsEmpty(&s)) {
             cfg_ctx = cgCfgCtxVectorBack(&s);
-            exp = cfg_ctx->method(cfg_ctx, r);
-            if (exp)
+            exp.value = cfg_ctx->method(cfg_ctx, r);
+            if (exp.value)
                 goto loop_start;
             else {
                 r = cfg_ctx->r;
@@ -3788,7 +3784,7 @@ exit:
 static CODEGEN_FUNC(codegen_check) {
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
-    int r = is_check_subpattern_true(value->value,
+    int r = is_check_subpattern_true(value,
             codegen,
             ctx,
             scope,
@@ -3827,7 +3823,7 @@ static CODEGEN_FUNC(codegen_cond_compile) {
         error_state->place = orig->value;
         return;
     }
-    int r = is_check_subpattern_true(cond->value,
+    int r = is_check_subpattern_true(cond,
             codegen,
             ctx,
             scope,
@@ -3858,7 +3854,11 @@ static CODEGEN_FUNC(codegen_cond_compile) {
         rest_value = FKL_VM_CDR(rest_value);
         FklVMvalue *value = FKL_VM_CAR(rest_value);
         rest_value = FKL_VM_CDR(rest_value);
-        int r = is_check_subpattern_true(cond,
+        int r = is_check_subpattern_true(
+                &(FklPmatchRes){
+                    .value = cond,
+                    .container = rest_value,
+                },
                 codegen,
                 ctx,
                 scope,
@@ -7490,14 +7490,14 @@ static inline FklCodegenActionContext *createReaderMacroActionContext(
     return r;
 }
 
-static FklVMvalue *_nil_replacement(const FklVMvalue *orig,
+static FklVMvalue *_nil_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     // return fklCreateNastNode(FKL_NAST_NIL, orig->curline);
     return FKL_VM_NIL;
 }
 
-static FklVMvalue *_is_main_replacement(const FklVMvalue *orig,
+static FklVMvalue *_is_main_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     if (env->prototypeId == 1)
@@ -7512,7 +7512,7 @@ static FklVMvalue *_is_main_replacement(const FklVMvalue *orig,
     // return n;
 }
 
-static FklVMvalue *_platform_replacement(const FklVMvalue *orig,
+static FklVMvalue *_platform_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
 
@@ -7532,7 +7532,7 @@ static FklVMvalue *_platform_replacement(const FklVMvalue *orig,
     return fklCreateVMvalueStrFromCstr(&codegen->ctx->gc->gcvm, platform);
 }
 
-static FklVMvalue *_file_dir_replacement(const FklVMvalue *orig,
+static FklVMvalue *_file_dir_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     // FklString *s = NULL;
@@ -7560,7 +7560,7 @@ static FklVMvalue *_file_dir_replacement(const FklVMvalue *orig,
     return r;
 }
 
-static FklVMvalue *_file_replacement(const FklVMvalue *orig,
+static FklVMvalue *_file_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     // FklNastNode *r = NULL;
@@ -7580,7 +7580,7 @@ static FklVMvalue *_file_replacement(const FklVMvalue *orig,
                            codegen->filename);
 }
 
-static FklVMvalue *_file_rp_replacement(const FklVMvalue *orig,
+static FklVMvalue *_file_rp_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     // FklNastNode *r = NULL;
@@ -7600,7 +7600,7 @@ static FklVMvalue *_file_rp_replacement(const FklVMvalue *orig,
                            codegen->realpath);
 }
 
-static FklVMvalue *_line_replacement(const FklVMvalue *orig,
+static FklVMvalue *_line_replacement(const FklPmatchRes *orig,
         const FklVMvalueCodegenEnv *env,
         const FklVMvalueCodegenInfo *codegen) {
     // uint64_t line = orig->curline;
@@ -7614,7 +7614,7 @@ static FklVMvalue *_line_replacement(const FklVMvalue *orig,
     // }
     // return r;
 
-    uint64_t line = CURLINE(orig);
+    uint64_t line = CURLINE(orig->container);
     return line <= FKL_FIX_INT_MAX
                  ? FKL_MAKE_VM_FIX(line)
                  : fklCreateVMvalueBigIntWithU64(&codegen->ctx->gc->gcvm, line);
@@ -9302,7 +9302,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         goto skip;
                     } else if ((f = findBuiltInReplacementWithId(exp.value,
                                         ctx->builtin_replacement_id))) {
-                        FklVMvalue *t = f(exp.value, env, cur_info);
+                        FklVMvalue *t = f(&exp, env, cur_info);
                         FKL_ASSERT(t);
                         // fklDestroyNastNode(curExp);
                         exp.value = t;

@@ -412,15 +412,15 @@ typedef struct FklCodegenErrorState {
     char *msg2;
 } FklCodegenErrorState;
 
-typedef FklByteCodelnt *(*FklByteCodeProcesser)(FklVMvalueCodegenInfo *,
-        FklVMvalueCodegenEnv *,
+typedef FklByteCodelnt *(*FklCodegenActionCb)(FklVMvalueCodegenInfo *codegen,
+        FklVMvalueCodegenEnv *env,
         uint32_t scope,
-        FklVMvalueCodegenMacroScope *,
+        FklVMvalueCodegenMacroScope *cms,
         void *data,
         FklByteCodelntVector *bcl_vec,
-        FklVMvalue *,
-        uint64_t,
-        FklCodegenErrorState *errorState,
+        FklVMvalue *fid,
+        uint64_t line,
+        FklCodegenErrorState *error_state,
         FklCodegenCtx *ctx);
 
 typedef int (*CgGetNextExpCb)(void *, //
@@ -441,7 +441,7 @@ typedef struct {
 
 typedef struct FklCodegenAction {
     struct FklCodegenAction *prev;
-    FklByteCodeProcesser processer;
+    FklCodegenActionCb processer;
     FklCodegenActionContext *context;
     FklVMvalueCodegenEnv *env;
     FklVMvalueCodegenMacroScope *macros;

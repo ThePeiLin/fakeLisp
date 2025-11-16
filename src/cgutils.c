@@ -48,9 +48,9 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklVMvalue *id,
 
 void fklPrintCodegenError(FklCodegenErrorState *error_state,
         const FklVMvalueCodegenInfo *info) {
-    FklVMvalue *obj = error_state->place;
+    FklVMvalue *obj = error_state->p.place;
     FklBuiltinErrorType type = error_state->type;
-    size_t line = error_state->line;
+    size_t line = error_state->p.line;
     FklVMvalue *fid = error_state->fid;
     const char *msg = error_state->msg;
     char *msg2 = error_state->msg2;
@@ -206,7 +206,7 @@ print_line:
         } else
             fprintf(stderr, "at line %" PRIu64 " of file ", line);
     }
-    error_state->place = NULL;
+    error_state->p.place = NULL;
     if (msg2)
         fklZfree(msg2);
 }
@@ -995,7 +995,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
                 &ht,
                 &lineHash,
                 &retval,
-                CURLINE(r));
+                curline);
         FklVMgc *gc = ctx->gc;
         int e = fklRunVMidleLoop(exe);
         fklMoveThreadObjectsToGc(exe, gc);
@@ -1004,8 +1004,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
 
         if (e) {
             errorState->type = FKL_ERR_MACROEXPANDFAILED;
-            errorState->place = r;
-            errorState->line = curline;
+            errorState->p = PLACE(r, curline);
             fklDeleteCallChain(exe);
             r = NULL;
         } else {
@@ -1013,8 +1012,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
                 r = retval;
             } else {
                 errorState->type = FKL_ERR_UNSERIALIZABLE;
-                errorState->place = NULL;
-                errorState->line = curline;
+                errorState->p = PLACE(NULL, curline);
             }
         }
         fklLineNumHashMapUninit(&lineHash);
@@ -1028,7 +1026,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
 
 typedef struct MacroExpandCtx {
     FklVMvalue **retval;
-    FklLineNumHashMap *lineHash;
+    FklLineNumHashMap *lnt;
     uint64_t curline;
 } MacroExpandCtx;
 
@@ -1038,7 +1036,7 @@ static int macro_expand_frame_step(void *data, FklVM *exe) {
     MacroExpandCtx *ctx = (MacroExpandCtx *)data;
 
     FklVMvalue *r = FKL_VM_GET_TOP_VALUE(exe);
-    *(ctx->retval) = check_macro_expand_result(r);
+    *(ctx->retval) = check_macro_expand_result(r, ctx->lnt, ctx->curline);
 
     return 0;
 }
@@ -1060,7 +1058,7 @@ static void push_macro_expand_frame(FklVM *exe,
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &MacroExpandMethodTable);
     MacroExpandCtx *ctx = (MacroExpandCtx *)f->data;
     ctx->retval = ptr;
-    ctx->lineHash = lineHash;
+    ctx->lnt = lineHash;
     ctx->curline = curline;
     fklPushVMframe(f, exe);
 }
@@ -1532,14 +1530,13 @@ static void *custom_action(void *c,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
+    FklVMparseCtx *pctx = FKL_TYPE_CAST(FklVMparseCtx *, ctx);
     FklVMvalueCustomActionCtx *action_ctx = c;
     FklCodegenCtx *cg_ctx = action_ctx->c.ctx;
     FklVMvalue *nodes_vector = fklCreateVMvalueVec(&cg_ctx->gc->gcvm, line);
     // nodes_vector->vec = fklCreateNastVector(num);
     for (size_t i = 0; i < num; i++)
         FKL_VM_VEC(nodes_vector)->base[i] = nodes[i].ast;
-    FklLineNumHashMap lineHash;
-    fklLineNumHashMapInit(&lineHash);
     FklPmatchHashMap ht;
     fklPmatchHashMapInit(&ht);
     FklVMvalue *line_node = NULL;
@@ -1552,7 +1549,7 @@ static void *custom_action(void *c,
         //       line_node->fix = line;
     }
 
-    put_line_number(&lineHash, nodes_vector, line);
+    put_line_number(pctx->ln, nodes_vector, line);
     fklPmatchHashMapAdd2(&ht,
             add_symbol_cstr(cg_ctx, "$$"),
             // fklAddSymbolCstr("$$", action_ctx->pst),
@@ -1571,7 +1568,7 @@ static void *custom_action(void *c,
             action_ctx->c.bcl,
             action_ctx->c.prototype_id,
             &ht,
-            &lineHash,
+            pctx->ln,
             &r,
             line);
     FklVMgc *gc = exe->gc;
@@ -1588,7 +1585,6 @@ static void *custom_action(void *c,
     // fklDestroyNastNode(line_node);
 
     fklPmatchHashMapUninit(&ht);
-    fklLineNumHashMapUninit(&lineHash);
     fklDestroyAllVMs(exe);
     return r;
 }

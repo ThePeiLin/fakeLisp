@@ -1081,7 +1081,9 @@ double fklVMgetDouble(const FklVMvalue *p);
 
 int fklHasCircleRef(const FklVMvalue *first_value);
 int fklIsSerializableLeafNode(const FklVMvalue *v);
-int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value);
+int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
+        FklLineNumHashMap *lnt,
+        uint64_t line);
 
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
 

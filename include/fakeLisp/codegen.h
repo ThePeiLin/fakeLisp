@@ -401,12 +401,14 @@ typedef struct FklCodegenActionContext {
     alignas(void *) uint8_t d[];
 } FklCodegenActionContext;
 
+typedef struct {
+    FklVMvalue *place;
+    size_t line;
+} FklCodegenErrorPlace;
+
 typedef struct FklCodegenErrorState {
     FklBuiltinErrorType type;
-    struct {
-        FklVMvalue *place;
-        size_t line;
-    };
+    FklCodegenErrorPlace p;
     FklVMvalue *fid;
     const char *msg;
     char *msg2;

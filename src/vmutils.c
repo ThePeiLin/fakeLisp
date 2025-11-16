@@ -671,6 +671,8 @@ static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
 
 struct SerializableCtx {
     VmValueDegreeHashMap *degree_table;
+    FklLineNumHashMap *lnt;
+    uint64_t line;
     int r;
 };
 
@@ -683,12 +685,18 @@ static int serializable_to_bytecode_file_cb(const FklVMvalue *v, void *ctx) {
     if (FKL_IS_PAIR(v) ||       //
             FKL_IS_VECTOR(v) || //
             FKL_IS_BOX(v) ||    //
-            FKL_IS_HASHTABLE(v))
+            FKL_IS_HASHTABLE(v)) {
         inc_value_degree(c->degree_table, FKL_TYPE_CAST(FklVMvalue *, v));
+        if (c->lnt) {
+            fklLineNumHashMapPut2(c->lnt, v, c->line);
+        }
+    }
     return 0;
 }
 
-int fklIsSerializableToByteCodeFile(const FklVMvalue *v) {
+int fklIsSerializableToByteCodeFile(const FklVMvalue *v,
+        FklLineNumHashMap *lnt,
+        uint64_t line) {
     if (!is_serializable_to_bytecode_value(v))
         return 0;
     if (FKL_GET_TAG(v) != FKL_TAG_PTR
@@ -701,7 +709,12 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *v) {
     VmValueDegreeHashMap degree_table;
     vmValueDegreeHashMapInit(&degree_table);
 
-    struct SerializableCtx ctx = { .degree_table = &degree_table, .r = 0 };
+    struct SerializableCtx ctx = {
+        .degree_table = &degree_table,
+        .r = 0,
+        .lnt = lnt,
+        .line = line,
+    };
 
     int r = 1;
     traverse_value_dfs(v, serializable_to_bytecode_file_cb, &ctx);

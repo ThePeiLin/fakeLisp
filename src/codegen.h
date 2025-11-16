@@ -123,8 +123,10 @@ static inline int is_pair_list(const FklVMvalue *v) {
     return 1;
 }
 
-static inline FklVMvalue *check_macro_expand_result(FklVMvalue *r) {
-    if (fklIsSerializableToByteCodeFile(r))
+static inline FklVMvalue *check_macro_expand_result(FklVMvalue *r,
+        FklLineNumHashMap *lnt,
+        uint64_t line) {
+    if (fklIsSerializableToByteCodeFile(r, lnt, line))
         return r;
     return NULL;
 }
@@ -191,5 +193,7 @@ static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
     return info->curline;
     FKL_TODO();
 }
+
+#define PLACE(P, L) ((FklCodegenErrorPlace){ .place = (P), .line = (L) })
 
 #endif

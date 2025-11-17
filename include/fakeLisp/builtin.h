@@ -2,7 +2,8 @@
 #define FKL_BUILTIN_H
 
 #include "bytecode.h"
-#include "symbol.h"
+#include "codegen.h"
+#include "vm_decl.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,21 +11,14 @@ extern "C" {
 
 #define FKL_BUILTIN_SYMBOL_NUM (201)
 
-struct FklVMvalueCodegenEnv;
-struct FklVM;
-struct FklVMgc;
-struct FklVMframe;
-struct FklVMproc;
-struct FklVMvalue;
-
 typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[],
-        struct FklVMvalue *,
+        FklVMvalue *,
         uint32_t line,
         uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 
-void fklInitGlobCodegenEnv(struct FklVMvalueCodegenEnv *, struct FklVM *gc);
-void fklInitGlobalVMclosureForGC(struct FklVMgc *);
+void fklInitGlobCodegenEnv(FklVMvalueCodegenEnv *, FklVM *gc);
+void fklInitGlobalVMclosureForGC(FklVMgc *);
 
 #define FKL_VM_STDIN_IDX (0)
 #define FKL_VM_STDOUT_IDX (1)

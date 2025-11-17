@@ -1,4 +1,5 @@
 #include <fakeLisp/grammer.h>
+#include <fakeLisp/parser.h>
 #include <fakeLisp/vm.h>
 
 #ifdef __clang__
@@ -6,9 +7,9 @@
 #endif
 
 static inline void
-put_line_number(FklLineNumHashMap *ln, FklVMvalue *v, uint64_t line) {
+put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
     if (ln)
-        fklLineNumHashMapPut2(ln, v, line);
+        fklVMvalueLntPut(ln, v, line);
 }
 
 static inline void *prod_action_symbol(void *ctx,

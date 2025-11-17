@@ -3,6 +3,7 @@
 
 #include "bytecode.h"
 #include "grammer.h"
+#include "parser.h"
 #include "pattern.h"
 #include "symbol.h"
 #include "vm.h"
@@ -74,9 +75,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, //
                 };
             };
         });
-
-// value line number table
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenLnt, { FklLineNumHashMap ht; });
 
 typedef struct {
     FklVMvalueCodegenEnv *top_env;
@@ -327,7 +325,7 @@ typedef struct FklCodegenCtx {
     FKL_CODEGEN_SYMBOL_MAP
 #undef XX
 
-    FklVMvalueCodegenLnt *lnt;
+    FklVMvalueLnt *lnt;
 
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
@@ -593,15 +591,6 @@ FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *ctx,
         uint32_t pscope,
         FklVMvalueCodegenMacroScope *);
 
-int fklIsVMvalueCodegenLnt(const FklVMvalue *v);
-FklVMvalueCodegenLnt *fklCreateVMvalueCodegenLnt(FklVM *v);
-void fklVMvalueCodegenLntPut(FklVMvalueCodegenLnt *ht,
-        const FklVMvalue *v,
-        uint64_t line);
-
-uint64_t *fklVMvalueCodegenLntGet(FklVMvalueCodegenLnt *ht,
-        const FklVMvalue *v);
-
 void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
         uint32_t p,
         FklVMvalueCodegenEnv *env,
@@ -652,7 +641,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
         FklByteCodelnt *bcl,
         uint32_t prototype_id,
         FklPmatchHashMap *ht,
-        FklLineNumHashMap *lineHash,
+        FklVMvalueLnt *lnt,
         FklVMvalue **pr,
         uint64_t curline);
 

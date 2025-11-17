@@ -2,6 +2,7 @@
 #include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
+#include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
@@ -649,7 +650,7 @@ int fklHasCircleRef(const FklVMvalue *v) {
     return r;
 }
 
-int fklIsSerializableLeafNode(const FklVMvalue *v) {
+static inline int is_serializable_leaf_node(const FklVMvalue *v) {
     return v == FKL_VM_NIL ||      //
            FKL_IS_FIX(v) ||        //
            FKL_IS_CHR(v) ||        //
@@ -662,7 +663,7 @@ int fklIsSerializableLeafNode(const FklVMvalue *v) {
 }
 
 static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
-    return fklIsSerializableLeafNode(v) || //
+    return is_serializable_leaf_node(v) || //
            FKL_IS_VECTOR(v) ||             //
            FKL_IS_PAIR(v) ||               //
            FKL_IS_BOX(v) ||                //
@@ -671,7 +672,7 @@ static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
 
 struct SerializableCtx {
     VmValueDegreeHashMap *degree_table;
-    FklLineNumHashMap *lnt;
+    FklVMvalueLnt *lnt;
     uint64_t line;
     int r;
 };
@@ -688,14 +689,14 @@ static int serializable_to_bytecode_file_cb(const FklVMvalue *v, void *ctx) {
             FKL_IS_HASHTABLE(v)) {
         inc_value_degree(c->degree_table, FKL_TYPE_CAST(FklVMvalue *, v));
         if (c->lnt) {
-            fklLineNumHashMapPut2(c->lnt, v, c->line);
+            fklVMvalueLntPut(c->lnt, v, c->line);
         }
     }
     return 0;
 }
 
 int fklIsSerializableToByteCodeFile(const FklVMvalue *v,
-        FklLineNumHashMap *lnt,
+        FklVMvalueLnt *lnt,
         uint64_t line) {
     if (!is_serializable_to_bytecode_value(v))
         return 0;
@@ -2243,7 +2244,7 @@ struct TraverseSerializableArgs {
 static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
     struct TraverseSerializableArgs *args = ctx;
     FKL_ASSERT(is_serializable_to_bytecode_value(v));
-    if (fklIsSerializableLeafNode(v))
+    if (is_serializable_leaf_node(v))
         fklVMvalueVectorPushBack2(args->leafs, FKL_TYPE_CAST(FklVMvalue *, v));
     else
         fklVMvalueVectorPushBack2(args->non_leafs,
@@ -2254,7 +2255,7 @@ static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
 void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v) {
     if (v == NULL)
         return;
-    if (fklIsSerializableLeafNode(v)) {
+    if (is_serializable_leaf_node(v)) {
         if (fklIsVMvalueSlot(v))
             fklValueTableAdd(t, v);
         fklValueTableAdd(t, v);

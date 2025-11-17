@@ -4,6 +4,7 @@
 #include "common.h"
 #include "opcode.h"
 #include "symbol.h"
+#include "vm_decl.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -11,9 +12,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct FklVMvalue;
-struct FklVMgc;
 
 typedef union {
     struct {
@@ -48,7 +46,7 @@ typedef struct {
 } FklByteCode;
 
 typedef struct {
-    struct FklVMvalue *fid;
+    FklVMvalue *fid;
     uint64_t scp;
     uint32_t line;
     uint32_t scope;
@@ -86,7 +84,7 @@ void fklInitByteCodelnt(FklByteCodelnt *t, size_t len);
 FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
 FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
-        struct FklVMvalue *fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
@@ -98,13 +96,13 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         const FklInstruction *ins,
-        struct FklVMvalue *fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
 void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
         FklByteCodelnt *bcl,
-        struct FklVMvalue *fid,
+        FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
@@ -117,7 +115,7 @@ void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl,
 FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
 
 void fklInitLineNumTabNode(FklLineNumberTableItem *,
-        struct FklVMvalue *fid,
+        FklVMvalue *fid,
         uint64_t scp,
         uint32_t line,
         uint32_t scope);

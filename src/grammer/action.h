@@ -4,13 +4,14 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
+#include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
 static inline void
 put_line_number(const FklVMparseCtx *c, FklVMvalue *v, uint64_t line) {
     if (c->ln)
-        fklLineNumHashMapPut2(c->ln, v, line);
+        fklVMvalueLntPut(c->ln, v, line);
 }
 
 static void *prod_action_symbol(void *args,

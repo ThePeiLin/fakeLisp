@@ -244,6 +244,37 @@ static inline void METHOD(Grow)(NAME *self) {
     }
 }
 
+static inline void METHOD(Shrink)(NAME *self) {
+    // compute next pow 2
+    if (self->count == 0) {
+        self->capacity = (1 << FKL_HASH_DEFAULT_CAPACITY_SHIFT);
+    } else {
+        self->capacity = self->count - 1;
+        self->capacity |= self->capacity >> 1;
+        self->capacity |= self->capacity >> 2;
+        self->capacity |= self->capacity >> 4;
+        self->capacity |= self->capacity >> 8;
+        self->capacity |= self->capacity >> 16;
+        self->capacity += 1;
+    }
+
+    self->mask = self->capacity - 1;
+
+#ifdef FKL_HASH_LOAD_FACTOR
+    self->rehash_threshold = self->capacity * FKL_HASH_LOAD_FACTOR;
+#else
+    self->rehash_threshold = (self->capacity >> 2) | (self->capacity >> 1);
+#endif
+
+    NODE_NAME **buckets = (NODE_NAME **)FKL_CONTAINER_REALLOC(self->buckets,
+            self->capacity * sizeof(NODE_NAME *));
+    assert(buckets);
+    self->buckets = buckets;
+    memset(self->buckets, 0, self->capacity * sizeof(NODE_NAME *));
+
+    METHOD(Rehash)(self);
+}
+
 static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
     return &self->buckets[hashv & self->mask];
 }

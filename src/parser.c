@@ -10,7 +10,7 @@
 #include <string.h>
 
 FklVMvalue *
-fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklLineNumHashMap *ln) {
+fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklVMvalueLnt *ln) {
     FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     FklUintVector lineStack;
@@ -48,7 +48,7 @@ char *fklReadWithBuiltinParser(FILE *fp,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
         FklParseStateVector *stateStack,
-        FklLineNumHashMap *ln) {
+        FklVMvalueLnt *ln) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
@@ -124,7 +124,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
         FklParseStateVector *stateStack,
-        FklLineNumHashMap *ln) {
+        FklVMvalueLnt *ln) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     *unexpectEOF = 0;
@@ -331,6 +331,66 @@ void *fklDefaultParseForCharBuf(const char *cstr,
         }
     }
     return ast;
+}
+
+// FklLineNumHashMap
+#define FKL_HASH_KEY_TYPE FklVMvalue const *
+#define FKL_HASH_VAL_TYPE uint64_t
+#define FKL_HASH_ELM_NAME LineNum
+#define FKL_HASH_KEY_HASH                                                      \
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
+#include <fakeLisp/cont/hash.h>
+
+// value line number table
+FKL_VM_DEF_UD_STRUCT(FklVMvalueLnt, { FklLineNumHashMap ht; });
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(lnt_ud_as_print, "ln-table")
+
+static int lnt_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    fklLineNumHashMapUninit(ht);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static void lnt_ud_update_weak_ref(const FklVMud *ud, FklVMgc *gc) {
+    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    const FklLineNumHashMapNode *cur = ht->first;
+    while (cur) {
+        const FklLineNumHashMapNode *next = cur->next;
+        if (cur->k->mark == FKL_MARK_W) {
+            fklLineNumHashMapDel2(ht, cur->k);
+        }
+        cur = next;
+    }
+}
+
+static FklVMudMetaTable const LntUserDataMetaTable = {
+    .size = sizeof(FklVMvalueIdHashMap),
+    .__as_prin1 = lnt_ud_as_print,
+    .__as_princ = lnt_ud_as_print,
+    .__finalizer = lnt_ud_finalizer,
+    .__update_weak_ref = lnt_ud_update_weak_ref,
+};
+
+int fklIsVMvalueLnt(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
+}
+
+FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *vm) {
+    FklVMvalueLnt *r = (FklVMvalueLnt *)fklCreateVMvalueUd(vm,
+            &LntUserDataMetaTable,
+            NULL);
+
+    fklLineNumHashMapInit(&r->ht);
+    return r;
+}
+
+void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line) {
+    fklLineNumHashMapPut2(&ht->ht, v, line);
+}
+
+uint64_t *fklVMvalueLntGet(FklVMvalueLnt *ht, const FklVMvalue *v) {
+    return fklLineNumHashMapGet2(&ht->ht, v);
 }
 
 #define PARSE_INCLUDED

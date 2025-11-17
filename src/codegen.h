@@ -81,9 +81,9 @@ static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
 }
 
 static inline void
-put_line_number(FklLineNumHashMap *ln, FklVMvalue *v, uint64_t line) {
+put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
     if (ln)
-        fklLineNumHashMapPut2(ln, v, line);
+        fklVMvalueLntPut(ln, v, line);
 }
 
 static inline FklVMvalue *add_symbol_cstr(FklCodegenCtx *c, const char *s) {
@@ -123,9 +123,8 @@ static inline int is_pair_list(const FklVMvalue *v) {
     return 1;
 }
 
-static inline FklVMvalue *check_macro_expand_result(FklVMvalue *r,
-        FklLineNumHashMap *lnt,
-        uint64_t line) {
+static inline FklVMvalue *
+check_macro_expand_result(FklVMvalue *r, FklVMvalueLnt *lnt, uint64_t line) {
     if (fklIsSerializableToByteCodeFile(r, lnt, line))
         return r;
     return NULL;
@@ -166,7 +165,7 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
         size_t num,
         uint32_t line,
         FklVM *vm,
-        FklLineNumHashMap *ln) {
+        FklVMvalueLnt *ln) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < num; i++) {
@@ -190,9 +189,9 @@ static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
     //         return *r;
     // }
 
-	uint64_t* r = fklVMvalueCodegenLntGet(info->ctx->lnt, v);
-	if(r != NULL)
-		return *r;
+    uint64_t *r = fklVMvalueLntGet(info->ctx->lnt, v);
+    if (r != NULL)
+        return *r;
 
     return info->curline;
     FKL_TODO();

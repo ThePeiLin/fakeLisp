@@ -3,6 +3,7 @@
 #include <fakeLisp/parser.h>
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 
 #ifndef ACTION_FILE_PATH
 #define ACTION_FILE_PATH "action.c"

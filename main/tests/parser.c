@@ -2,6 +2,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 
 #include <stdio.h>
 #include <stdlib.h>

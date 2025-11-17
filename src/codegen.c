@@ -3179,7 +3179,7 @@ static inline void add_export_symbol(FklVMvalueCodegenInfo *codegen,
         // prevPair = rest->pair;
         FklVMvalue *new_rest =
                 fklCreateVMvaluePair(&codegen->ctx->gc->gcvm, head, rest);
-        put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rest));
+        put_line_number(codegen->ctx->lnt, new_rest, CURLINE(rest));
         cgExpQueuePush2(exportQueue,
                 (FklPmatchRes){ .value = new_rest, .container = new_rest });
         FKL_VM_CDR(prev) = FKL_VM_NIL;
@@ -5045,7 +5045,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                &codegen->ctx->lnt->ht);
+                codegen->ctx->lnt);
     } else {
         fklVMvaluePushState0ToStack(stateStack);
         list = fklReadWithBuiltinParser(fp,
@@ -5059,7 +5059,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                &codegen->ctx->lnt->ht);
+                codegen->ctx->lnt);
     }
     if (list)
         fklZfree(list);
@@ -5107,7 +5107,7 @@ static int _codegen_load_get_next_expression(void *pcontext,
         return 0;
 
     FklVMvalue *contianer = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, begin);
-    put_line_number(&codegen->ctx->lnt->ht, contianer, curline);
+    put_line_number(codegen->ctx->lnt, contianer, curline);
     *out = (FklPmatchRes){ .value = begin, .container = contianer };
     return 1;
 }
@@ -5171,7 +5171,7 @@ static CODEGEN_FUNC(codegen_load) {
 
             FklVMvalue *new_rest =
                     fklCreateVMvaluePair(&ctx->gc->gcvm, head, rv);
-            put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rv));
+            put_line_number(codegen->ctx->lnt, new_rest, CURLINE(rv));
             cgExpQueuePush2(queue,
                     (FklPmatchRes){
                         .value = new_rest,
@@ -5308,14 +5308,15 @@ static FklVMvalue *add_prefix_for_exp_head(FklVMvalue *orig,
     const FklString *head = FKL_VM_SYM(FKL_VM_CAR(orig));
     // fklGetSymbolWithId(orig->pair->car->sym, pst);
     FklString *symbolWithPrefix = fklStringAppend(prefix, head);
-    FklVMvalue *patternWithPrefix = fklCreateVMvaluePair(&codegen->ctx->gc->gcvm,
-            add_symbol(codegen->ctx, symbolWithPrefix),
-            FKL_VM_CDR(orig));
+    FklVMvalue *patternWithPrefix =
+            fklCreateVMvaluePair(&codegen->ctx->gc->gcvm,
+                    add_symbol(codegen->ctx, symbolWithPrefix),
+                    FKL_VM_CDR(orig));
     // fklNastConsWithSym(fklAddSymbol(symbolWithPrefix, pst),
     //         fklMakeNastNodeRef(orig->pair->cdr),
     //         orig->curline,
     //         orig->pair->car->curline);
-    put_line_number(&codegen->ctx->lnt->ht, patternWithPrefix, CURLINE(orig));
+    put_line_number(codegen->ctx->lnt, patternWithPrefix, CURLINE(orig));
     fklZfree(symbolWithPrefix);
     return patternWithPrefix;
 }
@@ -7158,7 +7159,7 @@ static inline void codegen_import_helper(FklVMvalue *orig,
             // prevPair = rest->pair;
             FklVMvalue *new_rest =
                     fklCreateVMvaluePair(&codegen->ctx->gc->gcvm, head, rest);
-            put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rest));
+            put_line_number(codegen->ctx->lnt, new_rest, CURLINE(rest));
             cgExpQueuePush2(queue,
                     (FklPmatchRes){
                         .value = new_rest,
@@ -9187,7 +9188,7 @@ void fklInitCodegenCtxExceptPattern(FklCodegenCtx *ctx,
 
     fklInitBuiltinGrammer(&ctx->builtin_g, &ctx->gc->gcvm);
 
-    ctx->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
+    ctx->lnt = fklCreateVMvalueLnt(&ctx->gc->gcvm);
 }
 
 static inline void init_builtin_patterns(FklCodegenCtx *ctx) {
@@ -9383,7 +9384,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
     while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
         FklCodegenAction *cur_action =
                 *fklCodegenActionVectorBackNonNull(&codegen_action_vector);
-        FklVMvalueCodegenInfo *cur_info = cur_action->codegen;
+        FklVMvalueCodegenInfo *codegen = cur_action->codegen;
         FklCodegenNextExpression *expressions = cur_action->expressions;
         FklVMvalueCodegenEnv *env = cur_action->env;
         FklCodegenActionContext *cur_context = cur_action->context;
@@ -9399,7 +9400,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
             skip:
                 if (FKL_IS_PAIR(exp.value)) {
                     exp.value = fklTryExpandCodegenMacro(&exp,
-                            cur_info,
+                            codegen,
                             cur_action->macros,
                             &error_state);
                     if (error_state.type) {
@@ -9425,7 +9426,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         goto skip;
                     } else if ((f = findBuiltInReplacementWithId(exp.value,
                                         ctx->builtin_replacement_id))) {
-                        FklVMvalue *t = f(&exp, env, cur_info);
+                        FklVMvalue *t = f(&exp, env, codegen);
                         FKL_ASSERT(t);
                         // fklDestroyNastNode(curExp);
                         exp.value = t;
@@ -9440,24 +9441,24 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                             bcl = append_get_loc_ins(INS_APPEND_BACK,
                                     NULL,
                                     def->v.idx,
-                                    cur_info->fid,
+                                    codegen->fid,
                                     // curExp->curline,
-                                    get_curline(cur_info, exp.container),
+                                    CURLINE(exp.container),
                                     cur_action->scope);
                         else {
-                            uint32_t idx = fklAddCodegenRefBySidRetIndex(
-                                    exp.value,
-                                    env,
-                                    cur_info->fid,
-                                    // curExp->curline,
-                                    get_curline(cur_info, exp.container),
-                                    0);
+                            uint32_t idx =
+                                    fklAddCodegenRefBySidRetIndex(exp.value,
+                                            env,
+                                            codegen->fid,
+                                            // curExp->curline,
+                                            CURLINE(exp.container),
+                                            0);
                             bcl = append_get_var_ref_ins(INS_APPEND_BACK,
                                     NULL,
                                     idx,
-                                    cur_info->fid,
+                                    codegen->fid,
                                     // curExp->curline,
-                                    get_curline(cur_info, exp.container),
+                                    CURLINE(exp.container),
                                     cur_action->scope);
                         }
                         fklByteCodelntVectorPushBack2(&cur_action->bcl_vector,
@@ -9472,13 +9473,13 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         cur_action->scope,
                         cur_action->macros,
                         env,
-                        cur_info,
+                        codegen,
                         &error_state,
                         must_has_retval);
                 if (r) {
                     fklByteCodelntVectorPushBack2(&cur_action->bcl_vector,
                             gen_push_literal_code(&exp,
-                                    cur_info,
+                                    codegen,
                                     env,
                                     cur_action->scope));
                 }
@@ -9497,7 +9498,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
         print_error:
             ctx->action_vector = NULL;
             ctx->error_state = NULL;
-            fklPrintCodegenError(&error_state, cur_info);
+            fklPrintCodegenError(&error_state, codegen);
             while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
                 destroy_cg_action(*fklCodegenActionVectorPopBackNonNull(
                         &codegen_action_vector));
@@ -9601,7 +9602,7 @@ FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen) {
     FklVMvalue *cont = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, exp);
-    put_line_number(&codegen->ctx->lnt->ht, cont, codegen->curline);
+    put_line_number(codegen->ctx->lnt, cont, codegen->curline);
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush2(queue, (FklPmatchRes){ .value = exp, .container = cont });
     FklCodegenAction *initialAction = create_cg_action(_default_bc_process,

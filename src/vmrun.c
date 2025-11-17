@@ -1,9 +1,11 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+
 #include <uv.h>
 
 #include <inttypes.h>

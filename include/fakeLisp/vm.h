@@ -2,11 +2,12 @@
 #define FKL_VM_H
 
 #include "base.h"
-#include "builtin.h"
 #include "bytecode.h"
 #include "common.h"
 #include "grammer.h"
+#include "parser.h"
 #include "utils.h"
+#include "vm_decl.h"
 
 #include <setjmp.h>
 #include <stdalign.h>
@@ -44,11 +45,9 @@ typedef enum {
 } FklValueType;
 #define FKL_VM_VALUE_GC_TYPE_NUM (FKL_TYPE_VAR_REF + 1)
 
-struct FklVM;
-struct FklVMvalue;
 struct FklCprocFrameContext;
 #define FKL_CPROC_ARGL                                                         \
-    struct FklVM *exe, struct FklCprocFrameContext *ctx, uint32_t argc
+    FklVM *exe, struct FklCprocFrameContext *ctx, uint32_t argc
 
 typedef int (*FklVMcFunc)(FKL_CPROC_ARGL);
 typedef struct FklVMvalue *FklVMptr;
@@ -94,7 +93,7 @@ typedef struct FklVMchanlSend {
 typedef struct FklVMchanlRecv {
     struct FklVMchanlRecv *next;
     uv_cond_t cond;
-    struct FklVM *exe;
+    FklVM *exe;
     uint32_t slot;
 } FklVMchanlRecv;
 
@@ -321,21 +320,19 @@ typedef struct FklCprocFrameContext {
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 
-struct FklVMgc;
 typedef struct {
-    int (*step)(void *data, struct FklVM *);
-    void (*print_backtrace)(void *data, FILE *fp, struct FklVMgc *);
-    void (*atomic)(void *data, struct FklVMgc *);
+    int (*step)(void *data, FklVM *);
+    void (*print_backtrace)(void *data, FILE *fp, FklVMgc *);
+    void (*atomic)(void *data, FklVMgc *);
     void (*finalizer)(void *data);
 } FklVMframeContextMethodTable;
 
 struct FklVMframe;
 
-typedef int (*FklVMerrorCallBack)(struct FklVMframe *f,
-        FklVMvalue *ev,
-        struct FklVM *vm);
+typedef int (
+        *FklVMerrorCallBack)(struct FklVMframe *f, FklVMvalue *ev, FklVM *vm);
 
-typedef int (*FklVMretCallBack)(struct FklVM *vm, struct FklVMframe *f);
+typedef int (*FklVMretCallBack)(FklVM *vm, struct FklVMframe *f);
 
 typedef struct FklVMframe {
     FklFrameType type;
@@ -356,8 +353,8 @@ typedef struct FklVMframe {
 #define FKL_VM_VALUE_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMvalue, data)
 #define FKL_VM_UDATA_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMud, data)
 
-void fklCallObj(struct FklVM *exe, FklVMvalue *);
-void fklTailCallObj(struct FklVM *exe, FklVMvalue *);
+void fklCallObj(FklVM *exe, FklVMvalue *);
+void fklTailCallObj(FklVM *exe, FklVMvalue *);
 
 typedef struct {
     uint32_t bp;
@@ -402,7 +399,7 @@ typedef enum {
 #define FKL_VM_STACK_INC_NUM (128)
 
 // FklThreadQueue
-#define FKL_QUEUE_ELM_TYPE struct FklVM *
+#define FKL_QUEUE_ELM_TYPE FklVM *
 #define FKL_QUEUE_ELM_TYPE_NAME Thread
 #include "cont/queue.h"
 
@@ -419,13 +416,13 @@ typedef struct FklVMlocvList {
     FklVMvalue **locv;
 } FklVMlocvList;
 
-typedef void (*FklVMinsFunc)(struct FklVM *exe, const FklInstruction *ins);
+typedef void (*FklVMinsFunc)(FklVM *exe, const FklInstruction *ins);
 
 #define FKL_VM_GC_LOCV_CACHE_NUM (8)
 #define FKL_VM_GC_LOCV_CACHE_LAST_IDX (FKL_VM_GC_LOCV_CACHE_NUM - 1)
 
-typedef void (*FklVMatExitFunc)(struct FklVM *, void *);
-typedef void (*FklVMatExitMarkFunc)(void *, struct FklVMgc *);
+typedef void (*FklVMatExitFunc)(FklVM *, void *);
+typedef void (*FklVMatExitMarkFunc)(void *, FklVMgc *);
 
 // FklStrValueHashMap
 #define FKL_HASH_KEY_TYPE FklString *
@@ -472,7 +469,7 @@ typedef struct FklVM {
     FklVMframe **frame_cache_tail;
 
     struct FklVMvalue *chan;
-    struct FklVMgc *gc;
+    FklVMgc *gc;
     struct FklVM *prev;
     struct FklVM *next;
     jmp_buf *buf;
@@ -526,14 +523,6 @@ static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
 
-// FklLineNumHashMap
-#define FKL_HASH_KEY_TYPE FklVMvalue const *
-#define FKL_HASH_VAL_TYPE uint64_t
-#define FKL_HASH_ELM_NAME LineNum
-#define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
-#include "cont/hash.h"
-
 // FKlVMvalueIdHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
 #define FKL_HASH_VAL_TYPE uint64_t
@@ -560,16 +549,16 @@ typedef int (*FklVMudAppender)(FklVMud *, //
 
 typedef struct FklVMudMetaTable {
     size_t size;
-    void (*__as_princ)(const FklVMud *, FklCodeBuilder *, struct FklVM *);
-    void (*__as_prin1)(const FklVMud *, FklCodeBuilder *, struct FklVM *);
-    int (*__finalizer)(FklVMud *, struct FklVMgc *gc);
+    void (*__as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *);
+    void (*__as_prin1)(const FklVMud *, FklCodeBuilder *, FklVM *);
+    int (*__finalizer)(FklVMud *, FklVMgc *gc);
     int (*__equal)(const FklVMud *, const FklVMud *);
     void (*__call)(FklVMvalue *, FklVM *);
     int (*__cmp)(const FklVMud *, const FklVMvalue *, int *);
     void (*__write)(const FklVMud *, FklCodeBuilder *);
-    void (*__atomic)(const FklVMud *, struct FklVMgc *);
+    void (*__atomic)(const FklVMud *, FklVMgc *);
     size_t (*__length)(const FklVMud *);
-    void (*__update_weak_ref)(const FklVMud *ud, struct FklVMgc *gc);
+    void (*__update_weak_ref)(const FklVMud *ud, FklVMgc *gc);
     FklVMudCopyAppender __copy_append;
     FklVMudAppender __append;
     uintptr_t (*__hash)(const FklVMud *);
@@ -652,7 +641,7 @@ typedef FklVMinterruptResult (*FklVMinterruptHandler)(FklVM *exe,
         FklVMvalue **pvalue,
         void *);
 
-typedef void (*FklVMextraMarkFunc)(struct FklVMgc *, void *arg);
+typedef void (*FklVMextraMarkFunc)(FklVMgc *, void *arg);
 
 typedef struct FklVMgc {
     FklGCstate volatile running;
@@ -819,8 +808,8 @@ FklVMcallResult fklVMcall3(FklRunVMcb,
         FklVMcallbackValueCreator creator,
         void *args);
 
-void fklVMsetRecover(struct FklVM *exe, FklVMrecoverArgs *args);
-void fklVMrecover(struct FklVM *exe, const FklVMrecoverArgs *args);
+void fklVMsetRecover(FklVM *exe, FklVMrecoverArgs *args);
+void fklVMrecover(FklVM *exe, const FklVMrecoverArgs *args);
 
 int fklRunVMidleLoop(FklVM *volatile);
 void fklVMatExit(FklVM *vm,
@@ -1080,9 +1069,8 @@ uint64_t fklVMintToHashv(const FklVMvalue *p);
 double fklVMgetDouble(const FklVMvalue *p);
 
 int fklHasCircleRef(const FklVMvalue *first_value);
-int fklIsSerializableLeafNode(const FklVMvalue *v);
 int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
-        FklLineNumHashMap *lnt,
+        FklVMvalueLnt *lnt,
         uint64_t line);
 
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
@@ -1412,22 +1400,6 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
 // vmparser
 
 void fklVMvaluePushState0ToStack(FklParseStateVector *stateStack);
-
-typedef struct {
-    FklVM *exe;
-    FklLineNumHashMap *ln;
-} FklVMparseCtx;
-
-#define FKL_VMVALUE_PARSE_CTX_INIT(EXE, LN)                                    \
-    {                                                                          \
-        .maxNonterminalLen = 0,                                                \
-        .line = 1,                                                             \
-        .start = NULL,                                                         \
-        .cur = NULL,                                                           \
-        .create = fklVMvalueTerminalCreate,                                    \
-        .destroy = fklVMvalueTerminalDestroy,                                  \
-        .ctx = (void *)&(FklVMparseCtx){ .exe = (EXE), .ln = (LN) },           \
-    }
 
 void *
 fklVMvalueTerminalCreate(const char *s, size_t len, size_t line, void *ctx);

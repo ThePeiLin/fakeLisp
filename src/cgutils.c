@@ -982,8 +982,6 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
                 codegen->ctx->builtInPatternVar_orig,
                 (FklPmatchRes){ .value = r, .container = exp->container });
         FklVMvalue *retval = NULL;
-        FklLineNumHashMap lineHash;
-        fklLineNumHashMapInit(&lineHash);
 
         FklCodegenCtx *ctx = codegen->ctx;
         const char *cwd = ctx->cwd;
@@ -993,7 +991,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
                 macro->bcl,
                 macro->prototype_id,
                 &ht,
-                &lineHash,
+                ctx->lnt,
                 &retval,
                 curline);
         FklVMgc *gc = ctx->gc;
@@ -1015,7 +1013,6 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
                 errorState->p = PLACE(NULL, curline);
             }
         }
-        fklLineNumHashMapUninit(&lineHash);
         fklPmatchHashMapClear(&ht);
         fklDestroyAllVMs(exe);
     }
@@ -1026,7 +1023,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
 
 typedef struct MacroExpandCtx {
     FklVMvalue **retval;
-    FklLineNumHashMap *lnt;
+    FklVMvalueLnt *lnt;
     uint64_t curline;
 } MacroExpandCtx;
 
@@ -1041,6 +1038,11 @@ static int macro_expand_frame_step(void *data, FklVM *exe) {
     return 0;
 }
 
+static void macro_expand_frame_atomic(void *data, FklVMgc *gc) {
+    MacroExpandCtx *ctx = (MacroExpandCtx *)data;
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
+}
+
 static void macro_expand_frame_backtrace(void *data, FILE *fp, FklVMgc *gc) {
     fputs("at <macroexpand>\n", fp);
 }
@@ -1049,16 +1051,17 @@ static const FklVMframeContextMethodTable MacroExpandMethodTable = {
     .step = macro_expand_frame_step,
     .finalizer = NULL,
     .print_backtrace = macro_expand_frame_backtrace,
+    .atomic = macro_expand_frame_atomic,
 };
 
 static void push_macro_expand_frame(FklVM *exe,
         FklVMvalue **ptr,
-        FklLineNumHashMap *lineHash,
+        FklVMvalueLnt *lnt,
         uint64_t curline) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &MacroExpandMethodTable);
     MacroExpandCtx *ctx = (MacroExpandCtx *)f->data;
     ctx->retval = ptr;
-    ctx->lnt = lineHash;
+    ctx->lnt = lnt;
     ctx->curline = curline;
     fklPushVMframe(f, exe);
 }
@@ -1066,7 +1069,7 @@ static void push_macro_expand_frame(FklVM *exe,
 static void init_macro_match_local_variable(FklVM *exe,
         FklVMframe *frame,
         FklPmatchHashMap *ht,
-        FklLineNumHashMap *lineHash,
+        FklVMvalueLnt *lnt,
         FklFuncPrototypes *pts,
         uint32_t prototype_id) {
     FklFuncPrototype *mainPts = &pts->pa[prototype_id];
@@ -1111,7 +1114,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
         FklByteCodelnt *bcl,
         uint32_t prototype_id,
         FklPmatchHashMap *ht,
-        FklLineNumHashMap *lineHash,
+        FklVMvalueLnt *lnt,
         FklVMvalue **pr,
         uint64_t curline) {
     FklVMgc *gc = ctx->gc;
@@ -1127,7 +1130,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
     FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
     FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id, pts);
 
-    push_macro_expand_frame(exe, pr, lineHash, curline);
+    push_macro_expand_frame(exe, pr, lnt, curline);
 
     fklInitMainProcRefs(exe, proc);
     fklSetBp(exe);
@@ -1136,7 +1139,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
     init_macro_match_local_variable(exe,
             exe->top_frame,
             ht,
-            lineHash,
+            lnt,
             &pts->p,
             prototype_id);
 
@@ -2582,57 +2585,4 @@ FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
-}
-
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(lnt_ud_as_print, "ln-table")
-
-static int lnt_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
-    fklLineNumHashMapUninit(ht);
-    return FKL_VM_UD_FINALIZE_NOW;
-}
-
-static void lnt_ud_update_weak_ref(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
-    const FklLineNumHashMapNode *cur = ht->first;
-    while (cur) {
-        const FklLineNumHashMapNode *next = cur->next;
-        if (cur->k->mark == FKL_MARK_W) {
-            fklLineNumHashMapDel2(ht, cur->k);
-        }
-        cur = next;
-    }
-}
-
-static FklVMudMetaTable const LntUserDataMetaTable = {
-    .size = sizeof(FklVMvalueIdHashMap),
-    .__as_prin1 = lnt_ud_as_print,
-    .__as_princ = lnt_ud_as_print,
-    .__finalizer = lnt_ud_finalizer,
-    .__update_weak_ref = lnt_ud_update_weak_ref,
-};
-
-int fklIsVMvalueCodegenLnt(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
-}
-
-FklVMvalueCodegenLnt *fklCreateVMvalueCodegenLnt(FklVM *vm) {
-
-    FklVMvalueCodegenLnt *r = (FklVMvalueCodegenLnt *)fklCreateVMvalueUd(vm,
-            &LntUserDataMetaTable,
-            NULL);
-
-    fklLineNumHashMapInit(&r->ht);
-    return r;
-}
-
-void fklVMvalueCodegenLntPut(FklVMvalueCodegenLnt *ht,
-        const FklVMvalue *v,
-        uint64_t line) {
-    fklLineNumHashMapPut2(&ht->ht, v, line);
-}
-
-uint64_t *fklVMvalueCodegenLntGet(FklVMvalueCodegenLnt *ht,
-        const FklVMvalue *v) {
-    return fklLineNumHashMapGet2(&ht->ht, v);
 }

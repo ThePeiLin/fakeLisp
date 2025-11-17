@@ -3,14 +3,35 @@
 
 #include "grammer.h"
 #include "symbol.h"
-#include "vm.h"
+#include "vm_decl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct FklVMvalue *
-fklCreateNastNodeFromCstr(FklVM *, const char *, FklLineNumHashMap *ln);
+typedef struct FklVMvalueLnt FklVMvalueLnt;
+typedef struct {
+    FklVM *exe;
+    FklVMvalueLnt *ln;
+} FklVMparseCtx;
+
+#define FKL_VMVALUE_PARSE_CTX_INIT(EXE, LN)                                    \
+    {                                                                          \
+        .maxNonterminalLen = 0,                                                \
+        .line = 1,                                                             \
+        .start = NULL,                                                         \
+        .cur = NULL,                                                           \
+        .create = fklVMvalueTerminalCreate,                                    \
+        .destroy = fklVMvalueTerminalDestroy,                                  \
+        .ctx = (void *)&(FklVMparseCtx){ .exe = (EXE), .ln = (LN) },           \
+    }
+
+FklVMvalue *fklCreateNastNodeFromCstr(FklVM *, const char *, FklVMvalueLnt *ln);
+
+int fklIsVMvalueLnt(const FklVMvalue *v);
+FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *v);
+void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line);
+uint64_t *fklVMvalueLntGet(FklVMvalueLnt *ht, const FklVMvalue *v);
 
 char *fklReadWithBuiltinParser(FILE *fp,
         size_t *psize,
@@ -19,11 +40,11 @@ char *fklReadWithBuiltinParser(FILE *fp,
         FklVM *st,
         int *unexpectEOF,
         size_t *errLine,
-        struct FklVMvalue **output,
+        FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
         FklParseStateVector *stateStack,
-        FklLineNumHashMap *ln);
+        FklVMvalueLnt *ln);
 
 char *fklReadWithAnalysisTable(const FklGrammer *g,
         FILE *fp,
@@ -33,11 +54,11 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         FklVM *st,
         int *unexpectEOF,
         size_t *errLine,
-        struct FklVMvalue **output,
+        FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
         FklUintVector *lineStack,
         FklParseStateVector *stateStack,
-        FklLineNumHashMap *ln);
+        FklVMvalueLnt *ln);
 
 void *fklParseWithTableForCstr(const FklGrammer *,
         const char *str,

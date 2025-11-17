@@ -1313,7 +1313,7 @@ static void info_atomic(const FklVMud *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->pts), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
+    // fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
 
     fklVMgcToGray(e->fid, gc);
 
@@ -1450,7 +1450,7 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->libraries = libs;
     r->pts = pts;
-    r->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
+    // r->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
 
     if (is_lib)
         fklCgExportSidIdxHashMapInit(&r->exports);

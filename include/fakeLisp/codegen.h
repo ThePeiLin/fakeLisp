@@ -327,6 +327,8 @@ typedef struct FklCodegenCtx {
     FKL_CODEGEN_SYMBOL_MAP
 #undef XX
 
+    FklVMvalueCodegenLnt *lnt;
+
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
     FklVMvalue *builtin_pattern_node[FKL_CODEGEN_PATTERN_NUM];
@@ -360,7 +362,6 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
     FklGrammer *unnamed_g;                                                     \
     FklGraProdGroupHashMap *named_prod_groups;                                 \
     FklVMvalueCodegenEnv *global_env;                                          \
-    FklVMvalueCodegenLnt *lnt;                                                 \
     uint64_t epc;                                                              \
     FklCgExportSidIdxHashMap exports;                                          \
     FklCodegenMacro *export_macro;                                             \

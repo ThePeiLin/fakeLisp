@@ -184,11 +184,15 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
 
 static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
         const FklVMvalue *v) {
-    for (const FklVMvalueCodegenInfo *cur = info; cur; cur = cur->prev) {
-        uint64_t *r = fklVMvalueCodegenLntGet(cur->lnt, v);
-        if (r != NULL)
-            return *r;
-    }
+    // for (const FklVMvalueCodegenInfo *cur = info; cur; cur = cur->prev) {
+    //     uint64_t *r = fklVMvalueCodegenLntGet(cur->lnt, v);
+    //     if (r != NULL)
+    //         return *r;
+    // }
+
+	uint64_t* r = fklVMvalueCodegenLntGet(info->ctx->lnt, v);
+	if(r != NULL)
+		return *r;
 
     return info->curline;
     FKL_TODO();

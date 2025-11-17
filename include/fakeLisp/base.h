@@ -209,6 +209,7 @@ static inline uint32_t fklNextPow2(uint32_t n) {
     return n + 1;
 }
 
+// Thomas Wang's 32 Bit / 64 Bit Mix Function
 static inline uintptr_t fklHash32Shift(uint32_t k) {
     k = ~k + (k << 15);
     k = k ^ (k >> 12);

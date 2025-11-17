@@ -3179,7 +3179,7 @@ static inline void add_export_symbol(FklVMvalueCodegenInfo *codegen,
         // prevPair = rest->pair;
         FklVMvalue *new_rest =
                 fklCreateVMvaluePair(&codegen->ctx->gc->gcvm, head, rest);
-        put_line_number(NULL, new_rest, CURLINE(rest));
+        put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rest));
         cgExpQueuePush2(exportQueue,
                 (FklPmatchRes){ .value = new_rest, .container = new_rest });
         FKL_VM_CDR(prev) = FKL_VM_NIL;
@@ -5045,7 +5045,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                &codegen->lnt->ht);
+                &codegen->ctx->lnt->ht);
     } else {
         fklVMvaluePushState0ToStack(stateStack);
         list = fklReadWithBuiltinParser(fp,
@@ -5059,7 +5059,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 symbolStack,
                 lineStack,
                 stateStack,
-                &codegen->lnt->ht);
+                &codegen->ctx->lnt->ht);
     }
     if (list)
         fklZfree(list);
@@ -5107,7 +5107,7 @@ static int _codegen_load_get_next_expression(void *pcontext,
         return 0;
 
     FklVMvalue *contianer = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, begin);
-    put_line_number(&codegen->lnt->ht, contianer, curline);
+    put_line_number(&codegen->ctx->lnt->ht, contianer, curline);
     *out = (FklPmatchRes){ .value = begin, .container = contianer };
     return 1;
 }
@@ -5171,7 +5171,7 @@ static CODEGEN_FUNC(codegen_load) {
 
             FklVMvalue *new_rest =
                     fklCreateVMvaluePair(&ctx->gc->gcvm, head, rv);
-            put_line_number(NULL, new_rest, CURLINE(rv));
+            put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rv));
             cgExpQueuePush2(queue,
                     (FklPmatchRes){
                         .value = new_rest,
@@ -5304,18 +5304,18 @@ static void add_symbol_with_prefix_to_local_env_in_array(
 
 static FklVMvalue *add_prefix_for_exp_head(FklVMvalue *orig,
         const FklString *prefix,
-        FklCodegenCtx *ctx) {
+        FklVMvalueCodegenInfo *codegen) {
     const FklString *head = FKL_VM_SYM(FKL_VM_CAR(orig));
     // fklGetSymbolWithId(orig->pair->car->sym, pst);
     FklString *symbolWithPrefix = fklStringAppend(prefix, head);
-    FklVMvalue *patternWithPrefix = fklCreateVMvaluePair(&ctx->gc->gcvm,
-            add_symbol(ctx, symbolWithPrefix),
+    FklVMvalue *patternWithPrefix = fklCreateVMvaluePair(&codegen->ctx->gc->gcvm,
+            add_symbol(codegen->ctx, symbolWithPrefix),
             FKL_VM_CDR(orig));
     // fklNastConsWithSym(fklAddSymbol(symbolWithPrefix, pst),
     //         fklMakeNastNodeRef(orig->pair->cdr),
     //         orig->curline,
     //         orig->pair->car->curline);
-    // put_line_number(NULL, patternWithPrefix, CURLINE(orig));
+    put_line_number(&codegen->ctx->lnt->ht, patternWithPrefix, CURLINE(orig));
     fklZfree(symbolWithPrefix);
     return patternWithPrefix;
 }
@@ -5565,7 +5565,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
     // fklGetSymbolWithId(prefixNode->sym, pst);
     for (FklCodegenMacro *cur = lib->head; cur; cur = cur->next)
         add_compiler_macro(&macro_scope->head,
-                add_prefix_for_exp_head(cur->pattern, prefix, ctx),
+                add_prefix_for_exp_head(cur->pattern, prefix, codegen),
                 // add_prefix_for_exp_head(cur->origin_exp, prefix, ctx),
                 // add_prefix_for_pattern_origin_exp(cur->origin_exp, prefix,
                 // pst),
@@ -7158,7 +7158,7 @@ static inline void codegen_import_helper(FklVMvalue *orig,
             // prevPair = rest->pair;
             FklVMvalue *new_rest =
                     fklCreateVMvaluePair(&codegen->ctx->gc->gcvm, head, rest);
-            put_line_number(NULL, new_rest, CURLINE(rest));
+            put_line_number(&codegen->ctx->lnt->ht, new_rest, CURLINE(rest));
             cgExpQueuePush2(queue,
                     (FklPmatchRes){
                         .value = new_rest,
@@ -9129,6 +9129,7 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_pts), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->pts), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
 
     mark_action_vector(gc, ctx->action_vector);
 
@@ -9185,6 +9186,8 @@ void fklInitCodegenCtxExceptPattern(FklCodegenCtx *ctx,
     fklVMpushExtraMarkFunc(ctx->gc, codegen_ctx_extra_mark_func, NULL, ctx);
 
     fklInitBuiltinGrammer(&ctx->builtin_g, &ctx->gc->gcvm);
+
+    ctx->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
 }
 
 static inline void init_builtin_patterns(FklCodegenCtx *ctx) {
@@ -9250,6 +9253,7 @@ void fklUninitCodegenCtx(FklCodegenCtx *ctx) {
     ctx->gc = NULL;
     ctx->pts = NULL;
     ctx->macro_pts = NULL;
+    ctx->lnt = NULL;
 
     FklVMvalue **nodes = ctx->builtin_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_PATTERN_NUM; i++) {
@@ -9597,7 +9601,7 @@ FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen) {
     FklVMvalue *cont = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, exp);
-    put_line_number(&codegen->lnt->ht, cont, codegen->curline);
+    put_line_number(&codegen->ctx->lnt->ht, cont, codegen->curline);
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush2(queue, (FklPmatchRes){ .value = exp, .container = cont });
     FklCodegenAction *initialAction = create_cg_action(_default_bc_process,

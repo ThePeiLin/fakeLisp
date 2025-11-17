@@ -48,7 +48,7 @@ set(BIN2H bin2h)
 project(${INTERPRETER_TARGET_NAME})
 
 if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
+	OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
@@ -91,10 +91,11 @@ if(MSVC)
 elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
 	add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
 	add_compile_options(-Wno-format-zero-length)
-	add_compile_options(-Werror=return-type -Werror=incompatible-pointer-types)
+	add_compile_options(-Werror=return-type)
+	add_compile_options(-Werror=incompatible-pointer-types)
 	add_compile_options(-Werror=implicit-function-declaration)
 	add_compile_options(-Werror=int-conversion)
-	add_compile_options(-Werror=compare-distinct-pointer-types)
+# add_compile_options(-Werror=compare-distinct-pointer-types)
 # add_compile_options(-Wfatal-errors)
 endif()
 
@@ -102,19 +103,19 @@ endif()
 # Add a relative path version of the __FILE__ macro named __REL_FILE__ to all source files of the target.
 include(CheckSymbolExists)
 function(target_define_relative_file target_name)
-    get_target_property(target_srcs "${target_name}" SOURCES)
-    foreach(target_src ${target_srcs})
-        if(IS_ABSOLUTE ${target_src})
-            file(RELATIVE_PATH target_src_relpath ${PROJECT_SOURCE_DIR} ${target_src})
-        else()
-            set(target_src_relpath ${target_src})
-        endif()
-        set_property(SOURCE ${target_src} APPEND PROPERTY COMPILE_DEFINITIONS "__REL_FILE__=\"${target_src_relpath}\"")
-    endforeach()
+	get_target_property(target_srcs "${target_name}" SOURCES)
+	foreach(target_src ${target_srcs})
+		if(IS_ABSOLUTE ${target_src})
+			file(RELATIVE_PATH target_src_relpath ${PROJECT_SOURCE_DIR} ${target_src})
+		else()
+			set(target_src_relpath ${target_src})
+		endif()
+		set_property(SOURCE ${target_src} APPEND PROPERTY COMPILE_DEFINITIONS "__REL_FILE__=\"${target_src_relpath}\"")
+	endforeach()
 endfunction()
 
 file(GLOB LIBFKL_SOURCE "src/*.c"
-	                    "${GENERATED_HEADER_DIR}/lisp.g.h")
+						"${GENERATED_HEADER_DIR}/lisp.g.h")
 
 add_library(grammer_lib
 	OBJECT
@@ -254,74 +255,74 @@ target_link_libraries(${BIN2H} argtable3 ${LINK_TARGET})
 target_define_relative_file(${BIN2H})
 
 function(add_fkl_native_module name)
-    set(options)
-    set(oneValueArgs OUTPUT_DIR)
-    set(multiValueArgs SRC LIB)
-    cmake_parse_arguments(MOD "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    message(STATUS "module name: ${name}")
-    list(APPEND CMAKE_MESSAGE_INDENT "    ")
-    cmake_print_variables(MOD_OUTPUT_DIR)
-    message(STATUS "sources:")
-    list(APPEND CMAKE_MESSAGE_INDENT "    ")
-    foreach(src ${MOD_SRC})
-        message(STATUS "${src}")
-    endforeach()
-    list(POP_BACK CMAKE_MESSAGE_INDENT)
+	set(options)
+	set(oneValueArgs OUTPUT_DIR)
+	set(multiValueArgs SRC LIB)
+	cmake_parse_arguments(MOD "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+	message(STATUS "module name: ${name}")
+	list(APPEND CMAKE_MESSAGE_INDENT "	")
+	cmake_print_variables(MOD_OUTPUT_DIR)
+	message(STATUS "sources:")
+	list(APPEND CMAKE_MESSAGE_INDENT "	")
+	foreach(src ${MOD_SRC})
+		message(STATUS "${src}")
+	endforeach()
+	list(POP_BACK CMAKE_MESSAGE_INDENT)
 
-    message(STATUS "link libraries:")
-    list(APPEND CMAKE_MESSAGE_INDENT "    ")
-    foreach(lib ${MOD_LIB})
-        message(STATUS "${lib}")
-    endforeach()
-    list(POP_BACK CMAKE_MESSAGE_INDENT)
-    message("")
-    list(POP_BACK CMAKE_MESSAGE_INDENT)
-    add_library(${name} SHARED ${MOD_SRC})
-    set_target_properties(${name} PROPERTIES PREFIX "")
+	message(STATUS "link libraries:")
+	list(APPEND CMAKE_MESSAGE_INDENT "	")
+	foreach(lib ${MOD_LIB})
+		message(STATUS "${lib}")
+	endforeach()
+	list(POP_BACK CMAKE_MESSAGE_INDENT)
+	message("")
+	list(POP_BACK CMAKE_MESSAGE_INDENT)
+	add_library(${name} SHARED ${MOD_SRC})
+	set_target_properties(${name} PROPERTIES PREFIX "")
 	target_define_relative_file(${name})
-    if(MSVC)
-        add_custom_command(TARGET ${name} POST_BUILD
-        	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
-        	COMMENT "Copying ${name}"
-        	VERBATIM)
-        target_link_libraries(${name} ${LIBFKL_TARGET_NAME})
-    else()
-        set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
-    endif()
-    target_link_libraries(${name} ${MOD_LIB})
+	if(MSVC)
+		add_custom_command(TARGET ${name} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
+			COMMENT "Copying ${name}"
+			VERBATIM)
+		target_link_libraries(${name} ${LIBFKL_TARGET_NAME})
+	else()
+		set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
+	endif()
+	target_link_libraries(${name} ${MOD_LIB})
 endfunction()
 
 #ht.so
 add_fkl_native_module(ht
-    SRC "src/ht/ht.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/ht/ht.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #os.so
 add_fkl_native_module(os
-    SRC "src/os/os.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/os/os.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #math.so
 add_fkl_native_module(math
-    SRC "src/math/math.c"
-    LIB ${LINK_TARGET}
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/math/math.c"
+	LIB ${LINK_TARGET}
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #sync.so
 add_fkl_native_module(sync
-    SRC "src/sync/sync.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/sync/sync.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #fs.so
 add_fkl_native_module(fs
-    SRC "src/fs/fs.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/fs/fs.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bdb.so
 # file(GLOB BDB_SOURCE "src/bdb/*.c")
 # add_fkl_native_module(bdb
-#     SRC ${BDB_SOURCE}
-#     OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+#	 SRC ${BDB_SOURCE}
+#	 OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 # fuv-header
 set(FUV_HEADER fuv-header)
@@ -342,23 +343,23 @@ add_custom_command(OUTPUT ${FUV_MACRO_HEADER}
 file(GLOB FUV_SOURCE "src/fuv/*.c")
 add_fkl_native_module(fuv
 	SRC ${FUV_SOURCE} ${FUV_MACRO_HEADER}
-    LIB $<$<BOOL:${MSVC}>:ws2_32>
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	LIB $<$<BOOL:${MSVC}>:ws2_32>
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #buf.so
 add_fkl_native_module(buf
-    SRC "src/buf/buf.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/buf/buf.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #dvec.so
 add_fkl_native_module(dvec
-    SRC "src/dvec/dvec.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/dvec/dvec.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bvec.so
 add_fkl_native_module(bvec
-    SRC "src/bvec/bvec.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	SRC "src/bvec/bvec.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 if(FANALYZER)
 	set(FANALYZER_OPTIONS "-fanalyzer"
@@ -400,8 +401,8 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argt
 
 #test-dll
 add_fkl_native_module(test-dll
-    SRC "main/tests/dll.c"
-    OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
+	SRC "main/tests/dll.c"
+	OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
 
 add_custom_command(OUTPUT "vmparse.c"
 	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
@@ -454,7 +455,7 @@ add_test(NAME test-pre-compile
 	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre)
 
 message(STATUS "options")
-list(APPEND CMAKE_MESSAGE_INDENT "    ")
+list(APPEND CMAKE_MESSAGE_INDENT "	")
 cmake_print_variables(GPROF)
 cmake_print_variables(ASAN)
 cmake_print_variables(TSAN)

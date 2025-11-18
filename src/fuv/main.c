@@ -77,15 +77,23 @@
 
 #define COUNT_ARRAY(A) (sizeof(A) / sizeof(A[0]))
 
-static void fuv_public_data_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(fpd, FuvPublicData, ud);
+FKL_VM_DEF_UD_STRUCT(FuvValuePd, { FuvPublicData pd; });
+
+static FKL_ALWAYS_INLINE FuvValuePd *as_pd(const FklVMvalue *v) {
+    return FKL_TYPE_CAST(FuvValuePd *, v);
+}
+
+static void fuv_public_data_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(fpd, FuvPublicData, ud);
+    FuvPublicData *fpd = &as_pd(ud)->pd;
 #define XX(A, B, C) fklVMgcToGray(fpd->A##_sid, gc);
     FUV_SYMBOLS_MAP(XX)
 #undef XX
 }
 
 static FklVMudMetaTable const FuvPublicDataMetaTable = {
-    .size = sizeof(FuvPublicData),
+    // .size = sizeof(FuvPublicData),
+    .size = sizeof(FuvValuePd),
     .__atomic = fuv_public_data_atomic,
 };
 

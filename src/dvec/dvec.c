@@ -3,13 +3,22 @@
 
 static FklVMudMetaTable const DvecMetaTable;
 
-static inline int is_dvec_ud(FklVMvalue *ud) {
+FKL_VM_DEF_UD_STRUCT(FklVMvalueDvec, { FklVMvalueVector vec; });
+
+static inline int is_dvec_ud(const FklVMvalue *ud) {
     return FKL_IS_USERDATA(ud) && FKL_VM_UD(ud)->t == &DvecMetaTable;
 }
 
-static int _dvec_equal(const FklVMud *a, const FklVMud *b) {
-    FKL_DECL_UD_DATA(da, FklVMvalueVector, a);
-    FKL_DECL_UD_DATA(db, FklVMvalueVector, b);
+static FKL_ALWAYS_INLINE FklVMvalueDvec *as_dvec(const FklVMvalue *v) {
+    FKL_ASSERT(is_dvec_ud(v));
+    return FKL_TYPE_CAST(FklVMvalueDvec *, v);
+}
+
+static int _dvec_equal(const FklVMvalue *a, const FklVMvalue *b) {
+    FklVMvalueVector *da = &as_dvec(a)->vec;
+    FklVMvalueVector *db = &as_dvec(b)->vec;
+    // FKL_DECL_UD_DATA(da, FklVMvalueVector, a);
+    // FKL_DECL_UD_DATA(db, FklVMvalueVector, b);
     if (da->size != db->size)
         return 0;
     for (size_t i = 0; i < da->size; i++)
@@ -18,28 +27,32 @@ static int _dvec_equal(const FklVMud *a, const FklVMud *b) {
     return 1;
 }
 
-static void _dvec_atomic(const FklVMud *d, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(dd, FklVMvalueVector, d);
+static void _dvec_atomic(const FklVMvalue *d, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(dd, FklVMvalueVector, d);
+    FklVMvalueVector *dd = &as_dvec(d)->vec;
     for (size_t i = 0; i < dd->size; i++)
         fklVMgcToGray(dd->base[i], gc);
 }
 
-static size_t _dvec_length(const FklVMud *d) {
-    FKL_DECL_UD_DATA(dd, FklVMvalueVector, d);
+static size_t _dvec_length(const FklVMvalue *d) {
+    // FKL_DECL_UD_DATA(dd, FklVMvalueVector, d);
+    FklVMvalueVector *dd = &as_dvec(d)->vec;
     return dd->size;
 }
 
-static uintptr_t _dvec_hash(const FklVMud *ud) {
-    FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
+static uintptr_t _dvec_hash(const FklVMvalue *ud) {
+    // FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
+    FklVMvalueVector *vec = &as_dvec(ud)->vec;
     uintptr_t seed = vec->size;
     for (size_t i = 0; i < vec->size; ++i)
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(vec->base[i]));
     return seed;
 }
 
-static int _dvec_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
-    fklVMvalueVectorUninit(vec);
+static int _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(vec, FklVMvalueVector, ud);
+    // fklVMvalueVectorUninit(vec);
+    fklVMvalueVectorUninit(&as_dvec(ud)->vec);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -147,7 +160,8 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dvec_as_print, "dvec");
 
 static FklVMudMetaTable const DvecMetaTable = {
-    .size = sizeof(FklVMvalueVector),
+    // .size = sizeof(FklVMvalueVector),
+    .size = sizeof(FklVMvalueDvec),
     .__equal = _dvec_equal,
     .__as_prin1 = _dvec_as_print,
     .__as_princ = _dvec_as_print,

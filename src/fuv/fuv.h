@@ -147,7 +147,7 @@ typedef struct FuvFsEvent {
     uv_fs_event_t handle;
 } FuvFsEvent;
 
-int isFuvLoop(FklVMvalue *v);
+int isFuvLoop(const FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
@@ -174,33 +174,33 @@ static inline FuvHandle *getFuvHandle(const FklVMvalue *v) {
     return handle;
 }
 
-int isFuvTimer(FklVMvalue *v);
+int isFuvTimer(const FklVMvalue *v);
 FklVMvalue *
 createFuvTimer(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvPrepare(FklVMvalue *v);
+int isFuvPrepare(const FklVMvalue *v);
 FklVMvalue *
 createFuvPrepare(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvIdle(FklVMvalue *v);
+int isFuvIdle(const FklVMvalue *v);
 FklVMvalue *createFuvIdle(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvCheck(FklVMvalue *v);
+int isFuvCheck(const FklVMvalue *v);
 FklVMvalue *
 createFuvCheck(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvSignal(FklVMvalue *v);
+int isFuvSignal(const FklVMvalue *v);
 FklVMvalue *
 createFuvSignal(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvAsync(FklVMvalue *v);
+int isFuvAsync(const FklVMvalue *v);
 FklVMvalue *createFuvAsync(FklVM *,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *proc_obj,
         int *err);
 
-int isFuvProcess(FklVMvalue *v);
+int isFuvProcess(const FklVMvalue *v);
 uv_process_t *createFuvProcess(FklVM *,
         FklVMvalue **pr,
         FklVMvalue *dll,
@@ -212,38 +212,38 @@ uv_process_t *createFuvProcess(FklVM *,
         FklVMvalue *stdio_obj,
         FklVMvalue *cwd_obj);
 
-int isFuvStream(FklVMvalue *v);
-int isFuvPipe(FklVMvalue *v);
+int isFuvStream(const FklVMvalue *v);
+int isFuvPipe(const FklVMvalue *v);
 uv_pipe_t *
 createFuvPipe(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
 
-int isFuvTcp(FklVMvalue *v);
+int isFuvTcp(const FklVMvalue *v);
 uv_tcp_t *
 createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
 
-int isFuvTty(FklVMvalue *v);
+int isFuvTty(const FklVMvalue *v);
 uv_tty_t *createFuvTty(FklVM *,
         FklVMvalue **pr,
         FklVMvalue *dll,
         FklVMvalue *loop_obj,
         FklVMvalue *fp_obj);
 
-int isFuvUdp(FklVMvalue *v);
+int isFuvUdp(const FklVMvalue *v);
 uv_udp_t *createFuvUdp(FklVM *,
         FklVMvalue **pr,
         FklVMvalue *dll,
         FklVMvalue *loop_obj,
         int64_t);
 
-int isFuvFsPoll(FklVMvalue *v);
+int isFuvFsPoll(const FklVMvalue *v);
 FklVMvalue *
 createFuvFsPoll(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvFsEvent(FklVMvalue *v);
+int isFuvFsEvent(const FklVMvalue *v);
 FklVMvalue *
 createFuvFsEvent(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
 
-int isFuvPoll(FklVMvalue *v);
+int isFuvPoll(const FklVMvalue *v);
 uv_poll_t *createFuvPoll(FklVM *vm,
         FklVMvalue **pr,
         FklVMvalue *dll,
@@ -346,6 +346,36 @@ typedef struct FuvFsReqArgs {
     const char *str;
 } FuvFsReqArgs;
 
+FKL_VM_DEF_UD_STRUCT(FuvValueLoop, { FuvLoop l; });
+
+FKL_VM_DEF_UD_STRUCT(FuvValueHandle, { FuvHandle h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueAsync, { FuvAsync h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueCheck, { FuvCheck h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueFsEvent, { FuvFsEvent h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueFsPoll, { FuvFsPoll h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueIdle, { FuvIdle h; });
+FKL_VM_DEF_UD_STRUCT(FuvValuePipe, { FuvPipe h; });
+FKL_VM_DEF_UD_STRUCT(FuvValuePoll, { FuvPoll h; });
+FKL_VM_DEF_UD_STRUCT(FuvValuePrepare, { FuvPrepare h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueProcess, { FuvProcess h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueTcp, { FuvTcp h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueTimer, { FuvTimer h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueTty, { FuvTty h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueUdp, { FuvUdp h; });
+FKL_VM_DEF_UD_STRUCT(FuvValueSignal, { FuvSignal h; });
+
+FKL_VM_DEF_UD_STRUCT(FuvValueReq, { FuvReq r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueConnect, { FuvConnect r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueWrite, { FuvWrite r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueShutdown, { FuvShutdown r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueUdpSend, { FuvUdpSend r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueFsReq, { FuvFsReq r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueGetaddrinfo, { FuvGetaddrinfo r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueGetnameinfo, { FuvGetnameinfo r; });
+FKL_VM_DEF_UD_STRUCT(FuvValueRandom, { FuvRandom r; });
+
+FKL_VM_DEF_UD_STRUCT(FuvValueDir, { FuvDir d; });
+
 int isFuvReq(const FklVMvalue *v);
 void fuvReqCleanUp(FuvReq *req);
 static inline int isFuvReqCanceled(const FuvReq *req) {
@@ -377,21 +407,21 @@ void fuvLoopAddReqRef(FklVMvalue *loop, FuvReq *handle);
 void fuvLoopRemoveHandleRef(FklVMvalue *loop, FuvHandle *handle);
 void fuvLoopRemoveReqRef(FklVMvalue *loop, FuvReq *handle);
 
-int isFuvGetaddrinfo(FklVMvalue *v);
+int isFuvGetaddrinfo(const FklVMvalue *v);
 uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback);
 
-int isFuvGetnameinfo(FklVMvalue *v);
+int isFuvGetnameinfo(const FklVMvalue *v);
 uv_getnameinfo_t *createFuvGetnameinfo(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback);
 
-int isFuvWrite(FklVMvalue *);
+int isFuvWrite(const FklVMvalue *);
 uv_write_t *createFuvWrite(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
@@ -399,21 +429,21 @@ uv_write_t *createFuvWrite(FklVM *exe,
         FklVMvalue *callback,
         uint32_t count);
 
-int isFuvShutdown(FklVMvalue *);
+int isFuvShutdown(const FklVMvalue *);
 uv_shutdown_t *createFuvShutdown(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback);
 
-int isFuvConnect(FklVMvalue *);
+int isFuvConnect(const FklVMvalue *);
 uv_connect_t *createFuvConnect(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback);
 
-int isFuvUdpSend(FklVMvalue *);
+int isFuvUdpSend(const FklVMvalue *);
 uv_udp_send_t *createFuvUdpSend(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
@@ -421,7 +451,7 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
         FklVMvalue *callback,
         uint32_t count);
 
-int isFuvFsReq(FklVMvalue *v);
+int isFuvFsReq(const FklVMvalue *v);
 
 struct FuvFsReq *createFuvFsReq(FklVM *exe,
         FklVMvalue **r,
@@ -432,7 +462,7 @@ struct FuvFsReq *createFuvFsReq(FklVM *exe,
 
 void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption);
 
-int isFuvRandom(FklVMvalue *v);
+int isFuvRandom(const FklVMvalue *v);
 struct FuvRandom *createFuvRandom(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,

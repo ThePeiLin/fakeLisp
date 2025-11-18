@@ -819,10 +819,10 @@ static inline void write_production_rule_action_pass_1(
         FklValueTable *vt) {
     if (fklIsCustomActionProd(prod)) {
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fklWriteByteCodelnt(ctx->c.bcl, vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
+        fklWriteByteCodelnt(ctx->bcl, vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
     } else if (fklIsSimpleActionProd(prod)) {
         FklVMvalueSimpleActionCtx *ctx = prod->ctx;
-        fklTraverseSerializableValue(vt, ctx->c.vec);
+        fklTraverseSerializableValue(vt, ctx->vec);
     } else {
         // is replace or builtin prod
         FklVMvalue *r = prod->ctx;
@@ -839,13 +839,13 @@ static inline void write_production_rule_action_pass_2(
         type = FKL_CODEGEN_PROD_CUSTOM;
         fwrite(&type, sizeof(type), 1, fp);
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fwrite(&ctx->c.prototype_id, sizeof(ctx->c.prototype_id), 1, fp);
-        fklWriteByteCodelnt(ctx->c.bcl, vt, FKL_WRITE_CODE_PASS_SECOND, fp);
+        fwrite(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
+        fklWriteByteCodelnt(ctx->bcl, vt, FKL_WRITE_CODE_PASS_SECOND, fp);
     } else if (fklIsSimpleActionProd(prod)) {
         type = FKL_CODEGEN_PROD_SIMPLE;
         fwrite(&type, sizeof(type), 1, fp);
         FklVMvalueSimpleActionCtx *ctx = prod->ctx;
-        write_value_id(vt, 0, ctx->c.vec, fp);
+        write_value_id(vt, 0, ctx->vec, fp);
     } else {
         type = fklIsReplaceActionProd(prod) ? FKL_CODEGEN_PROD_REPLACE
                                             : FKL_CODEGEN_PROD_BUILTIN;
@@ -1116,9 +1116,9 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 syms,
                 0);
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fread(&ctx->c.prototype_id, sizeof(ctx->c.prototype_id), 1, fp);
-        ctx->c.bcl = fklCreateByteCodelnt(0);
-        fklLoadByteCodelnt(fp, values, ctx->c.bcl);
+        fread(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
+        ctx->bcl = fklCreateByteCodelnt(0);
+        fklLoadByteCodelnt(fp, values, ctx->bcl);
     } break;
 
     case FKL_CODEGEN_PROD_SIMPLE: {
@@ -1622,8 +1622,8 @@ static inline void increase_reader_macro_lib_prototype_id(
                         prod = prod->next) {
                     if (fklIsCustomActionProd(prod)) {
                         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-                        ctx->c.prototype_id += count;
-                        increase_bcl_lib_prototype_id(ctx->c.bcl,
+                        ctx->prototype_id += count;
+                        increase_bcl_lib_prototype_id(ctx->bcl,
                                 lib_count,
                                 count);
                     }

@@ -1,6 +1,11 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+static FklVMudMetaTable const HtUdMetaTable;
+static inline int IS_HASH_UD(const FklVMvalue *V) {
+    return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &HtUdMetaTable);
+}
+
 static int ht_hashv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -31,8 +36,20 @@ typedef struct {
     FklVMvalueHashMap ht;
 } HashTable;
 
-static void ht_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, HashTable, ud);
+FKL_VM_DEF_UD_STRUCT(FklVMvalueHt, {
+    FklVMvalue *hash_func;
+    FklVMvalue *eq_func;
+    FklVMvalueHashMap ht;
+});
+
+static FKL_ALWAYS_INLINE FklVMvalueHt *as_ht(const FklVMvalue *v) {
+    FKL_ASSERT(IS_HASH_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueHt *, v);
+}
+
+static void ht_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(ht, HashTable, ud);
+    FklVMvalueHt *ht = as_ht(ud);
     fklVMgcToGray(ht->hash_func, gc);
     fklVMgcToGray(ht->eq_func, gc);
     FklVMvalueHashMap *t = &ht->ht;
@@ -44,9 +61,11 @@ static void ht_atomic(const FklVMud *ud, FklVMgc *gc) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print, "ht");
 
-static int ht_equal(const FklVMud *a, const FklVMud *b) {
-    FKL_DECL_UD_DATA(hta, HashTable, a);
-    FKL_DECL_UD_DATA(htb, HashTable, b);
+static int ht_equal(const FklVMvalue *a, const FklVMvalue *b) {
+    // FKL_DECL_UD_DATA(hta, HashTable, a);
+    // FKL_DECL_UD_DATA(htb, HashTable, b);
+    FklVMvalueHt *hta = as_ht(a);
+    FklVMvalueHt *htb = as_ht(b);
     if (fklVMvalueEqual(hta->hash_func, htb->hash_func)
             && fklVMvalueEqual(htb->eq_func, htb->eq_func)
             && hta->ht.count == htb->ht.count) {
@@ -65,19 +84,22 @@ static int ht_equal(const FklVMud *a, const FklVMud *b) {
         return 0;
 }
 
-static int ht_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, HashTable, ud);
+static int ht_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(ht, HashTable, ud);
+    FklVMvalueHt *ht = as_ht(ud);
     fklVMvalueHashMapUninit(&ht->ht);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static size_t ht_length(const FklVMud *ud) {
-    FKL_DECL_UD_DATA(ht, HashTable, ud);
+static size_t ht_length(const FklVMvalue *ud) {
+    // FKL_DECL_UD_DATA(ht, HashTable, ud);
+    FklVMvalueHt *ht = as_ht(ud);
     return ht->ht.count;
 }
 
 static FklVMudMetaTable const HtUdMetaTable = {
-    .size = sizeof(HashTable),
+    // .size = sizeof(HashTable),
+    .size = sizeof(FklVMvalueHt),
     .__length = ht_length,
     .__atomic = ht_atomic,
     .__equal = ht_equal,
@@ -100,8 +122,6 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
-
-#define IS_HASH_UD(V) (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &HtUdMetaTable)
 
 static int ht_ht_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);

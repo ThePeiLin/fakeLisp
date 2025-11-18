@@ -7571,7 +7571,7 @@ BC_PROCESS(_reader_macro_bc_process) {
     fklByteCodeLntPushBackIns(macroBcl, &ret, fid, line, scope);
 
     fklPeepholeOptimize(macroBcl);
-    custom_ctx->c.bcl = macroBcl;
+    custom_ctx->bcl = macroBcl;
     return NULL;
 }
 

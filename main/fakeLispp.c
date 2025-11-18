@@ -367,8 +367,8 @@ static void print_reader_macro_action(const FklGrammerProduction *prod,
     if (fklIsCustomActionProd(prod)) {
         CB_LINE_END("custom");
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fklDisassembleByteCodelnt(ctx->c.bcl,
-                ctx->c.prototype_id,
+        fklDisassembleByteCodelnt(ctx->bcl,
+                ctx->prototype_id,
                 macro_pts,
                 build);
     } else {

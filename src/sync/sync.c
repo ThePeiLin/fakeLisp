@@ -9,15 +9,24 @@ typedef struct SyncPublicData {
 #undef XX
 } SyncPublicData;
 
-static void sync_public_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(pd, SyncPublicData, ud);
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSyncPd, { SyncPublicData pd; });
+
+static FKL_ALWAYS_INLINE FklVMvalueSyncPd *as_sync_pd(const FklVMvalue *v) {
+    return FKL_TYPE_CAST(FklVMvalueSyncPd *, v);
+}
+
+static void sync_public_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(pd, SyncPublicData, ud);
+    SyncPublicData *pd = &as_sync_pd(ud)->pd;
+
 #define XX(code, _) fklVMgcToGray(pd->uv_err_sid_##code, gc);
     UV_ERRNO_MAP(XX)
 #undef XX
 }
 
 static FklVMudMetaTable const SyncPublicDataMetaTable = {
-    .size = sizeof(SyncPublicData),
+    // .size = sizeof(SyncPublicData),
+    .size = sizeof(FklVMvalueSyncPd),
     .__atomic = sync_public_ud_atomic,
 };
 
@@ -48,23 +57,34 @@ raiseUvError(int err_id, FklVM *exe, FklVMvalue *pd_obj) {
 #define CHECK_UV_RESULT(R, EXE, PD)                                            \
     if ((R) < 0)                                                               \
     raiseUvError((R), (EXE), (PD))
+
+static FklVMudMetaTable const MutexUdMetaTable;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueMutex, { uv_mutex_t l; });
+
+#define IS_MUTEX_UD(V)                                                         \
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &MutexUdMetaTable)
+
+static FKL_ALWAYS_INLINE FklVMvalueMutex *as_mutex(const FklVMvalue *v) {
+    FKL_ASSERT(IS_MUTEX_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueMutex *, v);
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, "mutex");
 
-static int mutex_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(mutex, uv_mutex_t, ud);
+static int mutex_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(mutex, uv_mutex_t, ud);
+    uv_mutex_t *mutex = &as_mutex(ud)->l;
     uv_mutex_destroy(mutex);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable const MutexUdMetaTable = {
-    .size = sizeof(uv_mutex_t),
+    // .size = sizeof(uv_mutex_t),
+    .size = sizeof(FklVMvalueMutex),
     .__as_princ = mutex_as_print,
     .__as_prin1 = mutex_as_print,
     .__finalizer = mutex_finalizer,
 };
-
-#define IS_MUTEX_UD(V)                                                         \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &MutexUdMetaTable)
 
 #define PREDICATE(condition)                                                   \
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);                                     \
@@ -117,23 +137,33 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
     return 0;
 }
 
+static FklVMudMetaTable const CondUdMetaTable;
+#define IS_COND_UD(V)                                                          \
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &CondUdMetaTable)
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCond, { uv_cond_t c; });
+
+static FKL_ALWAYS_INLINE FklVMvalueCond *as_cond(const FklVMvalue *v) {
+    FKL_ASSERT(IS_COND_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueCond *, v);
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print, "cond");
 
-static int cond_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(cond, uv_cond_t, ud);
+static int cond_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(cond, uv_cond_t, ud);
+    uv_cond_t *cond = &as_cond(ud)->c;
     uv_cond_destroy(cond);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable const CondUdMetaTable = {
-    .size = sizeof(uv_cond_t),
+    // .size = sizeof(uv_cond_t),
+    .size = sizeof(FklVMvalueCond),
     .__as_prin1 = cond_as_print,
     .__as_princ = cond_as_print,
     .__finalizer = cond_finalizer,
 };
-
-#define IS_COND_UD(V)                                                          \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &CondUdMetaTable)
 
 static int sync_cond_p(FKL_CPROC_ARGL) { PREDICATE(IS_COND_UD(val)); }
 
@@ -196,23 +226,33 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
     return 0;
 }
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueRwlock, { uv_rwlock_t l; });
+
+static FklVMudMetaTable const RwlockUdMetaTable;
+#define IS_RWLOCK_UD(V)                                                        \
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &RwlockUdMetaTable)
+
+static FKL_ALWAYS_INLINE FklVMvalueRwlock *as_rwlock(const FklVMvalue *v) {
+    FKL_ASSERT(IS_RWLOCK_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueRwlock *, v);
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print, "rwlock");
 
-static int rwlock_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(rwlock, uv_rwlock_t, ud);
+static int rwlock_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(rwlock, uv_rwlock_t, ud);
+    uv_rwlock_t *rwlock = &as_rwlock(ud)->l;
     uv_rwlock_destroy(rwlock);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable const RwlockUdMetaTable = {
-    .size = sizeof(uv_rwlock_t),
+    // .size = sizeof(uv_rwlock_t),
+    .size = sizeof(FklVMvalueRwlock),
     .__as_prin1 = rwlock_as_print,
     .__as_princ = rwlock_as_print,
     .__finalizer = rwlock_finalizer,
 };
-
-#define IS_RWLOCK_UD(V)                                                        \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &RwlockUdMetaTable)
 
 static int sync_rwlock_p(FKL_CPROC_ARGL) { PREDICATE(IS_RWLOCK_UD(val)); }
 
@@ -294,20 +334,30 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, "sem");
 
-static int sem_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(sem, uv_sem_t, ud);
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSem, { uv_sem_t s; });
+
+#define IS_SEM_UD(V) (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &SemUdMetaTable)
+
+static FklVMudMetaTable const SemUdMetaTable;
+static FKL_ALWAYS_INLINE FklVMvalueSem *as_sem(const FklVMvalue *v) {
+    FKL_ASSERT(IS_SEM_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueSem *, v);
+}
+
+static int sem_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(sem, uv_sem_t, ud);
+    uv_sem_t *sem = &as_sem(ud)->s;
     uv_sem_destroy(sem);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable const SemUdMetaTable = {
-    .size = sizeof(uv_sem_t),
+    // .size = sizeof(uv_sem_t),
+    .size = sizeof(FklVMvalueSem),
     .__as_prin1 = sem_as_print,
     .__as_princ = sem_as_print,
     .__finalizer = sem_finalizer,
 };
-
-#define IS_SEM_UD(V) (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &SemUdMetaTable)
 
 static int sync_sem_p(FKL_CPROC_ARGL) { PREDICATE(IS_SEM_UD(val)); }
 
@@ -356,23 +406,32 @@ static int sync_sem_trywait(FKL_CPROC_ARGL) {
     return 0;
 }
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueBarrier, { uv_barrier_t b; });
+static FklVMudMetaTable const BarrierUdMetaTable;
+#define IS_BARRIER_UD(V)                                                       \
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &BarrierUdMetaTable)
+
+static FKL_ALWAYS_INLINE FklVMvalueBarrier *as_barrier(const FklVMvalue *v) {
+    FKL_ASSERT(IS_BARRIER_UD(v));
+    return FKL_TYPE_CAST(FklVMvalueBarrier *, v);
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print, "barrier");
 
-static int barrier_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(barrier, uv_barrier_t, ud);
+static int barrier_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(barrier, uv_barrier_t, ud);
+    uv_barrier_t *barrier = &as_barrier(ud)->b;
     uv_barrier_destroy(barrier);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable const BarrierUdMetaTable = {
-    .size = sizeof(uv_barrier_t),
+    // .size = sizeof(uv_barrier_t),
+    .size = sizeof(FklVMvalueBarrier),
     .__as_prin1 = barrier_as_print,
     .__as_princ = barrier_as_print,
     .__finalizer = barrier_finalizer,
 };
-
-#define IS_BARRIER_UD(V)                                                       \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &BarrierUdMetaTable)
 
 static int sync_barrier_p(FKL_CPROC_ARGL) { PREDICATE(IS_BARRIER_UD(val)); }
 

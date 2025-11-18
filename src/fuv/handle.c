@@ -1,18 +1,25 @@
 #include "fuv.h"
 #include <uv.h>
 
-static void fuv_handle_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(handle, FuvHandle, ud);
+static FKL_ALWAYS_INLINE FuvValueHandle *as_handle(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvHandle(v));
+    return FKL_TYPE_CAST(FuvValueHandle *, v);
+}
+
+static void fuv_handle_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(handle, FuvHandle, ud);
+    FuvHandle *handle = &as_handle(ud)->h;
     fklVMgcToGray(handle->data.loop, gc);
     fklVMgcToGray(handle->data.callbacks[0], gc);
     fklVMgcToGray(handle->data.callbacks[1], gc);
 }
 
-static int fuv_handle_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(handle, FuvHandle, ud);
+static int fuv_handle_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(handle, FuvHandle, ud);
+    FuvHandle *handle = &as_handle(ud)->h;
     FuvHandleData *handle_data = &handle->data;
     if (handle_data->loop) {
-        fuvLoopAddGcObj(handle_data->loop, FKL_VM_VALUE_OF(ud));
+        fuvLoopAddGcObj(handle_data->loop, ud);
         return FKL_VM_UD_FINALIZE_DELAY;
     }
     return FKL_VM_UD_FINALIZE_NOW;
@@ -38,24 +45,42 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_event_as_print, "fs-event");
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_poll_as_print, "poll");
 
-static void fuv_process_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+static FKL_ALWAYS_INLINE FuvValueProcess *as_process(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvProcess(v));
+    return FKL_TYPE_CAST(FuvValueProcess *, v);
+}
+
+static void fuv_process_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    FKL_DECL_UD_DATA(handle, FuvProcess, ud);
+    // FKL_DECL_UD_DATA(handle, FuvProcess, ud);
+    FuvProcess *handle = &as_process(ud)->h;
     fklVMgcToGray(handle->env_obj, gc);
     fklVMgcToGray(handle->args_obj, gc);
     fklVMgcToGray(handle->file_obj, gc);
     fklVMgcToGray(handle->stdio_obj, gc);
 }
 
-static void fuv_pipe_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+static FKL_ALWAYS_INLINE FuvValuePipe *as_pipe(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvPipe(v));
+    return FKL_TYPE_CAST(FuvValuePipe *, v);
+}
+
+static void fuv_pipe_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    FKL_DECL_UD_DATA(handle, FuvPipe, ud);
+    FuvPipe *handle = &as_pipe(ud)->h;
+    // FKL_DECL_UD_DATA(handle, FuvPipe, ud);
     fklVMgcToGray(handle->fp, gc);
 }
 
-static void fuv_poll_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+static FKL_ALWAYS_INLINE FuvValuePoll *as_poll(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvPoll(v));
+    return FKL_TYPE_CAST(FuvValuePoll *, v);
+}
+
+static void fuv_poll_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    FKL_DECL_UD_DATA(handle, FuvPoll, ud);
+    FuvPoll *handle = &as_poll(ud)->h;
+    // FKL_DECL_UD_DATA(handle, FuvPoll, ud);
     fklVMgcToGray(handle->fp, gc);
 }
 
@@ -65,9 +90,15 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_tcp_as_print, "tcp");
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_as_print, "udp");
 
-static void fuv_tty_ud_atomic(const FklVMud *ud, FklVMgc *gc) {
+static FKL_ALWAYS_INLINE FuvValueTty *as_tty(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvTty(v));
+    return FKL_TYPE_CAST(FuvValueTty *, v);
+}
+
+static void fuv_tty_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    FKL_DECL_UD_DATA(handle, FuvTty, ud);
+    FuvTty *handle = &as_tty(ud)->h;
+    // FKL_DECL_UD_DATA(handle, FuvTty, ud);
     fklVMgcToGray(handle->fp, gc);
 }
 
@@ -78,7 +109,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_ASYNC] =
         {
-            .size = sizeof(FuvAsync),
+            // .size = sizeof(FuvAsync),
+			.size = sizeof(FuvValueAsync),
             .__as_prin1 = fuv_async_as_print,
             .__as_princ = fuv_async_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -87,7 +119,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_CHECK] =
         {
-            .size = sizeof(FuvCheck),
+            // .size = sizeof(FuvCheck),
+            .size = sizeof(FuvValueCheck),
             .__as_prin1 = fuv_check_as_print,
             .__as_princ = fuv_check_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -96,7 +129,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_EVENT] =
         {
-            .size = sizeof(FuvFsEvent),
+            // .size = sizeof(FuvFsEvent),
+			.size = sizeof(FuvValueFsEvent),
             .__as_prin1 = fuv_fs_event_as_print,
             .__as_princ = fuv_fs_event_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -105,7 +139,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_POLL] =
         {
-            .size = sizeof(FuvFsPoll),
+            // .size = sizeof(FuvFsPoll),
+			.size = sizeof(FuvValueFsPoll),
             .__as_prin1 = fuv_fs_poll_as_print,
             .__as_princ = fuv_fs_poll_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -116,7 +151,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_IDLE] =
         {
-            .size = sizeof(FuvIdle),
+            // .size = sizeof(FuvIdle),
+			.size = sizeof(FuvValueIdle),
             .__as_prin1 = fuv_idle_as_print,
             .__as_princ = fuv_idle_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -125,7 +161,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_NAMED_PIPE] =
         {
-            .size = sizeof(FuvPipe),
+            // .size = sizeof(FuvPipe),
+			.size = sizeof(FuvValuePipe),
             .__as_prin1 = fuv_pipe_as_print,
             .__as_princ = fuv_pipe_as_print,
             .__atomic = fuv_pipe_ud_atomic,
@@ -134,7 +171,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_POLL] =
         {
-            .size = sizeof(FuvPoll),
+            // .size = sizeof(FuvPoll),
+            .size = sizeof(FuvValuePoll),
             .__as_prin1 = fuv_poll_as_print,
             .__as_princ = fuv_poll_as_print,
             .__atomic = fuv_poll_ud_atomic,
@@ -143,7 +181,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PREPARE] =
         {
-            .size = sizeof(FuvPrepare),
+            // .size = sizeof(FuvPrepare),
+            .size = sizeof(FuvValuePrepare),
             .__as_prin1 = fuv_prepare_as_print,
             .__as_princ = fuv_prepare_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -152,7 +191,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PROCESS] =
         {
-            .size = sizeof(FuvProcess),
+            // .size = sizeof(FuvProcess),
+			.size = sizeof(FuvValueProcess),
             .__as_prin1 = fuv_process_as_print,
             .__as_princ = fuv_process_as_print,
             .__atomic = fuv_process_ud_atomic,
@@ -163,7 +203,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TCP] =
         {
-            .size = sizeof(FuvTcp),
+            // .size = sizeof(FuvTcp),
+			.size = sizeof(FuvValueTcp),
             .__as_prin1 = fuv_tcp_as_print,
             .__as_princ = fuv_tcp_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -172,7 +213,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TIMER] =
         {
-            .size = sizeof(FuvTimer),
+            // .size = sizeof(FuvTimer),
+            .size = sizeof(FuvValueTimer),
             .__as_prin1 = fuv_timer_as_print,
             .__as_princ = fuv_timer_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -181,7 +223,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TTY] =
         {
-            .size = sizeof(FuvTty),
+            // .size = sizeof(FuvTty),
+            .size = sizeof(FuvValueTty),
             .__as_prin1 = fuv_tty_as_print,
             .__as_princ = fuv_tty_as_print,
             .__atomic = fuv_tty_ud_atomic,
@@ -190,7 +233,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_UDP] =
         {
-            .size = sizeof(FuvUdp),
+            // .size = sizeof(FuvUdp),
+            .size = sizeof(FuvValueUdp),
             .__as_prin1 = fuv_udp_as_print,
             .__as_princ = fuv_udp_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -199,7 +243,8 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_SIGNAL] =
         {
-            .size = sizeof(FuvSignal),
+            // .size = sizeof(FuvSignal),
+            .size = sizeof(FuvValueSignal),
             .__as_prin1 = fuv_signal_as_print,
             .__as_princ = fuv_signal_as_print,
             .__atomic = fuv_handle_ud_atomic,
@@ -247,7 +292,7 @@ init_fuv_handle(FuvHandle *handle, FklVMvalue *v, FklVMvalue *loop) {
 }
 
 #define FUV_HANDLE_P(NAME, ENUM)                                               \
-    int NAME(FklVMvalue *v) {                                                  \
+    int NAME(const FklVMvalue *v) {                                            \
         return FKL_IS_USERDATA(v)                                              \
             && FKL_VM_UD(v)->t == &HandleMetaTables[ENUM];                     \
     }
@@ -380,7 +425,7 @@ uv_process_t *createFuvProcess(FklVM *vm,
     return &handle->handle;
 }
 
-int isFuvStream(FklVMvalue *v) {
+int isFuvStream(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
         const FklVMudMetaTable *t = FKL_VM_UD(v)->t;
         return t == &HandleMetaTables[UV_NAMED_PIPE]

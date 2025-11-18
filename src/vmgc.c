@@ -241,8 +241,8 @@ void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
     FklVMvalue *v = gc->weak_refs;
     while (v) {
         FKL_ASSERT(is_weak_ref_value(v));
-        FklVMud *ud = FKL_VM_UD(v);
-        ud->t->__update_weak_ref(ud, gc);
+        // FklVMud *ud = FKL_VM_UD(v);
+        FKL_VM_UD(v)->t->__update_weak_ref(v, gc);
 
         gc->weak_refs = v->gray_next;
         v->gray_next = NULL;
@@ -271,8 +271,8 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     gc->head = head;
 }
 
-static inline int finalize_ud(FklVMud *a, FklVMgc *gc) {
-    int (*finalize)(FklVMud *, FklVMgc *) = a->t->__finalizer;
+static inline int finalize_ud(FklVMvalue *a, FklVMgc *gc) {
+    int (*finalize)(FklVMvalue *, FklVMgc *) = FKL_VM_UD(a)->t->__finalizer;
     if (finalize)
         return finalize(a, gc);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -281,7 +281,7 @@ static inline int finalize_ud(FklVMud *a, FklVMgc *gc) {
 static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     switch (cur->type) {
     case FKL_TYPE_USERDATA:
-        if (finalize_ud(FKL_VM_UD(cur), gc) == FKL_VM_UD_FINALIZE_DELAY)
+        if (finalize_ud(cur, gc) == FKL_VM_UD_FINALIZE_DELAY)
             return;
         break;
     case FKL_TYPE_F64:

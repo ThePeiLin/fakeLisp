@@ -6,42 +6,55 @@
 #include <stdio.h>
 #include <string.h>
 
-static int strbuf_equal(const FklVMud *a, const FklVMud *b) {
-    FKL_DECL_UD_DATA(bufa, FklStringBuffer, a);
-    FKL_DECL_UD_DATA(bufb, FklStringBuffer, b);
+FKL_VM_DEF_UD_STRUCT(FklVMvalueStrBuf, { FklStringBuffer buf; });
+
+static FklVMudMetaTable const StringBufferMetaTable;
+
+static inline int is_strbuf_ud(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &StringBufferMetaTable;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueStrBuf *as_strbuf(const FklVMvalue *v) {
+    FKL_ASSERT(is_strbuf_ud(v));
+    return FKL_TYPE_CAST(FklVMvalueStrBuf *, v);
+}
+
+static int strbuf_equal(const FklVMvalue *a, const FklVMvalue *b) {
+    FklStringBuffer *bufa = &as_strbuf(a)->buf;
+    FklStringBuffer *bufb = &as_strbuf(b)->buf;
+    // FKL_DECL_UD_DATA(bufa, FklStringBuffer, a);
+    // FKL_DECL_UD_DATA(bufb, FklStringBuffer, b);
     return bufa->index == bufb->index
         && !memcmp(bufa->buf, bufb->buf, bufa->index);
 }
 
-static int strbuf_finalizer(FklVMud *p, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(buf, FklStringBuffer, p);
-    fklUninitStringBuffer(buf);
+static int strbuf_finalizer(FklVMvalue *p, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(buf, FklStringBuffer, p);
+    // fklUninitStringBuffer(buf);
+    fklUninitStringBuffer(&as_strbuf(p)->buf);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void
-strbuf_as_prin1(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
-    FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
+strbuf_as_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+    // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
+    FklStringBuffer *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderPuts(build, "#<strbuf ");
     fklPrintBufLiteralExt(bufa->index, bufa->buf, "\"", "\"", '"', build);
     fklCodeBuilderPutc(build, '>');
 }
 
 static void
-strbuf_as_princ(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
-    FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
+strbuf_as_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+    // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
+    FklStringBuffer *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderWrite(build, bufa->index, bufa->buf);
 }
 
-static void strbuf_write(const FklVMud *ud, FklCodeBuilder *build) {
-    FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+static void strbuf_write(const FklVMvalue *ud, FklCodeBuilder *build) {
+    // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+    FklStringBuffer *buf = &as_strbuf(ud)->buf;
     fklCodeBuilderWrite(build, buf->index, buf->buf);
-}
-
-static FklVMudMetaTable const StringBufferMetaTable;
-
-static inline int is_strbuf_ud(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &StringBufferMetaTable;
 }
 
 static int strbuf_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *base) {
@@ -105,18 +118,21 @@ static FklVMvalue *strbuf_copy_append(FklVM *exe,
     return retval;
 }
 
-static size_t strbuf_length(const FklVMud *ud) {
-    FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+static size_t strbuf_length(const FklVMvalue *ud) {
+    // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+    FklStringBuffer *buf = &as_strbuf(ud)->buf;
     return buf->index;
 }
 
-static uintptr_t strbuf_hash(const FklVMud *ud) {
-    FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+static uintptr_t strbuf_hash(const FklVMvalue *ud) {
+    // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+    FklStringBuffer *buf = &as_strbuf(ud)->buf;
     return fklCharBufHash(buf->buf, buf->size);
 }
 
-static int strbuf_cmp(const FklVMud *ud, const FklVMvalue *v, int *err) {
-    FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+static int strbuf_cmp(const FklVMvalue *ud, const FklVMvalue *v, int *err) {
+    // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
+    FklStringBuffer *buf = &as_strbuf(ud)->buf;
     if (FKL_IS_STR(v))
         return -fklStringCharBufCmp(FKL_VM_STR(v), buf->index, buf->buf);
     else if (is_strbuf_ud(v)) {
@@ -128,7 +144,8 @@ static int strbuf_cmp(const FklVMud *ud, const FklVMvalue *v, int *err) {
 }
 
 static FklVMudMetaTable const StringBufferMetaTable = {
-    .size = sizeof(FklStringBuffer),
+    // .size = sizeof(FklStringBuffer),
+    .size = sizeof(FklVMvalueStrBuf),
     .__equal = strbuf_equal,
     .__as_prin1 = strbuf_as_prin1,
     .__as_princ = strbuf_as_princ,

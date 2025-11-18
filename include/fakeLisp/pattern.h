@@ -28,13 +28,7 @@ struct FklVMslot {
     FklVMvalue *v;
 };
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot,
-        { //
-            union {
-                struct FklVMslot _slot;
-                alignas(struct FklVMslot) FklVMvalue *s;
-            };
-        });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, { FklVMvalue *s; });
 
 #define FKL_VM_SLOT_SYM(V) (((FklVMvalueSlot *)(V))->s)
 

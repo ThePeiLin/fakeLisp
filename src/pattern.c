@@ -5,19 +5,27 @@
 
 #include <string.h>
 
-static void
-_slot_userdata_as_print(const FklVMud *ud, FklCodeBuilder *build, FklVM *exe) {
-    FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
-    fklVMformat(exe, build, "#<slot %S>", NULL, 1, (FklVMvalue *[]){ s->v });
+static inline FklVMvalueSlot *as_slot(const FklVMvalue *v) {
+    return FKL_TYPE_CAST(FklVMvalueSlot *, v);
 }
 
-static void _slot_userdata_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
-    fklVMgcToGray(s->v, gc);
+static void _slot_userdata_as_print(const FklVMvalue *ud,
+        FklCodeBuilder *build,
+        FklVM *exe) {
+    FklVMvalueSlot *s = as_slot(ud);
+    // FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
+    fklVMformat(exe, build, "#<slot %S>", NULL, 1, (FklVMvalue *[]){ s->s });
+}
+
+static void _slot_userdata_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
+    // fklVMgcToGray(s->v, gc);
+    fklVMgcToGray(as_slot(ud)->s, gc);
 }
 
 static FklVMudMetaTable const SlotUserDataMetaTable = {
-    .size = sizeof(struct FklVMslot),
+    // .size = sizeof(struct FklVMslot),
+    .size = sizeof(FklVMvalueSlot),
     .__as_princ = _slot_userdata_as_print,
     .__as_prin1 = _slot_userdata_as_print,
     .__atomic = _slot_userdata_atomic,

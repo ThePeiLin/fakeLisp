@@ -62,6 +62,7 @@ typedef struct {
     struct FklPreDefRefVector ref_pdef;                                        \
     int is_debugging
 
+// FKL_DEPRECATED
 struct FklCodegenEnv {
     FKL_CODEGEN_ENV_MEMBERS;
 };
@@ -121,6 +122,7 @@ typedef struct FklCodegenMacro {
     FklReplacementHashMap *replacements;                                       \
     FklCodegenMacro *head
 
+// FKL_DEPRECATED
 struct FklCodegenMacroScope {
     FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
 };
@@ -375,6 +377,7 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
         FklCodegenInfoEnvWorkCb env_work_cb;                                   \
     }
 
+// FKL_DEPRECATED
 struct FklCodegenInfo {
     FKL_CODEGEN_INFO_MEMBERS;
 };
@@ -491,20 +494,29 @@ typedef struct {
     int8_t inherit_grammer;
 } FklCodegenInfoArgs;
 
+// FKL_DEPRECATED
 struct FklCustomActionCtx {
     FklCodegenCtx *ctx;
     FklByteCodelnt *bcl;
     uint32_t prototype_id;
 };
 
+// FKL_DEPRECATED
 typedef struct FklSimpleActionCtx {
     const FklSimpleProdAction *mt;
     struct FklVMvalue *vec;
 } FklSimpleActionCtx;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, { FklSimpleActionCtx c; });
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx,
-        { struct FklCustomActionCtx c; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, {
+    const FklSimpleProdAction *mt;
+    struct FklVMvalue *vec;
+});
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx, {
+    FklCodegenCtx *ctx;
+    FklByteCodelnt *bcl;
+    uint32_t prototype_id;
+});
 
 int fklIsVMvalueCodegenInfo(const FklVMvalue *v);
 FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,

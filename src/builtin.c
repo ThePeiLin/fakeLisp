@@ -103,7 +103,7 @@ static inline FklVMvalue **copy_list(FklVMvalue **pv, FklVM *exe) {
     return pv;
 }
 
-typedef FklVMvalue *(*VMvalueCopyAppender)(FklVM *exe,
+typedef FklVMvalue *(*VMvalueCopyAppendCb)(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *top);
@@ -221,14 +221,14 @@ static FklVMvalue *__fkl_userdata_copy_append(FklVM *exe,
         uint32_t argc,
         FklVMvalue *const *base) {
     const FklVMud *ud = FKL_VM_UD(v);
-    FklVMudCopyAppender appender = ud->t->__copy_append;
+    FklVMudCopyAppendCb appender = ud->t->__copy_append;
     if (appender)
         return appender(exe, ud, argc, base);
     else
         return NULL;
 }
 
-static const VMvalueCopyAppender CopyAppenders[FKL_VM_VALUE_GC_TYPE_NUM] = {
+static const VMvalueCopyAppendCb CopyAppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
     [FKL_TYPE_STR] = __fkl_str_copy_append,
     [FKL_TYPE_VECTOR] = __fkl_vec_copy_append,
     [FKL_TYPE_PAIR] = __fkl_pair_copy_append,
@@ -244,7 +244,7 @@ static int builtin_append(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (FKL_IS_PTR(obj)) {
         FklValueType type = (obj)->type;
-        VMvalueCopyAppender copy_appender = CopyAppenders[type];
+        VMvalueCopyAppendCb copy_appender = CopyAppendCbs[type];
         if (copy_appender) {
             uint32_t const rest_argc = argc - 1;
             if (rest_argc) {
@@ -265,8 +265,9 @@ static int builtin_append(FKL_CPROC_ARGL) {
     return 0;
 }
 
-typedef int (
-        *VMvalueAppender)(FklVMvalue *v, uint32_t argc, FklVMvalue *const *top);
+typedef int (*VMvalueAppendCb)(FklVMvalue *v, //
+        uint32_t argc,
+        FklVMvalue *const *top);
 
 static int
 __fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
@@ -293,14 +294,14 @@ __fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
 static int
 __fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
     FklVMud *ud = FKL_VM_UD(obj);
-    FklVMudAppender appender = ud->t->__append;
+    FklVMudAppendCb appender = ud->t->__append;
     if (appender)
         return appender(ud, argc, base);
     else
         return 1;
 }
 
-static const VMvalueAppender Appenders[FKL_VM_VALUE_GC_TYPE_NUM] = {
+static const VMvalueAppendCb AppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
     [FKL_TYPE_PAIR] = __fkl_pair_append,
     [FKL_TYPE_USERDATA] = __fkl_userdata_append,
 };
@@ -313,7 +314,7 @@ static int builtin_append1(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (FKL_IS_PTR(obj)) {
         FklValueType type = obj->type;
-        VMvalueAppender appender = Appenders[type];
+        VMvalueAppendCb appender = AppendCbs[type];
         if (appender) {
             uint32_t rest_argc = argc - 1;
             if (rest_argc) {
@@ -1744,9 +1745,47 @@ static const FklVMframeContextMethodTable ReadContextMethodTable = {
     .step = read_frame_step,
 };
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueGra, { FklGrammer g; });
+static const FklVMudMetaTable CustomParserMetaTable;
+
+static inline int is_gra(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &CustomParserMetaTable;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueGra *as_gra(const FklVMvalue *v) {
+    FKL_ASSERT(is_gra(v));
+    return FKL_TYPE_CAST(FklVMvalueGra *, v);
+}
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print, "parser");
+
+static int custom_parser_finalizer(FklVMvalue *p, FklVMgc *gc) {
+    fklUninitGrammer(&as_gra(p)->g);
+    // FKL_DECL_UD_DATA(grammer, FklGrammer, p);
+    // fklUninitGrammer(grammer);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static void custom_parser_atomic(const FklVMvalue *p, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(g, FklGrammer, p);
+    // fklVMgcMarkGrammer(gc, g, NULL);
+    fklVMgcMarkGrammer(gc, &as_gra(p)->g, NULL);
+}
+
+static const FklVMudMetaTable CustomParserMetaTable = {
+    // .size = sizeof(FklGrammer),
+    .size = sizeof(FklVMvalueGra),
+    .__as_princ = custom_parser_as_print,
+    .__as_prin1 = custom_parser_as_print,
+    .__atomic = custom_parser_atomic,
+    .__finalizer = custom_parser_finalizer,
+};
+
 static inline void push_state0_of_custom_parser(FklVMvalue *parser,
         FklParseStateVector *stack) {
-    FKL_DECL_VM_UD_DATA(g, FklGrammer, parser);
+
+    FklGrammer *g = &as_gra(parser)->g;
+    // FKL_DECL_VM_UD_DATA(g, FklGrammer, parser);
     fklParseStateVectorPushBack2(stack,
             (FklParseState){ .state = &g->aTable.states[0] });
 }
@@ -1876,7 +1915,8 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
         rctx->state = PARSE_CONTINUE;
     }
 
-    FKL_DECL_VM_UD_DATA(g, FklGrammer, rctx->parser);
+    FklGrammer *g = &as_gra(rctx->parser)->g;
+    // FKL_DECL_VM_UD_DATA(g, FklGrammer, rctx->parser);
 
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe, NULL);
 
@@ -1960,19 +2000,6 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
     return FKL_VM_FP(fp)->rw & FKL_VM_FP_W_MASK;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print, "parser");
-
-static int custom_parser_finalizer(FklVMud *p, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(grammer, FklGrammer, p);
-    fklUninitGrammer(grammer);
-    return FKL_VM_UD_FINALIZE_NOW;
-}
-
-static void custom_parser_atomic(const FklVMud *p, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(g, FklGrammer, p);
-    fklVMgcMarkGrammer(gc, g, NULL);
-}
-
 static void *custom_parser_prod_action(void *action_ctx,
         void *ctx,
         const FklAnalysisSymbol asts[],
@@ -2004,14 +2031,6 @@ typedef struct {
     struct ParseCtx *pctx;
     ParsingState state;
 } CustomParseCtx;
-
-static const FklVMudMetaTable CustomParserMetaTable = {
-    .size = sizeof(FklGrammer),
-    .__as_princ = custom_parser_as_print,
-    .__as_prin1 = custom_parser_as_print,
-    .__atomic = custom_parser_atomic,
-    .__finalizer = custom_parser_finalizer,
-};
 
 #define REGEX_COMPILE_ERROR (1)
 #define INVALID_PROD_PART (2)
@@ -2317,7 +2336,8 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(start, FKL_IS_SYM, exe);
     FklVMvalue *retval =
             fklCreateVMvalueUd(exe, &CustomParserMetaTable, FKL_VM_NIL);
-    FKL_DECL_VM_UD_DATA(grammer, FklGrammer, retval);
+    FklGrammer *grammer = &as_gra(retval)->g;
+    // FKL_DECL_VM_UD_DATA(grammer, FklGrammer, retval);
 
     fklInitEmptyGrammer(grammer, exe);
 
@@ -2461,10 +2481,6 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 #undef REGEX_COMPILE_ERROR
 #undef INVALID_PROD_PART
 
-static inline int is_custom_parser(FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &CustomParserMetaTable;
-}
-
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(CustomParseCtx);
 
 static void custom_parse_frame_atomic(void *data, FklVMgc *gc) {
@@ -2500,7 +2516,9 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
                 pctx->start_with_ignore);
         parse_ctx->state = PARSE_CONTINUE;
     }
-    FKL_DECL_VM_UD_DATA(g, FklGrammer, parse_ctx->parser);
+
+    FklGrammer *g = &as_gra(parse_ctx->parser)->g;
+    // FKL_DECL_VM_UD_DATA(g, FklGrammer, parse_ctx->parser);
     FklString *str = FKL_VM_STR(parse_ctx->str);
     int err = 0;
     uint64_t errLine = 0;
@@ -2614,8 +2632,7 @@ static int builtin_read(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 2);
     FklVMvalue *stream = argc > 0 ? FKL_CPROC_GET_ARG(exe, ctx, 0) : NULL;
     FklVMvalue *parser = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
-    if ((stream && !fklIsVMvalueFp(stream))
-            || (parser && !is_custom_parser(parser)))
+    if ((stream && !fklIsVMvalueFp(stream)) || (parser && !is_gra(parser)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (!stream || fklIsVMvalueFp(stream)) {
         FklVMvalue *fpv = stream ? stream : GET_STDIN();
@@ -2660,7 +2677,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         FklVMvalue *arg = *next_arg;
         if (FKL_IS_BOX(arg) && !box)
             box = arg;
-        else if (is_custom_parser(arg) && !custom_parser)
+        else if (is_gra(arg) && !custom_parser)
             custom_parser = arg;
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -2670,14 +2687,14 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         FklVMvalue *arg = *next_arg;
         if (FKL_IS_BOX(arg) && !box)
             box = arg;
-        else if (is_custom_parser(arg) && !custom_parser)
+        else if (is_gra(arg) && !custom_parser)
             custom_parser = arg;
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
     if (custom_parser) {
-        FKL_CHECK_TYPE(custom_parser, is_custom_parser, exe);
+        FKL_CHECK_TYPE(custom_parser, is_gra, exe);
         init_custom_parse_frame(exe,
                 FKL_VM_CPROC(ctx->proc)->name,
                 custom_parser,

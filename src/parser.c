@@ -342,18 +342,31 @@ void *fklDefaultParseForCharBuf(const char *cstr,
 #include <fakeLisp/cont/hash.h>
 
 // value line number table
+
+static FklVMudMetaTable const LntUserDataMetaTable;
+int fklIsVMvalueLnt(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
+}
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLnt, { FklLineNumHashMap ht; });
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(lnt_ud_as_print, "ln-table")
 
-static int lnt_ud_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
-    fklLineNumHashMapUninit(ht);
+static FKL_ALWAYS_INLINE FklVMvalueLnt *as_lnt(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueLnt(v));
+    return FKL_TYPE_CAST(FklVMvalueLnt *, v);
+}
+
+static int lnt_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    // fklLineNumHashMapUninit(ht);
+    fklLineNumHashMapUninit(&as_lnt(ud)->ht);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static void lnt_ud_update_weak_ref(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
+    FklLineNumHashMap *ht = &as_lnt(ud)->ht;
     const FklLineNumHashMapNode *cur = ht->first;
     while (cur) {
         const FklLineNumHashMapNode *next = cur->next;
@@ -365,16 +378,13 @@ static void lnt_ud_update_weak_ref(const FklVMud *ud, FklVMgc *gc) {
 }
 
 static FklVMudMetaTable const LntUserDataMetaTable = {
-    .size = sizeof(FklVMvalueIdHashMap),
+    // .size = sizeof(FklVMvalueIdHashMap),
+    .size = sizeof(FklVMvalueLnt),
     .__as_prin1 = lnt_ud_as_print,
     .__as_princ = lnt_ud_as_print,
     .__finalizer = lnt_ud_finalizer,
     .__update_weak_ref = lnt_ud_update_weak_ref,
 };
-
-int fklIsVMvalueLnt(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
-}
 
 FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *vm) {
     FklVMvalueLnt *r = (FklVMvalueLnt *)fklCreateVMvalueUd(vm,

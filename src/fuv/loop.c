@@ -5,6 +5,11 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
+static FKL_ALWAYS_INLINE FuvValueLoop *as_loop(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvLoop(v));
+    return FKL_TYPE_CAST(FuvValueLoop *, v);
+}
+
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
 
 static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
@@ -19,8 +24,9 @@ static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
     return NULL;
 }
 
-static void fuv_loop_atomic(const FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
+static void fuv_loop_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
+    FuvLoop *fuv_loop = &as_loop(ud)->l;
 
     for (FklVMvalue *ref = fuv_loop->data.refs; ref; ref = get_obj_next(ref))
         fklVMgcToGray(ref, gc);
@@ -45,8 +51,9 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
     }
 }
 
-static int fuv_loop_finalizer(FklVMud *ud, FklVMgc *gc) {
-    FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
+static int fuv_loop_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+    // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
+    FuvLoop *fuv_loop = &as_loop(ud)->l;
     if (fuvLoopIsClosed(fuv_loop))
         goto closed;
     uv_walk(&fuv_loop->loop, fuv_close_loop_walk_cb, fuv_loop);
@@ -62,7 +69,8 @@ closed:
 }
 
 static FklVMudMetaTable const FuvLoopMetaTable = {
-    .size = sizeof(FuvLoop),
+    // .size = sizeof(FuvLoop),
+    .size = sizeof(FuvValueLoop),
     .__as_prin1 = fuv_loop_as_print,
     .__as_princ = fuv_loop_as_print,
     .__atomic = fuv_loop_atomic,
@@ -89,7 +97,7 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe) {
     uv_stop(loop);
 }
 
-int isFuvLoop(FklVMvalue *v) {
+int isFuvLoop(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &FuvLoopMetaTable;
 }
 

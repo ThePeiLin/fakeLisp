@@ -437,7 +437,7 @@ int fklUninitVMfp(FklVMfp *vfp) {
 }
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
-    FklVMdll *dll = FKL_VM_DLL(rel);
+    FklVMvalueDll *dll = FKL_VM_DLL(rel);
     FklDllInitFunc init = (FklDllInitFunc)fklGetAddress("_fklInit", &dll->dll);
     if (init)
         init(dll, exe);
@@ -1522,20 +1522,20 @@ int fklIsVMvalueCodeObj(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dll_userdata_as_print, "dll");
 
-static FKL_ALWAYS_INLINE FklVMvalueDll *as_dll(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueDll(v));
-    return FKL_TYPE_CAST(FklVMvalueDll *, v);
-}
+// static FKL_ALWAYS_INLINE FklVMvalueDll *as_dll(const FklVMvalue *v) {
+//     FKL_ASSERT(fklIsVMvalueDll(v));
+//     return FKL_TYPE_CAST(FklVMvalueDll *, v);
+// }
 
 static void _dll_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(dll, FklVMdll, root);
-    FklVMdll *dll = &as_dll(root)->d;
+    FklVMvalueDll *dll = FKL_VM_DLL(root);
     fklVMgcToGray(dll->pd, gc);
 }
 
 static int _dll_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(dll, FklVMdll, v);
-    FklVMdll *dll = &as_dll(v)->d;
+    FklVMvalueDll *dll = FKL_VM_DLL(v);
     FklDllUninitFunc uninit =
             (FklDllUninitFunc)fklGetAddress("_fklUninit", &dll->dll);
     if (uninit)
@@ -1572,7 +1572,7 @@ fklCreateVMvalueDll(FklVM *exe, const char *dllName, FklVMvalue **errorStr) {
         goto err;
     }
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DllUserDataMetaTable, NULL);
-    FklVMdll *dll = FKL_VM_DLL(r);
+    FklVMvalueDll *dll = FKL_VM_DLL(r);
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
     fklZfree(realDllName);
@@ -1595,7 +1595,8 @@ static FKL_ALWAYS_INLINE FklVMvalueLibs *as_libs(const FklVMvalue *v) {
 
 static void _libs_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
-    struct FklVMlibs *t = &as_libs(v)->_libs;
+    // struct FklVMlibs *t = &as_libs(v)->_libs;
+    FklVMvalueLibs *t = as_libs(v);
 
     for (size_t i = 1; i <= t->count; ++i) {
         FklVMlib *lib = &t->libs[i];
@@ -1609,7 +1610,8 @@ static void _libs_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
 
 static int _libs_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
-    struct FklVMlibs *t = &as_libs(v)->_libs;
+    // struct FklVMlibs *t = &as_libs(v)->_libs;
+    FklVMvalueLibs *t = as_libs(v);
     uv_mutex_destroy(&t->lock);
     for (size_t i = 1; i <= t->count; i++)
         fklUninitVMlib(&t->libs[i]);

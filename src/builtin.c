@@ -3019,7 +3019,7 @@ static int builtin_dlsym(FKL_CPROC_ARGL) {
     FklVMvalue *symbol = FKL_CPROC_GET_ARG(exe, ctx, 1);
     if (!FKL_IS_STR(symbol) || !fklIsVMvalueDll(ndll))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FklVMdll *dll = FKL_VM_DLL(ndll);
+    FklVMvalueDll *dll = FKL_VM_DLL(ndll);
     FklVMcFunc funcAddress = NULL;
     if (uv_dlsym(&dll->dll,
                 FKL_VM_STR(symbol)->str,

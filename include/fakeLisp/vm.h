@@ -59,10 +59,10 @@ typedef enum {
     FKL_PTR_TAG_NUM,
 } FklVMptrTag;
 
-typedef struct {
-    uv_lib_t dll;
-    struct FklVMvalue *pd;
-} FklVMdll;
+// typedef struct {
+//     uv_lib_t dll;
+//     struct FklVMvalue *pd;
+// } FklVMdll;
 
 typedef struct {
     struct FklVMchanlRecvq {
@@ -210,22 +210,10 @@ typedef struct {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, { FklVMfp fp; });
 
-#define FKL_VM_LIBS_MEMBERS                                                    \
-    uv_mutex_t lock;                                                           \
-    uint64_t count;                                                            \
-    struct FklVMlib *libs
-
-struct FklVMlibs {
-    FKL_VM_LIBS_MEMBERS;
-};
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLibs, {
-    union {
-        struct FklVMlibs _libs;
-        alignas(struct FklVMlibs) struct {
-            FKL_VM_LIBS_MEMBERS;
-        };
-    };
+    uv_mutex_t lock;
+    uint64_t count;
+    struct FklVMlib *libs;
 });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueProtos, { FklFuncPrototypes p; });
@@ -745,7 +733,11 @@ typedef struct {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueError, { FklVMerror e; });
 FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, { FklVMchanl ch; });
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
-FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, { FklVMdll d; });
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
+    uv_lib_t dll;
+    struct FklVMvalue *pd;
+});
 
 // FklVMvalueHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
@@ -1399,7 +1391,12 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
 
 #define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl, FKL_VM_UD(V))
 
-#define FKL_VM_DLL(V) FKL_GET_UD_DATA(FklVMdll, FKL_VM_UD(V))
+// #define FKL_VM_DLL(V) FKL_GET_UD_DATA(FklVMdll, FKL_VM_UD(V))
+
+static FKL_ALWAYS_INLINE FklVMvalueDll *FKL_VM_DLL(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueDll(V));
+    return FKL_TYPE_CAST(FklVMvalueDll *, V);
+}
 
 #define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp, FKL_VM_UD(V))
 
@@ -1497,7 +1494,7 @@ typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
     FklVM *exe, FklVMvalue *dll, uint32_t *count
 typedef FklVMvalue **(*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
-typedef void (*FklDllInitFunc)(FklVMdll *dll, FklVM *exe);
+typedef void (*FklDllInitFunc)(FklVMvalueDll *dll, FklVM *exe);
 typedef void (*FklDllUninitFunc)(void);
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *);

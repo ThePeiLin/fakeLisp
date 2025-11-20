@@ -165,7 +165,7 @@ void fklPrintBacktrace(FklVM *exe, FILE *fp) {
 void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
     uv_mutex_lock(&exe->gc->print_backtrace_lock);
     if (fklIsVMvalueError(ev)) {
-        FklVMerror *err = FKL_VM_ERR(ev);
+        FklVMvalueError *err = FKL_VM_ERR(ev);
         fklPrintSymbolLiteral(FKL_VM_SYM(err->type), fp);
         fputs(": ", fp);
         fklPrincVMvalue(err->message, fp, exe);

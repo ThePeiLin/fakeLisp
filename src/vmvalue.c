@@ -419,15 +419,15 @@ ret:
     return FKL_VM_FP_R;
 }
 
-int fklVMfpEof(FklVMfp *vfp) { return feof(vfp->fp); }
+int fklVMfpEof(FklVMvalueFp *vfp) { return feof(vfp->fp); }
 
-int fklVMfpRewind(FklVMfp *vfp, FklStringBuffer *b, size_t j) {
+int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *b, size_t j) {
     return fklRewindStream(vfp->fp, b->buf + j, b->index - j);
 }
 
-int fklVMfpFileno(FklVMfp *vfp) { return fileno(vfp->fp); }
+int fklVMfpFileno(FklVMvalueFp *vfp) { return fileno(vfp->fp); }
 
-int fklUninitVMfp(FklVMfp *vfp) {
+int fklUninitVMfp(FklVMvalueFp *vfp) {
     int r = 0;
     FILE *fp = vfp->fp;
     if (fp == NULL || fclose(fp) == EOF)
@@ -1044,16 +1044,16 @@ FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
     return r;
 }
 
-static FKL_ALWAYS_INLINE FklVMvalueError *as_err(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueError(v));
-    return FKL_TYPE_CAST(FklVMvalueError *, v);
-}
+// static FKL_ALWAYS_INLINE FklVMvalueError *as_err(const FklVMvalue *v) {
+//     FKL_ASSERT(fklIsVMvalueError(v));
+//     return FKL_TYPE_CAST(FklVMvalueError *, v);
+// }
 
 static void _error_userdata_as_princ(const FklVMvalue *ud,
         FklCodeBuilder *build,
         FklVM *exe) {
     // FKL_DECL_UD_DATA(err, FklVMerror, ud);
-    FklVMerror *err = &as_err(ud)->e;
+    FklVMvalueError *err = FKL_VM_ERR(ud);
     fklPrintString2(FKL_VM_STR(err->message), build);
 }
 
@@ -1061,7 +1061,7 @@ static void _error_userdata_as_prin1(const FklVMvalue *ud,
         FklCodeBuilder *build,
         FklVM *exe) {
     // FKL_DECL_UD_DATA(err, FklVMerror, ud);
-    FklVMerror *err = &as_err(ud)->e;
+    FklVMvalueError *err = FKL_VM_ERR(ud);
     fklVMformat(exe,
             build,
             "#<err t: %S, message: %S>",
@@ -1072,7 +1072,7 @@ static void _error_userdata_as_prin1(const FklVMvalue *ud,
 
 static void _error_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(err, FklVMerror, v);
-    FklVMerror *err = &as_err(v)->e;
+    FklVMvalueError *err = FKL_VM_ERR(v);
     fklVMgcToGray(err->message, gc);
     fklVMgcToGray(err->type, gc);
 }
@@ -1089,7 +1089,7 @@ FklVMvalue *
 fklCreateVMvalueError(FklVM *exe, FklVMvalue *type, FklVMvalue *message) {
     FKL_ASSERT(FKL_IS_SYM(type) && FKL_IS_STR(message));
     FklVMvalue *r = fklCreateVMvalueUd(exe, &ErrorUserDataMetaTable, NULL);
-    FklVMerror *err = FKL_VM_ERR(r);
+    FklVMvalueError *err = FKL_VM_ERR(r);
     err->type = type;
     err->message = message;
     return r;
@@ -1165,24 +1165,28 @@ int fklIsVMvalueChanl(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ChanlUserDataMetaTable;
 }
 
-static FKL_ALWAYS_INLINE FklVMvalueFp *as_vm_fp(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueFp(v));
-    return FKL_TYPE_CAST(FklVMvalueFp *, v);
-}
+// static FKL_ALWAYS_INLINE FklVMvalueFp *as_vm_fp(const FklVMvalue *v) {
+//     FKL_ASSERT(fklIsVMvalueFp(v));
+//     return FKL_TYPE_CAST(FklVMvalueFp *, v);
+// }
 
 static int _fp_userdata_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(fp, FklVMfp, ud);
-    FklVMfp *fp = &as_vm_fp(ud)->fp;
-    fklUninitVMfp(fp);
+    // FklVMfp *fp = &as_vm_fp(ud)->fp;
+    // fklUninitVMfp(fp);
+    fklUninitVMfp(FKL_VM_FP(ud));
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static void
-_fp_userdata_as_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
-    // FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
-    FklVMfp *vfp = &as_vm_fp(ud)->fp;
-    fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
-}
+// static void
+// _fp_userdata_as_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe)
+// {
+//     // FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
+//     FklVMfp *vfp = &as_vm_fp(ud)->fp;
+//     fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
+// }
+
+FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_fp_userdata_as_print, "fp");
 
 static FklVMudMetaTable const FpUserDataMetaTable = {
     // .size = sizeof(FklVMfp),
@@ -1196,7 +1200,7 @@ static FklVMudMetaTable const FpUserDataMetaTable = {
     (FklVMvalueFp) {                                                           \
         .next_ = NULL, .gray_next_ = NULL, .mark_ = FKL_MARK_B,                \
         .type_ = FKL_TYPE_USERDATA, .mt_ = &FpUserDataMetaTable, .dll_ = NULL, \
-        .fp = { .fp = (FP), .rw = (RW) },                                      \
+        .fp = (FP), .rw = (RW),                                                \
     }
 
 void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw) {
@@ -1205,7 +1209,7 @@ void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw) {
 
 FklVMvalue *fklCreateVMvalueFp(FklVM *exe, FILE *fp, FklVMfpRW rw) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &FpUserDataMetaTable, NULL);
-    FklVMfp *vfp = FKL_VM_FP(r);
+    FklVMvalueFp *vfp = FKL_VM_FP(r);
     vfp->fp = fp;
     vfp->rw = rw;
     return r;

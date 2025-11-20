@@ -1961,7 +1961,7 @@ static inline FklBuiltinErrorType get_process_options(
                         containers[i].data.fd = fd;
                         containers[i].flags = UV_INHERIT_FD;
                     } else if (fklIsVMvalueFp(stream)) {
-                        FklVMfp *fp = FKL_VM_FP(stream);
+                        FklVMvalueFp *fp = FKL_VM_FP(stream);
                         int fd = fklVMfpFileno(fp);
                         containers[i].data.fd = fd;
                         containers[i].flags = UV_INHERIT_FD;
@@ -6803,7 +6803,7 @@ static int fuv_print_all_handles(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(stream_obj, fklIsVMvalueFp, exe);
-    FklVMfp *vfp = FKL_VM_FP(stream_obj);
+    FklVMvalueFp *vfp = FKL_VM_FP(stream_obj);
     if (!vfp->fp)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     if (!(vfp->rw & FKL_VM_FP_W_MASK))
@@ -6820,7 +6820,7 @@ static int fuv_print_active_handles(FKL_CPROC_ARGL) {
     FklVMvalue *stream_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(stream_obj, fklIsVMvalueFp, exe);
-    FklVMfp *vfp = FKL_VM_FP(stream_obj);
+    FklVMvalueFp *vfp = FKL_VM_FP(stream_obj);
     if (!vfp->fp)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     if (!(vfp->rw & FKL_VM_FP_W_MASK))

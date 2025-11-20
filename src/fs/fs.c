@@ -46,7 +46,7 @@ static int fs_freopen(FKL_CPROC_ARGL) {
     if (!fklIsVMvalueFp(stream) || !FKL_IS_STR(filename)
             || (mode && !FKL_IS_STR(mode)))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FklVMfp *vfp = FKL_VM_FP(stream);
+    FklVMvalueFp *vfp = FKL_VM_FP(stream);
     if (vfp->fp == NULL)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     const char *modeStr = mode ? FKL_VM_STR(mode)->str : "r";
@@ -299,7 +299,7 @@ static int fs_fileno(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vfp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vfp, fklIsVMvalueFp, exe);
-    FklVMfp *fp = FKL_VM_FP(vfp);
+    FklVMvalueFp *fp = FKL_VM_FP(vfp);
     int fileno = fklVMfpFileno(fp);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_FIX(fileno));
     return 0;

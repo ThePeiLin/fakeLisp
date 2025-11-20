@@ -1635,7 +1635,7 @@ static int builtin_fclose(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vfp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vfp, fklIsVMvalueFp, exe);
-    FklVMfp *fp = FKL_VM_FP(vfp);
+    FklVMvalueFp *fp = FKL_VM_FP(vfp);
     if (fp->fp == NULL || fklUninitVMfp(fp))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -1691,7 +1691,7 @@ static void read_frame_finalizer(void *data) {
 
 static int read_frame_step(void *d, FklVM *exe) {
     ReadCtx *rctx = FKL_TYPE_CAST(ReadCtx *, d);
-    FklVMfp *vfp = FKL_VM_FP(rctx->vfp);
+    FklVMvalueFp *vfp = FKL_VM_FP(rctx->vfp);
     struct ParseCtx *pctx = rctx->pctx;
     FklStringBuffer *s = &rctx->buf;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe, NULL);
@@ -1900,7 +1900,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
 
 static int custom_read_frame_step(void *d, FklVM *exe) {
     ReadCtx *rctx = (ReadCtx *)d;
-    FklVMfp *vfp = FKL_VM_FP(rctx->vfp);
+    FklVMvalueFp *vfp = FKL_VM_FP(rctx->vfp);
     struct ParseCtx *pctx = rctx->pctx;
     FklStringBuffer *s = &rctx->buf;
 
@@ -3374,7 +3374,7 @@ static int builtin_error_type(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *err = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(err, fklIsVMvalueError, exe);
-    FklVMerror *error = FKL_VM_ERR(err);
+    FklVMvalueError *error = FKL_VM_ERR(err);
     FKL_CPROC_RETURN(exe, ctx, error->type);
     return 0;
 }
@@ -3383,7 +3383,7 @@ static int builtin_error_msg(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *err = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(err, fklIsVMvalueError, exe);
-    FklVMerror *error = FKL_VM_ERR(err);
+    FklVMvalueError *error = FKL_VM_ERR(err);
     FKL_CPROC_RETURN(exe, ctx, error->message);
     return 0;
 }
@@ -3473,7 +3473,7 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     EhFrameContext *c = FKL_TYPE_CAST(EhFrameContext *, f->data);
     FklVMpair *err_handlers = c->err_handlers;
     FklVMpair *const end = err_handlers + c->num;
-    FklVMerror *err = FKL_VM_ERR(errValue);
+    FklVMvalueError *err = FKL_VM_ERR(errValue);
     for (; err_handlers < end; ++err_handlers) {
         if (isShouldBeHandle(err_handlers->car, err->type)) {
             exe->bp = FKL_VM_FRAME_OF(c)->bp;

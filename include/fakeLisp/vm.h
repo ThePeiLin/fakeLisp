@@ -208,7 +208,10 @@ typedef struct {
         };                                                                     \
     } NAME
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, { FklVMfp fp; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
+    FILE *fp;
+    FklVMfpRW rw;
+});
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLibs, {
     uv_mutex_t lock;
@@ -725,12 +728,16 @@ typedef struct {
 } FklVMvalueCproc;
 
 // FKL_DEPRECATED
-typedef struct {
+// typedef struct {
+//     FklVMvalue *type;
+//     FklVMvalue *message;
+// } FklVMerror;
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueError, {
     FklVMvalue *type;
     FklVMvalue *message;
-} FklVMerror;
+});
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueError, { FklVMerror e; });
 FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, { FklVMchanl ch; });
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
@@ -1387,7 +1394,12 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef *)(V))
 
-#define FKL_VM_ERR(V) FKL_GET_UD_DATA(FklVMerror, FKL_VM_UD(V))
+// #define FKL_VM_ERR(V) FKL_GET_UD_DATA(FklVMerror, FKL_VM_UD(V))
+
+static FKL_ALWAYS_INLINE FklVMvalueError *FKL_VM_ERR(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueError(V));
+    return FKL_TYPE_CAST(FklVMvalueError *, V);
+}
 
 #define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl, FKL_VM_UD(V))
 
@@ -1398,7 +1410,12 @@ static FKL_ALWAYS_INLINE FklVMvalueDll *FKL_VM_DLL(const FklVMvalue *V) {
     return FKL_TYPE_CAST(FklVMvalueDll *, V);
 }
 
-#define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp, FKL_VM_UD(V))
+// #define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp, FKL_VM_UD(V))
+
+static FKL_ALWAYS_INLINE FklVMvalueFp *FKL_VM_FP(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueFp(V));
+    return FKL_TYPE_CAST(FklVMvalueFp *, V);
+}
 
 #define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt, FKL_VM_UD(V))
 
@@ -1483,11 +1500,11 @@ int fklVMvalueCmp(FklVMvalue *, FklVMvalue *, int *);
 
 FklVMfpRW fklGetVMfpRwFromCstr(const char *mode);
 
-int fklVMfpRewind(FklVMfp *vfp, FklStringBuffer *, size_t j);
-int fklVMfpEof(FklVMfp *);
-int fklVMfpFileno(FklVMfp *);
+int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *, size_t j);
+int fklVMfpEof(FklVMvalueFp *);
+int fklVMfpFileno(FklVMvalueFp *);
 
-int fklUninitVMfp(FklVMfp *);
+int fklUninitVMfp(FklVMvalueFp *);
 
 typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
 

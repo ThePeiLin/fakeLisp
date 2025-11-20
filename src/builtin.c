@@ -221,7 +221,7 @@ static FklVMvalue *__fkl_userdata_copy_append(FklVM *exe,
         uint32_t argc,
         FklVMvalue *const *base) {
     const FklVMud *ud = FKL_VM_UD(v);
-    FklVMudCopyAppendCb appender = ud->t->__copy_append;
+    FklVMudCopyAppendCb appender = ud->mt_->__copy_append;
     if (appender)
         return appender(exe, ud, argc, base);
     else
@@ -243,7 +243,7 @@ static int builtin_append(FKL_CPROC_ARGL) {
     }
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (FKL_IS_PTR(obj)) {
-        FklValueType type = (obj)->type;
+        FklValueType type = (obj)->type_;
         VMvalueCopyAppendCb copy_appender = CopyAppendCbs[type];
         if (copy_appender) {
             uint32_t const rest_argc = argc - 1;
@@ -294,7 +294,7 @@ __fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
 static int
 __fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
     FklVMud *ud = FKL_VM_UD(obj);
-    FklVMudAppendCb appender = ud->t->__append;
+    FklVMudAppendCb appender = ud->mt_->__append;
     if (appender)
         return appender(ud, argc, base);
     else
@@ -313,7 +313,7 @@ static int builtin_append1(FKL_CPROC_ARGL) {
     }
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (FKL_IS_PTR(obj)) {
-        FklValueType type = obj->type;
+        FklValueType type = obj->type_;
         VMvalueAppendCb appender = AppendCbs[type];
         if (appender) {
             uint32_t rest_argc = argc - 1;
@@ -946,11 +946,11 @@ i64_to_string(FklVM *exe, int64_t num, uint8_t radix, FklBigIntFmtFlags flags) {
 }
 
 static inline int is_to_str_able_ud(const FklVMud *u) {
-    return u->t->__as_prin1 != NULL || u->t->__as_princ != NULL;
+    return u->mt_->__as_prin1 != NULL || u->mt_->__as_princ != NULL;
 }
 
 static inline int is_writable_ud(const FklVMud *u) {
-    return u->t->__write != NULL;
+    return u->mt_->__write != NULL;
 }
 
 static inline int
@@ -1749,7 +1749,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueGra, { FklGrammer g; });
 static const FklVMudMetaTable CustomParserMetaTable;
 
 static inline int is_gra(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &CustomParserMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CustomParserMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueGra *as_gra(const FklVMvalue *v) {
@@ -4621,8 +4621,8 @@ static int builtin_hashequal_p(FKL_CPROC_ARGL) {
 static int builtin_eof_p(FKL_CPROC_ARGL) { PREDICATE(val == FKL_VM_EOF) }
 
 static int builtin_parser_p(FKL_CPROC_ARGL) {
-    PREDICATE(
-            FKL_IS_USERDATA(val) && FKL_VM_UD(val)->t == &CustomParserMetaTable)
+    PREDICATE(FKL_IS_USERDATA(val) //
+              && FKL_VM_UD(val)->mt_ == &CustomParserMetaTable)
 }
 
 static int builtin_exit(FKL_CPROC_ARGL) {

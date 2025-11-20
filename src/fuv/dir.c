@@ -26,7 +26,7 @@ static FklVMudMetaTable const FuvDirUdMetaTable = {
 };
 
 int isFuvDir(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &FuvDirUdMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FuvDirUdMetaTable;
 }
 
 FklVMvalue *

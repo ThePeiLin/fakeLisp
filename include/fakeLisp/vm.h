@@ -127,8 +127,8 @@ typedef struct {
 } FklVMvec;
 
 #define FKL_VM_UD_COMMON_HEADER                                                \
-    struct FklVMvalue *dll;                                                    \
-    const struct FklVMudMetaTable *t
+    struct FklVMvalue *dll_;                                                   \
+    const struct FklVMudMetaTable *mt_
 
 typedef struct {
     FKL_VM_UD_COMMON_HEADER;
@@ -142,10 +142,10 @@ typedef enum {
 } FklVMvalueMark;
 
 #define FKL_VM_VALUE_COMMON_HEADER                                             \
-    alignas(8) struct FklVMvalue *next;                                        \
-    struct FklVMvalue *gray_next;                                              \
-    FklVMvalueMark volatile mark : 32;                                         \
-    FklValueType type : 32
+    alignas(8) struct FklVMvalue *next_;                                       \
+    struct FklVMvalue *gray_next_;                                             \
+    FklVMvalueMark volatile mark_ : 32;                                        \
+    FklValueType type_ : 32
 
 typedef struct FklVMvalue {
     FKL_VM_VALUE_COMMON_HEADER;
@@ -1172,10 +1172,10 @@ FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
 
 #define FKL_VM_F64_STATIC_INIT(F64)                                            \
     ((FklVMvalueF64){                                                          \
-        .next = NULL,                                                          \
-        .gray_next = NULL,                                                     \
-        .mark = FKL_MARK_B,                                                    \
-        .type = FKL_TYPE_F64,                                                  \
+        .next_ = NULL,                                                         \
+        .gray_next_ = NULL,                                                    \
+        .mark_ = FKL_MARK_B,                                                   \
+        .type_ = FKL_TYPE_F64,                                                 \
         .f64 = (F64),                                                          \
     })
 
@@ -1216,10 +1216,10 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 
 #define FKL_VM_CPROC_STATIC_INIT(NAME, FUNC)                                   \
     ((FklVMvalueCproc){                                                        \
-        .next = NULL,                                                          \
-        .gray_next = NULL,                                                     \
-        .mark = FKL_MARK_B,                                                    \
-        .type = FKL_TYPE_CPROC,                                                \
+        .next_ = NULL,                                                         \
+        .gray_next_ = NULL,                                                    \
+        .mark_ = FKL_MARK_B,                                                   \
+        .type_ = FKL_TYPE_CPROC,                                               \
         .cproc = { .func = (FUNC), .name = (NAME), .dll = NULL, .pd = NULL },  \
     })
 
@@ -1682,7 +1682,7 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtV(
 
 #define X(A, B)                                                                \
     static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
-        return FKL_IS_PTR(p) && (p)->type == FKL_TYPE_##B;                     \
+        return FKL_IS_PTR(p) && (p)->type_ == FKL_TYPE_##B;                    \
     }
 FKL_VM_TYPE_X
 #undef X

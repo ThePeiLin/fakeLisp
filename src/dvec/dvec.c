@@ -6,7 +6,7 @@ static FklVMudMetaTable const DvecMetaTable;
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDvec, { FklVMvalueVector vec; });
 
 static inline int is_dvec_ud(const FklVMvalue *ud) {
-    return FKL_IS_USERDATA(ud) && FKL_VM_UD(ud)->t == &DvecMetaTable;
+    return FKL_IS_USERDATA(ud) && FKL_VM_UD(ud)->mt_ == &DvecMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueDvec *as_dvec(const FklVMvalue *v) {
@@ -134,7 +134,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
         else
             return NULL;
     }
-    FklVMvalue *new_vec_val = create_dvec(exe, new_size, v->dll);
+    FklVMvalue *new_vec_val = create_dvec(exe, new_size, v->dll_);
     FKL_DECL_VM_UD_DATA(new_vec, FklVMvalueVector, new_vec_val);
     new_size = dvec->size;
     if (new_vec->base)

@@ -247,7 +247,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        if (proc->type == FKL_TYPE_CPROC
+        if (proc->type_ == FKL_TYPE_CPROC
                 && fklGetCompoundFrameProc(frame) == proc) {
             frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;

@@ -4389,7 +4389,7 @@ create_fs_retval_sync(FklVM *exe, struct FuvFsReq *fs_req, FklVMvalue *pd) {
         r = statfs_to_vmtable(exe, req->ptr, fpd);
         break;
     case UV_FS_OPENDIR:
-        r = createFuvDir(exe, FKL_VM_UD(pd)->dll, req, fs_req->nentries);
+        r = createFuvDir(exe, FKL_VM_UD(pd)->dll_, req, fs_req->nentries);
         break;
     case UV_FS_READDIR:
         r = readdir_result_to_list(exe, req->result, req->ptr, fpd);
@@ -4539,7 +4539,7 @@ static void fuv_fs_cb_value_creator(FklVM *exe, void *a) {
         case UV_FS_OPENDIR:
             FKL_VM_PUSH_VALUE(exe,
                     createFuvDir(exe,
-                            FKL_VM_UD(fpd_obj)->dll,
+                            FKL_VM_UD(fpd_obj)->dll_,
                             req,
                             freq->nentries));
             break;

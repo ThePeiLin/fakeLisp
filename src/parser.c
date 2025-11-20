@@ -345,7 +345,7 @@ void *fklDefaultParseForCharBuf(const char *cstr,
 
 static FklVMudMetaTable const LntUserDataMetaTable;
 int fklIsVMvalueLnt(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &LntUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LntUserDataMetaTable;
 }
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLnt, { FklLineNumHashMap ht; });
@@ -370,7 +370,7 @@ static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
     const FklLineNumHashMapNode *cur = ht->first;
     while (cur) {
         const FklLineNumHashMapNode *next = cur->next;
-        if (cur->k->mark == FKL_MARK_W) {
+        if (cur->k->mark_ == FKL_MARK_W) {
             fklLineNumHashMapDel2(ht, cur->k);
         }
         cur = next;

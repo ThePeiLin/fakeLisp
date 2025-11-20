@@ -3,7 +3,7 @@
 
 static FklVMudMetaTable const HtUdMetaTable;
 static inline int IS_HASH_UD(const FklVMvalue *V) {
-    return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &HtUdMetaTable);
+    return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &HtUdMetaTable);
 }
 
 static int ht_hashv(FKL_CPROC_ARGL) {

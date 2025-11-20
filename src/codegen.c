@@ -3324,7 +3324,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
         }
 
         if (FKL_IS_PTR(p)) {
-            switch (p->type) {
+            switch (p->type_) {
             case FKL_TYPE_BOX:
                 fklVMpairVectorPushBack2(&s,
                         (FklVMpair){

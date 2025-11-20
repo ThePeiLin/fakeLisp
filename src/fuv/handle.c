@@ -275,7 +275,7 @@ void fuvHandleClose(FuvHandle *handle, uv_close_cb cb) {
 
 int isFuvHandle(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
-        const FklVMudMetaTable *t = FKL_VM_UD(v)->t;
+        const FklVMudMetaTable *t = FKL_VM_UD(v)->mt_;
         return t > &HandleMetaTables[UV_UNKNOWN_HANDLE]
             && t < &HandleMetaTables[UV_HANDLE_TYPE_MAX];
     }
@@ -294,7 +294,7 @@ init_fuv_handle(FuvHandle *handle, FklVMvalue *v, FklVMvalue *loop) {
 #define FUV_HANDLE_P(NAME, ENUM)                                               \
     int NAME(const FklVMvalue *v) {                                            \
         return FKL_IS_USERDATA(v)                                              \
-            && FKL_VM_UD(v)->t == &HandleMetaTables[ENUM];                     \
+            && FKL_VM_UD(v)->mt_ == &HandleMetaTables[ENUM];                   \
     }
 
 #define FUV_HANDLE_CREATOR(TYPE, NAME, ENUM)                                   \
@@ -427,7 +427,7 @@ uv_process_t *createFuvProcess(FklVM *vm,
 
 int isFuvStream(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
-        const FklVMudMetaTable *t = FKL_VM_UD(v)->t;
+        const FklVMudMetaTable *t = FKL_VM_UD(v)->mt_;
         return t == &HandleMetaTables[UV_NAMED_PIPE]
             || t == &HandleMetaTables[UV_TTY] || t == &HandleMetaTables[UV_TCP]
             || t == &HandleMetaTables[UV_STREAM];

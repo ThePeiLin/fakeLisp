@@ -1150,7 +1150,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
 static FklVMudMetaTable const MacroScopeUserDataMetaTable;
 int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
-        && FKL_VM_UD(v)->t == &MacroScopeUserDataMetaTable;
+        && FKL_VM_UD(v)->mt_ == &MacroScopeUserDataMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCodegenMacroScope *as_macro_scope(
@@ -1220,7 +1220,7 @@ FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
 static FklVMudMetaTable const EnvUserDataMetaTable;
 
 int fklIsVMvalueCodegenEnv(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &EnvUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &EnvUserDataMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCodegenEnv *as_env(const FklVMvalue *r) {
@@ -1333,7 +1333,7 @@ static void *replace_action(void *c,
 
 static FklVMudMetaTable const InfoUserDataMetaTable;
 int fklIsVMvalueCodegenInfo(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &InfoUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &InfoUserDataMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCodegenInfo *as_info(const FklVMvalue *r) {
@@ -1533,7 +1533,7 @@ void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
 static const FklVMudMetaTable CustomActionCtxUdMetaTable;
 
 static FKL_ALWAYS_INLINE int is_custom_ctx(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &CustomActionCtxUdMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CustomActionCtxUdMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCustomActionCtx *as_custom_ctx(
@@ -2535,7 +2535,7 @@ find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
 
 static const FklVMudMetaTable SimpleActionCtxUdMetaTable;
 static FKL_ALWAYS_INLINE int is_simple_ctx(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &SimpleActionCtxUdMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SimpleActionCtxUdMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueSimpleActionCtx *as_simple_ctx(

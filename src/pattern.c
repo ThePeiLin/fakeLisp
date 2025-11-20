@@ -32,7 +32,7 @@ static FklVMudMetaTable const SlotUserDataMetaTable = {
 };
 
 int fklIsVMvalueSlot(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &SlotUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SlotUserDataMetaTable;
 }
 
 FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s) {

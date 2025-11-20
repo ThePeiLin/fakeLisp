@@ -397,7 +397,7 @@ void fklPopVMframe(FklVM *exe) {
         break;
 
 void fklCallObj(FklVM *exe, FklVMvalue *proc) {
-    switch (proc->type) {
+    switch (proc->type_) {
     case FKL_TYPE_PROC:
         call_compound_procedure(exe, proc);
         break;
@@ -405,7 +405,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
         call_cproc(exe, proc);
         break;
     case FKL_TYPE_USERDATA:
-        FKL_VM_UD(proc)->t->__call(proc, exe);
+        FKL_VM_UD(proc)->mt_->__call(proc, exe);
         break;
     default:
         FKL_UNREACHABLE();
@@ -710,7 +710,7 @@ static FKL_ALWAYS_INLINE int do_callable_obj_frame_step(FklVMframe *f,
 
 void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc) {
     if (vm->obj_head) {
-        vm->obj_tail->next = gc->head;
+        vm->obj_tail->next_ = gc->head;
         gc->head = vm->obj_head;
         vm->obj_head = NULL;
         vm->obj_tail = NULL;
@@ -1176,7 +1176,7 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {
     FklVMvalueVarRef *ref =
             (FklVMvalueVarRef *)fklZcalloc(1, sizeof(FklVMvalueVarRef));
     FKL_ASSERT(ref);
-    ref->type = FKL_TYPE_VAR_REF;
+    ref->type_ = FKL_TYPE_VAR_REF;
     ref->ref = &FKL_VM_GET_ARG(exe, f, idx);
     ref->v = NULL;
     ref->idx = idx;
@@ -1186,10 +1186,10 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {
 
 #define VM_VAR_REF_STATIC_INIT(V)                                              \
     ((FklVMvalueVarRef){                                                       \
-        .next = NULL,                                                          \
-        .gray_next = NULL,                                                     \
-        .mark = FKL_MARK_B,                                                    \
-        .type = FKL_TYPE_VAR_REF,                                              \
+        .next_ = NULL,                                                         \
+        .gray_next_ = NULL,                                                    \
+        .mark_ = FKL_MARK_B,                                                   \
+        .type_ = FKL_TYPE_VAR_REF,                                             \
         .idx = UINT32_MAX,                                                     \
         .v = (V),                                                              \
     })
@@ -1203,7 +1203,7 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
     FklVMvalueVarRef *ref =
             (FklVMvalueVarRef *)fklZcalloc(1, sizeof(FklVMvalueVarRef));
     FKL_ASSERT(ref);
-    ref->type = FKL_TYPE_VAR_REF;
+    ref->type_ = FKL_TYPE_VAR_REF;
     ref->idx = UINT32_MAX;
     ref->v = v;
     ref->ref = &ref->v;

@@ -62,7 +62,7 @@ static FklVMudMetaTable const MutexUdMetaTable;
 FKL_VM_DEF_UD_STRUCT(FklVMvalueMutex, { uv_mutex_t l; });
 
 #define IS_MUTEX_UD(V)                                                         \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &MutexUdMetaTable)
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &MutexUdMetaTable)
 
 static FKL_ALWAYS_INLINE FklVMvalueMutex *as_mutex(const FklVMvalue *v) {
     FKL_ASSERT(IS_MUTEX_UD(v));
@@ -139,7 +139,7 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
 
 static FklVMudMetaTable const CondUdMetaTable;
 #define IS_COND_UD(V)                                                          \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &CondUdMetaTable)
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &CondUdMetaTable)
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCond, { uv_cond_t c; });
 
@@ -230,7 +230,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueRwlock, { uv_rwlock_t l; });
 
 static FklVMudMetaTable const RwlockUdMetaTable;
 #define IS_RWLOCK_UD(V)                                                        \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &RwlockUdMetaTable)
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &RwlockUdMetaTable)
 
 static FKL_ALWAYS_INLINE FklVMvalueRwlock *as_rwlock(const FklVMvalue *v) {
     FKL_ASSERT(IS_RWLOCK_UD(v));
@@ -336,7 +336,8 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, "sem");
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSem, { uv_sem_t s; });
 
-#define IS_SEM_UD(V) (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &SemUdMetaTable)
+#define IS_SEM_UD(V)                                                           \
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &SemUdMetaTable)
 
 static FklVMudMetaTable const SemUdMetaTable;
 static FKL_ALWAYS_INLINE FklVMvalueSem *as_sem(const FklVMvalue *v) {
@@ -409,7 +410,7 @@ static int sync_sem_trywait(FKL_CPROC_ARGL) {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueBarrier, { uv_barrier_t b; });
 static FklVMudMetaTable const BarrierUdMetaTable;
 #define IS_BARRIER_UD(V)                                                       \
-    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->t == &BarrierUdMetaTable)
+    (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &BarrierUdMetaTable)
 
 static FKL_ALWAYS_INLINE FklVMvalueBarrier *as_barrier(const FklVMvalue *v) {
     FKL_ASSERT(IS_BARRIER_UD(v));

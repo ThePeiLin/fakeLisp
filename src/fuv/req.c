@@ -207,7 +207,7 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
 int isFuvReq(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
-        const FklVMudMetaTable *t = FKL_VM_UD(v)->t;
+        const FklVMudMetaTable *t = FKL_VM_UD(v)->mt_;
         return t > &ReqMetaTables[UV_UNKNOWN_REQ]
             && t < &ReqMetaTables[UV_REQ_TYPE_MAX];
     }
@@ -226,7 +226,8 @@ static inline void init_fuv_req(FuvReq *req,
 
 #define FUV_REQ_P(NAME, ENUM)                                                  \
     int NAME(const FklVMvalue *v) {                                            \
-        return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &ReqMetaTables[ENUM];  \
+        return FKL_IS_USERDATA(v)                                              \
+            && FKL_VM_UD(v)->mt_ == &ReqMetaTables[ENUM];                      \
     }
 
 FUV_REQ_P(isFuvGetaddrinfo, UV_GETADDRINFO);

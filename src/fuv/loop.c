@@ -98,14 +98,14 @@ void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe) {
 }
 
 int isFuvLoop(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t == &FuvLoopMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FuvLoopMetaTable;
 }
 
 void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {
     FKL_ASSERT(isFuvLoop(loop_obj));
     fuv_loop_remove_obj_ref(v);
     FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
-    v->next = fuv_loop->data.gclist;
+    v->next_ = fuv_loop->data.gclist;
     fuv_loop->data.gclist = v;
 }
 

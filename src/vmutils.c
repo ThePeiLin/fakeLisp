@@ -758,7 +758,7 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    const FklVMudMetaTable *const t = ud->t;
+    const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb as_princ = NULL;
     // void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
     as_princ = t->__as_princ //
@@ -810,7 +810,7 @@ static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(
 };
 
 static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrincTable[v->type](v, build, exe);
+    VMvaluePtrPrincTable[v->type_](v, build, exe);
 }
 
 static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS) {
@@ -850,7 +850,7 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMud *ud = FKL_VM_UD(v);
-    const FklVMudMetaTable *const t = ud->t;
+    const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb as_prin1 = NULL;
     // void (*as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *) = NULL;
     as_prin1 = t->__as_prin1 //
@@ -875,7 +875,7 @@ static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(
 };
 
 static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrin1Table[v->type](v, build, exe);
+    VMvaluePtrPrin1Table[v->type_](v, build, exe);
 }
 
 static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {

@@ -7,9 +7,9 @@
 
 void fklVMgcToGray(const FklVMvalue *v_, FklVMgc *gc) {
     FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, v_);
-    if (v && FKL_IS_PTR(v) && v->mark < FKL_MARK_G) {
-        v->mark = FKL_MARK_G;
-        v->gray_next = gc->gray_list;
+    if (v && FKL_IS_PTR(v) && v->mark_ < FKL_MARK_G) {
+        v->mark_ = FKL_MARK_G;
+        v->gray_next_ = gc->gray_list;
         gc->gray_list = v;
     }
 }
@@ -196,7 +196,7 @@ static void atomic_var_ref(FklVMvalue *ref, FklVMgc *gc) {
 }
 
 static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
-    FKL_ASSERT(root->type < FKL_VM_VALUE_GC_TYPE_NUM);
+    FKL_ASSERT(root->type_ < FKL_VM_VALUE_GC_TYPE_NUM);
     static void (*const
                     fkl_atomic_value_method_table[FKL_VM_VALUE_GC_TYPE_NUM])(
             FklVMvalue *,
@@ -211,25 +211,25 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
         [FKL_TYPE_VAR_REF] = atomic_var_ref,
     };
     void (*atomic_value_func)(FklVMvalue *, FklVMgc *) =
-            fkl_atomic_value_method_table[root->type];
+            fkl_atomic_value_method_table[root->type_];
     if (atomic_value_func)
         atomic_value_func(root, gc);
 }
 
 static inline int is_weak_ref_value(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->t->__update_weak_ref != NULL;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_->__update_weak_ref != NULL;
 }
 
 int fklVMgcPropagate(FklVMgc *gc) {
     FklVMvalue *v = gc->gray_list;
     if (v) {
-        gc->gray_list = v->gray_next;
-        v->gray_next = NULL;
-        if (v->mark == FKL_MARK_G) {
-            v->mark = FKL_MARK_B;
+        gc->gray_list = v->gray_next_;
+        v->gray_next_ = NULL;
+        if (v->mark_ == FKL_MARK_G) {
+            v->mark_ = FKL_MARK_B;
             propagateMark(v, gc);
             if (is_weak_ref_value(v)) {
-                v->gray_next = gc->weak_refs;
+                v->gray_next_ = gc->weak_refs;
                 gc->weak_refs = v;
             }
         }
@@ -242,10 +242,10 @@ void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
     while (v) {
         FKL_ASSERT(is_weak_ref_value(v));
         // FklVMud *ud = FKL_VM_UD(v);
-        FKL_VM_UD(v)->t->__update_weak_ref(v, gc);
+        FKL_VM_UD(v)->mt_->__update_weak_ref(v, gc);
 
-        gc->weak_refs = v->gray_next;
-        v->gray_next = NULL;
+        gc->weak_refs = v->gray_next_;
+        v->gray_next_ = NULL;
 
         v = gc->weak_refs;
     }
@@ -258,13 +258,13 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     FklVMvalue **phead = &head;
     while (*phead) {
         FklVMvalue *cur = *phead;
-        if (cur->mark == FKL_MARK_W) {
-            *phead = cur->next;
-            cur->next = *pw;
+        if (cur->mark_ == FKL_MARK_W) {
+            *phead = cur->next_;
+            cur->next_ = *pw;
             *pw = cur;
         } else {
-            cur->mark = FKL_MARK_W;
-            phead = &cur->next;
+            cur->mark_ = FKL_MARK_W;
+            phead = &cur->next_;
         }
     }
     *phead = gc->head;
@@ -272,14 +272,14 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
 }
 
 static inline int finalize_ud(FklVMvalue *a, FklVMgc *gc) {
-    int (*finalize)(FklVMvalue *, FklVMgc *) = FKL_VM_UD(a)->t->__finalizer;
+    int (*finalize)(FklVMvalue *, FklVMgc *) = FKL_VM_UD(a)->mt_->__finalizer;
     if (finalize)
         return finalize(a, gc);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
-    switch (cur->type) {
+    switch (cur->type_) {
     case FKL_TYPE_USERDATA:
         if (finalize_ud(cur, gc) == FKL_VM_UD_FINALIZE_DELAY)
             return;
@@ -313,8 +313,8 @@ void fklVMgcSweep(FklVMgc *gc, FklVMvalue *head) {
     FklVMvalue **phead = &head;
     while (*phead) {
         FklVMvalue *cur = *phead;
-        *phead = cur->next;
-        cur->next = NULL;
+        *phead = cur->next_;
+        cur->next_ = NULL;
         destroy_vm_value(gc, cur);
     }
 }
@@ -549,7 +549,7 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc,
 
 void fklAddToGC(FklVMvalue *v, FklVM *vm) {
     if (FKL_IS_PTR(v)) {
-        v->next = vm->obj_head;
+        v->next_ = vm->obj_head;
         vm->obj_head = v;
         if (!vm->obj_tail)
             vm->obj_tail = v;
@@ -751,7 +751,7 @@ void fklVMclearSymbol(FklVMgc *gc) {
 void fklVMrestoreSymbol(FklVMgc *gc) {
     uv_mutex_lock(&gc->obarray->lock);
     FklStrValueHashMap *ht = &gc->obarray->map;
-    for (FklVMvalue *cur = gc->head; cur; cur = cur->next) {
+    for (FklVMvalue *cur = gc->head; cur; cur = cur->next_) {
         if (FKL_IS_SYM(cur) && FKL_VM_SYM_INTERNED(cur)) {
             FklVMvalue *r = add_symbol_value_unlock(ht, cur);
             FKL_ASSERT(r == cur);

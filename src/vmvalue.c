@@ -443,12 +443,12 @@ void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
         init(dll, exe);
 }
 
-static inline void chanl_push_recv(FklVMchanl *ch, FklVMchanlRecv *recv) {
+static inline void chanl_push_recv(FklVMvalueChanl *ch, FklVMchanlRecv *recv) {
     *(ch->recvq.tail) = recv;
     ch->recvq.tail = &recv->next;
 }
 
-static inline FklVMchanlRecv *chanl_pop_recv(FklVMchanl *ch) {
+static inline FklVMchanlRecv *chanl_pop_recv(FklVMvalueChanl *ch) {
     FklVMchanlRecv *r = ch->recvq.head;
     if (r) {
         ch->recvq.head = r->next;
@@ -458,12 +458,12 @@ static inline FklVMchanlRecv *chanl_pop_recv(FklVMchanl *ch) {
     return r;
 }
 
-static inline void chanl_push_send(FklVMchanl *ch, FklVMchanlSend *send) {
+static inline void chanl_push_send(FklVMvalueChanl *ch, FklVMchanlSend *send) {
     *(ch->sendq.tail) = send;
     ch->sendq.tail = &send->next;
 }
 
-static inline FklVMchanlSend *chanl_pop_send(FklVMchanl *ch) {
+static inline FklVMchanlSend *chanl_pop_send(FklVMvalueChanl *ch) {
     FklVMchanlSend *s = ch->sendq.head;
     if (s) {
         ch->sendq.head = s->next;
@@ -473,20 +473,20 @@ static inline FklVMchanlSend *chanl_pop_send(FklVMchanl *ch) {
     return s;
 }
 
-static inline void chanl_push_msg(FklVMchanl *c, FklVMvalue *msg) {
+static inline void chanl_push_msg(FklVMvalueChanl *c, FklVMvalue *msg) {
     c->buf[c->sendx] = msg;
     c->sendx = (c->sendx + 1) % c->qsize;
     c->count++;
 }
 
-static inline FklVMvalue *chanl_pop_msg(FklVMchanl *c) {
+static inline FklVMvalue *chanl_pop_msg(FklVMvalueChanl *c) {
     FklVMvalue *r = c->buf[c->recvx];
     c->recvx = (c->recvx + 1) % c->qsize;
     c->count--;
     return r;
 }
 
-int fklChanlRecvOk(FklVMchanl *ch, FklVMvalue **slot) {
+int fklChanlRecvOk(FklVMvalueChanl *ch, FklVMvalue **slot) {
     uv_mutex_lock(&ch->lock);
     FklVMchanlSend *send = chanl_pop_send(ch);
     if (send) {
@@ -508,7 +508,7 @@ int fklChanlRecvOk(FklVMchanl *ch, FklVMvalue **slot) {
     }
 }
 
-void fklChanlRecv(FklVMchanl *ch, uint32_t slot, FklVM *exe) {
+void fklChanlRecv(FklVMvalueChanl *ch, uint32_t slot, FklVM *exe) {
     uv_mutex_lock(&ch->lock);
     FklVMchanlSend *send = chanl_pop_send(ch);
     if (send) {
@@ -542,7 +542,7 @@ void fklChanlRecv(FklVMchanl *ch, uint32_t slot, FklVM *exe) {
     }
 }
 
-void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
+void fklChanlSend(FklVMvalueChanl *ch, FklVMvalue *msg, FklVM *exe) {
     uv_mutex_lock(&ch->lock);
     FklVMchanlRecv *recv = chanl_pop_recv(ch);
     if (recv) {
@@ -571,7 +571,7 @@ void fklChanlSend(FklVMchanl *ch, FklVMvalue *msg, FklVM *exe) {
     }
 }
 
-uint64_t fklVMchanlRecvqLen(FklVMchanl *ch) {
+uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch) {
     uint64_t l = 0;
     uv_mutex_lock(&ch->lock);
     for (FklVMchanlRecv *q = ch->recvq.head; q; q = q->next)
@@ -580,7 +580,7 @@ uint64_t fklVMchanlRecvqLen(FklVMchanl *ch) {
     return l;
 }
 
-uint64_t fklVMchanlSendqLen(FklVMchanl *ch) {
+uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch) {
     uint64_t l = 0;
     uv_mutex_lock(&ch->lock);
     for (FklVMchanlSend *q = ch->sendq.head; q; q = q->next)
@@ -589,7 +589,7 @@ uint64_t fklVMchanlSendqLen(FklVMchanl *ch) {
     return l;
 }
 
-uint64_t fklVMchanlMessageNum(FklVMchanl *ch) {
+uint64_t fklVMchanlMessageNum(FklVMvalueChanl *ch) {
     uint64_t r = 0;
     uv_mutex_lock(&ch->lock);
     r = ch->count;
@@ -597,7 +597,7 @@ uint64_t fklVMchanlMessageNum(FklVMchanl *ch) {
     return r;
 }
 
-int fklVMchanlFull(FklVMchanl *ch) {
+int fklVMchanlFull(FklVMvalueChanl *ch) {
     int r = 0;
     uv_mutex_lock(&ch->lock);
     r = ch->count >= ch->qsize;
@@ -605,7 +605,7 @@ int fklVMchanlFull(FklVMchanl *ch) {
     return r;
 }
 
-int fklVMchanlEmpty(FklVMchanl *ch) {
+int fklVMchanlEmpty(FklVMvalueChanl *ch) {
     int r = 0;
     uv_mutex_lock(&ch->lock);
     r = ch->count == 0;
@@ -1111,14 +1111,14 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq *q) {
 
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_chanl_userdata_as_print, "chanl");
 
-static FKL_ALWAYS_INLINE FklVMvalueChanl *as_chanl(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueChanl(v));
-    return FKL_TYPE_CAST(FklVMvalueChanl *, v);
-}
+// static FKL_ALWAYS_INLINE FklVMvalueChanl *as_chanl(const FklVMvalue *v) {
+//     FKL_ASSERT(fklIsVMvalueChanl(v));
+//     return FKL_TYPE_CAST(FklVMvalueChanl *, v);
+// }
 
 static void _chanl_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(ch, FklVMchanl, root);
-    FklVMchanl *ch = &as_chanl(root)->ch;
+    FklVMvalueChanl *ch = FKL_VM_CHANL(root);
 
     if (ch->recvx < ch->sendx) {
 
@@ -1153,7 +1153,7 @@ FklVMvalue *fklCreateVMvalueChanl(FklVM *exe, uint32_t qsize) {
             &ChanlUserDataMetaTable,
             sizeof(FklVMvalue *) * qsize,
             NULL);
-    FklVMchanl *ch = FKL_VM_CHANL(r);
+    FklVMvalueChanl *ch = FKL_VM_CHANL(r);
     ch->qsize = qsize;
     uv_mutex_init(&ch->lock);
     init_chanl_sendq(&ch->sendq);

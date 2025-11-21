@@ -46,36 +46,27 @@ typedef struct {
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
-#define FKL_CODEGEN_ENV_MEMBERS                                                \
-    FklUnReSymbolRefVector uref;                                               \
-    uint8_t *slotFlags;                                                        \
-    FklCodegenEnvScope *scopes;                                                \
-    uint32_t lcount;                                                           \
-    uint32_t sc;                                                               \
-    uint32_t pscope;                                                           \
-    uint32_t prototypeId;                                                      \
-    struct FklVMvalueCodegenEnv *prev;                                         \
-    struct FklVMvalueCodegenMacroScope *macros;                                \
-    FklSymDefHashMap refs;                                                     \
-    FklPredefHashMap pdef;                                                     \
-    FklValueTable konsts;                                                      \
-    struct FklPreDefRefVector ref_pdef;                                        \
-    int is_debugging
-
 // FKL_DEPRECATED
-struct FklCodegenEnv {
-    FKL_CODEGEN_ENV_MEMBERS;
-};
+// struct FklCodegenEnv {
+//     FKL_CODEGEN_ENV_MEMBERS;
+// };
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, //
-        {                                  //
-            union {
-                struct FklCodegenEnv _env;
-                alignas(struct FklCodegenEnv) struct {
-                    FKL_CODEGEN_ENV_MEMBERS;
-                };
-            };
-        });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, {
+    FklUnReSymbolRefVector uref;
+    uint8_t *slotFlags;
+    FklCodegenEnvScope *scopes;
+    uint32_t lcount;
+    uint32_t sc;
+    uint32_t pscope;
+    uint32_t prototypeId;
+    struct FklVMvalueCodegenEnv *prev;
+    struct FklVMvalueCodegenMacroScope *macros;
+    FklSymDefHashMap refs;
+    FklPredefHashMap pdef;
+    FklValueTable konsts;
+    struct FklPreDefRefVector ref_pdef;
+    int is_debugging;
+});
 
 typedef struct {
     FklVMvalueCodegenEnv *top_env;
@@ -117,25 +108,16 @@ typedef struct FklCodegenMacro {
     }
 #include "cont/hash.h"
 
-#define FKL_CODEGEN_MACRO_SCOPE_MEMBERS                                        \
-    struct FklVMvalueCodegenMacroScope *prev;                                  \
-    FklReplacementHashMap *replacements;                                       \
-    FklCodegenMacro *head
-
 // FKL_DEPRECATED
-struct FklCodegenMacroScope {
-    FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
-};
+// struct FklCodegenMacroScope {
+//     FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
+// };
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope,
-        { //
-            union {
-                struct FklCodegenMacroScope _ms;
-                alignas(struct FklCodegenMacroScope) struct {
-                    FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
-                };
-            };
-        });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope, {
+    struct FklVMvalueCodegenMacroScope *prev;
+    FklReplacementHashMap *replacements;
+    FklCodegenMacro *head;
+});
 
 typedef enum FklCodegenLibType {
     FKL_CODEGEN_LIB_SCRIPT = 0,
@@ -345,52 +327,38 @@ typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
         FklVMvalueCodegenEnv *,
         void *);
 
-#define FKL_CODEGEN_INFO_MEMBERS                                               \
-    FklCodegenCtx *ctx;                                                        \
-    struct FklVMvalueCodegenInfo *prev;                                        \
-    char *filename;                                                            \
-    char *realpath;                                                            \
-    char *dir;                                                                 \
-    uint64_t curline;                                                          \
-    FklVMvalue *fid;                                                           \
-    struct {                                                                   \
-        FklGrammer *self_g;                                                    \
-        FklGrammer self_unnamed_g;                                             \
-        FklGraProdGroupHashMap self_named_prod_groups;                         \
-    };                                                                         \
-    FklGrammer **g;                                                            \
-    FklGrammer *unnamed_g;                                                     \
-    FklGraProdGroupHashMap *named_prod_groups;                                 \
-    FklVMvalueCodegenEnv *global_env;                                          \
-    uint64_t epc;                                                              \
-    FklCgExportSidIdxHashMap exports;                                          \
-    FklCodegenMacro *export_macro;                                             \
-    FklReplacementHashMap *export_replacement;                                 \
-    FklVMvalueHashSet *export_named_prod_groups;                               \
-    FklCodegenLibVector *libraries;                                            \
-    FklVMvalueProtos *pts;                                                     \
-    unsigned int is_lib : 1;                                                   \
-    unsigned int is_macro : 1;                                                 \
-    struct {                                                                   \
-        void *work_ctx;                                                        \
-        FklCodegenInfoWorkCb work_cb;                                          \
-        FklCodegenInfoEnvWorkCb env_work_cb;                                   \
-    }
-
-// FKL_DEPRECATED
-struct FklCodegenInfo {
-    FKL_CODEGEN_INFO_MEMBERS;
-};
-
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, //
-        {                                   //
-            union {
-                struct FklCodegenInfo _info;
-                alignas(struct FklCodegenInfo) struct {
-                    FKL_CODEGEN_INFO_MEMBERS;
-                };
-            };
-        });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, {
+    FklCodegenCtx *ctx;
+    struct FklVMvalueCodegenInfo *prev;
+    char *filename;
+    char *realpath;
+    char *dir;
+    uint64_t curline;
+    FklVMvalue *fid;
+    struct {
+        FklGrammer *self_g;
+        FklGrammer self_unnamed_g;
+        FklGraProdGroupHashMap self_named_prod_groups;
+    };
+    FklGrammer **g;
+    FklGrammer *unnamed_g;
+    FklGraProdGroupHashMap *named_prod_groups;
+    FklVMvalueCodegenEnv *global_env;
+    uint64_t epc;
+    FklCgExportSidIdxHashMap exports;
+    FklCodegenMacro *export_macro;
+    FklReplacementHashMap *export_replacement;
+    FklVMvalueHashSet *export_named_prod_groups;
+    FklCodegenLibVector *libraries;
+    FklVMvalueProtos *pts;
+    unsigned int is_lib : 1;
+    unsigned int is_macro : 1;
+    struct {
+        void *work_ctx;
+        FklCodegenInfoWorkCb work_cb;
+        FklCodegenInfoEnvWorkCb env_work_cb;
+    };
+});
 
 typedef struct {
     size_t size;

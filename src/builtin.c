@@ -3284,7 +3284,7 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = NULL;
     FklVMvalue **cur = &r;
     if (fklIsVMvalueChanl(obj)) {
-        FklVMchanl *ch = FKL_VM_CHANL(obj);
+        FklVMvalueChanl *ch = FKL_VM_CHANL(obj);
         uv_mutex_lock(&ch->lock);
         if (ch->recvx < ch->sendx) {
 
@@ -3329,7 +3329,7 @@ static int builtin_recv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *ch = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(ch, fklIsVMvalueChanl, exe);
-    FklVMchanl *chanl = FKL_VM_CHANL(ch);
+    FklVMvalueChanl *chanl = FKL_VM_CHANL(ch);
     if (argc > 1) {
         FklVMvalue *okBox = FKL_CPROC_GET_ARG(exe, ctx, 1);
         FKL_CHECK_TYPE(okBox, FKL_IS_BOX, exe);
@@ -3349,7 +3349,7 @@ static int builtin_recv7(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *ch = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(ch, fklIsVMvalueChanl, exe);
-    FklVMchanl *chanl = FKL_VM_CHANL(ch);
+    FklVMvalueChanl *chanl = FKL_VM_CHANL(ch);
     FklVMvalue *r = FKL_VM_NIL;
     if (fklChanlRecvOk(chanl, &r))
         FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueBox(exe, r));

@@ -1391,7 +1391,7 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
         fklZfree(g);
     }
 
-    memset(i, 0, sizeof(struct FklCodegenInfo));
+    memset(i, 0, sizeof(FklVMvalueCodegenInfo));
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -1533,7 +1533,8 @@ void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
 static const FklVMudMetaTable CustomActionCtxUdMetaTable;
 
 static FKL_ALWAYS_INLINE int is_custom_ctx(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CustomActionCtxUdMetaTable;
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->mt_ == &CustomActionCtxUdMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCustomActionCtx *as_custom_ctx(
@@ -2535,7 +2536,8 @@ find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
 
 static const FklVMudMetaTable SimpleActionCtxUdMetaTable;
 static FKL_ALWAYS_INLINE int is_simple_ctx(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SimpleActionCtxUdMetaTable;
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->mt_ == &SimpleActionCtxUdMetaTable;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueSimpleActionCtx *as_simple_ctx(

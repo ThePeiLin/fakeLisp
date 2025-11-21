@@ -64,25 +64,25 @@ typedef enum {
 //     struct FklVMvalue *pd;
 // } FklVMdll;
 
-typedef struct {
-    struct FklVMchanlRecvq {
-        struct FklVMchanlRecv *head;
-        struct FklVMchanlRecv **tail;
-    } recvq;
-
-    struct FklVMchanlSendq {
-        struct FklVMchanlSend *head;
-        struct FklVMchanlSend **tail;
-    } sendq;
-
-    uv_mutex_t lock;
-
-    uint32_t recvx;
-    uint32_t sendx;
-    uint32_t count;
-    uint32_t qsize;
-    struct FklVMvalue *buf[];
-} FklVMchanl;
+// typedef struct {
+//     struct FklVMchanlRecvq {
+//         struct FklVMchanlRecv *head;
+//         struct FklVMchanlRecv **tail;
+//     } recvq;
+//
+//     struct FklVMchanlSendq {
+//         struct FklVMchanlSend *head;
+//         struct FklVMchanlSend **tail;
+//     } sendq;
+//
+//     uv_mutex_t lock;
+//
+//     uint32_t recvx;
+//     uint32_t sendx;
+//     uint32_t count;
+//     uint32_t qsize;
+//     struct FklVMvalue *buf[];
+// } FklVMchanl;
 
 typedef struct FklVMchanlSend {
     struct FklVMchanlSend *next;
@@ -738,7 +738,26 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueError, {
     FklVMvalue *message;
 });
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, { FklVMchanl ch; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
+    struct FklVMchanlRecvq {
+        struct FklVMchanlRecv *head;
+        struct FklVMchanlRecv **tail;
+    } recvq;
+
+    struct FklVMchanlSendq {
+        struct FklVMchanlSend *head;
+        struct FklVMchanlSend **tail;
+    } sendq;
+
+    uv_mutex_t lock;
+
+    uint32_t recvx;
+    uint32_t sendx;
+    uint32_t count;
+    uint32_t qsize;
+    struct FklVMvalue *buf[];
+});
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
@@ -1401,7 +1420,12 @@ static FKL_ALWAYS_INLINE FklVMvalueError *FKL_VM_ERR(const FklVMvalue *V) {
     return FKL_TYPE_CAST(FklVMvalueError *, V);
 }
 
-#define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl, FKL_VM_UD(V))
+// #define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl, FKL_VM_UD(V))
+
+static FKL_ALWAYS_INLINE FklVMvalueChanl *FKL_VM_CHANL(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueChanl(V));
+    return FKL_TYPE_CAST(FklVMvalueChanl *, V);
+}
 
 // #define FKL_VM_DLL(V) FKL_GET_UD_DATA(FklVMdll, FKL_VM_UD(V))
 
@@ -1516,11 +1540,11 @@ typedef void (*FklDllUninitFunc)(void);
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *);
 
-uint64_t fklVMchanlRecvqLen(FklVMchanl *ch);
-uint64_t fklVMchanlSendqLen(FklVMchanl *ch);
-uint64_t fklVMchanlMessageNum(FklVMchanl *ch);
-int fklVMchanlFull(FklVMchanl *ch);
-int fklVMchanlEmpty(FklVMchanl *ch);
+uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);
+uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch);
+uint64_t fklVMchanlMessageNum(FklVMvalueChanl *ch);
+int fklVMchanlFull(FklVMvalueChanl *ch);
+int fklVMchanlEmpty(FklVMvalueChanl *ch);
 
 void fklVMsleep(FklVM *, uint64_t ms);
 
@@ -1557,9 +1581,9 @@ void fklSetThreadReadyToExit(FklVM *);
 void fklVMstopTheWorld(FklVMgc *);
 void fklVMcontinueTheWorld(FklVMgc *);
 
-void fklChanlSend(FklVMchanl *, FklVMvalue *msg, FklVM *);
-void fklChanlRecv(FklVMchanl *, uint32_t, FklVM *);
-int fklChanlRecvOk(FklVMchanl *, FklVMvalue **);
+void fklChanlSend(FklVMvalueChanl *, FklVMvalue *msg, FklVM *);
+void fklChanlRecv(FklVMvalueChanl *, uint32_t, FklVM *);
+int fklChanlRecvOk(FklVMvalueChanl *, FklVMvalue **);
 
 #define FKL_GET_UD_DATA(TYPE, UD) ((TYPE *)(UD)->data)
 #define FKL_DECL_UD_DATA(NAME, TYPE, UD) TYPE *NAME = FKL_GET_UD_DATA(TYPE, UD)

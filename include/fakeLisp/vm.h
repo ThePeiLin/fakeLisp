@@ -130,10 +130,10 @@ typedef struct {
     struct FklVMvalue *dll_;                                                   \
     const struct FklVMudMetaTable *mt_
 
-typedef struct {
-    FKL_VM_UD_COMMON_HEADER;
-    void *data[];
-} FklVMud;
+// typedef struct {
+//     FKL_VM_UD_COMMON_HEADER;
+//     void *data[];
+// } FklVMud;
 
 typedef enum {
     FKL_MARK_W = 0,
@@ -194,19 +194,24 @@ typedef struct {
     FklBytevector bvec;
 } FklVMvalueBvec;
 
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    FklVMud ud;
-} FklVMvalueUd;
+// typedef struct {
+//     FKL_VM_VALUE_COMMON_HEADER;
+//     FklVMud ud;
+// } FklVMvalueUd;
 
 #define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
     typedef struct NAME {                                                      \
         FKL_VM_VALUE_COMMON_HEADER;                                            \
-        alignas(FklVMud) struct {                                              \
+        alignas(struct {                                                       \
+            FKL_VM_UD_COMMON_HEADER;                                           \
+            void *data[];                                                      \
+        }) struct {                                                            \
             FKL_VM_UD_COMMON_HEADER;                                           \
             struct MEMBERS;                                                    \
         };                                                                     \
     } NAME
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
     FILE *fp;
@@ -525,11 +530,11 @@ typedef struct {
 } FklValueTable;
 
 typedef FklVMvalue *(*FklVMudCopyAppendCb)(FklVM *exe,
-        const FklVMud *ud,
+        const FklVMvalue *ud,
         uint32_t argc,
         FklVMvalue *const *base);
-typedef int (*FklVMudAppendCb)(FklVMud *, //
-        uint32_t argc,                    //
+typedef int (*FklVMudAppendCb)(FklVMvalue *, //
+        uint32_t argc,                       //
         FklVMvalue *const *base);
 
 typedef void (*FklVMudPrintCb)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
@@ -1318,6 +1323,28 @@ FklVMvalue *fklVMvalueEof(void);
 
 // value getters
 
+#define FKL_UNUSEDBITNUM (3)
+#define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
+#define FKL_TAG_MASK ((intptr_t)0x7)
+
+#define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P)) & FKL_TAG_MASK))
+#define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P)) & FKL_PTR_MASK))
+#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))
+#define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
+#define FKL_GET_SYM(P) (P)
+
+#define FKL_IS_NIL(P) ((P) == FKL_VM_NIL)
+#define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
+#define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)
+#define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
+
+#define X(A, B)                                                                \
+    static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
+        return FKL_IS_PTR(p) && (p)->type_ == FKL_TYPE_##B;                    \
+    }
+FKL_VM_TYPE_X
+#undef X
+
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CAR(const FklVMvalue *V) {
     return &(((FklVMvaluePair *)(V))->pair.car);
 }
@@ -1393,8 +1420,10 @@ static FKL_ALWAYS_INLINE FklVMbigInt *FKL_VM_BI(const FklVMvalue *V) {
 
 // #define FKL_VM_BI(V) (&(((FklVMvalueBigInt *)(V))->bi))
 
-static FKL_ALWAYS_INLINE FklVMud *FKL_VM_UD(const FklVMvalue *V) {
-    return (&(((FklVMvalueUd *)(V))->ud));
+static FKL_ALWAYS_INLINE FklVMvalueUd *FKL_VM_UD(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_USERDATA(V));
+    return FKL_TYPE_CAST(FklVMvalueUd *, V);
+    // (&(((FklVMvalueUd *)(V))->ud));
 }
 
 // #define FKL_VM_UD(V) (&(((FklVMvalueUd *)(V))->ud))
@@ -1441,7 +1470,12 @@ static FKL_ALWAYS_INLINE FklVMvalueFp *FKL_VM_FP(const FklVMvalue *V) {
     return FKL_TYPE_CAST(FklVMvalueFp *, V);
 }
 
-#define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt, FKL_VM_UD(V))
+// #define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt, FKL_VM_UD(V))
+
+static FKL_ALWAYS_INLINE FklByteCodelnt *FKL_VM_CO(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueCodeObj(V));
+    return &FKL_TYPE_CAST(FklVMvalueCodeObj *, V)->bcl;
+}
 
 #define FKL_VM_VAR_REF_GET(V) ((atomic_load(&(FKL_VM_VAR_REF(V)->ref))))
 
@@ -1528,6 +1562,7 @@ int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *, size_t j);
 int fklVMfpEof(FklVMvalueFp *);
 int fklVMfpFileno(FklVMvalueFp *);
 
+FKL_DEPRECATED
 int fklUninitVMfp(FklVMvalueFp *);
 
 typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
@@ -1696,34 +1731,12 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtV(
             (FMT),                                                             \
             &((FklVMvalue *[]){ NULL, ##__VA_ARGS__, NULL })[1]);
 
-#define FKL_UNUSEDBITNUM (3)
-#define FKL_PTR_MASK ((intptr_t)0xFFFFFFFFFFFFFFF8)
-#define FKL_TAG_MASK ((intptr_t)0x7)
-
 #define FKL_VM_NIL ((FklVMptr)0x1)
 #define FKL_VM_TRUE (FKL_MAKE_VM_FIX(1))
 #define FKL_MAKE_VM_FIX(I)                                                     \
     ((FklVMptr)((((uintptr_t)(I)) << FKL_UNUSEDBITNUM) | FKL_TAG_FIX))
 #define FKL_MAKE_VM_CHR(C)                                                     \
     ((FklVMptr)((((uintptr_t)(C)) << FKL_UNUSEDBITNUM) | FKL_TAG_CHR))
-
-#define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P)) & FKL_TAG_MASK))
-#define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P)) & FKL_PTR_MASK))
-#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))
-#define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
-#define FKL_GET_SYM(P) (P)
-
-#define FKL_IS_NIL(P) ((P) == FKL_VM_NIL)
-#define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
-#define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)
-#define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
-
-#define X(A, B)                                                                \
-    static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
-        return FKL_IS_PTR(p) && (p)->type_ == FKL_TYPE_##B;                    \
-    }
-FKL_VM_TYPE_X
-#undef X
 
 #define HASH_P(T)                                                              \
     static FKL_ALWAYS_INLINE int FKL_IS_HASHTABLE_##T(const FklVMvalue *p) {   \

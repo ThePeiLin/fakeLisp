@@ -56,8 +56,10 @@ static int _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static int _dvec_append(FklVMud *ud, uint32_t argc, FklVMvalue *const *base) {
-    FKL_DECL_UD_DATA(dvec, FklVMvalueVector, ud);
+static int
+_dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
+    // FKL_DECL_UD_DATA(dvec, FklVMvalueVector, ud);
+    FklVMvalueVector *dvec = &as_dvec(ud)->vec;
     size_t new_size = dvec->size;
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
@@ -119,10 +121,12 @@ create_dvec2(FklVM *exe, size_t size, FklVMvalue *const *ptr, FklVMvalue *dll) {
 }
 
 static FklVMvalue *_dvec_copy_append(FklVM *exe,
-        const FklVMud *v,
+        const FklVMvalue *v_,
         uint32_t argc,
         FklVMvalue *const *base) {
-    FKL_DECL_UD_DATA(dvec, FklVMvalueVector, v);
+    // FKL_DECL_UD_DATA(dvec, FklVMvalueVector, v);
+    FklVMvalueDvec *v = as_dvec(v_);
+    FklVMvalueVector *dvec = &v->vec;
     size_t new_size = dvec->size;
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];

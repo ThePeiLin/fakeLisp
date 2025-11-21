@@ -104,9 +104,9 @@ static FklVMvalue *__fkl_box_copyer(const FklVMvalue *obj, FklVM *vm) {
 }
 
 static FklVMvalue *__fkl_userdata_copyer(const FklVMvalue *obj, FklVM *vm) {
-    const FklVMud *ud = FKL_VM_UD(obj);
-    FklVMudCopyAppendCb copy = ud->mt_->__copy_append;
-    return copy(vm, ud, 0, NULL);
+    // const FklVMvalueUd *ud = FKL_VM_UD(obj);
+    FklVMudCopyAppendCb copy = FKL_VM_UD(obj)->mt_->__copy_append;
+    return copy(vm, obj, 0, NULL);
 }
 
 static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
@@ -194,8 +194,8 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
             return fklVMbigIntEqual(FKL_VM_BI(fir), FKL_VM_BI(sec));
             break;
         case FKL_TYPE_USERDATA: {
-            FklVMud *ud1 = FKL_VM_UD(fir);
-            FklVMud *ud2 = FKL_VM_UD(sec);
+            FklVMvalueUd *ud1 = FKL_VM_UD(fir);
+            FklVMvalueUd *ud2 = FKL_VM_UD(sec);
             if (ud1->mt_ != ud2->mt_ || !ud1->mt_->__equal)
                 return 0;
             else
@@ -297,8 +297,8 @@ nested_equal:
                     r = fklVMbigIntEqual(FKL_VM_BI(root1), FKL_VM_BI(root2));
                     break;
                 case FKL_TYPE_USERDATA: {
-                    FklVMud *ud1 = FKL_VM_UD(root1);
-                    FklVMud *ud2 = FKL_VM_UD(root2);
+                    FklVMvalueUd *ud1 = FKL_VM_UD(root1);
+                    FklVMvalueUd *ud2 = FKL_VM_UD(root2);
                     if (ud1->mt_ != ud2->mt_ || !ud1->mt_->__equal)
                         r = 0;
                     else
@@ -346,7 +346,7 @@ cmp_vm_ud(const FklVMvalue *a, const FklVMvalue *b, int *err) {
     return FKL_VM_UD(a)->mt_->__cmp(a, b, err);
 }
 
-static inline int is_cmpable_ud(const FklVMud *u) {
+static inline int is_cmpable_ud(const FklVMvalueUd *u) {
     return u->mt_->__cmp != NULL;
 }
 
@@ -1724,7 +1724,7 @@ fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t, FklVMvalue *dll) {
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, t->size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_USERDATA;
-    FklVMud *ud = FKL_VM_UD(r);
+    FklVMvalueUd *ud = FKL_VM_UD(r);
     ud->mt_ = t;
     ud->dll_ = dll;
     fklAddToGC(r, exe);
@@ -1740,7 +1740,7 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, t->size + extra_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_USERDATA;
-    FklVMud *ud = FKL_VM_UD(r);
+    FklVMvalueUd *ud = FKL_VM_UD(r);
     ud->mt_ = t;
     ud->dll_ = dll;
     fklAddToGC(r, exe);
@@ -1766,7 +1766,8 @@ static const alignas(8) FklVMvalueUd FklVMvalueEof = {
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,
     .type_ = FKL_TYPE_USERDATA,
-    .ud = { .mt_ = &EofUserDataMetaTable, .dll_ = NULL },
+    .mt_ = &EofUserDataMetaTable,
+    .dll_ = NULL,
 };
 
 FklVMvalue *fklVMvalueEof(void) {
@@ -1806,13 +1807,13 @@ void fklAtomicVMbox(FklVMvalue *root, FklVMgc *gc) {
 }
 
 void fklAtomicVMuserdata(FklVMvalue *root, FklVMgc *gc) {
-    FklVMud *ud = FKL_VM_UD(root);
+    FklVMvalueUd *ud = FKL_VM_UD(root);
     fklVMgcToGray(ud->dll_, gc);
     if (ud->mt_->__atomic)
         ud->mt_->__atomic(root, gc);
 }
 
-static inline int is_callable_ud(const FklVMud *ud) {
+static inline int is_callable_ud(const FklVMvalueUd *ud) {
     return ud->mt_->__call != NULL;
 }
 
@@ -1821,15 +1822,15 @@ int fklIsCallable(FklVMvalue *v) {
         || (FKL_IS_USERDATA(v) && is_callable_ud(FKL_VM_UD(v)));
 }
 
-static inline int is_writable_ud(const FklVMud *u) {
+static inline int is_writable_ud(const FklVMvalueUd *u) {
     return u->mt_->__write != NULL;
 }
 
-// static inline int is_to_string_castable_ud(const FklVMud *u) {
+// static inline int is_to_string_castable_ud(const FklVMvalueUd *u) {
 //     return u->mt_->__as_prin1 != NULL || u->mt_->__as_princ != NULL;
 // }
 
-static inline int is_ud_has_length(const FklVMud *u) {
+static inline int is_ud_has_length(const FklVMvalueUd *u) {
     return u->mt_->__length != NULL;
 }
 

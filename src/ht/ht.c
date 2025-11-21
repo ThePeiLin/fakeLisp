@@ -30,12 +30,6 @@ static int ht_equal_hashv(FKL_CPROC_ARGL) {
     return 0;
 }
 
-typedef struct {
-    FklVMvalue *hash_func;
-    FklVMvalue *eq_func;
-    FklVMvalueHashMap ht;
-} HashTable;
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueHt, {
     FklVMvalue *hash_func;
     FklVMvalue *eq_func;
@@ -115,7 +109,8 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
     FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, ctx->proc);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ud);
+    FklVMvalueHt *ht = as_ht(ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ud);
     ht->hash_func = hashv;
     ht->eq_func = equal;
     fklVMvalueHashMapInit(&ht->ht);
@@ -137,8 +132,8 @@ static int ht_ht_hashv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FKL_CPROC_RETURN(exe, ctx, ht->hash_func);
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        FKL_CPROC_RETURN(exe, ctx, as_ht(val)->hash_func);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     return 0;
@@ -148,8 +143,8 @@ static int ht_ht_equal(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FKL_CPROC_RETURN(exe, ctx, ht->eq_func);
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        FKL_CPROC_RETURN(exe, ctx, as_ht(val)->eq_func);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     return 0;
@@ -159,8 +154,8 @@ static int ht_ht_clear(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        fklVMvalueHashMapClear(&ht->ht);
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        fklVMvalueHashMapClear(&as_ht(val)->ht);
         FKL_CPROC_RETURN(exe, ctx, val);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
@@ -171,8 +166,8 @@ static int ht_ht_to_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueHashMap *hash = &ht->ht;
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        FklVMvalueHashMap *hash = &as_ht(val)->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
         for (FklVMvalueHashMapNode *list = hash->first; list;
@@ -191,8 +186,8 @@ static int ht_ht_keys(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueHashMap *hash = &ht->ht;
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        FklVMvalueHashMap *hash = &as_ht(val)->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
         for (FklVMvalueHashMapNode *list = hash->first; list;
@@ -210,8 +205,8 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *val = FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (IS_HASH_UD(val)) {
-        FKL_DECL_VM_UD_DATA(ht, HashTable, val);
-        FklVMvalueHashMap *hash = &ht->ht;
+        // FKL_DECL_VM_UD_DATA(ht, HashTable, val);
+        FklVMvalueHashMap *hash = &as_ht(val)->ht;
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
         for (FklVMvalueHashMapNode *list = hash->first; list;
@@ -230,7 +225,8 @@ static int ht_ht_set1(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =
             fklVMcall(exe, &re, ht->hash_func, 1, (FklVMvalue *[]){ key });
@@ -284,7 +280,8 @@ static int ht_ht_set8(FKL_CPROC_ARGL) {
     }
     if (rest_arg_num % 2)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
     FklVMrecoverArgs re = { 0 };
     FklVMvalue *v = FKL_VM_NIL;
     for (uint32_t i = 0; i < rest_arg_num; i += 2) {
@@ -339,7 +336,8 @@ static int ht_ht_ref(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =
             fklVMcall(exe, &re, ht->hash_func, 1, (FklVMvalue *[]){ key });
@@ -384,7 +382,8 @@ static int ht_ht_ref1(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
 
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =
@@ -428,7 +427,8 @@ static int ht_ht_ref7(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =
             fklVMcall(exe, &re, ht->hash_func, 1, (FklVMvalue *[]){ key });
@@ -469,7 +469,8 @@ static int ht_ht_ref4(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =
             fklVMcall(exe, &re, ht->hash_func, 1, (FklVMvalue *[]){ key });
@@ -509,7 +510,8 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
     FklVMvalue *ht_ud = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(ht_ud, IS_HASH_UD, exe);
-    FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    // FKL_DECL_VM_UD_DATA(ht, HashTable, ht_ud);
+    FklVMvalueHt *ht = as_ht(ht_ud);
 
     FklVMrecoverArgs re = { 0 };
     FklVMcallResult r =

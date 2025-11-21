@@ -220,10 +220,9 @@ static FklVMvalue *__fkl_userdata_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
-    const FklVMud *ud = FKL_VM_UD(v);
-    FklVMudCopyAppendCb appender = ud->mt_->__copy_append;
+    FklVMudCopyAppendCb appender = FKL_VM_UD(v)->mt_->__copy_append;
     if (appender)
-        return appender(exe, ud, argc, base);
+        return appender(exe, v, argc, base);
     else
         return NULL;
 }
@@ -293,10 +292,10 @@ __fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
 
 static int
 __fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
-    FklVMud *ud = FKL_VM_UD(obj);
-    FklVMudAppendCb appender = ud->mt_->__append;
+    // FklVMud *ud = FKL_VM_UD(obj);
+    FklVMudAppendCb appender = FKL_VM_UD(obj)->mt_->__append;
     if (appender)
-        return appender(ud, argc, base);
+        return appender(obj, argc, base);
     else
         return 1;
 }
@@ -945,11 +944,11 @@ i64_to_string(FklVM *exe, int64_t num, uint8_t radix, FklBigIntFmtFlags flags) {
     return bigint_to_string(exe, &b, radix, flags);
 }
 
-static inline int is_to_str_able_ud(const FklVMud *u) {
+static inline int is_to_str_able_ud(const FklVMvalueUd *u) {
     return u->mt_->__as_prin1 != NULL || u->mt_->__as_princ != NULL;
 }
 
-static inline int is_writable_ud(const FklVMud *u) {
+static inline int is_writable_ud(const FklVMvalueUd *u) {
     return u->mt_->__write != NULL;
 }
 

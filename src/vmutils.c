@@ -757,7 +757,7 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
-    const FklVMud *ud = FKL_VM_UD(v);
+    const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb as_princ = NULL;
     // void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
@@ -849,7 +849,7 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
-    const FklVMud *ud = FKL_VM_UD(v);
+    const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb as_prin1 = NULL;
     // void (*as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *) = NULL;

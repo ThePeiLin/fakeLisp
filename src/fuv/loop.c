@@ -15,7 +15,7 @@ FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
 static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
     FKL_ASSERT(FKL_IS_USERDATA(v));
     if (isFuvHandle(v)) {
-        return FUV_HANDLE(v)->h.data.next;
+        return FUV_HANDLE(v)->data.next;
     } else if (isFuvReq(v)) {
         return FUV_REQ(v)->r.data.next;
     } else {
@@ -26,7 +26,7 @@ static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
 
 static void fuv_loop_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
-    FuvLoop *l = &FUV_LOOP(ud)->l;
+    FuvValueLoop *l = FUV_LOOP(ud);
 
     for (FklVMvalue *ref = l->data.refs; ref; ref = get_obj_next(ref))
         fklVMgcToGray(ref, gc);
@@ -35,7 +35,7 @@ static void fuv_loop_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 static void fuv_close_loop_walk_cb(uv_handle_t *handle, void *arg) {
     if (uv_is_closing(handle)) {
         FuvValueHandle *fh = uv_handle_get_data(handle);
-        fh->h.data.callbacks[1] = NULL;
+        fh->data.callbacks[1] = NULL;
     } else {
         fuvHandleClose(uv_handle_get_data(handle), NULL);
     }
@@ -44,7 +44,7 @@ static void fuv_close_loop_walk_cb(uv_handle_t *handle, void *arg) {
 static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
     if (isFuvHandle(v)) {
         FuvValueHandle *h = FUV_HANDLE(v);
-        fuvLoopRemoveHandleRef(h->h.data.loop, h);
+        fuvLoopRemoveHandleRef(h->data.loop, h);
     } else {
         FuvValueReq *h = FUV_REQ(v);
         fuvLoopRemoveReqRef(h->r.data.loop, h);
@@ -56,15 +56,15 @@ static int fuv_loop_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FuvValueLoop *l = FUV_LOOP(ud);
     if (fuvLoopIsClosed(l))
         goto closed;
-    uv_walk(&l->l.loop, fuv_close_loop_walk_cb, l);
-    while (uv_loop_close(&l->l.loop))
-        uv_run(&l->l.loop, UV_RUN_DEFAULT);
-    while (l->l.data.refs) {
-        fuv_loop_remove_obj_ref(l->l.data.refs);
+    uv_walk(&l->loop, fuv_close_loop_walk_cb, l);
+    while (uv_loop_close(&l->loop))
+        uv_run(&l->loop, UV_RUN_DEFAULT);
+    while (l->data.refs) {
+        fuv_loop_remove_obj_ref(l->data.refs);
     }
 closed:
-    fklVMgcSweep(gc, l->l.data.gclist);
-    l->l.data.gclist = NULL;
+    fklVMgcSweep(gc, l->data.gclist);
+    l->data.gclist = NULL;
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -81,15 +81,15 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, dll);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, v);
     FuvValueLoop *l = FUV_LOOP(v);
-    l->l.data.mode = -1;
-    l->l.data.is_closed = 0;
-    l->l.data.error_occured = 0;
-    int r = uv_loop_init(&l->l.loop);
+    l->data.mode = -1;
+    l->data.is_closed = 0;
+    l->data.error_occured = 0;
+    int r = uv_loop_init(&l->loop);
     if (r) {
         *err = r;
         return NULL;
     }
-    uv_loop_set_data(&l->l.loop, &l->l.data);
+    uv_loop_set_data(&l->loop, &l->data);
     return v;
 }
 
@@ -107,14 +107,14 @@ void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {
     fuv_loop_remove_obj_ref(v);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    v->next_ = l->l.data.gclist;
-    l->l.data.gclist = v;
+    v->next_ = l->data.gclist;
+    l->data.gclist = v;
 }
 
 static inline void set_obj_prev(FklVMvalue *v, FklVMvalue *prev) {
     FKL_ASSERT(FKL_IS_USERDATA(v));
     if (isFuvHandle(v)) {
-        FUV_HANDLE(v)->h.data.prev = prev;
+        FUV_HANDLE(v)->data.prev = prev;
     } else if (isFuvReq(v)) {
         FUV_REQ(v)->r.data.prev = prev;
     } else {
@@ -125,7 +125,7 @@ static inline void set_obj_prev(FklVMvalue *v, FklVMvalue *prev) {
 static inline void set_obj_next(FklVMvalue *v, FklVMvalue *next) {
     FKL_ASSERT(FKL_IS_USERDATA(v));
     if (isFuvHandle(v)) {
-        FUV_HANDLE(v)->h.data.next = next;
+        FUV_HANDLE(v)->data.next = next;
     } else if (isFuvReq(v)) {
         FUV_REQ(v)->r.data.next = next;
     } else {
@@ -140,12 +140,12 @@ void fuvLoopAddHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
 
     FklVMvalue *v = FKL_VM_VAL(h); // fuvHandleValueOf(h);
 
-    h->h.data.next = loop->l.data.refs;
+    h->data.next = loop->data.refs;
 
-    if (loop->l.data.refs)
-        set_obj_prev(loop->l.data.refs, v);
+    if (loop->data.refs)
+        set_obj_prev(loop->data.refs, v);
 
-    loop->l.data.refs = v;
+    loop->data.refs = v;
 }
 
 void fuvLoopAddReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
@@ -155,12 +155,12 @@ void fuvLoopAddReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
 
     FklVMvalue *v = FKL_VM_VAL(r); // fuvReqValueOf(r);
 
-    r->r.data.next = loop->l.data.refs;
+    r->r.data.next = loop->data.refs;
 
-    if (loop->l.data.refs)
-        set_obj_prev(loop->l.data.refs, v);
+    if (loop->data.refs)
+        set_obj_prev(loop->data.refs, v);
 
-    loop->l.data.refs = v;
+    loop->data.refs = v;
 }
 
 void fuvLoopRemoveHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
@@ -168,18 +168,18 @@ void fuvLoopRemoveHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
     // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
-    if (h->h.data.prev)
-        set_obj_next(h->h.data.prev, h->h.data.next);
+    if (h->data.prev)
+        set_obj_next(h->data.prev, h->data.next);
     else {
-        loop->l.data.refs = h->h.data.next;
+        loop->data.refs = h->data.next;
     }
 
-    if (h->h.data.next)
-        set_obj_prev(h->h.data.next, h->h.data.prev);
+    if (h->data.next)
+        set_obj_prev(h->data.next, h->data.prev);
 
-    h->h.data.next = NULL;
-    h->h.data.prev = NULL;
-    h->h.data.loop = NULL;
+    h->data.next = NULL;
+    h->data.prev = NULL;
+    h->data.loop = NULL;
 }
 
 void fuvLoopRemoveReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
@@ -190,7 +190,7 @@ void fuvLoopRemoveReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
     if (r->r.data.prev)
         set_obj_next(r->r.data.prev, r->r.data.next);
     else {
-        loop->l.data.refs = r->r.data.next;
+        loop->data.refs = r->r.data.next;
     }
 
     if (r->r.data.next)

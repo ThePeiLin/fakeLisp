@@ -35,10 +35,10 @@ typedef enum {
     FUV_RUN_ERR_OCCUR,
 } FuvLoopRunStatus;
 
-typedef struct {
-    uv_loop_t loop;
-    FuvLoopData data;
-} FuvLoop;
+// typedef struct {
+//     uv_loop_t loop;
+//     FuvLoopData data;
+// } FuvLoop;
 
 typedef struct {
     FklVMvalue *prev;
@@ -53,35 +53,35 @@ struct FuvAsyncExtraData {
     FklVMvalue **base;
 };
 
-typedef struct {
-    FuvHandleData data;
-    uv_handle_t handle;
-} FuvHandle;
-
-typedef struct FuvAsync {
-    FuvHandleData data;
-    uv_async_t handle;
-    _Atomic(struct FuvAsyncExtraData *) extra;
-    atomic_flag send_ready;
-    atomic_flag copy_done;
-    atomic_flag send_done;
-} FuvAsync;
-
-typedef struct FuvProcess {
-    FuvHandleData data;
-    uv_process_t handle;
-    FklVMvalue *args_obj;
-    FklVMvalue *env_obj;
-    FklVMvalue *file_obj;
-    FklVMvalue *stdio_obj;
-    FklVMvalue *cwd_obj;
-} FuvProcess;
-
-typedef struct FuvPipe {
-    FuvHandleData data;
-    uv_pipe_t handle;
-    FklVMvalue *fp;
-} FuvPipe;
+// typedef struct {
+//     FuvHandleData data;
+//     uv_handle_t handle;
+// } FuvHandle;
+//
+// typedef struct FuvAsync {
+//     FuvHandleData data;
+//     uv_async_t handle;
+//     _Atomic(struct FuvAsyncExtraData *) extra;
+//     atomic_flag send_ready;
+//     atomic_flag copy_done;
+//     atomic_flag send_done;
+// } FuvAsync;
+//
+// typedef struct FuvProcess {
+//     FuvHandleData data;
+//     uv_process_t handle;
+//     FklVMvalue *args_obj;
+//     FklVMvalue *env_obj;
+//     FklVMvalue *file_obj;
+//     FklVMvalue *stdio_obj;
+//     FklVMvalue *cwd_obj;
+// } FuvProcess;
+//
+// typedef struct FuvPipe {
+//     FuvHandleData data;
+//     uv_pipe_t handle;
+//     FklVMvalue *fp;
+// } FuvPipe;
 
 typedef struct FuvPoll {
     FuvHandleData data;
@@ -89,57 +89,57 @@ typedef struct FuvPoll {
     FklVMvalue *fp;
 } FuvPoll;
 
-typedef struct FuvTty {
-    FuvHandleData data;
-    uv_tty_t handle;
-    FklVMvalue *fp;
-} FuvTty;
-
-typedef struct FuvTimer {
-    FuvHandleData data;
-    uv_timer_t handle;
-} FuvTimer;
-
-typedef struct FuvPrepare {
-    FuvHandleData data;
-    uv_prepare_t handle;
-} FuvPrepare;
-
-typedef struct FuvIdle {
-    FuvHandleData data;
-    uv_idle_t handle;
-} FuvIdle;
-
-typedef struct FuvCheck {
-    FuvHandleData data;
-    uv_check_t handle;
-} FuvCheck;
-
-typedef struct FuvSignal {
-    FuvHandleData data;
-    uv_signal_t handle;
-} FuvSignal;
-
-typedef struct FuvTcp {
-    FuvHandleData data;
-    uv_tcp_t handle;
-} FuvTcp;
-
-typedef struct FuvUdp {
-    FuvHandleData data;
-    uv_udp_t handle;
-    int64_t mmsg_num_msgs;
-} FuvUdp;
-
-typedef struct FuvFsPoll {
-    FuvHandleData data;
-    uv_fs_poll_t handle;
-} FuvFsPoll;
-
-typedef struct FuvFsEvent {
-    FuvHandleData data;
-    uv_fs_event_t handle;
-} FuvFsEvent;
+// typedef struct FuvTty {
+//     FuvHandleData data;
+//     uv_tty_t handle;
+//     FklVMvalue *fp;
+// } FuvTty;
+//
+// typedef struct FuvTimer {
+//     FuvHandleData data;
+//     uv_timer_t handle;
+// } FuvTimer;
+//
+// typedef struct FuvPrepare {
+//     FuvHandleData data;
+//     uv_prepare_t handle;
+// } FuvPrepare;
+//
+// typedef struct FuvIdle {
+//     FuvHandleData data;
+//     uv_idle_t handle;
+// } FuvIdle;
+//
+// typedef struct FuvCheck {
+//     FuvHandleData data;
+//     uv_check_t handle;
+// } FuvCheck;
+//
+// typedef struct FuvSignal {
+//     FuvHandleData data;
+//     uv_signal_t handle;
+// } FuvSignal;
+//
+// typedef struct FuvTcp {
+//     FuvHandleData data;
+//     uv_tcp_t handle;
+// } FuvTcp;
+//
+// typedef struct FuvUdp {
+//     FuvHandleData data;
+//     uv_udp_t handle;
+//     int64_t mmsg_num_msgs;
+// } FuvUdp;
+//
+// typedef struct FuvFsPoll {
+//     FuvHandleData data;
+//     uv_fs_poll_t handle;
+// } FuvFsPoll;
+//
+// typedef struct FuvFsEvent {
+//     FuvHandleData data;
+//     uv_fs_event_t handle;
+// } FuvFsEvent;
 
 typedef struct {
     FklVMvalue *prev;
@@ -166,11 +166,11 @@ typedef struct FuvUdpSend {
     FklVMvalue *send_objs[1];
 } FuvUdpSend;
 
-typedef struct FuvDir {
-    uv_dir_t *dir;
-    FklVMvalue *req;
-} FuvDir;
-
+// typedef struct FuvDir {
+//     uv_dir_t *dir;
+//     FklVMvalue *req;
+// } FuvDir;
+//
 typedef struct FuvFsReq {
     FuvReqData data;
     uv_fs_t req;
@@ -213,23 +213,44 @@ typedef struct FuvFsReqArgs {
     const char *str;
 } FuvFsReqArgs;
 
-FKL_VM_DEF_UD_STRUCT(FuvValueLoop, { FuvLoop l; });
+FKL_VM_DEF_UD_STRUCT(FuvValueLoop, {
+    uv_loop_t loop;
+    FuvLoopData data;
+});
 
-FKL_VM_DEF_UD_STRUCT(FuvValueHandle, { FuvHandle h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueAsync, { FuvAsync h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueCheck, { FuvCheck h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueFsEvent, { FuvFsEvent h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueFsPoll, { FuvFsPoll h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueIdle, { FuvIdle h; });
-FKL_VM_DEF_UD_STRUCT(FuvValuePipe, { FuvPipe h; });
-FKL_VM_DEF_UD_STRUCT(FuvValuePoll, { FuvPoll h; });
-FKL_VM_DEF_UD_STRUCT(FuvValuePrepare, { FuvPrepare h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueProcess, { FuvProcess h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueTcp, { FuvTcp h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueTimer, { FuvTimer h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueTty, { FuvTty h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueUdp, { FuvUdp h; });
-FKL_VM_DEF_UD_STRUCT(FuvValueSignal, { FuvSignal h; });
+#define FUV_DEF_HANDLE(NAME, UV_TYPE_NAME, OTHER_MEMBERS)                      \
+    FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
+        FuvHandleData data;                                                    \
+        uv_##UV_TYPE_NAME##_t handle;                                          \
+        struct OTHER_MEMBERS;                                                  \
+    });
+
+FUV_DEF_HANDLE(FuvValueHandle, handle, {});
+FUV_DEF_HANDLE(FuvValueAsync, async, {
+    _Atomic(struct FuvAsyncExtraData *) extra;
+    atomic_flag send_ready;
+    atomic_flag copy_done;
+    atomic_flag send_done;
+});
+FUV_DEF_HANDLE(FuvValueCheck, check, {});
+FUV_DEF_HANDLE(FuvValueFsEvent, fs_event, {});
+FUV_DEF_HANDLE(FuvValueFsPoll, fs_poll, {});
+FUV_DEF_HANDLE(FuvValueIdle, idle, {});
+FUV_DEF_HANDLE(FuvValuePipe, pipe, { FklVMvalue *fp; });
+FUV_DEF_HANDLE(FuvValuePoll, poll, { FklVMvalue *fp; });
+FUV_DEF_HANDLE(FuvValuePrepare, prepare, {});
+FUV_DEF_HANDLE(FuvValueProcess, process, {
+    FklVMvalue *args_obj;
+    FklVMvalue *env_obj;
+    FklVMvalue *file_obj;
+    FklVMvalue *stdio_obj;
+    FklVMvalue *cwd_obj;
+});
+FUV_DEF_HANDLE(FuvValueTcp, tcp, {});
+FUV_DEF_HANDLE(FuvValueTimer, timer, {});
+FUV_DEF_HANDLE(FuvValueTty, tty, { FklVMvalue *fp; })
+FUV_DEF_HANDLE(FuvValueUdp, udp, { int64_t mmsg_num_msgs; })
+FUV_DEF_HANDLE(FuvValueSignal, signal, {})
 
 FKL_VM_DEF_UD_STRUCT(FuvValueReq, { FuvReq r; });
 
@@ -242,7 +263,10 @@ FKL_VM_DEF_UD_STRUCT(FuvValueGetaddrinfo, { FuvGetaddrinfo r; });
 FKL_VM_DEF_UD_STRUCT(FuvValueGetnameinfo, { FuvGetnameinfo r; });
 FKL_VM_DEF_UD_STRUCT(FuvValueRandom, { FuvRandom r; });
 
-FKL_VM_DEF_UD_STRUCT(FuvValueDir, { FuvDir d; });
+FKL_VM_DEF_UD_STRUCT(FuvValueDir, {
+    uv_dir_t *dir;
+    FklVMvalue *req;
+});
 
 int isFuvLoop(const FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
@@ -255,19 +279,19 @@ static FKL_ALWAYS_INLINE FuvValueLoop *FUV_LOOP(const FklVMvalue *v) {
 }
 
 static inline int fuvLoopIsClosed(const FuvValueLoop *l) {
-    return l->l.data.is_closed;
+    return l->data.is_closed;
 }
 static inline void fuvLoopSetClosed(FuvValueLoop *l) {
-    l->l.data.mode = -1;
-    l->l.data.is_closed = 1;
-    l->l.data.error_occured = 0;
+    l->data.mode = -1;
+    l->data.is_closed = 1;
+    l->data.error_occured = 0;
 }
 
 void fuvHandleClose(FuvValueHandle *h, uv_close_cb cb);
 int isFuvHandle(const FklVMvalue *v);
 
 static inline int isFuvHandleClosed(const FuvValueHandle *h) {
-    return h->h.data.loop == NULL;
+    return h->data.loop == NULL;
 }
 
 int isFuvTimer(const FklVMvalue *v);
@@ -347,17 +371,17 @@ uv_poll_t *createFuvPoll(FklVM *vm,
         FklVMvalue *fp_obj);
 
 #define FUV_ASYNC_COPY_DONE(async_handle)                                      \
-    atomic_flag_clear(&(async_handle)->h.copy_done)
+    atomic_flag_clear(&(async_handle)->copy_done)
 #define FUV_ASYNC_SEND_DONE(async_handle)                                      \
     {                                                                          \
-        atomic_flag_clear(&(async_handle)->h.send_done);                         \
-        atomic_flag_clear(&(async_handle)->h.send_ready);                        \
+        atomic_flag_clear(&(async_handle)->send_done);                         \
+        atomic_flag_clear(&(async_handle)->send_ready);                        \
     }
 
 #define FUV_ASYNC_WAIT_COPY(exe, async_handle)                                 \
     {                                                                          \
         fklUnlockThread(exe);                                                  \
-        while (atomic_flag_test_and_set(&async_handle->h.copy_done))             \
+        while (atomic_flag_test_and_set(&async_handle->copy_done))             \
             uv_sleep(0);                                                       \
         fklLockThread(exe);                                                    \
     }
@@ -365,7 +389,7 @@ uv_poll_t *createFuvPoll(FklVM *vm,
 #define FUV_ASYNC_WAIT_SEND(exe, async_handle)                                 \
     {                                                                          \
         fklUnlockThread(exe);                                                  \
-        while (atomic_flag_test_and_set(&async_handle->h.send_done))             \
+        while (atomic_flag_test_and_set(&async_handle->send_done))             \
             uv_sleep(0);                                                       \
         fklLockThread(exe);                                                    \
     }

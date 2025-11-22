@@ -47,7 +47,7 @@
     if (isFuvHandleClosed((H)))                                                \
     raiseFuvError(FUV_ERR_HANDLE_CLOSED, (EXE), (PD))
 
-#define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->h.handle))
+#define GET_HANDLE(FUV_HANDLE) (&((FUV_HANDLE)->handle))
 
 #define DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(NAME, OBJ, EXE, PD)                \
     FuvValueHandle *NAME = FUV_HANDLE(OBJ);                                    \
@@ -171,7 +171,7 @@ static inline void cleanup_handle(FklVMvalue *handle_obj,
         return;
     // FKL_DECL_VM_UD_DATA(fuv_handle, FuvHandle, handle_obj);
     FuvValueHandle *h = FUV_HANDLE(handle_obj);
-    FuvHandleData *hdata = &h->h.data;
+    FuvHandleData *hdata = &h->data;
     hdata->callbacks[0] = NULL;
     hdata->callbacks[1] = NULL;
     fuvHandleClose(h, NULL);
@@ -207,7 +207,7 @@ static int fuv_loop_close(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    int r = uv_loop_close(&l->l.loop);
+    int r = uv_loop_close(&l->loop);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     fuvLoopSetClosed(l);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -286,7 +286,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
-    loop->l.data.exe = exe;
+    loop->data.exe = exe;
     int mode = UV_RUN_DEFAULT;
     if (mode_id) {
         FKL_CHECK_TYPE(mode_id, FKL_IS_SYM, exe);
@@ -296,22 +296,22 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     }
 
-    loop->l.data.mode = mode;
-    loop->l.data.error_occured = 0;
+    loop->data.mode = mode;
+    loop->data.error_occured = 0;
     int r;
-    FKL_VM_UNLOCK_BLOCK(exe, flag) { r = uv_run(&loop->l.loop, mode); }
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { r = uv_run(&loop->loop, mode); }
 
     if (r < 0) {
         fklRaiseVMerror(createUvError(r, exe, ctx->pd), exe);
-    } else if (loop->l.data.error_occured) {
+    } else if (loop->data.error_occured) {
         fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
     }
 
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
 
-    loop->l.data.error_occured = 0;
-    loop->l.data.mode = -1;
-    loop->l.data.exe = NULL;
+    loop->data.error_occured = 0;
+    loop->data.mode = -1;
+    loop->data.exe = NULL;
     exe->state = FKL_VM_READY;
     return 0;
 }
@@ -357,7 +357,7 @@ static int fuv_loop_walk(FKL_CPROC_ARGL) {
     };
 
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
-        uv_walk(&l->l.loop, fuv_loop_walk_cb, &walk_ctx);
+        uv_walk(&l->loop, fuv_loop_walk_cb, &walk_ctx);
     }
     if (walk_ctx.ev) {
         fklRaiseVMerror(walk_ctx.ev, exe);
@@ -403,7 +403,7 @@ static int fuv_loop_configure(FKL_CPROC_ARGL) {
 
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    uv_loop_t *loop = &l->l.loop;
+    uv_loop_t *loop = &l->loop;
     switch (option) {
     case UV_LOOP_BLOCK_SIGNAL: {
         FklVMvalue **const end = arg_base + argc;
@@ -442,7 +442,7 @@ static int fuv_loop_alive_p(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    int r = uv_loop_alive(&l->l.loop);
+    int r = uv_loop_alive(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, r ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
@@ -453,7 +453,7 @@ static int fuv_loop_stop(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    uv_stop(&l->l.loop);
+    uv_stop(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
     return 0;
 }
@@ -464,7 +464,7 @@ static int fuv_loop_mode(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = l->l.data.mode;
+    int r = l->data.mode;
     if (r == -1)
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     else {
@@ -481,7 +481,7 @@ static int fuv_loop_backend_fd(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    int r = uv_backend_fd(&l->l.loop);
+    int r = uv_backend_fd(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, r == -1 ? FKL_VM_NIL : FKL_MAKE_VM_FIX(r));
     return 0;
 }
@@ -493,7 +493,7 @@ static int fuv_loop_backend_timeout(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    int r = uv_backend_timeout(&l->l.loop);
+    int r = uv_backend_timeout(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, r == -1 ? FKL_VM_NIL : FKL_MAKE_VM_FIX(r));
     return 0;
 }
@@ -505,7 +505,7 @@ static int fuv_loop_now(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    uint64_t r = uv_now(&l->l.loop);
+    uint64_t r = uv_now(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(r, exe));
     return 0;
 }
@@ -517,7 +517,7 @@ static int fuv_loop_update_time(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     CHECK_LOOP_OPEN(l, exe, ctx->pd);
-    uv_update_time(&l->l.loop);
+    uv_update_time(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
     return 0;
 }
@@ -553,7 +553,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
         int idx) {
     if (loop_data->error_occured)
         return;
-    FklVMvalue *proc = fuv_handle->h.data.callbacks[idx];
+    FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
         FKL_VM_LOCK_BLOCK(exe, flag) {
@@ -589,7 +589,7 @@ static int fuv_handle_close(FKL_CPROC_ARGL) {
         raiseFuvError(FUV_ERR_CLOSE_CLOSEING_HANDLE, exe, ctx->pd);
     if (proc_obj) {
         FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
-        handle->h.data.callbacks[1] = proc_obj;
+        handle->data.callbacks[1] = proc_obj;
     }
     fuvHandleClose(handle, fuv_close_cb);
     FKL_CPROC_RETURN(exe, ctx, handle_obj);
@@ -694,7 +694,7 @@ static int fuv_handle_loop(FKL_CPROC_ARGL) {
     FklVMvalue *handle_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(handle_obj, isFuvHandle, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, handle_obj, exe, ctx->pd);
-    FKL_CPROC_RETURN(exe, ctx, handle->h.data.loop);
+    FKL_CPROC_RETURN(exe, ctx, handle->data.loop);
     return 0;
 }
 
@@ -740,7 +740,7 @@ static int fuv_timer_start(FKL_CPROC_ARGL) {
     uint64_t timeout = fklVMgetUint(timeout_obj);
     uint64_t repeat = fklVMgetUint(repeat_obj);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, timer_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = timer_cb;
+    handle->data.callbacks[0] = timer_cb;
     int r = uv_timer_start((uv_timer_t *)GET_HANDLE(handle),
             fuv_timer_cb,
             timeout,
@@ -843,7 +843,7 @@ static int fuv_prepare_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(prepare_obj, isFuvPrepare, exe);
     FKL_CHECK_TYPE(prepare_cb, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, prepare_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = prepare_cb;
+    handle->data.callbacks[0] = prepare_cb;
     int r = uv_prepare_start((uv_prepare_t *)GET_HANDLE(handle),
             fuv_prepare_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -894,7 +894,7 @@ static int fuv_idle_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(idle_obj, isFuvIdle, exe);
     FKL_CHECK_TYPE(idle_cb, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, idle_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = idle_cb;
+    handle->data.callbacks[0] = idle_cb;
     int r = uv_idle_start((uv_idle_t *)GET_HANDLE(handle), fuv_idle_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, idle_obj);
@@ -944,7 +944,7 @@ static int fuv_check_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(check_obj, isFuvCheck, exe);
     FKL_CHECK_TYPE(check_cb, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, check_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = check_cb;
+    handle->data.callbacks[0] = check_cb;
     int r = uv_check_start((uv_check_t *)GET_HANDLE(handle), fuv_check_cb);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, check_obj);
@@ -985,7 +985,7 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
         void *arg) {
     if (loop_data->error_occured)
         return;
-    FklVMvalue *proc = fuv_handle->h.data.callbacks[idx];
+    FklVMvalue *proc = fuv_handle->data.callbacks[idx];
     if (proc) {
         FklVM *exe = loop_data->exe;
         FKL_VM_LOCK_BLOCK(exe, flag) {
@@ -1056,7 +1056,7 @@ static int fuv_signal_start(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = signal_cb;
+    handle->data.callbacks[0] = signal_cb;
     int r = uv_signal_start((uv_signal_t *)GET_HANDLE(handle),
             fuv_signal_cb,
             signum);
@@ -1084,7 +1084,7 @@ static int fuv_signal_start_oneshot(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, signal_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = signal_cb;
+    handle->data.callbacks[0] = signal_cb;
     int r = uv_signal_start_oneshot((uv_signal_t *)GET_HANDLE(handle),
             fuv_signal_cb,
             signum);
@@ -1135,13 +1135,13 @@ static int fuv_async_send(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(async_obj, isFuvAsync, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, async_obj, exe, ctx->pd);
     FuvValueAsync *async_handle = as_async(handle);
-    if (!atomic_flag_test_and_set(&async_handle->h.send_ready)) {
+    if (!atomic_flag_test_and_set(&async_handle->send_ready)) {
         struct FuvAsyncExtraData extra = {
             .num = argc - 1,
             .base = &arg_base[1],
         };
-        atomic_store(&async_handle->h.extra, &extra);
-        int r = uv_async_send(&async_handle->h.handle);
+        atomic_store(&async_handle->extra, &extra);
+        int r = uv_async_send(&async_handle->handle);
         FUV_ASYNC_WAIT_COPY(exe, async_handle);
         FUV_ASYNC_SEND_DONE(async_handle);
         CHECK_UV_RESULT(r, exe, ctx->pd);
@@ -1174,7 +1174,7 @@ static int fuv_make_poll(FKL_CPROC_ARGL) {
             fp_obj);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = uv_poll_init(&l->l.loop, poll, fd);
+    int r = uv_poll_init(&l->loop, poll, fd);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -1194,7 +1194,7 @@ static int fuv_make_socket_poll(FKL_CPROC_ARGL) {
             NULL);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = uv_poll_init_socket(&l->l.loop, poll, FKL_GET_FIX(sock_obj));
+    int r = uv_poll_init_socket(&l->loop, poll, FKL_GET_FIX(sock_obj));
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -1294,7 +1294,7 @@ static int fuv_poll_start(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     uv_poll_t *poll = (uv_poll_t *)GET_HANDLE(poll_ud);
-    poll_ud->h.data.callbacks[0] = cb_obj;
+    poll_ud->data.callbacks[0] = cb_obj;
     int ret = uv_poll_start(poll, events, fuv_poll_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, poll_obj);
@@ -1561,7 +1561,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
         return;
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, rdata->loop);
     FuvValueLoop *l = FUV_LOOP(rdata->loop);
-    FuvLoopData *ldata = &l->l.data;
+    FuvLoopData *ldata = &l->data;
     if (ldata->error_occured)
         return;
     FklVM *exe = ldata->exe;
@@ -1586,7 +1586,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
                 &args);
 
         if (r.err) {
-            startErrorHandle(&l->l.loop, ldata, exe);
+            startErrorHandle(&l->loop, ldata, exe);
         } else {
             fklVMrecover(exe, &recover_args);
         }
@@ -1668,7 +1668,7 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
         uv_getaddrinfo_t req;
         int r;
         FKL_VM_UNLOCK_BLOCK(exe, flag) {
-            r = uv_getaddrinfo(&l->l.loop, &req, NULL, node, service, &hints);
+            r = uv_getaddrinfo(&l->loop, &req, NULL, node, service, &hints);
         }
         CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe,
@@ -1682,7 +1682,7 @@ static int fuv_getaddrinfo(FKL_CPROC_ARGL) {
                 FKL_VM_CPROC(ctx->proc)->dll,
                 loop_obj,
                 proc_obj);
-        int r = uv_getaddrinfo(&l->l.loop,
+        int r = uv_getaddrinfo(&l->loop,
                 req,
                 fuv_getaddrinfo_cb,
                 node,
@@ -1870,7 +1870,7 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
         uv_getnameinfo_t req;
         int r;
         FKL_VM_UNLOCK_BLOCK(exe, flag) {
-            r = uv_getnameinfo(&l->l.loop,
+            r = uv_getnameinfo(&l->loop,
                     &req,
                     NULL,
                     (struct sockaddr *)&addr,
@@ -1890,7 +1890,7 @@ static int fuv_getnameinfo(FKL_CPROC_ARGL) {
                 FKL_VM_CPROC(ctx->proc)->dll,
                 loop_obj,
                 proc_obj);
-        int r = uv_getnameinfo(&l->l.loop,
+        int r = uv_getnameinfo(&l->loop,
                 req,
                 fuv_getnameinfo_cb,
                 (struct sockaddr *)&addr,
@@ -2158,7 +2158,7 @@ static int fuv_process_spawn(FKL_CPROC_ARGL) {
             cwd_obj);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    uv_err = uv_spawn(&l->l.loop, handle, &options);
+    uv_err = uv_spawn(&l->loop, handle, &options);
     clean_options(&options);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(uv_err, retval, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, retval);
@@ -2333,7 +2333,7 @@ static int fuv_stream_read_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, stream_obj, exe, ctx->pd);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
-    handle->h.data.callbacks[0] = cb_obj;
+    handle->data.callbacks[0] = cb_obj;
     int ret = uv_read_start(stream, fuv_alloc_cb, fuv_read_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, stream_obj);
@@ -2430,7 +2430,7 @@ static int fuv_stream_write(FKL_CPROC_ARGL) {
     write = createFuvWrite(exe,
             &write_obj,
             FKL_VM_CPROC(ctx->proc)->dll,
-            handle->h.data.loop,
+            handle->data.loop,
             cb_obj,
             buf_count);
     FklBuiltinErrorType err_type = setup_write_data(rest_arg,
@@ -2541,7 +2541,7 @@ static int fuv_stream_shutdown(FKL_CPROC_ARGL) {
     uv_shutdown_t *write = createFuvShutdown(exe,
             &shutdown_obj,
             FKL_VM_CPROC(ctx->proc)->dll,
-            handle->h.data.loop,
+            handle->data.loop,
             cb_obj);
     uv_stream_t *stream = (uv_stream_t *)GET_HANDLE(handle);
     int ret = uv_shutdown(write, stream, fuv_shutdown_cb);
@@ -2594,7 +2594,7 @@ static int fuv_stream_listen(FKL_CPROC_ARGL) {
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, server_obj, exe, ctx->pd);
     uv_stream_t *server = (uv_stream_t *)GET_HANDLE(handle);
 
-    handle->h.data.callbacks[0] = cb_obj;
+    handle->data.callbacks[0] = cb_obj;
     int ret = uv_listen(server, FKL_GET_FIX(backlog_obj), fuv_connection_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, server_obj);
@@ -2646,7 +2646,7 @@ static int fuv_make_pipe(FKL_CPROC_ARGL) {
             createFuvPipe(exe, &retval, FKL_VM_CPROC(ctx->proc)->dll, loop_obj);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = uv_pipe_init(&l->l.loop, pipe, ipc);
+    int r = uv_pipe_init(&l->loop, pipe, ipc);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -2689,7 +2689,7 @@ static int fuv_pipe_open(FKL_CPROC_ARGL) {
     uv_pipe_t *pipe = GET_HANDLE(handle);
     int ret = 0;
     if (fklIsVMvalueFp(fd_obj)) {
-        handle->h.fp = fd_obj;
+        handle->fp = fd_obj;
         ret = uv_pipe_open(pipe, fklVMfpFileno(FKL_VM_FP(fd_obj)));
     } else if (FKL_IS_FIX(fd_obj))
         ret = uv_pipe_open(pipe, FKL_GET_FIX(fd_obj));
@@ -2742,7 +2742,7 @@ static int fuv_pipe_connect(FKL_CPROC_ARGL) {
     uv_connect_t *connect = createFuvConnect(exe,
             &connect_obj,
             FKL_VM_CPROC(ctx->proc)->dll,
-            handle->h.data.loop,
+            handle->data.loop,
             cb_obj);
     FklString *str = FKL_VM_STR(name_obj);
     int flags =
@@ -2892,7 +2892,7 @@ static int fuv_make_tcp(FKL_CPROC_ARGL) {
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     uv_tcp_t *tcp =
             createFuvTcp(exe, &retval, FKL_VM_CPROC(ctx->proc)->dll, loop_obj);
-    int r = uv_tcp_init_ex(&l->l.loop, tcp, flags);
+    int r = uv_tcp_init_ex(&l->loop, tcp, flags);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -3075,7 +3075,7 @@ static int fuv_tcp_connect(FKL_CPROC_ARGL) {
     uv_connect_t *connect = createFuvConnect(exe,
             &connect_obj,
             FKL_VM_CPROC(ctx->proc)->dll,
-            handle->h.data.loop,
+            handle->data.loop,
             cb_obj);
     int ret = uv_tcp_connect(connect,
             (uv_tcp_t *)GET_HANDLE(handle),
@@ -3095,7 +3095,7 @@ static int fuv_tcp_close_reset(FKL_CPROC_ARGL) {
     uv_tcp_t *tcp = (uv_tcp_t *)GET_HANDLE(handle);
     if (proc_obj) {
         FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
-        handle->h.data.callbacks[1] = proc_obj;
+        handle->data.callbacks[1] = proc_obj;
     }
     int ret = uv_tcp_close_reset(tcp, fuv_close_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
@@ -3173,7 +3173,7 @@ static int fuv_make_tty(FKL_CPROC_ARGL) {
             fp_obj);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = uv_tty_init(&l->l.loop, tty, fd, 0);
+    int r = uv_tty_init(&l->loop, tty, fd, 0);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, tty_obj, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, tty_obj);
     return 0;
@@ -3321,7 +3321,7 @@ static int fuv_make_udp(FKL_CPROC_ARGL) {
             mmsg_num_msgs);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    int r = uv_udp_init_ex(&l->l.loop, udp, flags);
+    int r = uv_udp_init_ex(&l->loop, udp, flags);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, udp_obj, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
     return 0;
@@ -3748,7 +3748,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
     udp_send = createFuvUdpSend(exe,
             &udp_send_obj,
             FKL_VM_CPROC(ctx->proc)->dll,
-            handle->h.data.loop,
+            handle->data.loop,
             cb_obj,
             buf_count);
     err_type = setup_udp_send_data(rest_arg,
@@ -3776,7 +3776,7 @@ static int fuv_udp_send(FKL_CPROC_ARGL) {
 static void
 fuv_udp_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
     size_t buffer_size = suggested_size;
-    struct FuvUdp *udp_handle = (struct FuvUdp *)uv_handle_get_data(handle);
+    FuvValueUdp *udp_handle = uv_handle_get_data(handle);
     if (uv_udp_using_recvmmsg((uv_udp_t *)handle)) {
         int64_t num_msgs = udp_handle->mmsg_num_msgs;
         buffer_size = MAX_DGRAM_SIZE * num_msgs;
@@ -3877,7 +3877,7 @@ static int fuv_udp_recv_start(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(cb_obj, fklIsCallable, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, udp_obj, exe, ctx->pd);
     uv_udp_t *udp = (uv_udp_t *)GET_HANDLE(handle);
-    handle->h.data.callbacks[0] = cb_obj;
+    handle->data.callbacks[0] = cb_obj;
     int ret = uv_udp_recv_start(udp, fuv_udp_alloc_cb, fuv_udp_recv_cb);
     CHECK_UV_RESULT(ret, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, udp_obj);
@@ -4028,7 +4028,7 @@ static int fuv_fs_event_start(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_event_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = cb_obj;
+    handle->data.callbacks[0] = cb_obj;
     int r = uv_fs_event_start((uv_fs_event_t *)GET_HANDLE(handle),
             fuv_fs_event_cb,
             FKL_VM_STR(path_obj)->str,
@@ -4250,7 +4250,7 @@ static int fuv_fs_poll_start(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
 
     DECL_FUV_HANDLE_UD_AND_CHECK_CLOSED(handle, fs_poll_obj, exe, ctx->pd);
-    handle->h.data.callbacks[0] = cb_obj;
+    handle->data.callbacks[0] = cb_obj;
     int r = uv_fs_poll_start((uv_fs_poll_t *)GET_HANDLE(handle),
             fuv_fs_poll_cb,
             FKL_VM_STR(path_obj)->str,
@@ -4638,17 +4638,14 @@ static void fuv_fs_cb(uv_fs_t *req) {
 #define FS_CALL(EXE, PD, FUNC, FUV_LOOP, REQ, REQ_OBJ, CB_OBJ, ...)            \
     {                                                                          \
         if (CB_OBJ) {                                                          \
-            int r = FUNC(&(FUV_LOOP)->l.loop,                                  \
+            int r = FUNC(&(FUV_LOOP)->loop,                                    \
                     &(REQ)->r.req,                                             \
                     __VA_ARGS__,                                               \
                     fuv_fs_cb);                                                \
             check_fs_uv_result(r, (REQ), (EXE), (PD), 0);                      \
             FKL_CPROC_RETURN((EXE), ctx, (REQ_OBJ));                           \
         } else {                                                               \
-            int r = FUNC(&(FUV_LOOP)->l.loop,                                  \
-                    &(REQ)->r.req,                                             \
-                    __VA_ARGS__,                                               \
-                    NULL);                                                     \
+            int r = FUNC(&(FUV_LOOP)->loop, &(REQ)->r.req, __VA_ARGS__, NULL); \
             FKL_CPROC_RETURN((EXE),                                            \
                     ctx,                                                       \
                     check_fs_uv_result(r, (REQ), (EXE), (PD), 1));             \
@@ -5321,8 +5318,8 @@ static int fuv_fs_closedir(FKL_CPROC_ARGL) {
             cb_obj,
             &(const FuvFsReqArgs){ .dir_obj = dir_obj });
 
-    uv_dir_t *d = dir->d.dir;
-    dir->d.dir = NULL;
+    uv_dir_t *d = dir->dir;
+    dir->dir = NULL;
     cleanUpDir(d, FUV_DIR_CLEANUP_FREE_DIRENTS);
 
     FS_CALL(exe, as_pd(ctx->pd), uv_fs_closedir, l, req, req_obj, cb_obj, d);
@@ -5361,7 +5358,7 @@ static int fuv_fs_readdir(FKL_CPROC_ARGL) {
             req,
             req_obj,
             cb_obj,
-            dir->d.dir);
+            dir->dir);
     return 0;
 }
 
@@ -5415,7 +5412,7 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
                 loop_obj,
                 cb_obj,
                 NULL);
-        ret = uv_fs_scandir(&l->l.loop,
+        ret = uv_fs_scandir(&l->loop,
                 &req->r.req,
                 FKL_VM_STR(path_obj)->str,
                 0,
@@ -5427,7 +5424,7 @@ static int fuv_fs_scandir(FKL_CPROC_ARGL) {
                 loop_obj,
                 NULL,
                 NULL);
-        ret = uv_fs_scandir(&l->l.loop,
+        ret = uv_fs_scandir(&l->loop,
                 &req->r.req,
                 FKL_VM_STR(path_obj)->str,
                 0,
@@ -6936,7 +6933,7 @@ static int fuv_print_all_handles(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNSUPPORTED_OP, exe);
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    uv_print_all_handles(&l->l.loop, vfp->fp);
+    uv_print_all_handles(&l->loop, vfp->fp);
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
     return 0;
 }
@@ -6954,7 +6951,7 @@ static int fuv_print_active_handles(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNSUPPORTED_OP, exe);
     // FKL_DECL_VM_UD_DATA(l, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    uv_print_active_handles(&l->l.loop, vfp->fp);
+    uv_print_active_handles(&l->loop, vfp->fp);
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
     return 0;
 }
@@ -7191,7 +7188,7 @@ static int fuv_random(FKL_CPROC_ARGL) {
                 loop_obj,
                 cb_obj,
                 len);
-        int r = uv_random(&l->l.loop,
+        int r = uv_random(&l->loop,
                 &ran->r.req,
                 &ran->r.buf,
                 len,
@@ -7203,7 +7200,7 @@ static int fuv_random(FKL_CPROC_ARGL) {
         uv_random_t req;
         FklVMvalue *v = fklCreateVMvalueBvec2(exe, len, NULL);
         FklBytevector *bvec = FKL_VM_BVEC(v);
-        int r = uv_random(&l->l.loop, &req, bvec->ptr, len, 0, NULL);
+        int r = uv_random(&l->loop, &req, bvec->ptr, len, 0, NULL);
         CHECK_UV_RESULT(r, exe, ctx->pd);
         FKL_CPROC_RETURN(exe, ctx, v);
     }
@@ -7228,7 +7225,7 @@ static int fuv_metrics_idle_time(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     // FKL_DECL_VM_UD_DATA(l, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
-    uint64_t r = uv_metrics_idle_time(&l->l.loop);
+    uint64_t r = uv_metrics_idle_time(&l->loop);
     FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(r, exe));
     return 0;
 }
@@ -7261,7 +7258,7 @@ static int fuv_metrics_info(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(l, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     uv_metrics_t metrics;
-    int r = uv_metrics_info(&l->l.loop, &metrics);
+    int r = uv_metrics_info(&l->loop, &metrics);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FKL_CPROC_RETURN(exe,
             ctx,

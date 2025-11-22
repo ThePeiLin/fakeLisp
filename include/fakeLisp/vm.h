@@ -130,10 +130,10 @@ typedef struct {
     struct FklVMvalue *dll_;                                                   \
     const struct FklVMudMetaTable *mt_
 
-// typedef struct {
-//     FKL_VM_UD_COMMON_HEADER;
-//     void *data[];
-// } FklVMud;
+typedef struct {
+    FKL_VM_UD_COMMON_HEADER;
+    void *data[];
+} FklVMud;
 
 typedef enum {
     FKL_MARK_W = 0,
@@ -194,11 +194,6 @@ typedef struct {
     FklBytevector bvec;
 } FklVMvalueBvec;
 
-// typedef struct {
-//     FKL_VM_VALUE_COMMON_HEADER;
-//     FklVMud ud;
-// } FklVMvalueUd;
-
 #define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
     typedef struct NAME {                                                      \
         FKL_VM_VALUE_COMMON_HEADER;                                            \
@@ -211,7 +206,7 @@ typedef struct {
         };                                                                     \
     } NAME
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
+FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, { void *data[]; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
     FILE *fp;
@@ -1334,9 +1329,9 @@ FklVMvalue *fklVMvalueEof(void);
 #define FKL_GET_SYM(P) (P)
 
 #define FKL_IS_NIL(P) ((P) == FKL_VM_NIL)
-#define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
+#define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
 
 #define X(A, B)                                                                \
     static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
@@ -1344,6 +1339,11 @@ FklVMvalue *fklVMvalueEof(void);
     }
 FKL_VM_TYPE_X
 #undef X
+
+static FKL_ALWAYS_INLINE FklVMvalue *FKL_VM_VAL(const void *c) {
+    FKL_ASSERT(c != NULL && FKL_IS_PTR(c));
+    return FKL_TYPE_CAST(FklVMvalue *, c);
+}
 
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CAR(const FklVMvalue *V) {
     return &(((FklVMvaluePair *)(V))->pair.car);

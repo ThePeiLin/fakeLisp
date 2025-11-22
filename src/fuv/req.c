@@ -4,32 +4,32 @@
 
 #include "fuv.h"
 
-static FKL_ALWAYS_INLINE FuvValueReq *as_req(const FklVMvalue *v) {
-    FKL_ASSERT(isFuvReq(v));
-    return FKL_TYPE_CAST(FuvValueReq *, v);
-}
+// static FKL_ALWAYS_INLINE FuvValueReq *as_req(const FklVMvalue *v) {
+//     FKL_ASSERT(isFuvReq(v));
+//     return FKL_TYPE_CAST(FuvValueReq *, v);
+// }
 
 static void fuv_req_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvReq, ud);
-    FuvReq *req = &as_req(ud)->r;
-    fklVMgcToGray(req->data.loop, gc);
-    fklVMgcToGray(req->data.callback, gc);
-    fklVMgcToGray(req->data.write_data, gc);
+    FuvValueReq *req = FUV_REQ(ud);
+    fklVMgcToGray(req->r.data.loop, gc);
+    fklVMgcToGray(req->r.data.callback, gc);
+    fklVMgcToGray(req->r.data.write_data, gc);
 }
 
-void fuvReqCleanUp(FuvReq *req) {
-    FuvReqData *data = &req->data;
+void fuvReqCleanUp(FuvValueReq *req) {
+    FuvReqData *data = &req->r.data;
     if (data->loop) {
         data->callback = NULL;
         fuvLoopRemoveReqRef(data->loop, req);
     }
 }
 
-void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption opt) {
-    uv_fs_t *fs_req = &req->req;
-    if (opt == FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING && req->dir) {
-        refFuvDir(req->dir, NULL);
-        req->dir = NULL;
+void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
+    uv_fs_t *fs_req = &req->r.req;
+    if (opt == FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING && req->r.dir) {
+        refFuvDir(req->r.dir, NULL);
+        req->r.dir = NULL;
     }
     if (fs_req->fs_type == UV_FS_OPENDIR && fs_req->ptr) {
         cleanUpDir(fs_req->ptr, FUV_DIR_CLEANUP_CLOSE_DIR);
@@ -37,8 +37,8 @@ void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption opt) {
     }
     uv_dir_t *d = fs_req->ptr;
     uv_fs_req_cleanup(fs_req);
-    if (req->dir && fs_req->fs_type == UV_FS_READDIR && d) {
-        req->dir = NULL;
+    if (req->r.dir && fs_req->fs_type == UV_FS_READDIR && d) {
+        req->r.dir = NULL;
         fs_req->ptr = NULL;
         cleanUpDir(d, FUV_DIR_CLEANUP_ALL);
     }
@@ -46,9 +46,9 @@ void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption opt) {
 
 static inline int fuv_req_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvReq, ud);
-    FuvReq *req = &as_req(ud)->r;
-    if (req->data.loop) {
-        fuvLoopAddGcObj(req->data.loop, ud);
+    FuvValueReq *req = FUV_REQ(ud);
+    if (req->r.data.loop) {
+        fuvLoopAddGcObj(req->r.data.loop, ud);
         return FKL_VM_UD_FINALIZE_DELAY;
     }
     fuvReqCleanUp(req);
@@ -64,7 +64,7 @@ static int fuv_fs_req_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvFsReq, ud);
     if (fuv_req_ud_finalizer(ud, gc))
         return FKL_VM_UD_FINALIZE_DELAY;
-    fuvFsReqCleanUp(&as_fs_req(ud)->r, FUV_FS_REQ_CLEANUP_IN_FINALIZING);
+    fuvFsReqCleanUp(as_fs_req(ud), FUV_FS_REQ_CLEANUP_IN_FINALIZING);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -214,13 +214,11 @@ int isFuvReq(const FklVMvalue *v) {
     return 0;
 }
 
-static inline void init_fuv_req(FuvReq *req,
-        FklVMvalue *v,
-        FklVMvalue *loop,
-        FklVMvalue *callback) {
-    req->data.loop = loop;
-    req->data.callback = callback;
-    uv_req_set_data(&req->req, req);
+static inline void
+init_fuv_req(FuvValueReq *req, FklVMvalue *loop, FklVMvalue *callback) {
+    req->r.data.loop = loop;
+    req->r.data.callback = callback;
+    uv_req_set_data(&req->r.req, req);
     fuvLoopAddReqRef(loop, req);
 }
 
@@ -233,23 +231,23 @@ static inline void init_fuv_req(FuvReq *req,
 FUV_REQ_P(isFuvGetaddrinfo, UV_GETADDRINFO);
 
 #define NORMAL_REQ_CREATOR(TYPE, NAME, ENUM)                                   \
-    uv_##NAME##_t *create##TYPE(FklVM *vm,                                     \
+    uv_##NAME##_t *createFuv##TYPE(FklVM *vm,                                  \
             FklVMvalue **ret,                                                  \
             FklVMvalue *dll,                                                   \
             FklVMvalue *loop,                                                  \
             FklVMvalue *callback) {                                            \
         FklVMvalue *v = fklCreateVMvalueUd(vm, &ReqMetaTables[ENUM], dll);     \
-        FKL_DECL_VM_UD_DATA(req, TYPE, v);                                     \
-        init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);         \
+        FuvValue##TYPE *req = FKL_TYPE_CAST(FuvValue##TYPE *, v);              \
+        init_fuv_req(FUV_REQ(v), loop, callback);                              \
         *ret = v;                                                              \
-        return &req->req;                                                      \
+        return &req->r.req;                                                    \
     }
 
-NORMAL_REQ_CREATOR(FuvGetaddrinfo, getaddrinfo, UV_GETADDRINFO);
+NORMAL_REQ_CREATOR(Getaddrinfo, getaddrinfo, UV_GETADDRINFO);
 
 FUV_REQ_P(isFuvGetnameinfo, UV_GETNAMEINFO);
 
-NORMAL_REQ_CREATOR(FuvGetnameinfo, getnameinfo, UV_GETNAMEINFO);
+NORMAL_REQ_CREATOR(Getnameinfo, getnameinfo, UV_GETNAMEINFO);
 
 FUV_REQ_P(isFuvWrite, UV_WRITE);
 
@@ -263,19 +261,20 @@ uv_write_t *createFuvWrite(FklVM *exe,
             &ReqMetaTables[UV_WRITE],
             count * sizeof(FklVMvalue *),
             dll);
-    FKL_DECL_VM_UD_DATA(req, FuvWrite, v);
-    init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
+    // FKL_DECL_VM_UD_DATA(req, FuvWrite, v);
+    FuvValueWrite *req = FKL_TYPE_CAST(FuvValueWrite *, v);
+    init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
-    return &req->req;
+    return &req->r.req;
 }
 
 FUV_REQ_P(isFuvShutdown, UV_SHUTDOWN);
 
-NORMAL_REQ_CREATOR(FuvShutdown, shutdown, UV_SHUTDOWN);
+NORMAL_REQ_CREATOR(Shutdown, shutdown, UV_SHUTDOWN);
 
 FUV_REQ_P(isFuvConnect, UV_CONNECT);
 
-NORMAL_REQ_CREATOR(FuvConnect, connect, UV_CONNECT);
+NORMAL_REQ_CREATOR(Connect, connect, UV_CONNECT);
 
 FUV_REQ_P(isFuvUdpSend, UV_UDP_SEND);
 
@@ -289,15 +288,16 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
             &ReqMetaTables[UV_UDP_SEND],
             count * sizeof(FklVMvalue *),
             dll);
-    FKL_DECL_VM_UD_DATA(req, FuvUdpSend, v);
-    init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
+    // FKL_DECL_VM_UD_DATA(req, FuvUdpSend, v);
+    FuvValueUdpSend *req = FKL_TYPE_CAST(FuvValueUdpSend *, v);
+    init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
-    return &req->req;
+    return &req->r.req;
 }
 
 FUV_REQ_P(isFuvFsReq, UV_FS);
 
-struct FuvFsReq *createFuvFsReq(FklVM *exe,
+FuvValueFsReq *createFuvFsReq(FklVM *exe,
         FklVMvalue **ret,
         FklVMvalue *dll,
         FklVMvalue *loop,
@@ -312,21 +312,22 @@ struct FuvFsReq *createFuvFsReq(FklVM *exe,
             &ReqMetaTables[UV_FS],
             len * sizeof(char),
             dll);
-    FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
-    init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
-    req->buf = uv_buf_init(req->base, len);
+    // FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
+    FuvValueFsReq *req = FKL_TYPE_CAST(FuvValueFsReq *, v);
+    init_fuv_req(FUV_REQ(v), loop, callback);
+    req->r.buf = uv_buf_init(req->r.base, len);
     if (len && str) {
-        memcpy(req->buf.base, str, len * sizeof(char));
+        memcpy(req->r.buf.base, str, len * sizeof(char));
     }
     if (dir_obj)
-        req->dir = refFuvDir(dir_obj, v);
+        req->r.dir = refFuvDir(dir_obj, v);
     *ret = v;
     return req;
 }
 
 FUV_REQ_P(isFuvRandom, UV_RANDOM);
 
-struct FuvRandom *createFuvRandom(FklVM *exe,
+FuvValueRandom *createFuvRandom(FklVM *exe,
         FklVMvalue **ret,
         FklVMvalue *dll,
         FklVMvalue *loop,
@@ -336,8 +337,9 @@ struct FuvRandom *createFuvRandom(FklVM *exe,
             &ReqMetaTables[UV_RANDOM],
             len * sizeof(uint8_t),
             dll);
-    FKL_DECL_VM_UD_DATA(req, FuvRandom, v);
-    init_fuv_req(FKL_TYPE_CAST(FuvReq *, req), v, loop, callback);
+    // FKL_DECL_VM_UD_DATA(req, FuvRandom, v);
+    FuvValueRandom *req = FKL_TYPE_CAST(FuvValueRandom *, v);
+    init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
     return req;
 }

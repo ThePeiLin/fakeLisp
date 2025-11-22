@@ -22,12 +22,6 @@ typedef enum {
 } FuvErrorType;
 
 typedef struct {
-#define XX(A, B, C) FklVMvalue *A##_sid;
-    FUV_SYMBOLS_MAP(XX)
-#undef XX
-} FuvPublicData;
-
-typedef struct {
     FklVM *exe;
     FklVMvalue *refs;
     FklVMvalue *gclist;
@@ -147,133 +141,6 @@ typedef struct FuvFsEvent {
     uv_fs_event_t handle;
 } FuvFsEvent;
 
-int isFuvLoop(const FklVMvalue *v);
-FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
-void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
-void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
-
-static inline int fuvLoopIsClosed(const FuvLoop *l) {
-    return l->data.is_closed;
-}
-static inline void fuvLoopSetClosed(FuvLoop *l) {
-    l->data.mode = -1;
-    l->data.is_closed = 1;
-    l->data.error_occured = 0;
-}
-
-void fuvHandleClose(FuvHandle *h, uv_close_cb cb);
-int isFuvHandle(const FklVMvalue *v);
-
-static inline int isFuvHandleClosed(const FuvHandle *h) {
-    return h->data.loop == NULL;
-}
-
-static inline FuvHandle *getFuvHandle(const FklVMvalue *v) {
-    FKL_ASSERT(isFuvHandle(v));
-    FKL_DECL_VM_UD_DATA(handle, FuvHandle, v);
-    return handle;
-}
-
-int isFuvTimer(const FklVMvalue *v);
-FklVMvalue *
-createFuvTimer(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvPrepare(const FklVMvalue *v);
-FklVMvalue *
-createFuvPrepare(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvIdle(const FklVMvalue *v);
-FklVMvalue *createFuvIdle(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvCheck(const FklVMvalue *v);
-FklVMvalue *
-createFuvCheck(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvSignal(const FklVMvalue *v);
-FklVMvalue *
-createFuvSignal(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvAsync(const FklVMvalue *v);
-FklVMvalue *createFuvAsync(FklVM *,
-        FklVMvalue *dll,
-        FklVMvalue *loop,
-        FklVMvalue *proc_obj,
-        int *err);
-
-int isFuvProcess(const FklVMvalue *v);
-uv_process_t *createFuvProcess(FklVM *,
-        FklVMvalue **pr,
-        FklVMvalue *dll,
-        FklVMvalue *loop,
-        FklVMvalue *proc_obj,
-        FklVMvalue *args_obj,
-        FklVMvalue *env_obj,
-        FklVMvalue *file_obj,
-        FklVMvalue *stdio_obj,
-        FklVMvalue *cwd_obj);
-
-int isFuvStream(const FklVMvalue *v);
-int isFuvPipe(const FklVMvalue *v);
-uv_pipe_t *
-createFuvPipe(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
-
-int isFuvTcp(const FklVMvalue *v);
-uv_tcp_t *
-createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
-
-int isFuvTty(const FklVMvalue *v);
-uv_tty_t *createFuvTty(FklVM *,
-        FklVMvalue **pr,
-        FklVMvalue *dll,
-        FklVMvalue *loop_obj,
-        FklVMvalue *fp_obj);
-
-int isFuvUdp(const FklVMvalue *v);
-uv_udp_t *createFuvUdp(FklVM *,
-        FklVMvalue **pr,
-        FklVMvalue *dll,
-        FklVMvalue *loop_obj,
-        int64_t);
-
-int isFuvFsPoll(const FklVMvalue *v);
-FklVMvalue *
-createFuvFsPoll(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvFsEvent(const FklVMvalue *v);
-FklVMvalue *
-createFuvFsEvent(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
-
-int isFuvPoll(const FklVMvalue *v);
-uv_poll_t *createFuvPoll(FklVM *vm,
-        FklVMvalue **pr,
-        FklVMvalue *dll,
-        FklVMvalue *loop_obj,
-        FklVMvalue *fp_obj);
-
-#define FUV_ASYNC_COPY_DONE(async_handle)                                      \
-    atomic_flag_clear(&(async_handle)->copy_done)
-#define FUV_ASYNC_SEND_DONE(async_handle)                                      \
-    {                                                                          \
-        atomic_flag_clear(&(async_handle)->send_done);                         \
-        atomic_flag_clear(&(async_handle)->send_ready);                        \
-    }
-
-#define FUV_ASYNC_WAIT_COPY(exe, async_handle)                                 \
-    {                                                                          \
-        fklUnlockThread(exe);                                                  \
-        while (atomic_flag_test_and_set(&async_handle->copy_done))             \
-            uv_sleep(0);                                                       \
-        fklLockThread(exe);                                                    \
-    }
-
-#define FUV_ASYNC_WAIT_SEND(exe, async_handle)                                 \
-    {                                                                          \
-        fklUnlockThread(exe);                                                  \
-        while (atomic_flag_test_and_set(&async_handle->send_done))             \
-            uv_sleep(0);                                                       \
-        fklLockThread(exe);                                                    \
-    }
-
 typedef struct {
     FklVMvalue *prev;
     FklVMvalue *next;
@@ -365,6 +232,7 @@ FKL_VM_DEF_UD_STRUCT(FuvValueUdp, { FuvUdp h; });
 FKL_VM_DEF_UD_STRUCT(FuvValueSignal, { FuvSignal h; });
 
 FKL_VM_DEF_UD_STRUCT(FuvValueReq, { FuvReq r; });
+
 FKL_VM_DEF_UD_STRUCT(FuvValueConnect, { FuvConnect r; });
 FKL_VM_DEF_UD_STRUCT(FuvValueWrite, { FuvWrite r; });
 FKL_VM_DEF_UD_STRUCT(FuvValueShutdown, { FuvShutdown r; });
@@ -376,16 +244,150 @@ FKL_VM_DEF_UD_STRUCT(FuvValueRandom, { FuvRandom r; });
 
 FKL_VM_DEF_UD_STRUCT(FuvValueDir, { FuvDir d; });
 
-int isFuvReq(const FklVMvalue *v);
-void fuvReqCleanUp(FuvReq *req);
-static inline int isFuvReqCanceled(const FuvReq *req) {
-    return req->data.loop == NULL;
+int isFuvLoop(const FklVMvalue *v);
+FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
+void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
+void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
+
+static FKL_ALWAYS_INLINE FuvValueLoop *FUV_LOOP(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvLoop(v));
+    return FKL_TYPE_CAST(FuvValueLoop *, v);
 }
 
-static inline FuvReq *getFuvReq(const FklVMvalue *v) {
+static inline int fuvLoopIsClosed(const FuvValueLoop *l) {
+    return l->l.data.is_closed;
+}
+static inline void fuvLoopSetClosed(FuvValueLoop *l) {
+    l->l.data.mode = -1;
+    l->l.data.is_closed = 1;
+    l->l.data.error_occured = 0;
+}
+
+void fuvHandleClose(FuvValueHandle *h, uv_close_cb cb);
+int isFuvHandle(const FklVMvalue *v);
+
+static inline int isFuvHandleClosed(const FuvValueHandle *h) {
+    return h->h.data.loop == NULL;
+}
+
+int isFuvTimer(const FklVMvalue *v);
+FklVMvalue *
+createFuvTimer(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvPrepare(const FklVMvalue *v);
+FklVMvalue *
+createFuvPrepare(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvIdle(const FklVMvalue *v);
+FklVMvalue *createFuvIdle(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvCheck(const FklVMvalue *v);
+FklVMvalue *
+createFuvCheck(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvSignal(const FklVMvalue *v);
+FklVMvalue *
+createFuvSignal(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvAsync(const FklVMvalue *v);
+FklVMvalue *createFuvAsync(FklVM *,
+        FklVMvalue *dll,
+        FklVMvalue *loop,
+        FklVMvalue *proc_obj,
+        int *err);
+
+int isFuvProcess(const FklVMvalue *v);
+uv_process_t *createFuvProcess(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *dll,
+        FklVMvalue *loop,
+        FklVMvalue *proc_obj,
+        FklVMvalue *args_obj,
+        FklVMvalue *env_obj,
+        FklVMvalue *file_obj,
+        FklVMvalue *stdio_obj,
+        FklVMvalue *cwd_obj);
+
+int isFuvStream(const FklVMvalue *v);
+int isFuvPipe(const FklVMvalue *v);
+uv_pipe_t *
+createFuvPipe(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
+
+int isFuvTcp(const FklVMvalue *v);
+uv_tcp_t *
+createFuvTcp(FklVM *, FklVMvalue **pr, FklVMvalue *dll, FklVMvalue *loop_obj);
+
+int isFuvTty(const FklVMvalue *v);
+uv_tty_t *createFuvTty(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *dll,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj);
+
+int isFuvUdp(const FklVMvalue *v);
+uv_udp_t *createFuvUdp(FklVM *,
+        FklVMvalue **pr,
+        FklVMvalue *dll,
+        FklVMvalue *loop_obj,
+        int64_t);
+
+int isFuvFsPoll(const FklVMvalue *v);
+FklVMvalue *
+createFuvFsPoll(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvFsEvent(const FklVMvalue *v);
+FklVMvalue *
+createFuvFsEvent(FklVM *, FklVMvalue *dll, FklVMvalue *loop, int *err);
+
+int isFuvPoll(const FklVMvalue *v);
+uv_poll_t *createFuvPoll(FklVM *vm,
+        FklVMvalue **pr,
+        FklVMvalue *dll,
+        FklVMvalue *loop_obj,
+        FklVMvalue *fp_obj);
+
+#define FUV_ASYNC_COPY_DONE(async_handle)                                      \
+    atomic_flag_clear(&(async_handle)->h.copy_done)
+#define FUV_ASYNC_SEND_DONE(async_handle)                                      \
+    {                                                                          \
+        atomic_flag_clear(&(async_handle)->h.send_done);                         \
+        atomic_flag_clear(&(async_handle)->h.send_ready);                        \
+    }
+
+#define FUV_ASYNC_WAIT_COPY(exe, async_handle)                                 \
+    {                                                                          \
+        fklUnlockThread(exe);                                                  \
+        while (atomic_flag_test_and_set(&async_handle->h.copy_done))             \
+            uv_sleep(0);                                                       \
+        fklLockThread(exe);                                                    \
+    }
+
+#define FUV_ASYNC_WAIT_SEND(exe, async_handle)                                 \
+    {                                                                          \
+        fklUnlockThread(exe);                                                  \
+        while (atomic_flag_test_and_set(&async_handle->h.send_done))             \
+            uv_sleep(0);                                                       \
+        fklLockThread(exe);                                                    \
+    }
+
+int isFuvReq(const FklVMvalue *v);
+void fuvReqCleanUp(FuvValueReq *req);
+static inline int isFuvReqCanceled(const FuvValueReq *req) {
+    return req->r.data.loop == NULL;
+}
+
+static inline FuvValueReq *FUV_REQ(const FklVMvalue *v) {
     FKL_ASSERT(isFuvReq(v));
-    FKL_DECL_VM_UD_DATA(req, FuvReq, v);
-    return req;
+    return FKL_TYPE_CAST(FuvValueReq *, v);
+    // FKL_DECL_VM_UD_DATA(req, FuvReq, v);
+    // return req;
+}
+
+static inline FuvValueHandle *FUV_HANDLE(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvHandle(v));
+    return FKL_TYPE_CAST(FuvValueHandle *, v);
+    // FKL_DECL_VM_UD_DATA(handle, FuvHandle, v);
+    // return handle;
 }
 
 typedef enum FuvFsReqCleanUpOption {
@@ -393,19 +395,19 @@ typedef enum FuvFsReqCleanUpOption {
     FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING,
 } FuvFsReqCleanUpOption;
 
-static inline FklVMvalue *fuvReqValueOf(FuvReq *req) {
-    return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
-}
+// static inline FklVMvalue *fuvReqValueOf(FuvReq *req) {
+//     return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
+// }
+//
+// static inline FklVMvalue *fuvHandleValueOf(FuvHandle *req) {
+//     return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
+// }
 
-static inline FklVMvalue *fuvHandleValueOf(FuvHandle *req) {
-    return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
-}
+void fuvLoopAddHandleRef(FklVMvalue *loop, FuvValueHandle *handle);
+void fuvLoopAddReqRef(FklVMvalue *loop, FuvValueReq *handle);
 
-void fuvLoopAddHandleRef(FklVMvalue *loop, FuvHandle *handle);
-void fuvLoopAddReqRef(FklVMvalue *loop, FuvReq *handle);
-
-void fuvLoopRemoveHandleRef(FklVMvalue *loop, FuvHandle *handle);
-void fuvLoopRemoveReqRef(FklVMvalue *loop, FuvReq *handle);
+void fuvLoopRemoveHandleRef(FklVMvalue *loop, FuvValueHandle *handle);
+void fuvLoopRemoveReqRef(FklVMvalue *loop, FuvValueReq *handle);
 
 int isFuvGetaddrinfo(const FklVMvalue *v);
 uv_getaddrinfo_t *createFuvGetaddrinfo(FklVM *exe,
@@ -453,17 +455,17 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
 
 int isFuvFsReq(const FklVMvalue *v);
 
-struct FuvFsReq *createFuvFsReq(FklVM *exe,
+FuvValueFsReq *createFuvFsReq(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
         FklVMvalue *callback,
         const FuvFsReqArgs *args);
 
-void fuvFsReqCleanUp(FuvFsReq *req, FuvFsReqCleanUpOption);
+void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption);
 
 int isFuvRandom(const FklVMvalue *v);
-struct FuvRandom *createFuvRandom(FklVM *exe,
+FuvValueRandom *createFuvRandom(FklVM *exe,
         FklVMvalue **r,
         FklVMvalue *dll,
         FklVMvalue *loop,
@@ -473,6 +475,11 @@ struct FuvRandom *createFuvRandom(FklVM *exe,
 int isFuvDir(const FklVMvalue *v);
 FklVMvalue *
 createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *dir, size_t nentries);
+
+static FKL_ALWAYS_INLINE FuvValueDir *FUV_DIR(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvDir(v));
+    return FKL_TYPE_CAST(FuvValueDir *, v);
+}
 
 #define FUV_DIR_CLEANUP_NONE (0)
 #define FUV_DIR_CLEANUP_FREE_DIRENTS (1)

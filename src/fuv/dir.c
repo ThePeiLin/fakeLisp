@@ -1,18 +1,13 @@
 #include "fuv.h"
 
-static FKL_ALWAYS_INLINE FuvValueDir *as_dir(const FklVMvalue *v) {
-    FKL_ASSERT(isFuvDir(v));
-    return FKL_TYPE_CAST(FuvValueDir *, v);
-}
-
 FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, "dir");
 
 static int fuv_dir_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(dir, FuvDir, ud);
-    FuvDir *dir = &as_dir(ud)->d;
-    if (dir->req == NULL) {
-        cleanUpDir(dir->dir, FUV_DIR_CLEANUP_ALL);
-        dir->dir = NULL;
+    FuvValueDir *dir = FUV_DIR(ud);
+    if (dir->d.req == NULL) {
+        cleanUpDir(dir->d.dir, FUV_DIR_CLEANUP_ALL);
+        dir->d.dir = NULL;
     }
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -32,10 +27,11 @@ int isFuvDir(const FklVMvalue *v) {
 FklVMvalue *
 createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *req, size_t nentries) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvDirUdMetaTable, dll);
-    FKL_DECL_VM_UD_DATA(dir_ud, FuvDir, v);
-    dir_ud->dir = req->ptr;
+    // FKL_DECL_VM_UD_DATA(dir_ud, FuvDir, v);
+    FuvValueDir *dir_ud = FUV_DIR(v);
+    dir_ud->d.dir = req->ptr;
     req->ptr = NULL;
-    uv_dir_t *dir = dir_ud->dir;
+    uv_dir_t *dir = dir_ud->d.dir;
     dir->nentries = nentries;
     if (nentries) {
         dir->dirents = (uv_dirent_t *)fklZcalloc(nentries, sizeof(uv_dirent_t));
@@ -45,15 +41,15 @@ createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *req, size_t nentries) {
     return v;
 }
 
-static inline FuvDir *get_fuv_dir(const FklVMvalue *v) {
-    FKL_ASSERT(isFuvDir(v));
-    FKL_DECL_VM_UD_DATA(dir, FuvDir, v);
-    return dir;
-}
+// static inline FuvDir *get_fuv_dir(const FklVMvalue *v) {
+//     FKL_ASSERT(isFuvDir(v));
+//     FKL_DECL_VM_UD_DATA(dir, FuvDir, v);
+//     return dir;
+// }
 
-int isFuvDirUsing(FklVMvalue *dir) { return get_fuv_dir(dir)->req != NULL; }
+int isFuvDirUsing(FklVMvalue *dir) { return FUV_DIR(dir)->d.req != NULL; }
 
 FklVMvalue *refFuvDir(FklVMvalue *dir_obj, FklVMvalue *req_obj) {
-    get_fuv_dir(dir_obj)->req = req_obj;
+    FUV_DIR(dir_obj)->d.req = req_obj;
     return dir_obj;
 }

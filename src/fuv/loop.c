@@ -17,7 +17,7 @@ static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
     if (isFuvHandle(v)) {
         return FUV_HANDLE(v)->data.next;
     } else if (isFuvReq(v)) {
-        return FUV_REQ(v)->r.data.next;
+        return FUV_REQ(v)->data.next;
     } else {
         FKL_UNREACHABLE();
     }
@@ -47,7 +47,7 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
         fuvLoopRemoveHandleRef(h->data.loop, h);
     } else {
         FuvValueReq *h = FUV_REQ(v);
-        fuvLoopRemoveReqRef(h->r.data.loop, h);
+        fuvLoopRemoveReqRef(h->data.loop, h);
     }
 }
 
@@ -116,7 +116,7 @@ static inline void set_obj_prev(FklVMvalue *v, FklVMvalue *prev) {
     if (isFuvHandle(v)) {
         FUV_HANDLE(v)->data.prev = prev;
     } else if (isFuvReq(v)) {
-        FUV_REQ(v)->r.data.prev = prev;
+        FUV_REQ(v)->data.prev = prev;
     } else {
         FKL_UNREACHABLE();
     }
@@ -127,7 +127,7 @@ static inline void set_obj_next(FklVMvalue *v, FklVMvalue *next) {
     if (isFuvHandle(v)) {
         FUV_HANDLE(v)->data.next = next;
     } else if (isFuvReq(v)) {
-        FUV_REQ(v)->r.data.next = next;
+        FUV_REQ(v)->data.next = next;
     } else {
         FKL_UNREACHABLE();
     }
@@ -155,7 +155,7 @@ void fuvLoopAddReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
 
     FklVMvalue *v = FKL_VM_VAL(r); // fuvReqValueOf(r);
 
-    r->r.data.next = loop->data.refs;
+    r->data.next = loop->data.refs;
 
     if (loop->data.refs)
         set_obj_prev(loop->data.refs, v);
@@ -187,16 +187,16 @@ void fuvLoopRemoveReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
     // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
-    if (r->r.data.prev)
-        set_obj_next(r->r.data.prev, r->r.data.next);
+    if (r->data.prev)
+        set_obj_next(r->data.prev, r->data.next);
     else {
-        loop->data.refs = r->r.data.next;
+        loop->data.refs = r->data.next;
     }
 
-    if (r->r.data.next)
-        set_obj_prev(r->r.data.next, r->r.data.prev);
+    if (r->data.next)
+        set_obj_prev(r->data.next, r->data.prev);
 
-    r->r.data.next = NULL;
-    r->r.data.prev = NULL;
-    r->r.data.loop = NULL;
+    r->data.next = NULL;
+    r->data.prev = NULL;
+    r->data.loop = NULL;
 }

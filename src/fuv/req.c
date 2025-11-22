@@ -12,13 +12,13 @@
 static void fuv_req_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvReq, ud);
     FuvValueReq *req = FUV_REQ(ud);
-    fklVMgcToGray(req->r.data.loop, gc);
-    fklVMgcToGray(req->r.data.callback, gc);
-    fklVMgcToGray(req->r.data.write_data, gc);
+    fklVMgcToGray(req->data.loop, gc);
+    fklVMgcToGray(req->data.callback, gc);
+    fklVMgcToGray(req->data.write_data, gc);
 }
 
 void fuvReqCleanUp(FuvValueReq *req) {
-    FuvReqData *data = &req->r.data;
+    FuvReqData *data = &req->data;
     if (data->loop) {
         data->callback = NULL;
         fuvLoopRemoveReqRef(data->loop, req);
@@ -26,10 +26,10 @@ void fuvReqCleanUp(FuvValueReq *req) {
 }
 
 void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
-    uv_fs_t *fs_req = &req->r.req;
-    if (opt == FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING && req->r.dir) {
-        refFuvDir(req->r.dir, NULL);
-        req->r.dir = NULL;
+    uv_fs_t *fs_req = &req->req;
+    if (opt == FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING && req->dir) {
+        refFuvDir(req->dir, NULL);
+        req->dir = NULL;
     }
     if (fs_req->fs_type == UV_FS_OPENDIR && fs_req->ptr) {
         cleanUpDir(fs_req->ptr, FUV_DIR_CLEANUP_CLOSE_DIR);
@@ -37,8 +37,8 @@ void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
     }
     uv_dir_t *d = fs_req->ptr;
     uv_fs_req_cleanup(fs_req);
-    if (req->r.dir && fs_req->fs_type == UV_FS_READDIR && d) {
-        req->r.dir = NULL;
+    if (req->dir && fs_req->fs_type == UV_FS_READDIR && d) {
+        req->dir = NULL;
         fs_req->ptr = NULL;
         cleanUpDir(d, FUV_DIR_CLEANUP_ALL);
     }
@@ -47,8 +47,8 @@ void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
 static inline int fuv_req_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvReq, ud);
     FuvValueReq *req = FUV_REQ(ud);
-    if (req->r.data.loop) {
-        fuvLoopAddGcObj(req->r.data.loop, ud);
+    if (req->data.loop) {
+        fuvLoopAddGcObj(req->data.loop, ud);
         return FKL_VM_UD_FINALIZE_DELAY;
     }
     fuvReqCleanUp(req);
@@ -84,7 +84,7 @@ static FKL_ALWAYS_INLINE FuvValueWrite *as_write(const FklVMvalue *v) {
 
 static void fuv_write_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, struct FuvWrite, ud);
-    FuvWrite *req = &as_write(ud)->r;
+    FuvValueWrite *req = as_write(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
     fklVMgcToGray(req->data.write_data, gc);
@@ -99,7 +99,7 @@ static FKL_ALWAYS_INLINE FuvValueUdpSend *as_udp_send(const FklVMvalue *v) {
 
 static void fuv_udp_send_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, struct FuvUdpSend, ud);
-    FuvUdpSend *req = &as_udp_send(ud)->r;
+    FuvValueUdpSend *req = as_udp_send(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
     fklVMgcToGray(req->data.write_data, gc);
@@ -109,7 +109,7 @@ static void fuv_udp_send_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static void fuv_fs_req_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, struct FuvFsReq, ud);
-    FuvFsReq *req = &as_fs_req(ud)->r;
+    FuvValueFsReq *req = as_fs_req(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
     fklVMgcToGray(req->data.write_data, gc);
@@ -216,9 +216,9 @@ int isFuvReq(const FklVMvalue *v) {
 
 static inline void
 init_fuv_req(FuvValueReq *req, FklVMvalue *loop, FklVMvalue *callback) {
-    req->r.data.loop = loop;
-    req->r.data.callback = callback;
-    uv_req_set_data(&req->r.req, req);
+    req->data.loop = loop;
+    req->data.callback = callback;
+    uv_req_set_data(&req->req, req);
     fuvLoopAddReqRef(loop, req);
 }
 
@@ -240,7 +240,7 @@ FUV_REQ_P(isFuvGetaddrinfo, UV_GETADDRINFO);
         FuvValue##TYPE *req = FKL_TYPE_CAST(FuvValue##TYPE *, v);              \
         init_fuv_req(FUV_REQ(v), loop, callback);                              \
         *ret = v;                                                              \
-        return &req->r.req;                                                    \
+        return &req->req;                                                      \
     }
 
 NORMAL_REQ_CREATOR(Getaddrinfo, getaddrinfo, UV_GETADDRINFO);
@@ -265,7 +265,7 @@ uv_write_t *createFuvWrite(FklVM *exe,
     FuvValueWrite *req = FKL_TYPE_CAST(FuvValueWrite *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
-    return &req->r.req;
+    return &req->req;
 }
 
 FUV_REQ_P(isFuvShutdown, UV_SHUTDOWN);
@@ -292,7 +292,7 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
     FuvValueUdpSend *req = FKL_TYPE_CAST(FuvValueUdpSend *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
-    return &req->r.req;
+    return &req->req;
 }
 
 FUV_REQ_P(isFuvFsReq, UV_FS);
@@ -315,12 +315,12 @@ FuvValueFsReq *createFuvFsReq(FklVM *exe,
     // FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
     FuvValueFsReq *req = FKL_TYPE_CAST(FuvValueFsReq *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
-    req->r.buf = uv_buf_init(req->r.base, len);
+    req->buf = uv_buf_init(req->base, len);
     if (len && str) {
-        memcpy(req->r.buf.base, str, len * sizeof(char));
+        memcpy(req->buf.base, str, len * sizeof(char));
     }
     if (dir_obj)
-        req->r.dir = refFuvDir(dir_obj, v);
+        req->dir = refFuvDir(dir_obj, v);
     *ret = v;
     return req;
 }

@@ -82,13 +82,13 @@ struct FuvAsyncExtraData {
 //     uv_pipe_t handle;
 //     FklVMvalue *fp;
 // } FuvPipe;
-
-typedef struct FuvPoll {
-    FuvHandleData data;
-    uv_poll_t handle;
-    FklVMvalue *fp;
-} FuvPoll;
-
+//
+// typedef struct FuvPoll {
+//     FuvHandleData data;
+//     uv_poll_t handle;
+//     FklVMvalue *fp;
+// } FuvPoll;
+//
 // typedef struct FuvTty {
 //     FuvHandleData data;
 //     uv_tty_t handle;
@@ -149,63 +149,63 @@ typedef struct {
     FklVMvalue *write_data;
 } FuvReqData;
 
-typedef struct {
-    FuvReqData data;
-    uv_req_t req;
-} FuvReq;
-
-typedef struct FuvWrite {
-    FuvReqData data;
-    uv_write_t req;
-    FklVMvalue *write_objs[1];
-} FuvWrite;
-
-typedef struct FuvUdpSend {
-    FuvReqData data;
-    uv_udp_send_t req;
-    FklVMvalue *send_objs[1];
-} FuvUdpSend;
-
+// typedef struct {
+//     FuvReqData data;
+//     uv_req_t req;
+// } FuvReq;
+//
+// typedef struct FuvWrite {
+//     FuvReqData data;
+//     uv_write_t req;
+//     FklVMvalue *write_objs[1];
+// } FuvWrite;
+//
+// typedef struct FuvUdpSend {
+//     FuvReqData data;
+//     uv_udp_send_t req;
+//     FklVMvalue *send_objs[1];
+// } FuvUdpSend;
+//
 // typedef struct FuvDir {
 //     uv_dir_t *dir;
 //     FklVMvalue *req;
 // } FuvDir;
 //
-typedef struct FuvFsReq {
-    FuvReqData data;
-    uv_fs_t req;
-    FklVMvalue *dest_path;
-    size_t nentries;
-    FklVMvalue *dir;
-    uv_buf_t buf;
-    char base[1];
-} FuvFsReq;
-
-typedef struct FuvConnect {
-    FuvReqData data;
-    uv_connect_t req;
-} FuvConnect;
-
-typedef struct FuvShutdown {
-    FuvReqData data;
-    uv_shutdown_t req;
-} FuvShutdown;
-
-typedef struct FuvGetaddrinfo {
-    FuvReqData data;
-    uv_getaddrinfo_t req;
-} FuvGetaddrinfo;
-
-typedef struct FuvGetnameinfo {
-    FuvReqData data;
-    uv_getnameinfo_t req;
-} FuvGetnameinfo;
-
-typedef struct FuvRandom {
-    FuvReqData data;
-    uv_random_t req;
-    uint8_t buf[1];
-} FuvRandom;
+// typedef struct FuvFsReq {
+//     FuvReqData data;
+//     uv_fs_t req;
+//     FklVMvalue *dest_path;
+//     size_t nentries;
+//     FklVMvalue *dir;
+//     uv_buf_t buf;
+//     char base[1];
+// } FuvFsReq;
+//
+// typedef struct FuvConnect {
+//     FuvReqData data;
+//     uv_connect_t req;
+// } FuvConnect;
+//
+// typedef struct FuvShutdown {
+//     FuvReqData data;
+//     uv_shutdown_t req;
+// } FuvShutdown;
+//
+// typedef struct FuvGetaddrinfo {
+//     FuvReqData data;
+//     uv_getaddrinfo_t req;
+// } FuvGetaddrinfo;
+//
+// typedef struct FuvGetnameinfo {
+//     FuvReqData data;
+//     uv_getnameinfo_t req;
+// } FuvGetnameinfo;
+//
+// typedef struct FuvRandom {
+//     FuvReqData data;
+//     uv_random_t req;
+//     uint8_t buf[1];
+// } FuvRandom;
 
 typedef struct FuvFsReqArgs {
     FklVMvalue *dir_obj;
@@ -252,16 +252,37 @@ FUV_DEF_HANDLE(FuvValueTty, tty, { FklVMvalue *fp; })
 FUV_DEF_HANDLE(FuvValueUdp, udp, { int64_t mmsg_num_msgs; })
 FUV_DEF_HANDLE(FuvValueSignal, signal, {})
 
-FKL_VM_DEF_UD_STRUCT(FuvValueReq, { FuvReq r; });
+#define FUV_DEF_REQ(NAME, UV_TYPE_NAME, OTHER_MEMBERS)                         \
+    FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
+        FuvReqData data;                                                       \
+        uv_##UV_TYPE_NAME##_t req;                                             \
+        struct OTHER_MEMBERS;                                                  \
+    });
 
-FKL_VM_DEF_UD_STRUCT(FuvValueConnect, { FuvConnect r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueWrite, { FuvWrite r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueShutdown, { FuvShutdown r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueUdpSend, { FuvUdpSend r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueFsReq, { FuvFsReq r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueGetaddrinfo, { FuvGetaddrinfo r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueGetnameinfo, { FuvGetnameinfo r; });
-FKL_VM_DEF_UD_STRUCT(FuvValueRandom, { FuvRandom r; });
+// FKL_VM_DEF_UD_STRUCT(FuvValueReq, { FuvReq r; });
+FUV_DEF_REQ(FuvValueReq, req, {});
+// FKL_VM_DEF_UD_STRUCT(FuvValueConnect, { FuvConnect r; });
+FUV_DEF_REQ(FuvValueConnect, connect, {});
+// FKL_VM_DEF_UD_STRUCT(FuvValueWrite, { FuvWrite r; });
+FUV_DEF_REQ(FuvValueWrite, write, { FklVMvalue *write_objs[1]; });
+// FKL_VM_DEF_UD_STRUCT(FuvValueShutdown, { FuvShutdown r; });
+FUV_DEF_REQ(FuvValueShutdown, shutdown, {});
+// FKL_VM_DEF_UD_STRUCT(FuvValueUdpSend, { FuvUdpSend r; });
+FUV_DEF_REQ(FuvValueUdpSend, udp_send, { FklVMvalue *send_objs[1]; });
+// FKL_VM_DEF_UD_STRUCT(FuvValueFsReq, { FuvFsReq r; });
+FUV_DEF_REQ(FuvValueFsReq, fs, {
+    FklVMvalue *dest_path;
+    size_t nentries;
+    FklVMvalue *dir;
+    uv_buf_t buf;
+    char base[1];
+});
+// FKL_VM_DEF_UD_STRUCT(FuvValueGetaddrinfo, { FuvGetaddrinfo r; });
+FUV_DEF_REQ(FuvValueGetaddrinfo, getaddrinfo, {});
+// FKL_VM_DEF_UD_STRUCT(FuvValueGetnameinfo, { FuvGetnameinfo r; });
+FUV_DEF_REQ(FuvValueGetnameinfo, getnameinfo, {});
+// FKL_VM_DEF_UD_STRUCT(FuvValueRandom, { FuvRandom r; });
+FUV_DEF_REQ(FuvValueRandom, random, { uint8_t buf[1]; });
 
 FKL_VM_DEF_UD_STRUCT(FuvValueDir, {
     uv_dir_t *dir;
@@ -397,7 +418,7 @@ uv_poll_t *createFuvPoll(FklVM *vm,
 int isFuvReq(const FklVMvalue *v);
 void fuvReqCleanUp(FuvValueReq *req);
 static inline int isFuvReqCanceled(const FuvValueReq *req) {
-    return req->r.data.loop == NULL;
+    return req->data.loop == NULL;
 }
 
 static inline FuvValueReq *FUV_REQ(const FklVMvalue *v) {

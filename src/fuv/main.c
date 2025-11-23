@@ -1474,7 +1474,7 @@ static inline FklVMvalue *
 addrinfo_to_vmhash(FklVM *exe, struct addrinfo *info, const FuvValuePd *fpd) {
     char ip[INET6_ADDRSTRLEN];
     FklVMvalue *v = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(v);
+    FklVMvalueHash *ht = FKL_VM_HASH(v);
     const char *addr = NULL;
     int port = 0;
     if (info->ai_family == AF_INET || info->ai_family == AF_INET6) {
@@ -1790,7 +1790,7 @@ static inline FklVMvalue *host_service_to_hash(FklVM *exe,
         const char *service,
         const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
     fklVMhashTableSet(ht,
             fpd->f_hostname_sid,
             hostname ? fklCreateVMvalueStrFromCstr(exe, hostname) : FKL_VM_NIL);
@@ -2977,7 +2977,7 @@ static inline FklVMvalue *parse_sockaddr_with_fpd(FklVM *exe,
     }
 
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->f_family_sid,
@@ -4082,7 +4082,7 @@ static inline FklVMvalue *timespec_to_vmtable(FklVM *exe,
         const uv_timespec_t *spec,
         const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
@@ -4096,7 +4096,7 @@ static inline FklVMvalue *timespec_to_vmtable(FklVM *exe,
 static inline FklVMvalue *
 stat_to_vmtable(FklVM *exe, const uv_stat_t *stat, const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->stat_f_dev_sid,
@@ -4320,7 +4320,7 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
 static inline FklVMvalue *
 statfs_to_vmtable(FklVM *exe, uv_statfs_t *s, const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->statfs_f_type_sid,
@@ -4373,7 +4373,7 @@ static inline FklVMvalue *dirent_type_to_sid(uv_dirent_type_t type,
 static inline FklVMvalue *
 dirent_to_vmtable(FklVM *exe, uv_dirent_t *d, const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->dirent_f_type_sid,
@@ -6452,7 +6452,7 @@ static inline FklVMvalue *timeval_to_vmtable(FklVM *exe,
         const uv_timeval_t *spec,
         const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
@@ -6467,7 +6467,7 @@ static inline FklVMvalue *
 rusage_to_vmtable(FklVM *exe, uv_rusage_t *r, FuvValuePd *fpd) {
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->rusage_utime_sid,
@@ -6577,7 +6577,7 @@ static int fuv_available_parallelism(FKL_CPROC_ARGL) {
 static inline FklVMvalue *
 cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info, const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
     fklVMhashTableSet(ht,
             fpd->cpu_info_model_sid,
             fklCreateVMvalueStrFromCstr(exe, info->model));
@@ -6587,7 +6587,7 @@ cpu_info_to_vmtable(FklVM *exe, uv_cpu_info_t *info, const FuvValuePd *fpd) {
             FKL_MAKE_VM_FIX(info->speed));
 
     FklVMvalue *cpu_times = fklCreateVMvalueHashEq(exe);
-    FklVMhash *cht = FKL_VM_HASH(cpu_times);
+    FklVMvalueHash *cht = FKL_VM_HASH(cpu_times);
 
     fklVMhashTableSet(cht,
             fpd->cpu_info_times_user_sid,
@@ -6660,7 +6660,7 @@ static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
         uv_interface_address_t *cur = &addresses[i];
         FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
         vec->base[i] = hash;
-        FklVMhash *ht = FKL_VM_HASH(hash);
+        FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
         fklVMhashTableSet(ht,
                 fpd->ifa_f_name_sid,
@@ -6809,7 +6809,7 @@ static int fuv_os_tmpdir(FKL_CPROC_ARGL) {
 static inline FklVMvalue *
 passwd_to_vmtable(FklVM *exe, uv_passwd_t *passwd, FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     fklVMhashTableSet(ht,
             fpd->passwd_username_sid,
@@ -6880,7 +6880,7 @@ static inline FklVMvalue *timespec64_to_vmtable(FklVM *exe,
         const uv_timespec64_t *spec,
         const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
@@ -7079,7 +7079,7 @@ static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
         const uv_timeval64_t *spec,
         const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht, fpd->time_f_sec_sid, fklMakeVMint(spec->tv_sec, exe));
 
@@ -7093,7 +7093,7 @@ static inline FklVMvalue *timeval64_to_vmtable(FklVM *exe,
 static inline FklVMvalue *
 utsname_to_vmtable(FklVM *exe, uv_utsname_t *buf, const FuvValuePd *fpd) {
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->utsname_sysname_sid,
@@ -7233,7 +7233,7 @@ static inline FklVMvalue *
 metrics_to_vmtable(FklVM *exe, uv_metrics_t *metrics, FuvValuePd *fpd) {
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *hash = fklCreateVMvalueHashEq(exe);
-    FklVMhash *ht = FKL_VM_HASH(hash);
+    FklVMvalueHash *ht = FKL_VM_HASH(hash);
 
     fklVMhashTableSet(ht,
             fpd->metrics_loop_count_sid,

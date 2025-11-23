@@ -59,7 +59,7 @@ static inline FklVMvalue *load_value_id(FILE *fp,
     return r;
 }
 
-static inline void write_bigint(const FklVMbigInt *bi, FILE *fp) {
+static inline void write_bigint(const FklVMvalueBigInt *bi, FILE *fp) {
     fwrite(&bi->num, sizeof(bi->num), 1, fp);
     fwrite(bi->digits, fklAbs(bi->num) * sizeof(*(bi->digits)), 1, fp);
 }
@@ -188,7 +188,7 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
         fread(&num, sizeof(num), 1, fp);
         size_t len = fklAbs(num);
         FklVMvalue *bi = fklCreateVMvalueBigInt(vm, len);
-        FklVMbigInt *v = FKL_VM_BI(bi);
+        FklVMvalueBigInt *v = FKL_VM_BI(bi);
         v->num = num;
         fread(v->digits, len * sizeof(*(v->digits)), 1, fp);
         return bi;
@@ -687,7 +687,7 @@ write_vm_libs_pass_2(const FklVMvalueLibs *l, FklValueTable *vt, FILE *fp) {
         fwrite(&type_byte, sizeof(type_byte), 1, fp);
         switch (type_byte) {
         case FKL_CODEGEN_LIB_SCRIPT: {
-            FklVMproc *proc = FKL_VM_PROC(lib->proc);
+            FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
             fwrite(&lib->epc, sizeof(lib->epc), 1, fp);
             uint32_t proto_id = proc->protoId;
             fwrite(&proto_id, sizeof(proto_id), 1, fp);

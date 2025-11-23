@@ -118,7 +118,7 @@ static inline void print_back_trace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
 
 void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
     if (cur->type == FKL_FRAME_COMPOUND) {
-        FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
+        FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
         if (proc->name) {
             fprintf(fp, "at proc: ");
             fklPrintSymbolLiteral(FKL_VM_SYM(proc->name), fp);
@@ -193,7 +193,7 @@ static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
 }
 
 FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
-    FklVMproc *code = FKL_VM_PROC(proc);
+    FklVMvalueProc *code = FKL_VM_PROC(proc);
     FklVMframe *frame;
     if (exe->frame_cache_head) {
         frame = exe->frame_cache_head;
@@ -363,16 +363,16 @@ static inline void dec_value_degree(VmValueDegreeHashMap *ht, FklVMvalue *v) {
 static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
         VmCircleHeadHashMap *circle_heads,
         const FklVMvalue *first_value) {
-    FklVMvalueVector stack;
-    fklVMvalueVectorInit(&stack, 16);
-    fklVMvalueVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
-    while (!fklVMvalueVectorIsEmpty(&stack)) {
-        FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
+    FklVMvalVector stack;
+    fklVMvalVectorInit(&stack, 16);
+    fklVMvalVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
+    while (!fklVMvalVectorIsEmpty(&stack)) {
+        FklVMvalue *v = *fklVMvalVectorPopBackNonNull(&stack);
         if (FKL_IS_PAIR(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_CDR(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_CAR(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_VECTOR(v)) {
@@ -380,13 +380,13 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
-                    fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
+                    fklVMvalVectorPushBack2(&stack, vec->base[i - 1]);
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_BOX(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_BOX(v));
                 putValueInSet(circle_heads, v);
             }
         } else if (FKL_IS_HASHTABLE(v)) {
@@ -395,8 +395,8 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                 for (FklVMvalueHashMapNode *tail = FKL_VM_HASH(v)->ht.last;
                         tail;
                         tail = tail->prev) {
-                    fklVMvalueVectorPushBack2(&stack, tail->v);
-                    fklVMvalueVectorPushBack2(&stack, tail->k);
+                    fklVMvalVectorPushBack2(&stack, tail->v);
+                    fklVMvalVectorPushBack2(&stack, tail->k);
                 }
                 putValueInSet(circle_heads, v);
             }
@@ -411,7 +411,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
         for (VmValueDegreeHashMapNode *list = ht->first; list;
                 list = list->next) {
             if (!list->v)
-                fklVMvalueVectorPushBack2(&stack, list->k);
+                fklVMvalVectorPushBack2(&stack, list->k);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
@@ -438,7 +438,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                 }
             }
         }
-    } while (!fklVMvalueVectorIsEmpty(&stack));
+    } while (!fklVMvalVectorIsEmpty(&stack));
 
     // get all circle heads
 
@@ -454,7 +454,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
             for (VmValueDegreeHashMapNode *list = ht->first; list;
                     list = list->next) {
                 if (!list->v)
-                    fklVMvalueVectorPushBack2(&stack, list->k);
+                    fklVMvalVectorPushBack2(&stack, list->k);
             }
             FklVMvalue **base = (FklVMvalue **)stack.base;
             FklVMvalue **const end = &base[stack.size];
@@ -481,9 +481,9 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                     }
                 }
             }
-        } while (!fklVMvalueVectorIsEmpty(&stack));
+        } while (!fklVMvalVectorIsEmpty(&stack));
     }
-    fklVMvalueVectorUninit(&stack);
+    fklVMvalVectorUninit(&stack);
 }
 
 static inline void traverse_value_dfs(const FklVMvalue *first_value,
@@ -492,43 +492,43 @@ static inline void traverse_value_dfs(const FklVMvalue *first_value,
     FklVMvalueHashSet value_set;
     fklVMvalueHashSetInit(&value_set);
 
-    FklVMvalueVector stack;
-    fklVMvalueVectorInit(&stack, 16);
+    FklVMvalVector stack;
+    fklVMvalVectorInit(&stack, 16);
 
-    fklVMvalueVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
-    while (!fklVMvalueVectorIsEmpty(&stack)) {
-        FklVMvalue *v = *fklVMvalueVectorPopBackNonNull(&stack);
+    fklVMvalVectorPushBack2(&stack, FKL_TYPE_CAST(FklVMvalue *, first_value));
+    while (!fklVMvalVectorIsEmpty(&stack)) {
+        FklVMvalue *v = *fklVMvalVectorPopBackNonNull(&stack);
         if (callback(v, ctx))
             break;
         if (FKL_IS_PAIR(v)) {
             if (!fklVMvalueHashSetPut2(&value_set, v)) {
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_CDR(v));
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_CAR(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_CDR(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_CAR(v));
             }
         } else if (FKL_IS_VECTOR(v)) {
             if (!fklVMvalueHashSetPut2(&value_set, v)) {
                 FklVMvec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
-                    fklVMvalueVectorPushBack2(&stack, vec->base[i - 1]);
+                    fklVMvalVectorPushBack2(&stack, vec->base[i - 1]);
             }
         } else if (FKL_IS_BOX(v)) {
             if (!fklVMvalueHashSetPut2(&value_set, v)) {
-                fklVMvalueVectorPushBack2(&stack, FKL_VM_BOX(v));
+                fklVMvalVectorPushBack2(&stack, FKL_VM_BOX(v));
             }
         } else if (FKL_IS_HASHTABLE(v)) {
             if (!fklVMvalueHashSetPut2(&value_set, v)) {
                 for (FklVMvalueHashMapNode *tail = FKL_VM_HASH(v)->ht.last;
                         tail;
                         tail = tail->prev) {
-                    fklVMvalueVectorPushBack2(&stack, tail->v);
-                    fklVMvalueVectorPushBack2(&stack, tail->k);
+                    fklVMvalVectorPushBack2(&stack, tail->v);
+                    fklVMvalVectorPushBack2(&stack, tail->k);
                 }
             }
         }
     }
 
     fklVMvalueHashSetUninit(&value_set);
-    fklVMvalueVectorUninit(&stack);
+    fklVMvalVectorUninit(&stack);
 }
 
 static inline void traverse_value_bfs(const FklVMvalue *first_value,
@@ -587,15 +587,15 @@ static int has_circle_ref_cb(const FklVMvalue *v, void *ctx) {
 }
 
 static inline void reduce_degrees(VmValueDegreeHashMap *degree_table) {
-    FklVMvalueVector stack;
-    fklVMvalueVectorInit(&stack, 16);
+    FklVMvalVector stack;
+    fklVMvalVectorInit(&stack, 16);
 
     do {
         stack.size = 0;
         for (VmValueDegreeHashMapNode *list = degree_table->first; list;
                 list = list->next) {
             if (!list->v)
-                fklVMvalueVectorPushBack2(&stack, list->k);
+                fklVMvalVectorPushBack2(&stack, list->k);
         }
         FklVMvalue **base = (FklVMvalue **)stack.base;
         FklVMvalue **const end = &base[stack.size];
@@ -622,9 +622,9 @@ static inline void reduce_degrees(VmValueDegreeHashMap *degree_table) {
                 }
             }
         }
-    } while (!fklVMvalueVectorIsEmpty(&stack));
+    } while (!fklVMvalVectorIsEmpty(&stack));
 
-    fklVMvalueVectorUninit(&stack);
+    fklVMvalVectorUninit(&stack);
 }
 
 int fklHasCircleRef(const FklVMvalue *v) {
@@ -771,7 +771,7 @@ static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
-    FklVMproc *proc = FKL_VM_PROC(v);
+    FklVMvalueProc *proc = FKL_VM_PROC(v);
     if (proc->name) {
         fklVMformat(exe,
                 build,
@@ -784,7 +784,7 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS) {
-    FklVMcproc *cproc = FKL_VM_CPROC(v);
+    FklVMvalueCproc *cproc = FKL_VM_CPROC(v);
     if (cproc->name) {
         fklCodeBuilderPuts(build, "#<cproc ");
         fklPrintSymLiteral2(cproc->name, build);
@@ -1303,7 +1303,7 @@ FklVMvalue *fklProcessVMnumAddk(FklVM *exe, FklVMvalue *arg, int8_t k) {
         else
             return FKL_MAKE_VM_FIX(i);
     } else if (FKL_IS_BIGINT(arg)) {
-        const FklVMbigInt *bigint = FKL_VM_BI(arg);
+        const FklVMvalueBigInt *bigint = FKL_VM_BI(arg);
         if (fklIsVMbigIntAddkInFixIntRange(bigint, k))
             return FKL_MAKE_VM_FIX(fklVMbigIntToI(bigint) + k);
         else
@@ -1376,7 +1376,7 @@ FklVMvalue *fklProcessVMnumNeg(FklVM *exe, FklVMvalue *prev) {
         else
             r = FKL_MAKE_VM_FIX(p64);
     } else {
-        const FklVMbigInt *b = FKL_VM_BI(prev);
+        const FklVMvalueBigInt *b = FKL_VM_BI(prev);
         const FklBigInt bi = {
             .digits = (FklBigIntDigit *)b->digits,
             .num = -b->num,
@@ -1694,7 +1694,7 @@ format_princ_value(FklVMvalue *v, FklStringBuffer *buf, FklVM *exe) {
 }
 
 static inline uint64_t format_bigint(FklStringBuffer *buf,
-        const FklVMbigInt *bi,
+        const FklVMvalueBigInt *bi,
         uint32_t flags,
         uint32_t base,
         uint64_t width,
@@ -2239,17 +2239,17 @@ uint64_t fklValueTableGet(const FklValueTable *t, FklVMvalue *v) {
 }
 
 struct TraverseSerializableArgs {
-    FklVMvalueVector *leafs;
-    FklVMvalueVector *non_leafs;
+    FklVMvalVector *leafs;
+    FklVMvalVector *non_leafs;
 };
 
 static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
     struct TraverseSerializableArgs *args = ctx;
     FKL_ASSERT(is_serializable_to_bytecode_value(v));
     if (is_serializable_leaf_node(v))
-        fklVMvalueVectorPushBack2(args->leafs, FKL_TYPE_CAST(FklVMvalue *, v));
+        fklVMvalVectorPushBack2(args->leafs, FKL_TYPE_CAST(FklVMvalue *, v));
     else
-        fklVMvalueVectorPushBack2(args->non_leafs,
+        fklVMvalVectorPushBack2(args->non_leafs,
                 FKL_TYPE_CAST(FklVMvalue *, v));
     return 0;
 }
@@ -2264,11 +2264,11 @@ void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v) {
         return;
     }
 
-    FklVMvalueVector leafs;
-    FklVMvalueVector non_leafs;
+    FklVMvalVector leafs;
+    FklVMvalVector non_leafs;
 
-    fklVMvalueVectorInit(&leafs, 8);
-    fklVMvalueVectorInit(&non_leafs, 8);
+    fklVMvalVectorInit(&leafs, 8);
+    fklVMvalVectorInit(&non_leafs, 8);
 
     struct TraverseSerializableArgs args = {
         .leafs = &leafs,
@@ -2291,6 +2291,6 @@ void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v) {
         fklValueTableAdd(t, v);
     }
 
-    fklVMvalueVectorUninit(&leafs);
-    fklVMvalueVectorUninit(&non_leafs);
+    fklVMvalVectorUninit(&leafs);
+    fklVMvalVectorUninit(&non_leafs);
 }

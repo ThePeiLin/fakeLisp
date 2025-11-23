@@ -125,7 +125,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         uint32_t bp = exe->bp;
         FklVMvalue **cur_value = &exe->base[bp];
         FklVMvalue **const value_end = &exe->base[exe->tp];
-        FklVMhash *ht = FKL_VM_HASH(hash);
+        FklVMvalueHash *ht = FKL_VM_HASH(hash);
         for (; cur_value < value_end; cur_value += 2) {
             FklVMvalue *key = cur_value[0];
             FklVMvalue *value = cur_value[1];
@@ -151,7 +151,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         exe->tp -= kvnum;
         FklVMvalue **cur_value = &exe->base[exe->tp];
         FklVMvalue **const value_end = cur_value + kvnum;
-        FklVMhash *ht = FKL_VM_HASH(hash);
+        FklVMvalueHash *ht = FKL_VM_HASH(hash);
         for (; cur_value < value_end; cur_value += 2) {
             FklVMvalue *key = cur_value[0];
             FklVMvalue *value = cur_value[1];

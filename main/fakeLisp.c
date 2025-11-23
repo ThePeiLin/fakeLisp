@@ -110,7 +110,7 @@ initLibWithPrototype(FklVMlib *lib, uint32_t num, FklFuncPrototypes *pts) {
     for (uint32_t i = 1; i <= num; i++) {
         FklVMlib *cur = &lib[i];
         if (FKL_IS_PROC(cur->proc)) {
-            FklVMproc *proc = FKL_VM_PROC(cur->proc);
+            FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
             proc->lcount = pta[proc->protoId].lcount;
         }
     }
@@ -763,7 +763,7 @@ static inline void resolve_ref_work_func(FklVM *exe,
     //     uint32_t idx = cur->idx;
     //     for (FklVMvalue *v = exe->gc->head; v; v = v->next)
     //         if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId) {
-    //             FklVMproc *proc = FKL_VM_PROC(v);
+    //             FklVMvalueProc *proc = FKL_VM_PROC(v);
     //             if (lr->lref[def->v.idx])
     //                 proc->closure[idx] = lr->lref[def->v.idx];
     //             else {
@@ -776,7 +776,7 @@ static inline void resolve_ref_work_func(FklVM *exe,
     //
     //     for (FklVMvalue *v = exe->obj_head; v; v = v->next)
     //         if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId) {
-    //             FklVMproc *proc = FKL_VM_PROC(v);
+    //             FklVMvalueProc *proc = FKL_VM_PROC(v);
     //             if (lr->lref[def->v.idx])
     //                 proc->closure[idx] = lr->lref[def->v.idx];
     //             else {
@@ -791,7 +791,7 @@ static inline void resolve_ref_work_func(FklVM *exe,
     //         for (FklVMvalue *v = cur->obj_head; v; v = v->next)
     //             if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->protoId == prototypeId)
     //             {
-    //                 FklVMproc *proc = FKL_VM_PROC(v);
+    //                 FklVMvalueProc *proc = FKL_VM_PROC(v);
     //                 if (lr->lref[def->v.idx])
     //                     proc->closure[idx] = lr->lref[def->v.idx];
     //                 else {
@@ -1091,11 +1091,14 @@ static inline FklVMvalue **init_mainframe_lref(FklVMvalue **lref,
 //     uint32_t bi_count;
 // };
 //
-// static inline int is_need_update_const_array(const struct ConstArrayCount *cc,
+// static inline int is_need_update_const_array(const struct ConstArrayCount
+// *cc,
 //         const FklConstTable *kt) {
-//     return cc->i64_count != kt->ki64t.count || cc->f64_count != kt->kf64t.count
+//     return cc->i64_count != kt->ki64t.count || cc->f64_count !=
+//     kt->kf64t.count
 //         || cc->str_count != kt->kstrt.count
-//         || cc->bvec_count != kt->kbvect.count || cc->bi_count != kt->kbit.count;
+//         || cc->bvec_count != kt->kbvect.count || cc->bi_count !=
+//         kt->kbit.count;
 // }
 
 static int repl_frame_ret_callback(FklVM *exe, FklVMframe *frame) {
@@ -1203,7 +1206,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
     //     FklVMlib *new_libs = NULL;
     //
     //     if (new_libs_count) {
-    //         FklVMproc *proc = FKL_VM_PROC(fctx->mainProc);
+    //         FklVMvalueProc *proc = FKL_VM_PROC(fctx->mainProc);
     //         new_libs = (FklVMlib *)fklZcalloc(new_libs_count,
     //         sizeof(FklVMlib)); FKL_ASSERT(new_libs); for (size_t i = 0; i <
     //         new_libs_count; i++) {
@@ -1236,7 +1239,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
     //         FklVMvalue *mainProc =
     //                 fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
     //         fklInitMainProcRefs(exe, mainProc);
-    //         FklVMproc *proc = FKL_VM_PROC(mainProc);
+    //         FklVMvalueProc *proc = FKL_VM_PROC(mainProc);
     //         fctx->mainProc = mainProc;
     //
     //         FklVMvalue *mainCodeObj =
@@ -1491,7 +1494,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     // FklVMlib *new_libs = NULL;
     //
     // if (new_libs_count) {
-    //     FklVMproc *proc = FKL_VM_PROC(ctx->c->mainProc);
+    //     FklVMvalueProc *proc = FKL_VM_PROC(ctx->c->mainProc);
     //     new_libs = (FklVMlib *)fklZcalloc(new_libs_count, sizeof(FklVMlib));
     //     FKL_ASSERT(new_libs);
     //     for (size_t i = 0; i < new_libs_count; i++) {
@@ -1522,7 +1525,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     //     FklVMvalue *mainProc =
     //             fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1);
     //     fklInitMainProcRefs(exe, mainProc);
-    //     FklVMproc *proc = FKL_VM_PROC(mainProc);
+    //     FklVMvalueProc *proc = FKL_VM_PROC(mainProc);
     //     ctx->c->mainProc = mainProc;
     //
     //     FklVMvalue *mainCodeObj = fklCreateVMvalueCodeObjMove(exe, mainCode);

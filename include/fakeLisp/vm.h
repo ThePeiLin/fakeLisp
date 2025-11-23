@@ -102,10 +102,10 @@ typedef struct {
     struct FklVMvalue *cdr;
 } FklVMpair;
 
-typedef struct {
-    int64_t num;
-    FklBigIntDigit digits[1];
-} FklVMbigInt;
+// typedef struct {
+//     int64_t num;
+//     FklBigIntDigit digits[1];
+// } FklVMvalueBigInt;
 
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
@@ -116,10 +116,10 @@ typedef enum {
     FKL_VM_FP_RW = 3,
 } FklVMfpRW;
 
-typedef struct {
-    FILE *fp;
-    FklVMfpRW rw;
-} FklVMfp;
+// typedef struct {
+//     FILE *fp;
+//     FklVMfpRW rw;
+// } FklVMfp;
 
 typedef struct {
     size_t size;
@@ -155,7 +155,8 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklVMbigInt bi;
+    int64_t num;
+    FklBigIntDigit digits[1];
 } FklVMvalueBigInt;
 
 typedef struct {
@@ -223,7 +224,22 @@ typedef struct {
     FklVMvalue *v;
 } FklVMvalueVarRef;
 
-typedef struct FklVMproc {
+// typedef struct FklVMproc {
+//     const FklInstruction *spc;
+//     const FklInstruction *end;
+//     FklVMvalue *name;
+//     uint32_t protoId;
+//     uint32_t lcount;
+//     uint32_t rcount;
+//     FklVMvalue **closure;
+//     FklVMvalue *codeObj;
+//
+//     FklVMvalueProtos *pts;
+//     FklVMvalue **konsts;
+// } FklVMproc;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
     const FklInstruction *spc;
     const FklInstruction *end;
     FklVMvalue *name;
@@ -235,11 +251,6 @@ typedef struct FklVMproc {
 
     FklVMvalueProtos *pts;
     FklVMvalue **konsts;
-} FklVMproc;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    FklVMproc proc;
 } FklVMvalueProc;
 
 typedef enum {
@@ -482,12 +493,7 @@ static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
 
 // FklVMvalueVector
 #define FKL_VECTOR_ELM_TYPE FklVMvalue *
-#define FKL_VECTOR_ELM_TYPE_NAME VMvalue
-#include "cont/vector.h"
-
-// FklVMvalueSlotVector
-#define FKL_VECTOR_ELM_TYPE FklVMvalue **
-#define FKL_VECTOR_ELM_TYPE_NAME VMvalueSlot
+#define FKL_VECTOR_ELM_TYPE_NAME VMval
 #include "cont/vector.h"
 
 // FklVMvalueQueue
@@ -710,16 +716,19 @@ typedef struct FklVMgc {
     FklVM gcvm;
 } FklVMgc;
 
+// typedef struct {
+//     FklVMcFunc func;
+//     const char *name;
+//     FklVMvalue *dll;
+//     FklVMvalue *pd;
+// } FklVMcproc;
+
 typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
     FklVMcFunc func;
     const char *name;
     FklVMvalue *dll;
     FklVMvalue *pd;
-} FklVMcproc;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    FklVMcproc cproc;
 } FklVMvalueCproc;
 
 // FKL_DEPRECATED
@@ -788,14 +797,15 @@ typedef enum {
     FKL_HASH_EQUAL,
 } FklHashTableEqType;
 
-typedef struct {
-    FklVMvalueHashMap ht;
-    FklHashTableEqType eq_type;
-} FklVMhash;
+// typedef struct {
+//     FklVMvalueHashMap ht;
+//     FklHashTableEqType eq_type;
+// } FklVMhash;
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklVMhash hash;
+    FklVMvalueHashMap ht;
+    FklHashTableEqType eq_type;
 } FklVMvalueHash;
 
 void fklPopVMframe(FklVM *);
@@ -1114,17 +1124,17 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 void fklDestroyVMframe(FklVMframe *, FklVM *exe);
 FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe);
 
-const char *fklGetVMhashTablePrefix(const FklVMhash *);
-int fklVMhashTableDel(FklVMhash *ht,
+const char *fklGetVMhashTablePrefix(const FklVMvalueHash *);
+int fklVMhashTableDel(FklVMvalueHash *ht,
         FklVMvalue *key,
         FklVMvalue **pv,
         FklVMvalue **pk);
 FklVMvalueHashMapElm *
-fklVMhashTableSet(FklVMhash *ht, FklVMvalue *key, FklVMvalue *v);
+fklVMhashTableSet(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
 FklVMvalueHashMapElm *
-fklVMhashTableRef1(FklVMhash *ht, FklVMvalue *key, FklVMvalue *v);
-FklVMvalueHashMapElm *fklVMhashTableRef(FklVMhash *ht, FklVMvalue *key);
-FklVMvalueHashMapElm *fklVMhashTableGet(FklVMhash *, FklVMvalue *key);
+fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
+FklVMvalueHashMapElm *fklVMhashTableRef(FklVMvalueHash *ht, FklVMvalue *key);
+FklVMvalueHashMapElm *fklVMhashTableGet(FklVMvalueHash *, FklVMvalue *key);
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc);
 void fklAtomicVMuserdata(FklVMvalue *, FklVMgc *);
@@ -1233,7 +1243,10 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll);
         .gray_next_ = NULL,                                                    \
         .mark_ = FKL_MARK_B,                                                   \
         .type_ = FKL_TYPE_CPROC,                                               \
-        .cproc = { .func = (FUNC), .name = (NAME), .dll = NULL, .pd = NULL },  \
+        .func = (FUNC),                                                        \
+        .name = (NAME),                                                        \
+        .dll = NULL,                                                           \
+        .pd = NULL,                                                            \
     })
 
 FklVMvalue *fklCreateVMvalueCproc(FklVM *,
@@ -1271,10 +1284,12 @@ FklVMvalue *fklCreateVMvalueBigInt(FklVM *, size_t num);
 
 FklVMvalue *fklCreateVMvalueBigInt2(FklVM *, const FklBigInt *);
 FklVMvalue *fklCreateVMvalueBigInt3(FklVM *, const FklBigInt *, size_t size);
-FklVMvalue *fklVMbigIntAdd(FklVM *, const FklVMbigInt *a, const FklVMbigInt *b);
-FklVMvalue *fklVMbigIntAddI(FklVM *, const FklVMbigInt *, int64_t);
-FklVMvalue *fklVMbigIntSub(FklVM *, const FklVMbigInt *a, const FklVMbigInt *b);
-FklVMvalue *fklVMbigIntSubI(FklVM *, const FklVMbigInt *, int64_t);
+FklVMvalue *
+fklVMbigIntAdd(FklVM *, const FklVMvalueBigInt *a, const FklVMvalueBigInt *b);
+FklVMvalue *fklVMbigIntAddI(FklVM *, const FklVMvalueBigInt *, int64_t);
+FklVMvalue *
+fklVMbigIntSub(FklVM *, const FklVMvalueBigInt *a, const FklVMvalueBigInt *b);
+FklVMvalue *fklVMbigIntSubI(FklVM *, const FklVMvalueBigInt *, int64_t);
 
 FklVMvalue *
 fklCreateVMvalueBigIntWithString(FklVM *exe, const FklString *str, int base);
@@ -1391,26 +1406,32 @@ static FKL_ALWAYS_INLINE double *FKL_VM_F64(const FklVMvalue *V) {
 
 #define FKL_VM_F64(V) (*(FKL_VM_F64(V)))
 
-static FKL_ALWAYS_INLINE FklVMproc *FKL_VM_PROC(const FklVMvalue *V) {
-    return (&(((FklVMvalueProc *)(V))->proc));
+static FKL_ALWAYS_INLINE FklVMvalueProc *FKL_VM_PROC(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_PROC(V));
+    return FKL_TYPE_CAST(FklVMvalueProc *, V);
+    // return (&(((FklVMvalueProc *)(V))->proc));
 }
 
 // #define FKL_VM_PROC(V) (&(((FklVMvalueProc *)(V))->proc))
 
-static FKL_ALWAYS_INLINE FklVMcproc *FKL_VM_CPROC(const FklVMvalue *V) {
-    return (&(((FklVMvalueCproc *)(V))->cproc));
+static FKL_ALWAYS_INLINE FklVMvalueCproc *FKL_VM_CPROC(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_CPROC(V));
+    return FKL_TYPE_CAST(FklVMvalueCproc *, (V));
 }
 
 // #define FKL_VM_CPROC(V) (&(((FklVMvalueCproc *)(V))->cproc))
 
-static FKL_ALWAYS_INLINE FklVMhash *FKL_VM_HASH(const FklVMvalue *V) {
-    return (&(((FklVMvalueHash *)(V))->hash));
+static FKL_ALWAYS_INLINE FklVMvalueHash *FKL_VM_HASH(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_HASHTABLE(V));
+    return FKL_TYPE_CAST(FklVMvalueHash *, (V));
 }
 
 // #define FKL_VM_HASH(V) (&(((FklVMvalueHash *)(V))->hash))
 
-static FKL_ALWAYS_INLINE FklVMbigInt *FKL_VM_BI(const FklVMvalue *V) {
-    return (&(((FklVMvalueBigInt *)(V))->bi));
+static FKL_ALWAYS_INLINE FklVMvalueBigInt *FKL_VM_BI(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_BIGINT(V));
+    return FKL_TYPE_CAST(FklVMvalueBigInt *, V);
+    // return (&(((FklVMvalueBigInt *)(V))->bi));
 }
 
 // #define FKL_VM_BI(V) (&(((FklVMvalueBigInt *)(V))->bi))
@@ -1745,7 +1766,7 @@ HASH_P(EQUAL);
     }
 
 // inlines
-static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt *b) {
+static inline FklBigInt fklVMbigIntToBigInt(const FklVMvalueBigInt *b) {
     const FklBigInt bi = {
         .digits = (FklBigIntDigit *)b->digits,
         .num = b->num,
@@ -1756,34 +1777,35 @@ static inline FklBigInt fklVMbigIntToBigInt(const FklVMbigInt *b) {
 }
 
 #define FKL_VM_BIGINT_CALL_1(NAME, FUNC)                                       \
-    static inline void NAME(const FklVMbigInt *b) {                            \
+    static inline void NAME(const FklVMvalueBigInt *b) {                       \
         const FklBigInt bi = fklVMbigIntToBigInt(b);                           \
         FUNC(&bi);                                                             \
     }
 #define FKL_VM_BIGINT_CALL_1R(NAME, RET, FUNC)                                 \
-    static inline RET NAME(const FklVMbigInt *b) {                             \
+    static inline RET NAME(const FklVMvalueBigInt *b) {                        \
         const FklBigInt bi = fklVMbigIntToBigInt(b);                           \
         return FUNC(&bi);                                                      \
     }
 #define FKL_VM_BIGINT_CALL_2(NAME, ARG2, FUNC)                                 \
-    static inline void NAME(const FklVMbigInt *b, ARG2 arg2) {                 \
+    static inline void NAME(const FklVMvalueBigInt *b, ARG2 arg2) {            \
         const FklBigInt bi = fklVMbigIntToBigInt(b);                           \
         FUNC(&bi, arg2);                                                       \
     }
 #define FKL_VM_BIGINT_CALL_2R(NAME, RET, ARG2, FUNC)                           \
-    static inline RET NAME(const FklVMbigInt *b, ARG2 arg2) {                  \
+    static inline RET NAME(const FklVMvalueBigInt *b, ARG2 arg2) {             \
         const FklBigInt bi = fklVMbigIntToBigInt(b);                           \
         return FUNC(&bi, arg2);                                                \
     }
 #define FKL_VM_CALL_WITH_2_BIR(NAME, RET, FUNC)                                \
-    static inline RET NAME(const FklVMbigInt *a, const FklVMbigInt *b) {       \
+    static inline RET NAME(const FklVMvalueBigInt *a,                          \
+            const FklVMvalueBigInt *b) {                                       \
         const FklBigInt a1 = fklVMbigIntToBigInt(a);                           \
         const FklBigInt b1 = fklVMbigIntToBigInt(b);                           \
         return FUNC(&a1, &b1);                                                 \
     }
 
 #define FKL_VM_CALL_WITH_1_VB_1BI(NAME, FUNC)                                  \
-    static inline void NAME(FklBigInt *a, const FklVMbigInt *b) {              \
+    static inline void NAME(FklBigInt *a, const FklVMvalueBigInt *b) {         \
         const FklBigInt b1 = fklVMbigIntToBigInt(b);                           \
         FUNC(a, &b1);                                                          \
     }
@@ -1815,30 +1837,31 @@ FKL_VM_CALL_WITH_1_VB_1BI(fklMulVMbigInt, fklMulBigInt);
 #undef FKL_VM_CALL_WITH_1_VB_1BI
 
 static inline void fklSetBigIntWithVMbigInt(FklBigInt *a,
-        const FklVMbigInt *b) {
+        const FklVMvalueBigInt *b) {
     const FklBigInt bi = fklVMbigIntToBigInt(b);
     fklSetBigInt(a, &bi);
 }
 
-static inline int fklIsVMbigIntDivisible(const FklVMbigInt *a,
+static inline int fklIsVMbigIntDivisible(const FklVMvalueBigInt *a,
         const FklBigInt *b) {
     const FklBigInt a0 = fklVMbigIntToBigInt(a);
     return fklIsDivisibleBigInt(&a0, b);
 }
 
-static inline int fklIsVMbigIntDivisibleI(const FklVMbigInt *a, int64_t b) {
+static inline int fklIsVMbigIntDivisibleI(const FklVMvalueBigInt *a,
+        int64_t b) {
     const FklBigInt a0 = fklVMbigIntToBigInt(a);
     return fklIsDivisibleBigIntI(&a0, b);
 }
 
 static inline FklVMvalue *fklCreateVMvalueBigIntWithOther(FklVM *exe,
-        const FklVMbigInt *b) {
+        const FklVMvalueBigInt *b) {
     const FklBigInt bi = fklVMbigIntToBigInt(b);
     return fklCreateVMvalueBigInt2(exe, &bi);
 }
 
 static inline FklVMvalue *fklCreateVMvalueBigIntWithOther2(FklVM *exe,
-        const FklVMbigInt *b,
+        const FklVMvalueBigInt *b,
         size_t size) {
     const FklBigInt bi = fklVMbigIntToBigInt(b);
     return fklCreateVMvalueBigInt3(exe, &bi, size);

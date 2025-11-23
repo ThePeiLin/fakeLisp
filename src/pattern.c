@@ -5,6 +5,11 @@
 
 #include <string.h>
 
+// FklVMvalueSlotVector
+#define FKL_VECTOR_ELM_TYPE FklVMvalue **
+#define FKL_VECTOR_ELM_TYPE_NAME Slot
+#include <fakeLisp/cont/vector.h>
+
 static inline FklVMvalueSlot *as_slot(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueSlot *, v);
 }
@@ -232,18 +237,18 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         FklVMvalue *exp = fklCopyVMlistOrAtom(FKL_VM_CAR(FKL_VM_CDR(node)), vm);
         FklVMvalue *slotId = FKL_VM_CAR(node);
 
-        FklVMvalueSlotVector stack;
-        fklVMvalueSlotVectorInit(&stack, 32);
-        fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CDR(exp));
-        while (!fklVMvalueSlotVectorIsEmpty(&stack)) {
-            FklVMvalue **c = *fklVMvalueSlotVectorPopBackNonNull(&stack);
+        FklSlotVector stack;
+        fklSlotVectorInit(&stack, 32);
+        fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(exp));
+        while (!fklSlotVectorIsEmpty(&stack)) {
+            FklVMvalue **c = *fklSlotVectorPopBackNonNull(&stack);
             FklVMvalue *cur = *c;
             if (FKL_IS_PAIR(cur)) {
                 if (is_pattern_slot(slotId, cur)) {
                     FklVMvalue *sym = FKL_VM_CAR(FKL_VM_CDR(cur));
                     if (fklVMvalueHashSetPut2(symbolTable, sym)) {
                         fklVMvalueHashSetDestroy(symbolTable);
-                        fklVMvalueSlotVectorUninit(&stack);
+                        fklSlotVectorUninit(&stack);
                         *psymbolTable = NULL;
                         // fklDestroyNastNode(exp);
                         return NULL;
@@ -255,13 +260,13 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
                     // c->type = FKL_NAST_SLOT;
                     // c->sym = sym;
                 } else {
-                    fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
-                    fklVMvalueSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
+                    fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
+                    fklSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
                 }
             }
         }
         r = exp;
-        fklVMvalueSlotVectorUninit(&stack);
+        fklSlotVectorUninit(&stack);
         if (psymbolTable)
             *psymbolTable = symbolTable;
         else

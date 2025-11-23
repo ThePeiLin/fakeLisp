@@ -92,7 +92,7 @@ void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
 
 static void cproc_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
-    FklVMcproc *cproc = FKL_VM_CPROC(c->proc);
+    FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
     fklPrintCprocBacktrace(cproc->name, fp, gc);
 }
 
@@ -163,7 +163,7 @@ static inline void insert_to_VM_chain(FklVM *cur, FklVM *prev, FklVM *next) {
 
 static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     FklVMgc *gc = exe->gc;
-    FklVMproc *proc = FKL_VM_PROC(proc_obj);
+    FklVMvalueProc *proc = FKL_VM_PROC(proc_obj);
     FklVMvalueProtos *pts = proc->pts;
     FklFuncPrototype *pt = &pts->p.pa[proc->protoId];
 
@@ -620,7 +620,7 @@ static inline FklVMvalue *get_var_val(FklVMframe *frame,
     FklVMvalue *v = idx < lr->rcount ? *FKL_VM_VAR_REF_GET(lr->ref[idx]) : NULL;
     if (v)
         return v;
-    FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
     FklSymDefHashMapMutElm *def = &pt->refs[idx];
     FKL_ASSERT(def->k.id);
@@ -640,7 +640,7 @@ static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame,
                     : FKL_VM_VAR_REF_GET(refs[idx]);
     if (v && *v)
         return v;
-    FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     FklFuncPrototype *pt = &pts->pa[proc->protoId];
     FklSymDefHashMapMutElm *def = &pt->refs[idx];
     FKL_ASSERT(def->k.id);
@@ -1276,7 +1276,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
             pts);
     uint32_t count = pt->rcount;
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
-    FklVMproc *proc = FKL_VM_PROC(r);
+    FklVMvalueProc *proc = FKL_VM_PROC(r);
     if (count) {
         FklVMvalue **ref = lr->ref;
         FklVMvalue **closure =

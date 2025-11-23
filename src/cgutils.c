@@ -1074,7 +1074,7 @@ static void init_macro_match_local_variable(FklVM *exe,
         uint32_t prototype_id) {
     FklFuncPrototype *mainPts = &pts->pa[prototype_id];
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(frame);
-    FklVMproc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
     uint32_t count = mainPts->lcount;
     uint32_t idx = 0;
     for (FklPmatchHashMapNode *list = ht->first; list; list = list->next) {

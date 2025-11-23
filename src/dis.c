@@ -165,7 +165,7 @@ void fklDisassembleByteCodelnt(const FklByteCodelnt *bcl,
 }
 
 void fklDisassembleProc(const FklVMvalue *proc, FklCodeBuilder *build) {
-    const FklVMproc *p = FKL_VM_PROC(proc);
+    const FklVMvalueProc *p = FKL_VM_PROC(proc);
     const FklVMvalue *co = p->codeObj;
     const FklByteCodelnt *bcl = FKL_VM_CO(co);
 

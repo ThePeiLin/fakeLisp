@@ -675,7 +675,7 @@ void fklUpdatePrototypeConst(FklFuncPrototypes *cp,
         pt->konsts = karray;
     }
 
-    for (const FklVMvalueIdHashMapNode *cur = env->konsts.ht.first; cur;
+    for (const FklValueIdHashMapNode *cur = env->konsts.ht.first; cur;
             cur = cur->next) {
         pt->konsts[cur->v - 1] = FKL_TYPE_CAST(FklVMvalue *, cur->k);
     }
@@ -852,7 +852,7 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
         if (info->export_named_prod_groups
                 && info->export_named_prod_groups->count) {
             fklGraProdGroupHashMapInit(&lib->named_prod_groups);
-            for (FklVMvalueHashSetNode *sid_list =
+            for (FklValueHashSetNode *sid_list =
                             info->export_named_prod_groups->first;
                     sid_list;
                     sid_list = sid_list->next) {
@@ -1241,7 +1241,7 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(e->uref.base[i].id, gc);
     }
 
-    for (const FklVMvalueIdHashMapNode *cur = e->konsts.ht.first; cur;
+    for (const FklValueIdHashMapNode *cur = e->konsts.ht.first; cur;
             cur = cur->next) {
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, cur->k), gc);
     }
@@ -1380,7 +1380,7 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
         fklDestroyCodegenMacro(t);
     }
     if (i->export_named_prod_groups)
-        fklVMvalueHashSetDestroy(i->export_named_prod_groups);
+        fklValueHashSetDestroy(i->export_named_prod_groups);
     if (i->export_replacement)
         fklReplacementHashMapDestroy(i->export_replacement);
     if (i->g == &i->self_g && *i->g) {
@@ -1473,7 +1473,7 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->export_macro = NULL;
     r->export_replacement = is_lib ? fklReplacementHashMapCreate() : NULL;
-    r->export_named_prod_groups = is_lib ? fklVMvalueHashSetCreate() : NULL;
+    r->export_named_prod_groups = is_lib ? fklValueHashSetCreate() : NULL;
     r->exports.buckets = NULL;
 
     r->work_cb = work_cb;

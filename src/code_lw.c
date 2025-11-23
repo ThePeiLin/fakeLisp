@@ -67,7 +67,7 @@ static inline void write_bigint(const FklVMvalueBigInt *bi, FILE *fp) {
 static inline void write_value_create_instructions(const FklVMvalue *v,
         ValueId value_id,
         const FklValueTable *vt,
-        const FklVMvalueHashSet *written_values,
+        const FklValueHashSet *written_values,
         FILE *fp) {
     if (v == FKL_VM_NIL) {
         write_value_create_op(MAKE_NIL, fp);
@@ -122,7 +122,7 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
         fwrite(&eq_type, sizeof(eq_type), 1, fp);
         uint32_t count = FKL_VM_HASH(v)->ht.count;
         fwrite(&count, sizeof(count), 1, fp);
-        for (const FklVMvalueHashMapNode *cur = FKL_VM_HASH(v)->ht.first; cur;
+        for (const FklValueHashMapNode *cur = FKL_VM_HASH(v)->ht.first; cur;
                 cur = cur->next) {
             write_value_id(vt, value_id, cur->k, fp);
             write_value_id(vt, value_id, cur->v, fp);
@@ -131,17 +131,17 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
 }
 
 void fklWriteValueTable(const FklValueTable *vt, FILE *fp) {
-    FklVMvalueHashSet written_values;
-    fklVMvalueHashSetInit(&written_values);
+    FklValueHashSet written_values;
+    fklValueHashSetInit(&written_values);
 
     uint32_t count = vt->next_id - 1;
     fwrite(&count, sizeof(count), 1, fp);
 
-    for (const FklVMvalueIdHashMapNode *cur = vt->ht.first; cur;
+    for (const FklValueIdHashMapNode *cur = vt->ht.first; cur;
             cur = cur->next) {
-        if (fklVMvalueHashSetHas2(&written_values, cur->k))
+        if (fklValueHashSetHas2(&written_values, cur->k))
             continue;
-        fklVMvalueHashSetPut2(&written_values, cur->k);
+        fklValueHashSetPut2(&written_values, cur->k);
 
         write_value_create_instructions(cur->k,
                 cur->v,
@@ -150,7 +150,7 @@ void fklWriteValueTable(const FklValueTable *vt, FILE *fp) {
                 fp);
     }
 
-    fklVMvalueHashSetUninit(&written_values);
+    fklValueHashSetUninit(&written_values);
 }
 
 static inline FklVMvalue *load_and_make_values(FILE *fp,
@@ -1011,10 +1011,10 @@ static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
 }
 
 static inline void write_export_named_prods_pass_1(
-        const FklVMvalueHashSet *export_named_prod_groups,
+        const FklValueHashSet *export_named_prod_groups,
         const FklGraProdGroupHashMap *named_prod_groups,
         FklValueTable *vt) {
-    for (FklVMvalueHashSetNode *list = export_named_prod_groups->first; list;
+    for (FklValueHashSetNode *list = export_named_prod_groups->first; list;
             list = list->next) {
         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
         FklGrammerProdGroupItem *group =
@@ -1025,7 +1025,7 @@ static inline void write_export_named_prods_pass_1(
 }
 
 static inline void write_export_named_prods_pass_2(
-        const FklVMvalueHashSet *export_named_prod_groups,
+        const FklValueHashSet *export_named_prod_groups,
         const FklGraProdGroupHashMap *named_prod_groups,
         FklValueTable *vt,
         FILE *fp) {
@@ -1037,7 +1037,7 @@ static inline void write_export_named_prods_pass_2(
             sizeof(export_named_prod_groups->count),
             1,
             fp);
-    for (FklVMvalueHashSetNode *list = export_named_prod_groups->first; list;
+    for (FklValueHashSetNode *list = export_named_prod_groups->first; list;
             list = list->next) {
         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
         FklGrammerProdGroupItem *group =

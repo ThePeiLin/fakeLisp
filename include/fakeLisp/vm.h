@@ -491,14 +491,14 @@ static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, key));
 }
 
-// FklVMvalueVector
+// FklValueVector
 #define FKL_VECTOR_ELM_TYPE FklVMvalue *
-#define FKL_VECTOR_ELM_TYPE_NAME VMval
+#define FKL_VECTOR_ELM_TYPE_NAME Value
 #include "cont/vector.h"
 
-// FklVMvalueQueue
+// FklValueQueue
 #define FKL_QUEUE_ELM_TYPE FklVMvalue *
-#define FKL_QUEUE_ELM_TYPE_NAME VMvalue
+#define FKL_QUEUE_ELM_TYPE_NAME Value
 #include "cont/queue.h"
 
 // FklVMpairVector
@@ -506,22 +506,22 @@ static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
 #define FKL_VECTOR_ELM_TYPE_NAME VMpair
 #include "cont/vector.h"
 
-// FklVMvalueHashSet
+// FklValueHashSet
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
-#define FKL_HASH_ELM_NAME VMvalue
+#define FKL_HASH_ELM_NAME Value
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
 
-// FKlVMvalueIdHashMap
+// FKlValueIdHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
 #define FKL_HASH_VAL_TYPE uint64_t
-#define FKL_HASH_ELM_NAME VMvalueId
+#define FKL_HASH_ELM_NAME ValueId
 #define FKL_HASH_KEY_HASH                                                      \
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
 #include "cont/hash.h"
 
 typedef struct {
-    FklVMvalueIdHashMap ht;
+    FklValueIdHashMap ht;
     uint32_t next_id;
 } FklValueTable;
 
@@ -769,10 +769,10 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
     struct FklVMvalue *pd;
 });
 
-// FklVMvalueHashMap
+// FklValueHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
 #define FKL_HASH_VAL_TYPE FklVMvalue *
-#define FKL_HASH_ELM_NAME VMvalue
+#define FKL_HASH_ELM_NAME Value
 #define FKL_HASH_KEY_HASH                                                      \
     {                                                                          \
         fprintf(stderr,                                                        \
@@ -798,13 +798,13 @@ typedef enum {
 } FklHashTableEqType;
 
 // typedef struct {
-//     FklVMvalueHashMap ht;
+//     FklValueHashMap ht;
 //     FklHashTableEqType eq_type;
 // } FklVMhash;
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklVMvalueHashMap ht;
+    FklValueHashMap ht;
     FklHashTableEqType eq_type;
 } FklVMvalueHash;
 
@@ -1129,12 +1129,12 @@ int fklVMhashTableDel(FklVMvalueHash *ht,
         FklVMvalue *key,
         FklVMvalue **pv,
         FklVMvalue **pk);
-FklVMvalueHashMapElm *
+FklValueHashMapElm *
 fklVMhashTableSet(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
-FklVMvalueHashMapElm *
+FklValueHashMapElm *
 fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
-FklVMvalueHashMapElm *fklVMhashTableRef(FklVMvalueHash *ht, FklVMvalue *key);
-FklVMvalueHashMapElm *fklVMhashTableGet(FklVMvalueHash *, FklVMvalue *key);
+FklValueHashMapElm *fklVMhashTableRef(FklVMvalueHash *ht, FklVMvalue *key);
+FklValueHashMapElm *fklVMhashTableGet(FklVMvalueHash *, FklVMvalue *key);
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc);
 void fklAtomicVMuserdata(FklVMvalue *, FklVMgc *);

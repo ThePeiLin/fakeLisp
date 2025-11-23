@@ -1163,7 +1163,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *ht = FKL_VM_POP_TOP_VALUE(exe);
             FKL_CHECK_TYPE(ht, FKL_IS_HASHTABLE, exe);
-            FklVMvalueHashMapElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
+            FklValueHashMapElm *r = fklVMhashTableGet(FKL_VM_HASH(ht), key);
             if (r)
                 FKL_VM_PUSH_VALUE(exe, r->v);
             else
@@ -1174,7 +1174,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue **ht = &FKL_VM_GET_TOP_VALUE(exe);
             FKL_CHECK_TYPE(*ht, FKL_IS_HASHTABLE, exe);
-            FklVMvalueHashMapElm *r = fklVMhashTableGet(FKL_VM_HASH(*ht), key);
+            FklValueHashMapElm *r = fklVMhashTableGet(FKL_VM_HASH(*ht), key);
             *ht = r ? r->v : defa;
         } break;
         case FKL_SUBOP_HASH_SET: {

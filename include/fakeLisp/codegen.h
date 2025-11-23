@@ -348,7 +348,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, {
     FklCgExportSidIdxHashMap exports;
     FklCodegenMacro *export_macro;
     FklReplacementHashMap *export_replacement;
-    FklVMvalueHashSet *export_named_prod_groups;
+    FklValueHashSet *export_named_prod_groups;
     FklCodegenLibVector *libraries;
     FklVMvalueProtos *pts;
     unsigned int is_lib : 1;
@@ -498,11 +498,6 @@ FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
 FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *,
         FklVMvalueCodegenInfo *codegen);
 FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *cur_env);
-
-FKL_DEPRECATED
-FklByteCodelnt *fklGenExpressionCodeWithQueue(const FklVMvalueQueue *,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env);
 

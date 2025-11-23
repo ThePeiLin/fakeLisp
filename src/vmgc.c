@@ -299,7 +299,7 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
         fklZfree(FKL_VM_PROC(cur)->closure);
         break;
     case FKL_TYPE_HASHTABLE:
-        fklVMvalueHashMapUninit(&FKL_VM_HASH(cur)->ht);
+        fklValueHashMapUninit(&FKL_VM_HASH(cur)->ht);
         break;
     default:
         FKL_UNREACHABLE();

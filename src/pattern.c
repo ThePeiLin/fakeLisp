@@ -221,7 +221,7 @@ static inline int is_pattern_slot(const FklVMvalue *s, const FklVMvalue *p) {
 
 FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         FklVMvalue *node,
-        FklVMvalueHashSet **psymbolTable) {
+        FklValueHashSet **psymbolTable) {
     FklVMvalue *r = NULL;
     if (FKL_IS_PAIR(node)                                 //
             && fklIsList(node)                            //
@@ -229,7 +229,7 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
             && FKL_IS_PAIR(FKL_VM_CDR(node))              //
             && FKL_VM_CDR(FKL_VM_CDR(node)) == FKL_VM_NIL //
             && is_valid_pattern_nast(FKL_VM_CAR(FKL_VM_CDR(node)))) {
-        FklVMvalueHashSet *symbolTable = fklVMvalueHashSetCreate();
+        FklValueHashSet *symbolTable = fklValueHashSetCreate();
         // FklNastNode *exp = fklCopyNastNode(node->pair->cdr->pair->car);
         // FklSid_t slotId = node->pair->car->sym;
         // FklNastNode *rest = exp->pair->cdr;
@@ -246,8 +246,8 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
             if (FKL_IS_PAIR(cur)) {
                 if (is_pattern_slot(slotId, cur)) {
                     FklVMvalue *sym = FKL_VM_CAR(FKL_VM_CDR(cur));
-                    if (fklVMvalueHashSetPut2(symbolTable, sym)) {
-                        fklVMvalueHashSetDestroy(symbolTable);
+                    if (fklValueHashSetPut2(symbolTable, sym)) {
+                        fklValueHashSetDestroy(symbolTable);
                         fklSlotVectorUninit(&stack);
                         *psymbolTable = NULL;
                         // fklDestroyNastNode(exp);
@@ -270,7 +270,7 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         if (psymbolTable)
             *psymbolTable = symbolTable;
         else
-            fklVMvalueHashSetDestroy(symbolTable);
+            fklValueHashSetDestroy(symbolTable);
     }
     return r;
 }

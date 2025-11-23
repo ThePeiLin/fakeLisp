@@ -985,10 +985,10 @@ pushListItemToQueue(FklVMvalue *list, CgExpQueue *queue, FklVMvalue **last) {
 }
 
 static inline void pushListItemToStack(FklVMvalue *list,
-        FklVMvalVector *stack,
+        FklValueVector *stack,
         FklVMvalue **last) {
     for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list))
-        fklVMvalVectorPushBack2(stack, FKL_VM_CAR(list));
+        fklValueVectorPushBack2(stack, FKL_VM_CAR(list));
     // for (; list->type == FKL_NAST_PAIR; list = list->pair->cdr)
     //     fklNastNodeVectorPushBack2(stack, list->pair->car);
     if (last)
@@ -1263,12 +1263,12 @@ static CODEGEN_FUNC(codegen_let0) {
 }
 
 typedef struct Let1Context {
-    FklVMvalVector *ss;
+    FklValueVector *ss;
 } Let1Context;
 
 static void _let1_finalizer(void *d) {
     Let1Context *dd = (Let1Context *)d;
-    fklVMvalVectorDestroy(dd->ss);
+    fklValueVectorDestroy(dd->ss);
 }
 
 static FklCodegenActionContextMethodTable Let1ContextMethodTable = {
@@ -1276,7 +1276,7 @@ static FklCodegenActionContextMethodTable Let1ContextMethodTable = {
     .__finalizer = _let1_finalizer,
 };
 
-static FklCodegenActionContext *createLet1CodegenContext(FklVMvalVector *ss) {
+static FklCodegenActionContext *createLet1CodegenContext(FklValueVector *ss) {
     FklCodegenActionContext *r =
             createCodegenActionContext(&Let1ContextMethodTable);
     FKL_TYPE_CAST(Let1Context *, r->d)->ss = ss;
@@ -1316,7 +1316,7 @@ static int is_valid_let_arg(const FklVMvalue *node,
 static int is_valid_let_args(const FklVMvalue *sl,
         FklVMvalueCodegenEnv *env,
         uint32_t scope,
-        FklVMvalVector *stack,
+        FklValueVector *stack,
         FklVMvalue *const *builtin_pattern_node) {
     if (fklIsList(sl)) {
         for (; FKL_IS_PAIR(sl); sl = FKL_VM_CDR(sl)) {
@@ -1326,7 +1326,7 @@ static int is_valid_let_args(const FklVMvalue *sl,
             FklVMvalue *id = FKL_VM_CAR(cc);
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklVMvalVectorPushBack2(stack, id);
+            fklValueVectorPushBack2(stack, id);
             fklAddCodegenDefBySid(id, scope, env);
         }
         return 1;
@@ -1337,7 +1337,7 @@ static int is_valid_let_args(const FklVMvalue *sl,
 static int is_valid_letrec_args(const FklVMvalue *sl,
         FklVMvalueCodegenEnv *env,
         uint32_t scope,
-        FklVMvalVector *stack,
+        FklValueVector *stack,
         FklVMvalue *const *builtin_pattern_node) {
     if (fklIsList(sl)) {
         for (; FKL_IS_PAIR(sl); sl = FKL_VM_CDR(sl)) {
@@ -1347,7 +1347,7 @@ static int is_valid_letrec_args(const FklVMvalue *sl,
             FklVMvalue *id = FKL_VM_CAR(cc);
             if (fklIsSymbolDefined(id, scope, env))
                 return 0;
-            fklVMvalVectorPushBack2(stack, id);
+            fklValueVectorPushBack2(stack, id);
             fklAddCodegenPreDefBySid(id, scope, 0, env);
         }
         return 1;
@@ -1357,7 +1357,7 @@ static int is_valid_letrec_args(const FklVMvalue *sl,
 
 BC_PROCESS(_let1_exp_bc_process) {
     Let1Context *let_ctx = FKL_TYPE_CAST(Let1Context *, data);
-    FklVMvalVector *symbolStack = let_ctx->ss;
+    FklValueVector *symbolStack = let_ctx->ss;
 
     FklByteCodelnt *retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
     FklVMvalue **cur_sid = symbolStack->base;
@@ -1401,7 +1401,7 @@ BC_PROCESS(_letrec_exp_bc_process) {
 
 BC_PROCESS(_letrec_arg_exp_bc_process) {
     Let1Context *let_ctx = FKL_TYPE_CAST(Let1Context *, data);
-    FklVMvalVector *symbolStack = let_ctx->ss;
+    FklValueVector *symbolStack = let_ctx->ss;
 
     FklByteCodelnt *retval = create_0len_bcl();
     FklVMvalue **cur_sid = symbolStack->base;
@@ -1422,13 +1422,13 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
 
 static CODEGEN_FUNC(codegen_let1) {
     FklVMvalue *const *builtin_pattern_node = ctx->builtin_pattern_node;
-    FklVMvalVector *symStack = fklVMvalVectorCreate(8);
+    FklValueVector *symStack = fklValueVectorCreate(8);
     const FklPmatchRes *first =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_name);
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (!FKL_IS_SYM(first->value)) {
-        fklVMvalVectorDestroy(symStack);
+        fklValueVectorDestroy(symStack);
         error_state->type = FKL_ERR_SYNTAXERROR;
         error_state->p = PLACE(orig->value, CURLINE(orig->container));
         // error_state->place = orig->value;
@@ -1444,7 +1444,7 @@ static CODEGEN_FUNC(codegen_let1) {
             fklCreateVMvalueCodegenMacroScope(ctx, macro_scope);
 
     fklAddCodegenDefBySid(first->value, cs, env);
-    fklVMvalVectorPushBack2(symStack, first->value);
+    fklValueVectorPushBack2(symStack, first->value);
 
     CgExpQueue *valueQueue = cgExpQueueCreate();
     cgExpQueuePush(valueQueue, value);
@@ -1452,7 +1452,7 @@ static CODEGEN_FUNC(codegen_let1) {
     if (args) {
         if (!is_valid_let_args(args, env, cs, symStack, builtin_pattern_node)) {
             cgExpQueueDestroy(valueQueue);
-            fklVMvalVectorDestroy(symStack);
+            fklValueVectorDestroy(symStack);
             error_state->type = FKL_ERR_SYNTAXERROR;
             error_state->p = PLACE(orig->value, CURLINE(orig->container));
             // error_state->place = orig->value;
@@ -1560,13 +1560,13 @@ static CODEGEN_FUNC(codegen_let81) {
 
 static CODEGEN_FUNC(codegen_letrec) {
     FklVMvalue *const *builtin_pattern_node = ctx->builtin_pattern_node;
-    FklVMvalVector *symStack = fklVMvalVectorCreate(8);
+    FklValueVector *symStack = fklValueVectorCreate(8);
     const FklPmatchRes *first =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_name);
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (!FKL_IS_SYM(first->value)) {
-        fklVMvalVectorDestroy(symStack);
+        fklValueVectorDestroy(symStack);
         error_state->type = FKL_ERR_SYNTAXERROR;
         error_state->p = PLACE(orig->value, CURLINE(orig->container));
         // error_state->place = orig->value;
@@ -1580,14 +1580,14 @@ static CODEGEN_FUNC(codegen_letrec) {
             fklCreateVMvalueCodegenMacroScope(ctx, macro_scope);
 
     fklAddCodegenPreDefBySid(first->value, cs, 0, env);
-    fklVMvalVectorPushBack2(symStack, first->value);
+    fklValueVectorPushBack2(symStack, first->value);
 
     if (!is_valid_letrec_args(args->value,
                 env,
                 cs,
                 symStack,
                 builtin_pattern_node)) {
-        fklVMvalVectorDestroy(symStack);
+        fklValueVectorDestroy(symStack);
         error_state->type = FKL_ERR_SYNTAXERROR;
         error_state->p = PLACE(orig->value, CURLINE(orig->container));
         // error_state->place = orig->value;
@@ -2290,7 +2290,7 @@ static inline FklByteCodelnt *processArgs(FklVMvalue *args,
     return retval;
 }
 
-static inline FklByteCodelnt *processArgsInStack(FklVMvalVector *stack,
+static inline FklByteCodelnt *processArgsInStack(FklValueVector *stack,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen,
         uint64_t curline) {
@@ -2418,13 +2418,13 @@ static CODEGEN_FUNC(codegen_named_let1) {
         // error_state->place = orig->value;
         return;
     }
-    FklVMvalVector *symStack = fklVMvalVectorCreate(8);
+    FklValueVector *symStack = fklValueVectorCreate(8);
     const FklPmatchRes *first =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_name);
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (!FKL_IS_SYM(first->value)) {
-        fklVMvalVectorDestroy(symStack);
+        fklValueVectorDestroy(symStack);
         error_state->type = FKL_ERR_SYNTAXERROR;
         error_state->p = PLACE(orig->value, CURLINE(orig->container));
         // error_state->place = orig->value;
@@ -2440,14 +2440,14 @@ static CODEGEN_FUNC(codegen_named_let1) {
     FklVMvalueCodegenEnv *lambdaCodegenEnv =
             fklCreateVMvalueCodegenEnv(ctx, env, cs, cms);
     fklAddCodegenDefBySid(first->value, 1, lambdaCodegenEnv);
-    fklVMvalVectorPushBack2(symStack, first->value);
+    fklValueVectorPushBack2(symStack, first->value);
 
     if (!is_valid_let_args(args->value,
                 lambdaCodegenEnv,
                 1,
                 symStack,
                 builtin_pattern_node)) {
-        fklVMvalVectorDestroy(symStack);
+        fklValueVectorDestroy(symStack);
         error_state->type = FKL_ERR_SYNTAXERROR;
         error_state->p = PLACE(orig->value, CURLINE(orig->container));
         // error_state->place = orig->value;
@@ -2530,7 +2530,7 @@ static CODEGEN_FUNC(codegen_named_let1) {
             // firstSymbol->curline
     );
 
-    fklVMvalVectorDestroy(symStack);
+    fklValueVectorDestroy(symStack);
     create_and_insert_to_pool(codegen,
             env->prototypeId,
             lambdaCodegenEnv,
@@ -3368,8 +3368,8 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                     goto exit;
                 }
 
-                FklVMvalueHashMapNode *a = FKL_VM_HASH(p)->ht.first;
-                FklVMvalueHashMapNode *b = FKL_VM_HASH(e)->ht.first;
+                FklValueHashMapNode *a = FKL_VM_HASH(p)->ht.first;
+                FklValueHashMapNode *b = FKL_VM_HASH(e)->ht.first;
                 for (; a; a = a->next, b = b->next) {
                     fklVMpairVectorPushBack2(&s,
                             (FklVMpair){
@@ -4610,10 +4610,10 @@ static CODEGEN_FUNC(codegen_cond) {
             codegen);
     fklCodegenActionVectorPushBack2(actions, quest);
     if (rest->value != FKL_VM_NIL) {
-        FklVMvalVector tmpStack;
-        fklVMvalVectorInit(&tmpStack, 32);
+        FklValueVector tmpStack;
+        fklValueVectorInit(&tmpStack, 32);
         pushListItemToStack(rest->value, &tmpStack, NULL);
-        FklVMvalue *lastExp = *fklVMvalVectorPopBackNonNull(&tmpStack);
+        FklVMvalue *lastExp = *fklValueVectorPopBackNonNull(&tmpStack);
         FklCodegenAction *prevAction = quest;
         for (size_t i = 0; i < tmpStack.size; i++) {
             FklVMvalue *curExp = tmpStack.base[i];
@@ -4622,7 +4622,7 @@ static CODEGEN_FUNC(codegen_cond) {
                 // error_state->place = orig->value;
                 error_state->p = PLACE(orig->value, CURLINE(orig->container));
                 // fklMakeNastNodeRef(orig);
-                fklVMvalVectorUninit(&tmpStack);
+                fklValueVectorUninit(&tmpStack);
                 return;
             }
             FklVMvalue *last = FKL_VM_NIL;
@@ -4636,7 +4636,7 @@ static CODEGEN_FUNC(codegen_cond) {
                 // while (!fklNastNodeQueueIsEmpty(curQueue))
                 //     fklDestroyNastNode(*fklNastNodeQueuePop(curQueue));
                 cgExpQueueDestroy(curQueue);
-                fklVMvalVectorUninit(&tmpStack);
+                fklValueVectorUninit(&tmpStack);
                 return;
             }
             uint32_t curScope = enter_new_scope(scope, env);
@@ -4662,7 +4662,7 @@ static CODEGEN_FUNC(codegen_cond) {
             // error_state->place = orig->value;
             error_state->p = PLACE(orig->value, CURLINE(orig->container));
             // fklMakeNastNodeRef(orig);
-            fklVMvalVectorUninit(&tmpStack);
+            fklValueVectorUninit(&tmpStack);
             return;
         }
         CgExpQueue *lastQueue = cgExpQueueCreate();
@@ -4675,7 +4675,7 @@ static CODEGEN_FUNC(codegen_cond) {
             // while (!fklNastNodeQueueIsEmpty(lastQueue))
             //     fklDestroyNastNode(*fklNastNodeQueuePop(lastQueue));
             cgExpQueueDestroy(lastQueue);
-            fklVMvalVectorUninit(&tmpStack);
+            fklValueVectorUninit(&tmpStack);
             return;
         }
         uint32_t curScope = enter_new_scope(scope, env);
@@ -4692,7 +4692,7 @@ static CODEGEN_FUNC(codegen_cond) {
                         // lastExp->curline,
                         prevAction,
                         codegen));
-        fklVMvalVectorUninit(&tmpStack);
+        fklValueVectorUninit(&tmpStack);
     }
 }
 
@@ -5346,7 +5346,7 @@ typedef struct {
     FklVMvalueCodegenInfo *codegen;
     FklVMvalueCodegenEnv *env;
     FklVMvalueCodegenMacroScope *cms;
-    FklVMvalueHashSet named_prod_group_ids;
+    FklValueHashSet named_prod_group_ids;
     FklVMvalue *prefix;
     FklVMvalue *only;
     FklVMvalue *alias;
@@ -5356,7 +5356,7 @@ typedef struct {
 
 static void export_context_data_finalizer(void *data) {
     ExportContextData *d = (ExportContextData *)data;
-    fklVMvalueHashSetUninit(&d->named_prod_group_ids);
+    fklValueHashSetUninit(&d->named_prod_group_ids);
     d->env = NULL;
     d->codegen = NULL;
     d->prefix = NULL;
@@ -5734,16 +5734,16 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
     const FklReplacementHashMap *replace = lib->replacements;
     const FklCodegenMacro *head = lib->head;
 
-    FklVMvalueHashSet excepts;
-    fklVMvalueHashSetInit(&excepts);
+    FklValueHashSet excepts;
+    fklValueHashSetInit(&excepts);
     FklByteCodelnt *load_lib = NULL;
 
     for (FklVMvalue *list = except; FKL_IS_PAIR(list); list = FKL_VM_CDR(list))
-        fklVMvalueHashSetPut2(&excepts, FKL_VM_CAR(list));
+        fklValueHashSetPut2(&excepts, FKL_VM_CAR(list));
 
     for (const FklCodegenMacro *macro = head; macro; macro = macro->next) {
         FklVMvalue *patternHead = FKL_VM_CAR(macro->pattern);
-        if (!fklVMvalueHashSetHas2(&excepts, patternHead)) {
+        if (!fklValueHashSetHas2(&excepts, patternHead)) {
             add_compiler_macro(&macro_scope->head,
                     macro->pattern,
                     // fklMakeNastNodeRef(macro->origin_exp),
@@ -5754,7 +5754,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
 
     for (FklReplacementHashMapNode *reps = replace->first; reps;
             reps = reps->next) {
-        if (!fklVMvalueHashSetHas2(&excepts, reps->k))
+        if (!fklValueHashSetHas2(&excepts, reps->k))
             fklReplacementHashMapAdd2(macro_scope->replacements,
                     reps->k,
                     reps->v);
@@ -5764,7 +5764,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
                         lib->named_prod_groups.first;
                 prod_group_item;
                 prod_group_item = prod_group_item->next) {
-            if (!fklVMvalueHashSetHas2(&excepts, prod_group_item->k)) {
+            if (!fklValueHashSetHas2(&excepts, prod_group_item->k)) {
                 init_builtin_grammer_and_prod_group(codegen);
                 if (import_reader_macro(codegen,
                             error_state,
@@ -5796,7 +5796,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
 
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
-        if (!fklVMvalueHashSetHas2(&excepts, l->k)) {
+        if (!fklValueHashSetHas2(&excepts, l->k)) {
             uint32_t idx = fklAddCodegenDefBySid(l->k, scope, env)->idx;
 
             append_import_ins(INS_APPEND_BACK,
@@ -5811,7 +5811,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
     }
 
 exit:
-    fklVMvalueHashSetUninit(&excepts);
+    fklValueHashSetUninit(&excepts);
     return load_lib;
 }
 
@@ -5979,7 +5979,7 @@ static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
 }
 
 static inline int is_exporting_outer_ref_group(FklVMvalueCodegenInfo *codegen) {
-    for (FklVMvalueHashSetNode *sid_list =
+    for (FklValueHashSetNode *sid_list =
                     codegen->export_named_prod_groups->first;
             sid_list;
             sid_list = sid_list->next) {
@@ -6087,13 +6087,13 @@ static FklCodegenActionContext *createExportContext(
     data->except = except;
     data->alias = alias;
 
-    fklVMvalueHashSetInit(&data->named_prod_group_ids);
+    fklValueHashSetInit(&data->named_prod_group_ids);
     if (codegen->named_prod_groups) {
         for (const FklGraProdGroupHashMapNode *cur =
                         codegen->named_prod_groups->first;
                 cur;
                 cur = cur->next) {
-            fklVMvalueHashSetPut2(&data->named_prod_group_ids, cur->k);
+            fklValueHashSetPut2(&data->named_prod_group_ids, cur->k);
         }
     }
     return r;
@@ -6127,7 +6127,7 @@ static int recompute_import_dst_idx_func(void *cctx,
 
 static inline FklVMvalue *recompute_import_src_idx(FklByteCodelnt *bcl,
         FklVMvalueCodegenEnv *env,
-        FklVMvalVector *idPstack) {
+        FklValueVector *idPstack) {
     struct RecomputeImportSrcIdxCtx ctx = { .id = 0,
         .env = env,
         .id_base = idPstack->base };
@@ -6172,12 +6172,12 @@ BC_PROCESS(_export_import_bc_process) {
 
     FklSymDefHashMap *defs = &env->scopes[0].defs;
 
-    FklVMvalVector idPstack;
-    fklVMvalVectorInit(&idPstack, defs->count);
+    FklValueVector idPstack;
+    fklValueVectorInit(&idPstack, defs->count);
 
     for (FklSymDefHashMapNode *list = defs->first; list; list = list->next) {
         FklVMvalue *idp = list->k.id;
-        fklVMvalVectorPushBack2(&idPstack, idp);
+        fklValueVectorPushBack2(&idPstack, idp);
     }
 
     if (idPstack.size) {
@@ -6250,15 +6250,15 @@ BC_PROCESS(_export_import_bc_process) {
                         lib_codegen->named_prod_groups->first;
                 cur;
                 cur = cur->next) {
-            if (!fklVMvalueHashSetHas2(&d->named_prod_group_ids, cur->k)) {
+            if (!fklValueHashSetHas2(&d->named_prod_group_ids, cur->k)) {
                 FKL_ASSERT(lib_codegen->export_named_prod_groups);
-                fklVMvalueHashSetPut2(lib_codegen->export_named_prod_groups,
+                fklValueHashSetPut2(lib_codegen->export_named_prod_groups,
                         cur->k);
             }
         }
     }
 exit:
-    fklVMvalVectorUninit(&idPstack);
+    fklValueVectorUninit(&idPstack);
 
     return bcl;
 }
@@ -6514,7 +6514,7 @@ static CODEGEN_FUNC(codegen_export_single) {
         if (!group_id)
             goto error;
 
-        fklVMvalueHashSetPut2(libCodegen->export_named_prod_groups, group_id);
+        fklValueHashSetPut2(libCodegen->export_named_prod_groups, group_id);
         fklCodegenActionVectorPushBack2(actions,
                 create_cg_action(_empty_bc_process,
                         createDefaultStackContext(),
@@ -6807,15 +6807,15 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
             scope);
 
     FklCgExportSidIdxHashMap *exports = &lib->exports;
-    FklVMvalueHashSet excepts;
-    fklVMvalueHashSetInit(&excepts);
+    FklValueHashSet excepts;
+    fklValueHashSetInit(&excepts);
 
     for (FklVMvalue *list = except; FKL_IS_PAIR(list); list = FKL_VM_CDR(list))
-        fklVMvalueHashSetPut2(&excepts, FKL_VM_CAR(list));
+        fklValueHashSetPut2(&excepts, FKL_VM_CAR(list));
 
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
-        if (!fklVMvalueHashSetHas2(&excepts, l->k)) {
+        if (!fklValueHashSetHas2(&excepts, l->k)) {
             uint32_t idx = fklAddCodegenDefBySid(l->k, scope, env)->idx;
             append_import_ins(INS_APPEND_BACK,
                     load_dll,
@@ -6828,7 +6828,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
         }
     }
 
-    fklVMvalueHashSetUninit(&excepts);
+    fklValueHashSetUninit(&excepts);
     return load_dll;
 }
 
@@ -8123,7 +8123,7 @@ static inline FklGrammerIgnore *nast_vector_to_ignore(const FklVMvalue *vec,
 static inline FklVMvalueCodegenInfo *macro_compile_prepare(
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macro_scope,
-        FklVMvalueHashSet *symbolSet,
+        FklValueHashSet *symbolSet,
         FklVMvalueCodegenEnv **pmacroEnv) {
     FklVMvalueCodegenInfo *macroCodegen =
             fklCreateVMvalueCodegenInfo(codegen->ctx,
@@ -8140,7 +8140,7 @@ static inline FklVMvalueCodegenInfo *macro_compile_prepare(
                     1,
                     macro_scope);
 
-    for (FklVMvalueHashSetNode *list = symbolSet->first; list;
+    for (FklValueHashSetNode *list = symbolSet->first; list;
             list = list->next) {
         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
         fklAddCodegenDefBySid(id, 1, macro_main_env);
@@ -8244,7 +8244,7 @@ static inline int check_group_outer_ref(FklVMvalueCodegenInfo *codegen,
 static inline int has_outer_ref(const FklVMvalueCodegenInfo *c,
         FklVMvalue *id) {
     return (c->export_named_prod_groups
-            && fklVMvalueHashSetHas2(c->export_named_prod_groups, id)
+            && fklValueHashSetHas2(c->export_named_prod_groups, id)
             && (FKL_GRAMMER_GROUP_HAS_OUTER_REF
                        & fklGraProdGroupHashMapGet2(c->named_prod_groups, id)
                                ->flags)
@@ -8451,15 +8451,15 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 args->actions);
         args->production = prod;
     } else if (action_type == codegen->ctx->builtInPatternVar_custom) {
-        FklVMvalueHashSet symbolSet;
-        fklVMvalueHashSetInit(&symbolSet);
-        fklVMvalueHashSetPut2(&symbolSet, add_symbol_cstr(args->ctx, "$$"));
+        FklValueHashSet symbolSet;
+        fklValueHashSetInit(&symbolSet);
+        fklValueHashSetPut2(&symbolSet, add_symbol_cstr(args->ctx, "$$"));
         FklVMvalueCodegenEnv *macroEnv = NULL;
         FklVMvalueCodegenInfo *macroCodegen = macro_compile_prepare(codegen,
                 args->macro_scope,
                 &symbolSet,
                 &macroEnv);
-        fklVMvalueHashSetUninit(&symbolSet);
+        fklValueHashSetUninit(&symbolSet);
 
         create_and_insert_to_pool(macroCodegen,
                 0,
@@ -8744,7 +8744,7 @@ static CODEGEN_FUNC(codegen_defmacro) {
                 name->value,
                 value->value);
     else if (FKL_IS_PAIR(name->value)) {
-        FklVMvalueHashSet *symbolSet = NULL;
+        FklValueHashSet *symbolSet = NULL;
         FklVMvalue *pattern = fklCreatePatternFromNast(&codegen->ctx->gc->gcvm,
                 name->value,
                 &symbolSet);
@@ -8754,7 +8754,7 @@ static CODEGEN_FUNC(codegen_defmacro) {
             error_state->p = PLACE(name->value, CURLINE(name->container));
             return;
         }
-        if (fklVMvalueHashSetPut2(symbolSet, ctx->builtInPatternVar_orig)) {
+        if (fklValueHashSetPut2(symbolSet, ctx->builtInPatternVar_orig)) {
             // fklDestroyNastNode(pattern);
             error_state->type = FKL_ERR_INVALID_MACRO_PATTERN;
             error_state->p = PLACE(name->value, CURLINE(name->container));
@@ -8767,7 +8767,7 @@ static CODEGEN_FUNC(codegen_defmacro) {
                 macro_scope,
                 symbolSet,
                 &macroEnv);
-        fklVMvalueHashSetDestroy(symbolSet);
+        fklValueHashSetDestroy(symbolSet);
 
         create_and_insert_to_pool(macroCodegen,
                 0,
@@ -8838,8 +8838,8 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
         return;
     }
     // FklSymbolTable *pst = &ctx->public_st;
-    FklVMvalueQueue prod_vector_queue;
-    fklVMvalueQueueInit(&prod_vector_queue);
+    FklValueQueue prod_vector_queue;
+    fklValueQueueInit(&prod_vector_queue);
     const FklPmatchRes *name =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_arg0);
     FklVMvalue *err_node = NULL;
@@ -8853,7 +8853,7 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
         err_node = arg->value;
         goto reader_macro_error;
     }
-    fklVMvalueQueuePush2(&prod_vector_queue, arg->value);
+    fklValueQueuePush2(&prod_vector_queue, arg->value);
     const FklPmatchRes *rest =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_rest);
 
@@ -8862,14 +8862,14 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
             err_node = FKL_VM_CAR(rv);
             goto reader_macro_error;
         }
-        fklVMvalueQueuePush2(&prod_vector_queue, FKL_VM_CAR(rv));
+        fklValueQueuePush2(&prod_vector_queue, FKL_VM_CAR(rv));
     }
 
     FklVMvalue *group_node = FKL_VM_BOX(name->value);
     if (group_node != FKL_VM_NIL && !FKL_IS_SYM(group_node)) {
         err_node = group_node;
     reader_macro_error:
-        fklVMvalueQueueUninit(&prod_vector_queue);
+        fklValueQueueUninit(&prod_vector_queue);
         error_state->type = FKL_ERR_SYNTAXERROR;
         // error_state->place = err_node;
         error_state->p = PLACE(err_node, CURLINE(err_node));
@@ -8890,7 +8890,7 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
 
     FklVMvalue *group_id = FKL_IS_SYM(group_node) ? group_node : NULL;
 
-    for (FklVMvalueQueueNode *first = prod_vector_queue.head; first;
+    for (FklValueQueueNode *first = prod_vector_queue.head; first;
             first = first->next)
         if (process_add_production(group_id,
                     codegen,
@@ -8899,10 +8899,10 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
                     env,
                     macro_scope,
                     actions)) {
-            fklVMvalueQueueUninit(&prod_vector_queue);
+            fklValueQueueUninit(&prod_vector_queue);
             return;
         }
-    fklVMvalueQueueUninit(&prod_vector_queue);
+    fklValueQueueUninit(&prod_vector_queue);
 }
 
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
@@ -9616,20 +9616,4 @@ FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
             NULL,
             codegen);
     return fklGenExpressionCodeWithAction(initialAction, codegen);
-}
-
-FklByteCodelnt *fklGenExpressionCodeWithQueue(const FklVMvalueQueue *q,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *env) {
-    FKL_UNREACHABLE();
-    // FklCodegenAction *initialAction = create_cg_action(_begin_exp_bc_process,
-    //         createDefaultStackContext(),
-    //         createDefaultQueueNextExpression(q),
-    //         1,
-    //         env->macros,
-    //         env,
-    //         1,
-    //         NULL,
-    //         codegen);
-    // return fklGenExpressionCodeWithAction(initialAction, codegen);
 }

@@ -114,7 +114,7 @@ static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
     FklVMvalue *r = fklCreateVMvalueHashEq(vm);
     FklVMvalueHash *nht = FKL_VM_HASH(r);
     nht->eq_type = ht->eq_type;
-    for (FklVMvalueHashMapNode *list = ht->ht.first; list; list = list->next) {
+    for (FklValueHashMapNode *list = ht->ht.first; list; list = list->next) {
         fklVMhashTableSet(nht, list->k, list->v);
     }
     return r;
@@ -311,8 +311,8 @@ nested_equal:
                             || h1->ht.count != h2->ht.count)
                         r = 0;
                     else {
-                        FklVMvalueHashMapNode *i1 = h1->ht.last;
-                        FklVMvalueHashMapNode *i2 = h2->ht.last;
+                        FklValueHashMapNode *i1 = h1->ht.last;
+                        FklValueHashMapNode *i2 = h2->ht.last;
                         for (; i1; i1 = i1->prev, i2 = i2->prev) {
                             fklVMpairVectorPushBack2(&s,
                                     (FklVMpair){ .car = i1->v, .cdr = i2->v });
@@ -664,8 +664,7 @@ static size_t _userdata_hashFunc(const FklVMvalue *v) {
 static size_t _hashTable_hashFunc(const FklVMvalue *v) {
     FklVMvalueHash *hash = FKL_VM_HASH(v);
     uintptr_t seed = hash->ht.count + hash->eq_type;
-    for (FklVMvalueHashMapNode *list = hash->ht.first; list;
-            list = list->next) {
+    for (FklValueHashMapNode *list = hash->ht.first; list; list = list->next) {
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(list->k));
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(list->v));
     }
@@ -706,8 +705,7 @@ uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v) {
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc) {
     FklVMvalueHash *table = FKL_VM_HASH(pht);
-    for (FklVMvalueHashMapNode *list = table->ht.first; list;
-            list = list->next) {
+    for (FklValueHashMapNode *list = table->ht.first; list; list = list->next) {
         fklVMgcToGray(list->k, gc);
         fklVMgcToGray(list->v, gc);
     }
@@ -734,13 +732,13 @@ static int (*const VMhashEqFunc[])(const FklVMvalue *a, const FklVMvalue *b) = {
     [FKL_HASH_EQUAL] = fklVMvalueEqual,
 };
 
-static inline FklVMvalueHashMapElm *
+static inline FklValueHashMapElm *
 vmhash_find_node(FklVMvalueHash *ht, FklVMvalue *key, uintptr_t *hashv) {
     *hashv = VMhashFunc[ht->eq_type](key);
     int (*const eq_func)(const FklVMvalue *, const FklVMvalue *) =
             VMhashEqFunc[ht->eq_type];
 
-    FklVMvalueHashMapNode *const *pp = fklVMvalueHashMapBucket(&ht->ht, *hashv);
+    FklValueHashMapNode *const *pp = fklValueHashMapBucket(&ht->ht, *hashv);
 
     for (; *pp; pp = &(*pp)->bkt_next) {
         if (eq_func(key, (*pp)->k)) {
@@ -750,36 +748,36 @@ vmhash_find_node(FklVMvalueHash *ht, FklVMvalue *key, uintptr_t *hashv) {
     return NULL;
 }
 
-FklVMvalueHashMapElm *fklVMhashTableGet(FklVMvalueHash *ht, FklVMvalue *key) {
+FklValueHashMapElm *fklVMhashTableGet(FklVMvalueHash *ht, FklVMvalue *key) {
     uintptr_t hashv;
     return vmhash_find_node(ht, key, &hashv);
 }
 
-FklVMvalueHashMapElm *
+FklValueHashMapElm *
 fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v) {
     uintptr_t hashv;
-    FklVMvalueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
+    FklValueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
     if (r)
         return r;
     else {
-        FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
+        FklValueHashMapNode *node = fklValueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueHashMapInsertNode(&ht->ht, node);
+        fklValueHashMapInsertNode(&ht->ht, node);
         return &node->elm;
     }
 }
 
-FklVMvalueHashMapElm *
+FklValueHashMapElm *
 fklVMhashTableSet(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v) {
     uintptr_t hashv;
-    FklVMvalueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
+    FklValueHashMapElm *r = vmhash_find_node(ht, key, &hashv);
     if (r) {
         r->v = v;
         return r;
     } else {
-        FklVMvalueHashMapNode *node = fklVMvalueHashMapCreateNode2(hashv, key);
+        FklValueHashMapNode *node = fklValueHashMapCreateNode2(hashv, key);
         node->v = v;
-        fklVMvalueHashMapInsertNode(&ht->ht, node);
+        fklValueHashMapInsertNode(&ht->ht, node);
         return &node->elm;
     }
 }
@@ -792,7 +790,7 @@ int fklVMhashTableDel(FklVMvalueHash *ht,
     int (*const eq_func)(const FklVMvalue *, const FklVMvalue *) =
             VMhashEqFunc[ht->eq_type];
 
-    FklVMvalueHashMapNode *const *pp = fklVMvalueHashMapBucket(&ht->ht, hashv);
+    FklValueHashMapNode *const *pp = fklValueHashMapBucket(&ht->ht, hashv);
 
     for (; *pp; pp = &(*pp)->bkt_next) {
         if (eq_func(key, (*pp)->k)) {
@@ -800,8 +798,8 @@ int fklVMhashTableDel(FklVMvalueHash *ht,
                 *pk = (*pp)->k;
             if (pv)
                 *pv = (*pp)->v;
-            fklVMvalueHashMapDelNode(&ht->ht,
-                    FKL_TYPE_CAST(FklVMvalueHashMapNode **, pp));
+            fklValueHashMapDelNode(&ht->ht,
+                    FKL_TYPE_CAST(FklValueHashMapNode **, pp));
             return 1;
         }
     }
@@ -1437,7 +1435,7 @@ FklVMvalue *fklCreateVMvalueHash(FklVM *exe, FklHashTableEqType type) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_HASHTABLE;
-    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
+    fklValueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = type;
     fklAddToGC(r, exe);
     return r;
@@ -1447,7 +1445,7 @@ FklVMvalue *fklCreateVMvalueHashEq(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_HASHTABLE;
-    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
+    fklValueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQ;
     fklAddToGC(r, exe);
     return r;
@@ -1457,7 +1455,7 @@ FklVMvalue *fklCreateVMvalueHashEqv(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_HASHTABLE;
-    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
+    fklValueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQV;
     fklAddToGC(r, exe);
     return r;
@@ -1467,7 +1465,7 @@ FklVMvalue *fklCreateVMvalueHashEqual(FklVM *exe) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueHash);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_HASHTABLE;
-    fklVMvalueHashMapInit(&FKL_VM_HASH(r)->ht);
+    fklValueHashMapInit(&FKL_VM_HASH(r)->ht);
     FKL_VM_HASH(r)->eq_type = FKL_HASH_EQUAL;
     fklAddToGC(r, exe);
     return r;

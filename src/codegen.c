@@ -210,7 +210,7 @@ static void _default_codegen_next_expression_atomic(FklVMgc *gc, void *ctx) {
 static const FklNextExpressionMethodTable
         _default_codegen_next_expression_method_table = {
             .get_next_exp = _default_codegen_get_next_expression,
-            .finalizer = _default_codegen_next_expression_finalizer,
+            .finalize = _default_codegen_next_expression_finalizer,
             .atomic = _default_codegen_next_expression_atomic,
         };
 
@@ -878,13 +878,13 @@ static FklCodegenAction *create_cg_action(FklCodegenActionCb f,
 static void destroy_cg_action(FklCodegenAction *action) {
     FklCodegenNextExpression *nextExpression = action->expressions;
     if (nextExpression) {
-        if (nextExpression->t->finalizer)
-            nextExpression->t->finalizer(nextExpression->context);
+        if (nextExpression->t->finalize)
+            nextExpression->t->finalize(nextExpression->context);
         fklZfree(nextExpression);
     }
     FklCodegenActionContext *ctx = action->context;
-    if (ctx->t->__finalizer) {
-        ctx->t->__finalizer(ctx->d);
+    if (ctx->t->finalize) {
+        ctx->t->finalize(ctx->d);
     }
     fklZfree(action->context);
     action->context = NULL;
@@ -1273,7 +1273,7 @@ static void _let1_finalizer(void *d) {
 
 static FklCodegenActionContextMethodTable Let1ContextMethodTable = {
     .size = sizeof(Let1Context),
-    .__finalizer = _let1_finalizer,
+    .finalize = _let1_finalizer,
 };
 
 static FklCodegenActionContext *createLet1CodegenContext(FklValueVector *ss) {
@@ -1294,7 +1294,7 @@ static void _do1_finalizer(void *d) {
 
 static FklCodegenActionContextMethodTable Do1ContextMethodTable = {
     .size = sizeof(Do1Context),
-    .__finalizer = _do1_finalizer,
+    .finalize = _do1_finalizer,
 };
 
 static FklCodegenActionContext *createDo1CodegenContext(FklUintVector *ss) {
@@ -5123,7 +5123,7 @@ static int hasLoadSameFile(const char *rpath,
 static const FklNextExpressionMethodTable
         _codegen_load_get_next_expression_method_table = {
             .get_next_exp = _codegen_load_get_next_expression,
-            .finalizer = _codegen_load_finalizer,
+            .finalize = _codegen_load_finalizer,
             .atomic = _codegen_load_atomic,
         };
 
@@ -5378,8 +5378,8 @@ static void export_context_data_atomic(FklVMgc *gc, void *ctx) {
 
 static const FklCodegenActionContextMethodTable ExportContextMethodTable = {
     .size = sizeof(ExportContextData),
-    .__finalizer = export_context_data_finalizer,
-    .__atomic = export_context_data_atomic,
+    .finalize = export_context_data_finalizer,
+    .atomic = export_context_data_atomic,
 };
 
 static inline int merge_all_grammer(FklVMvalueCodegenInfo *codegen) {
@@ -6328,7 +6328,7 @@ static void export_sequnce_context_data_atomic(FklVMgc *gc, void *data) {
 static const FklCodegenActionContextMethodTable
         ExportSequnceContextMethodTable = {
             .size = sizeof(ExportSequnceContextData),
-            .__atomic = export_sequnce_context_data_atomic,
+            .atomic = export_sequnce_context_data_atomic,
         };
 
 static FklCodegenActionContext *create_export_sequnce_context(
@@ -7531,7 +7531,7 @@ static void _macro_stack_context_atomic(FklVMgc *gc, void *data) {
 
 static const FklCodegenActionContextMethodTable MacroStackContextMethodTable = {
     .size = sizeof(MacroContext),
-    .__atomic = _macro_stack_context_atomic,
+    .atomic = _macro_stack_context_atomic,
 };
 
 static inline FklCodegenActionContext *createMacroActionContext(
@@ -7583,7 +7583,7 @@ static void _reader_macro_stack_context_atomic(FklVMgc *gc, void *data) {
 static const FklCodegenActionContextMethodTable
         ReaderMacroStackContextMethodTable = {
             .size = sizeof(struct ReaderMacroCtx),
-            .__atomic = _reader_macro_stack_context_atomic,
+            .atomic = _reader_macro_stack_context_atomic,
         };
 
 static inline FklCodegenActionContext *createReaderMacroActionContext(
@@ -8186,8 +8186,8 @@ static void _adding_production_ctx_atomic(FklVMgc *gc, void *data) {
 static const FklCodegenActionContextMethodTable
         AddingProductionCtxMethodTable = {
             .size = sizeof(AddingProductionCtx),
-            .__finalizer = _adding_production_ctx_finalizer,
-            .__atomic = _adding_production_ctx_atomic,
+            .finalize = _adding_production_ctx_finalizer,
+            .atomic = _adding_production_ctx_atomic,
         };
 
 static inline FklCodegenActionContext *createAddingProductionCtx(
@@ -9068,8 +9068,8 @@ static inline void mark_action_vector(FklVMgc *gc, FklCodegenActionVector *v) {
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, a->env), gc);
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, a->macros), gc);
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, a->codegen), gc);
-        if (a->context->t->__atomic) {
-            a->context->t->__atomic(gc, a->context->d);
+        if (a->context->t->atomic) {
+            a->context->t->atomic(gc, a->context->d);
         }
         if (a->expressions && a->expressions->t->atomic) {
             a->expressions->t->atomic(gc, a->expressions->context);

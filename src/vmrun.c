@@ -405,7 +405,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
         call_cproc(exe, proc);
         break;
     case FKL_TYPE_USERDATA:
-        FKL_VM_UD(proc)->mt_->__call(proc, exe);
+        FKL_VM_UD(proc)->mt_->call(proc, exe);
         break;
     default:
         FKL_UNREACHABLE();

@@ -754,13 +754,11 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
-    FklVMudPrintCb as_princ = NULL;
+    FklVMudPrintCb princ = NULL;
     // void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
-    as_princ = t->__as_princ //
-                     ? t->__as_princ
-                     : t->__as_prin1;
-    if (as_princ) {
-        as_princ(v, build, exe);
+    princ = t->princ ? t->princ : t->prin1;
+    if (princ) {
+        princ(v, build, exe);
     } else
         fklCodeBuilderFmt(build, "#<userdata %p>", ud);
 }
@@ -846,13 +844,11 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
-    FklVMudPrintCb as_prin1 = NULL;
+    FklVMudPrintCb prin1 = NULL;
     // void (*as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *) = NULL;
-    as_prin1 = t->__as_prin1 //
-                     ? t->__as_prin1
-                     : t->__as_princ;
-    if (as_prin1) {
-        as_prin1(v, build, exe);
+    prin1 = t->prin1 ? t->prin1 : t->princ;
+    if (prin1) {
+        prin1(v, build, exe);
     } else
         fklCodeBuilderFmt(build, "#<userdata %p>", ud);
 }

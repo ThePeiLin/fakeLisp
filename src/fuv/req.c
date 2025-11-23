@@ -44,7 +44,7 @@ void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
     }
 }
 
-static inline int fuv_req_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static inline int fuv_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvReq, ud);
     FuvValueReq *req = FUV_REQ(ud);
     if (req->data.loop) {
@@ -60,22 +60,22 @@ static FKL_ALWAYS_INLINE FuvValueFsReq *as_fs_req(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FuvValueFsReq *, v);
 }
 
-static int fuv_fs_req_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int fuv_fs_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(req, FuvFsReq, ud);
-    if (fuv_req_ud_finalizer(ud, gc))
+    if (fuv_req_ud_finalize(ud, gc))
         return FKL_VM_UD_FINALIZE_DELAY;
     fuvFsReqCleanUp(as_fs_req(ud), FUV_FS_REQ_CLEANUP_IN_FINALIZING);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getaddrinfo_as_print, "getaddrinfo");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_getnameinfo_as_print, "getnameinfo");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_write_as_print, "write");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_shutdown_as_print, "shutdown");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_connect_as_print, "connect");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_udp_send_as_print, "udp-send");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_fs_req_as_print, "fs-req");
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_random_as_print, "random");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_getaddrinfo_print, "getaddrinfo");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_getnameinfo_print, "getnameinfo");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_write_print, "write");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_shutdown_print, "shutdown");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_connect_print, "connect");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_udp_send_print, "udp-send");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_fs_req_print, "fs-req");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_random_print, "random");
 
 static FKL_ALWAYS_INLINE FuvValueWrite *as_write(const FklVMvalue *v) {
     FKL_ASSERT(isFuvWrite(v));
@@ -126,50 +126,50 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
         {
             // .size = sizeof(struct FuvConnect),
 			.size = sizeof(FuvValueConnect),
-            .__as_prin1 = fuv_connect_as_print,
-            .__as_princ = fuv_connect_as_print,
-            .__atomic = fuv_req_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_connect_print,
+            .princ = fuv_connect_print,
+            .atomic = fuv_req_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_WRITE] =
         {
             // .size = sizeof(struct FuvWrite),
 			.size = sizeof(FuvValueWrite),
-            .__as_prin1 = fuv_write_as_print,
-            .__as_princ = fuv_write_as_print,
-            .__atomic = fuv_write_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_write_print,
+            .princ = fuv_write_print,
+            .atomic = fuv_write_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_SHUTDOWN] =
         {
             // .size = sizeof(struct FuvShutdown),
             .size = sizeof(FuvValueShutdown),
-            .__as_prin1 = fuv_shutdown_as_print,
-            .__as_princ = fuv_shutdown_as_print,
-            .__atomic = fuv_req_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_shutdown_print,
+            .princ = fuv_shutdown_print,
+            .atomic = fuv_req_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_UDP_SEND] =
         {
             // .size = sizeof(struct FuvUdpSend),
             .size = sizeof(FuvValueUdpSend),
-            .__as_prin1 = fuv_udp_send_as_print,
-            .__as_princ = fuv_udp_send_as_print,
-            .__atomic = fuv_udp_send_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_udp_send_print,
+            .princ = fuv_udp_send_print,
+            .atomic = fuv_udp_send_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_FS] =
         {
             // .size = sizeof(struct FuvFsReq),
             .size = sizeof(FuvValueFsReq),
-            .__as_prin1 = fuv_fs_req_as_print,
-            .__as_princ = fuv_fs_req_as_print,
-            .__atomic = fuv_fs_req_ud_atomic,
-            .__finalizer = fuv_fs_req_ud_finalizer,
+            .prin1 = fuv_fs_req_print,
+            .princ = fuv_fs_req_print,
+            .atomic = fuv_fs_req_ud_atomic,
+            .finalize = fuv_fs_req_ud_finalize,
         },
 
     [UV_WORK] = {0},
@@ -178,30 +178,30 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
         {
             // .size = sizeof(struct FuvGetaddrinfo),
             .size = sizeof(FuvValueGetaddrinfo),
-            .__as_prin1 = fuv_getaddrinfo_as_print,
-            .__as_princ = fuv_getaddrinfo_as_print,
-            .__atomic = fuv_req_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_getaddrinfo_print,
+            .princ = fuv_getaddrinfo_print,
+            .atomic = fuv_req_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_GETNAMEINFO] =
         {
             // .size = sizeof(struct FuvGetnameinfo),
             .size = sizeof(FuvValueGetnameinfo),
-            .__as_prin1 = fuv_getnameinfo_as_print,
-            .__as_princ = fuv_getnameinfo_as_print,
-            .__atomic = fuv_req_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_getnameinfo_print,
+            .princ = fuv_getnameinfo_print,
+            .atomic = fuv_req_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 
     [UV_RANDOM] =
         {
             // .size = sizeof(struct FuvRandom),
             .size = sizeof(FuvValueRandom),
-            .__as_prin1 = fuv_random_as_print,
-            .__as_princ = fuv_random_as_print,
-            .__atomic = fuv_req_ud_atomic,
-            .__finalizer = fuv_req_ud_finalizer,
+            .prin1 = fuv_random_print,
+            .princ = fuv_random_print,
+            .atomic = fuv_req_ud_atomic,
+            .finalize = fuv_req_ud_finalize,
         },
 };
 

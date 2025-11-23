@@ -31,9 +31,9 @@ static void _slot_userdata_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const SlotUserDataMetaTable = {
     // .size = sizeof(struct FklVMslot),
     .size = sizeof(FklVMvalueSlot),
-    .__as_princ = _slot_userdata_as_print,
-    .__as_prin1 = _slot_userdata_as_print,
-    .__atomic = _slot_userdata_atomic,
+    .princ = _slot_userdata_as_print,
+    .prin1 = _slot_userdata_as_print,
+    .atomic = _slot_userdata_atomic,
 };
 
 int fklIsVMvalueSlot(const FklVMvalue *v) {

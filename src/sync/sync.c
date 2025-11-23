@@ -34,7 +34,7 @@ static void sync_public_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const SyncPublicDataMetaTable = {
     // .size = sizeof(SyncPublicData),
     .size = sizeof(FklVMvalueSyncPd),
-    .__atomic = sync_public_ud_atomic,
+    .atomic = sync_public_ud_atomic,
 };
 
 static inline FklVMvalue *
@@ -76,9 +76,9 @@ static FKL_ALWAYS_INLINE FklVMvalueMutex *as_mutex(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueMutex *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(mutex_as_print, "mutex");
+FKL_VM_USER_DATA_DEFAULT_PRINT(mutex_print, "mutex");
 
-static int mutex_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int mutex_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(mutex, uv_mutex_t, ud);
     uv_mutex_t *mutex = &as_mutex(ud)->l;
     uv_mutex_destroy(mutex);
@@ -88,9 +88,9 @@ static int mutex_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const MutexUdMetaTable = {
     // .size = sizeof(uv_mutex_t),
     .size = sizeof(FklVMvalueMutex),
-    .__as_princ = mutex_as_print,
-    .__as_prin1 = mutex_as_print,
-    .__finalizer = mutex_finalizer,
+    .princ = mutex_print,
+    .prin1 = mutex_print,
+    .finalize = mutex_finalize,
 };
 
 #define PREDICATE(condition)                                                   \
@@ -156,9 +156,9 @@ static FKL_ALWAYS_INLINE FklVMvalueCond *as_cond(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueCond *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(cond_as_print, "cond");
+FKL_VM_USER_DATA_DEFAULT_PRINT(cond_print, "cond");
 
-static int cond_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int cond_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(cond, uv_cond_t, ud);
     uv_cond_t *cond = &as_cond(ud)->c;
     uv_cond_destroy(cond);
@@ -168,9 +168,9 @@ static int cond_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const CondUdMetaTable = {
     // .size = sizeof(uv_cond_t),
     .size = sizeof(FklVMvalueCond),
-    .__as_prin1 = cond_as_print,
-    .__as_princ = cond_as_print,
-    .__finalizer = cond_finalizer,
+    .prin1 = cond_print,
+    .princ = cond_print,
+    .finalize = cond_finalize,
 };
 
 static int sync_cond_p(FKL_CPROC_ARGL) { PREDICATE(IS_COND_UD(val)); }
@@ -247,9 +247,9 @@ static FKL_ALWAYS_INLINE FklVMvalueRwlock *as_rwlock(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueRwlock *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(rwlock_as_print, "rwlock");
+FKL_VM_USER_DATA_DEFAULT_PRINT(rwlock_print, "rwlock");
 
-static int rwlock_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int rwlock_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(rwlock, uv_rwlock_t, ud);
     uv_rwlock_t *rwlock = &as_rwlock(ud)->l;
     uv_rwlock_destroy(rwlock);
@@ -259,9 +259,9 @@ static int rwlock_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const RwlockUdMetaTable = {
     // .size = sizeof(uv_rwlock_t),
     .size = sizeof(FklVMvalueRwlock),
-    .__as_prin1 = rwlock_as_print,
-    .__as_princ = rwlock_as_print,
-    .__finalizer = rwlock_finalizer,
+    .prin1 = rwlock_print,
+    .princ = rwlock_print,
+    .finalize = rwlock_finalize,
 };
 
 static int sync_rwlock_p(FKL_CPROC_ARGL) { PREDICATE(IS_RWLOCK_UD(val)); }
@@ -342,7 +342,7 @@ static int sync_rwlock_trywrlock(FKL_CPROC_ARGL) {
     return 0;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(sem_as_print, "sem");
+FKL_VM_USER_DATA_DEFAULT_PRINT(sem_print, "sem");
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSem, { uv_sem_t s; });
 
@@ -355,7 +355,7 @@ static FKL_ALWAYS_INLINE FklVMvalueSem *as_sem(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueSem *, v);
 }
 
-static int sem_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int sem_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(sem, uv_sem_t, ud);
     uv_sem_t *sem = &as_sem(ud)->s;
     uv_sem_destroy(sem);
@@ -365,9 +365,9 @@ static int sem_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const SemUdMetaTable = {
     // .size = sizeof(uv_sem_t),
     .size = sizeof(FklVMvalueSem),
-    .__as_prin1 = sem_as_print,
-    .__as_princ = sem_as_print,
-    .__finalizer = sem_finalizer,
+    .prin1 = sem_print,
+    .princ = sem_print,
+    .finalize = sem_finalize,
 };
 
 static int sync_sem_p(FKL_CPROC_ARGL) { PREDICATE(IS_SEM_UD(val)); }
@@ -429,9 +429,9 @@ static FKL_ALWAYS_INLINE FklVMvalueBarrier *as_barrier(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueBarrier *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(barrier_as_print, "barrier");
+FKL_VM_USER_DATA_DEFAULT_PRINT(barrier_print, "barrier");
 
-static int barrier_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int barrier_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(barrier, uv_barrier_t, ud);
     uv_barrier_t *barrier = &as_barrier(ud)->b;
     uv_barrier_destroy(barrier);
@@ -441,9 +441,9 @@ static int barrier_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const BarrierUdMetaTable = {
     // .size = sizeof(uv_barrier_t),
     .size = sizeof(FklVMvalueBarrier),
-    .__as_prin1 = barrier_as_print,
-    .__as_princ = barrier_as_print,
-    .__finalizer = barrier_finalizer,
+    .prin1 = barrier_print,
+    .princ = barrier_print,
+    .finalize = barrier_finalize,
 };
 
 static int sync_barrier_p(FKL_CPROC_ARGL) { PREDICATE(IS_BARRIER_UD(val)); }

@@ -10,7 +10,7 @@
 //     return FKL_TYPE_CAST(FuvValueLoop *, v);
 // }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_loop_as_print, "loop");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_loop_print, "loop");
 
 static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
     FKL_ASSERT(FKL_IS_USERDATA(v));
@@ -51,7 +51,7 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
     }
 }
 
-static int fuv_loop_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int fuv_loop_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
     FuvValueLoop *l = FUV_LOOP(ud);
     if (fuvLoopIsClosed(l))
@@ -71,10 +71,10 @@ closed:
 static FklVMudMetaTable const FuvLoopMetaTable = {
     // .size = sizeof(FuvLoop),
     .size = sizeof(FuvValueLoop),
-    .__as_prin1 = fuv_loop_as_print,
-    .__as_princ = fuv_loop_as_print,
-    .__atomic = fuv_loop_atomic,
-    .__finalizer = fuv_loop_finalizer,
+    .prin1 = fuv_loop_print,
+    .princ = fuv_loop_print,
+    .atomic = fuv_loop_atomic,
+    .finalize = fuv_loop_finalize,
 };
 
 FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {

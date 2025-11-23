@@ -108,7 +108,7 @@ typedef FklVMvalue *(*VMvalueCopyAppendCb)(FklVM *exe,
         uint32_t argc,
         FklVMvalue *const *top);
 
-static FklVMvalue *__fkl_str_copy_append(FklVM *exe,
+static FklVMvalue *fkl_str_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
@@ -141,7 +141,7 @@ static FklVMvalue *__fkl_str_copy_append(FklVM *exe,
     return retval;
 }
 
-static FklVMvalue *__fkl_vec_copy_append(FklVM *exe,
+static FklVMvalue *fkl_vec_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
@@ -169,7 +169,7 @@ static FklVMvalue *__fkl_vec_copy_append(FklVM *exe,
     return new_vec_val;
 }
 
-static FklVMvalue *__fkl_pair_copy_append(FklVM *exe,
+static FklVMvalue *fkl_pair_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
@@ -191,7 +191,7 @@ static FklVMvalue *__fkl_pair_copy_append(FklVM *exe,
         return (FklVMvalue *)v;
 }
 
-static FklVMvalue *__fkl_bytevector_copy_append(FklVM *exe,
+static FklVMvalue *fkl_bytevector_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
@@ -216,23 +216,23 @@ static FklVMvalue *__fkl_bytevector_copy_append(FklVM *exe,
     return bv;
 }
 
-static FklVMvalue *__fkl_userdata_copy_append(FklVM *exe,
+static FklVMvalue *fkl_userdata_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
-    FklVMudCopyAppendCb appender = FKL_VM_UD(v)->mt_->__copy_append;
-    if (appender)
-        return appender(exe, v, argc, base);
+    FklVMudCopyAppendCb append = FKL_VM_UD(v)->mt_->copy_append;
+    if (append)
+        return append(exe, v, argc, base);
     else
         return NULL;
 }
 
 static const VMvalueCopyAppendCb CopyAppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
-    [FKL_TYPE_STR] = __fkl_str_copy_append,
-    [FKL_TYPE_VECTOR] = __fkl_vec_copy_append,
-    [FKL_TYPE_PAIR] = __fkl_pair_copy_append,
-    [FKL_TYPE_BYTEVECTOR] = __fkl_bytevector_copy_append,
-    [FKL_TYPE_USERDATA] = __fkl_userdata_copy_append,
+    [FKL_TYPE_STR] = fkl_str_copy_append,
+    [FKL_TYPE_VECTOR] = fkl_vec_copy_append,
+    [FKL_TYPE_PAIR] = fkl_pair_copy_append,
+    [FKL_TYPE_BYTEVECTOR] = fkl_bytevector_copy_append,
+    [FKL_TYPE_USERDATA] = fkl_userdata_copy_append,
 };
 
 static int builtin_append(FKL_CPROC_ARGL) {
@@ -269,7 +269,7 @@ typedef int (*VMvalueAppendCb)(FklVMvalue *v, //
         FklVMvalue *const *top);
 
 static int
-__fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
+fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
     if (argc) {
         FklVMvalue *retval = FKL_VM_NIL;
         FklVMvalue **prev = &retval;
@@ -291,18 +291,18 @@ __fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
 }
 
 static int
-__fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
+fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
     // FklVMud *ud = FKL_VM_UD(obj);
-    FklVMudAppendCb appender = FKL_VM_UD(obj)->mt_->__append;
-    if (appender)
-        return appender(obj, argc, base);
+    FklVMudAppendCb append = FKL_VM_UD(obj)->mt_->append;
+    if (append)
+        return append(obj, argc, base);
     else
         return 1;
 }
 
 static const VMvalueAppendCb AppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
-    [FKL_TYPE_PAIR] = __fkl_pair_append,
-    [FKL_TYPE_USERDATA] = __fkl_userdata_append,
+    [FKL_TYPE_PAIR] = fkl_pair_append,
+    [FKL_TYPE_USERDATA] = fkl_userdata_append,
 };
 
 static int builtin_append1(FKL_CPROC_ARGL) {
@@ -945,11 +945,11 @@ i64_to_string(FklVM *exe, int64_t num, uint8_t radix, FklBigIntFmtFlags flags) {
 }
 
 static inline int is_to_str_able_ud(const FklVMvalueUd *u) {
-    return u->mt_->__as_prin1 != NULL || u->mt_->__as_princ != NULL;
+    return u->mt_->prin1 != NULL || u->mt_->princ != NULL;
 }
 
 static inline int is_writable_ud(const FklVMvalueUd *u) {
-    return u->mt_->__write != NULL;
+    return u->mt_->write != NULL;
 }
 
 static inline int
@@ -1756,9 +1756,9 @@ static FKL_ALWAYS_INLINE FklVMvalueGra *as_gra(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueGra *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_parser_as_print, "parser");
+FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print, "parser");
 
-static int custom_parser_finalizer(FklVMvalue *p, FklVMgc *gc) {
+static int custom_parser_finalize(FklVMvalue *p, FklVMgc *gc) {
     fklUninitGrammer(&as_gra(p)->g);
     // FKL_DECL_UD_DATA(grammer, FklGrammer, p);
     // fklUninitGrammer(grammer);
@@ -1774,10 +1774,10 @@ static void custom_parser_atomic(const FklVMvalue *p, FklVMgc *gc) {
 static const FklVMudMetaTable CustomParserMetaTable = {
     // .size = sizeof(FklGrammer),
     .size = sizeof(FklVMvalueGra),
-    .__as_princ = custom_parser_as_print,
-    .__as_prin1 = custom_parser_as_print,
-    .__atomic = custom_parser_atomic,
-    .__finalizer = custom_parser_finalizer,
+    .princ = custom_parser_print,
+    .prin1 = custom_parser_print,
+    .atomic = custom_parser_atomic,
+    .finalize = custom_parser_finalize,
 };
 
 static inline void push_state0_of_custom_parser(FklVMvalue *parser,

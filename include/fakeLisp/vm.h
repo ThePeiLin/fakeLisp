@@ -542,22 +542,22 @@ typedef int (*FklVMudEqualCb)(const FklVMvalue *, const FklVMvalue *);
 typedef struct FklVMudMetaTable {
     // size_t size;
     size_t size;
-    FklVMudPrintCb __as_princ;
-    FklVMudPrintCb __as_prin1;
+    FklVMudPrintCb princ;
+    FklVMudPrintCb prin1;
     // void (*__as_princ)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
     // void (*__as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
-    int (*__finalizer)(FklVMvalue *, FklVMgc *gc);
-    FklVMudEqualCb __equal;
+    int (*finalize)(FklVMvalue *, FklVMgc *gc);
+    FklVMudEqualCb equal;
     // int (*__equal)(const FklVMvalue *, const FklVMvalue *);
-    void (*__call)(FklVMvalue *, FklVM *);
-    int (*__cmp)(const FklVMvalue *, const FklVMvalue *, int *);
-    void (*__write)(const FklVMvalue *, FklCodeBuilder *);
-    void (*__atomic)(const FklVMvalue *, FklVMgc *);
-    size_t (*__length)(const FklVMvalue *);
-    void (*__update_weak_ref)(const FklVMvalue *ud, FklVMgc *gc);
-    FklVMudCopyAppendCb __copy_append;
-    FklVMudAppendCb __append;
-    uintptr_t (*__hash)(const FklVMvalue *);
+    void (*call)(FklVMvalue *, FklVM *);
+    int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
+    void (*write)(const FklVMvalue *, FklCodeBuilder *);
+    void (*atomic)(const FklVMvalue *, FklVMgc *);
+    size_t (*length)(const FklVMvalue *);
+    void (*update_weak_ref)(const FklVMvalue *ud, FklVMgc *gc);
+    FklVMudCopyAppendCb copy_append;
+    FklVMudAppendCb append;
+    uintptr_t (*hash)(const FklVMvalue *);
 } FklVMudMetaTable;
 
 typedef enum {
@@ -1758,7 +1758,7 @@ HASH_P(EQUAL);
 
 #undef HASH_P
 
-#define FKL_VM_USER_DATA_DEFAULT_AS_PRINT(NAME, DATA_TYPE_NAME)                \
+#define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME, DATA_TYPE_NAME)                   \
     static void NAME(const FklVMvalue *ud,                                     \
             FklCodeBuilder *build,                                             \
             FklVM *exe) {                                                      \

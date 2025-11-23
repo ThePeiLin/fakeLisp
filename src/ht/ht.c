@@ -53,7 +53,7 @@ static void ht_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(ht_as_print, "ht");
+FKL_VM_USER_DATA_DEFAULT_PRINT(ht_print, "ht");
 
 static int ht_equal(const FklVMvalue *a, const FklVMvalue *b) {
     // FKL_DECL_UD_DATA(hta, HashTable, a);
@@ -78,7 +78,7 @@ static int ht_equal(const FklVMvalue *a, const FklVMvalue *b) {
         return 0;
 }
 
-static int ht_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int ht_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(ht, HashTable, ud);
     FklVMvalueHt *ht = as_ht(ud);
     fklValueHashMapUninit(&ht->ht);
@@ -94,12 +94,12 @@ static size_t ht_length(const FklVMvalue *ud) {
 static FklVMudMetaTable const HtUdMetaTable = {
     // .size = sizeof(HashTable),
     .size = sizeof(FklVMvalueHt),
-    .__length = ht_length,
-    .__atomic = ht_atomic,
-    .__equal = ht_equal,
-    .__as_prin1 = ht_as_print,
-    .__as_princ = ht_as_print,
-    .__finalizer = ht_finalizer,
+    .length = ht_length,
+    .atomic = ht_atomic,
+    .equal = ht_equal,
+    .prin1 = ht_print,
+    .princ = ht_print,
+    .finalize = ht_finalize,
 };
 
 static int ht_make_ht(FKL_CPROC_ARGL) {

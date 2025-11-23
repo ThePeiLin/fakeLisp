@@ -28,7 +28,7 @@ static int strbuf_equal(const FklVMvalue *a, const FklVMvalue *b) {
         && !memcmp(bufa->buf, bufb->buf, bufa->index);
 }
 
-static int strbuf_finalizer(FklVMvalue *p, FklVMgc *gc) {
+static int strbuf_finalize(FklVMvalue *p, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, p);
     // fklUninitStringBuffer(buf);
     fklUninitStringBuffer(&as_strbuf(p)->buf);
@@ -36,7 +36,7 @@ static int strbuf_finalizer(FklVMvalue *p, FklVMgc *gc) {
 }
 
 static void
-strbuf_as_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+strbuf_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
     FklStringBuffer *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderPuts(build, "#<strbuf ");
@@ -45,7 +45,7 @@ strbuf_as_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
 }
 
 static void
-strbuf_as_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+strbuf_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
     FklStringBuffer *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderWrite(build, bufa->index, bufa->buf);
@@ -145,16 +145,16 @@ static int strbuf_cmp(const FklVMvalue *ud, const FklVMvalue *v, int *err) {
 static FklVMudMetaTable const StringBufferMetaTable = {
     // .size = sizeof(FklStringBuffer),
     .size = sizeof(FklVMvalueStrBuf),
-    .__equal = strbuf_equal,
-    .__as_prin1 = strbuf_as_prin1,
-    .__as_princ = strbuf_as_princ,
-    .__write = strbuf_write,
-    .__append = strbuf_append,
-    .__copy_append = strbuf_copy_append,
-    .__length = strbuf_length,
-    .__hash = strbuf_hash,
-    .__cmp = strbuf_cmp,
-    .__finalizer = strbuf_finalizer,
+    .equal = strbuf_equal,
+    .prin1 = strbuf_prin1,
+    .princ = strbuf_princ,
+    .write = strbuf_write,
+    .append = strbuf_append,
+    .copy_append = strbuf_copy_append,
+    .length = strbuf_length,
+    .hash = strbuf_hash,
+    .cmp = strbuf_cmp,
+    .finalize = strbuf_finalize,
 };
 
 static int export_strbuf_p(FKL_CPROC_ARGL) {

@@ -73,43 +73,43 @@ FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
     return tmp;
 }
 
-static FklVMvalue *__fkl_f64_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_f64_copyer(const FklVMvalue *obj, FklVM *vm) {
     FklVMvalue *tmp = fklCreateVMvalueF64(vm, FKL_VM_F64(obj));
     return tmp;
 }
 
-static FklVMvalue *__fkl_bigint_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_bigint_copyer(const FklVMvalue *obj, FklVM *vm) {
     return fklCreateVMvalueBigIntWithOther(vm, FKL_VM_BI(obj));
 }
 
-static FklVMvalue *__fkl_vector_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_vector_copyer(const FklVMvalue *obj, FklVM *vm) {
     FklVMvec *vec = FKL_VM_VEC(obj);
     return fklCreateVMvalueVecWithPtr(vm, vec->size, vec->base);
 }
 
-static FklVMvalue *__fkl_str_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_str_copyer(const FklVMvalue *obj, FklVM *vm) {
     return fklCreateVMvalueStr(vm, FKL_VM_STR(obj));
 }
 
-static FklVMvalue *__fkl_bytevector_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_bytevector_copyer(const FklVMvalue *obj, FklVM *vm) {
     return fklCreateVMvalueBvec(vm, FKL_VM_BVEC(obj));
 }
 
-static FklVMvalue *__fkl_pair_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_pair_copyer(const FklVMvalue *obj, FklVM *vm) {
     return fklCopyVMlistOrAtom(obj, vm);
 }
 
-static FklVMvalue *__fkl_box_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_box_copyer(const FklVMvalue *obj, FklVM *vm) {
     return fklCreateVMvalueBox(vm, FKL_VM_BOX(obj));
 }
 
-static FklVMvalue *__fkl_userdata_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_userdata_copyer(const FklVMvalue *obj, FklVM *vm) {
     // const FklVMvalueUd *ud = FKL_VM_UD(obj);
-    FklVMudCopyAppendCb copy = FKL_VM_UD(obj)->mt_->__copy_append;
+    FklVMudCopyAppendCb copy = FKL_VM_UD(obj)->mt_->copy_append;
     return copy(vm, obj, 0, NULL);
 }
 
-static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
     FklVMvalueHash *ht = FKL_VM_HASH(obj);
     FklVMvalue *r = fklCreateVMvalueHashEq(vm);
     FklVMvalueHash *nht = FKL_VM_HASH(r);
@@ -120,23 +120,23 @@ static FklVMvalue *__fkl_hashtable_copyer(const FklVMvalue *obj, FklVM *vm) {
     return r;
 }
 
-static FklVMvalue *__fkl_sym_copyer(const FklVMvalue *obj, FklVM *vm) {
+static FklVMvalue *fkl_sym_copyer(const FklVMvalue *obj, FklVM *vm) {
     return FKL_TYPE_CAST(FklVMvalue *, obj);
 }
 
 static FklVMvalue *(*const valueCopyers[FKL_VM_VALUE_GC_TYPE_NUM])(
         const FklVMvalue *obj,
         FklVM *vm) = {
-    [FKL_TYPE_F64] = __fkl_f64_copyer,
-    [FKL_TYPE_BIGINT] = __fkl_bigint_copyer,
-    [FKL_TYPE_STR] = __fkl_str_copyer,
-    [FKL_TYPE_VECTOR] = __fkl_vector_copyer,
-    [FKL_TYPE_PAIR] = __fkl_pair_copyer,
-    [FKL_TYPE_BOX] = __fkl_box_copyer,
-    [FKL_TYPE_BYTEVECTOR] = __fkl_bytevector_copyer,
-    [FKL_TYPE_USERDATA] = __fkl_userdata_copyer,
-    [FKL_TYPE_HASHTABLE] = __fkl_hashtable_copyer,
-    [FKL_TYPE_SYM] = __fkl_sym_copyer,
+    [FKL_TYPE_F64] = fkl_f64_copyer,
+    [FKL_TYPE_BIGINT] = fkl_bigint_copyer,
+    [FKL_TYPE_STR] = fkl_str_copyer,
+    [FKL_TYPE_VECTOR] = fkl_vector_copyer,
+    [FKL_TYPE_PAIR] = fkl_pair_copyer,
+    [FKL_TYPE_BOX] = fkl_box_copyer,
+    [FKL_TYPE_BYTEVECTOR] = fkl_bytevector_copyer,
+    [FKL_TYPE_USERDATA] = fkl_userdata_copyer,
+    [FKL_TYPE_HASHTABLE] = fkl_hashtable_copyer,
+    [FKL_TYPE_SYM] = fkl_sym_copyer,
 };
 
 FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
@@ -196,10 +196,10 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         case FKL_TYPE_USERDATA: {
             FklVMvalueUd *ud1 = FKL_VM_UD(fir);
             FklVMvalueUd *ud2 = FKL_VM_UD(sec);
-            if (ud1->mt_ != ud2->mt_ || !ud1->mt_->__equal)
+            if (ud1->mt_ != ud2->mt_ || !ud1->mt_->equal)
                 return 0;
             else
-                return ud1->mt_->__equal(fir, sec);
+                return ud1->mt_->equal(fir, sec);
         } break;
         case FKL_TYPE_PAIR:
         case FKL_TYPE_BOX:
@@ -299,10 +299,10 @@ nested_equal:
                 case FKL_TYPE_USERDATA: {
                     FklVMvalueUd *ud1 = FKL_VM_UD(root1);
                     FklVMvalueUd *ud2 = FKL_VM_UD(root2);
-                    if (ud1->mt_ != ud2->mt_ || !ud1->mt_->__equal)
+                    if (ud1->mt_ != ud2->mt_ || !ud1->mt_->equal)
                         r = 0;
                     else
-                        r = ud1->mt_->__equal(root1, root2);
+                        r = ud1->mt_->equal(root1, root2);
                 } break;
                 case FKL_TYPE_HASHTABLE: {
                     FklVMvalueHash *h1 = FKL_VM_HASH(root1);
@@ -343,11 +343,11 @@ nested_equal:
 
 static inline int
 cmp_vm_ud(const FklVMvalue *a, const FklVMvalue *b, int *err) {
-    return FKL_VM_UD(a)->mt_->__cmp(a, b, err);
+    return FKL_VM_UD(a)->mt_->cmp(a, b, err);
 }
 
 static inline int is_cmpable_ud(const FklVMvalueUd *u) {
-    return u->mt_->__cmp != NULL;
+    return u->mt_->cmp != NULL;
 }
 
 int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
@@ -652,7 +652,7 @@ static uintptr_t _box_hashFunc(const FklVMvalue *v) {
 }
 
 static size_t _userdata_hashFunc(const FklVMvalue *v) {
-    size_t (*hashv)(const FklVMvalue *) = FKL_VM_UD(v)->mt_->__hash;
+    size_t (*hashv)(const FklVMvalue *) = FKL_VM_UD(v)->mt_->hash;
     if (hashv)
         return hashv(v);
     else {
@@ -1047,17 +1047,15 @@ FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
 //     return FKL_TYPE_CAST(FklVMvalueError *, v);
 // }
 
-static void _error_userdata_as_princ(const FklVMvalue *ud,
-        FklCodeBuilder *build,
-        FklVM *exe) {
+static void
+_error_userdata_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(err, FklVMerror, ud);
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklPrintString2(FKL_VM_STR(err->message), build);
 }
 
-static void _error_userdata_as_prin1(const FklVMvalue *ud,
-        FklCodeBuilder *build,
-        FklVM *exe) {
+static void
+_error_userdata_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(err, FklVMerror, ud);
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklVMformat(exe,
@@ -1078,9 +1076,9 @@ static void _error_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
 static FklVMudMetaTable const ErrorUserDataMetaTable = {
     // .size = sizeof(FklVMerror),
     .size = sizeof(FklVMvalueError),
-    .__as_princ = _error_userdata_as_princ,
-    .__as_prin1 = _error_userdata_as_prin1,
-    .__atomic = _error_userdata_atomic,
+    .princ = _error_userdata_princ,
+    .prin1 = _error_userdata_prin1,
+    .atomic = _error_userdata_atomic,
 };
 
 FklVMvalue *
@@ -1107,7 +1105,7 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq *q) {
     q->tail = &q->head;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_chanl_userdata_as_print, "chanl");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_chanl_userdata_print, "chanl");
 
 // static FKL_ALWAYS_INLINE FklVMvalueChanl *as_chanl(const FklVMvalue *v) {
 //     FKL_ASSERT(fklIsVMvalueChanl(v));
@@ -1141,9 +1139,9 @@ static void _chanl_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
 static FklVMudMetaTable const ChanlUserDataMetaTable = {
     // .size = sizeof(FklVMchanl),
     .size = sizeof(FklVMvalueChanl),
-    .__as_princ = _chanl_userdata_as_print,
-    .__as_prin1 = _chanl_userdata_as_print,
-    .__atomic = _chanl_userdata_atomic,
+    .princ = _chanl_userdata_print,
+    .prin1 = _chanl_userdata_print,
+    .atomic = _chanl_userdata_atomic,
 };
 
 FklVMvalue *fklCreateVMvalueChanl(FklVM *exe, uint32_t qsize) {
@@ -1168,7 +1166,7 @@ int fklIsVMvalueChanl(const FklVMvalue *v) {
 //     return FKL_TYPE_CAST(FklVMvalueFp *, v);
 // }
 
-static int _fp_userdata_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int _fp_userdata_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(fp, FklVMfp, ud);
     // FklVMfp *fp = &as_vm_fp(ud)->fp;
     // fklUninitVMfp(fp);
@@ -1184,14 +1182,14 @@ static int _fp_userdata_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 //     fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
 // }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_fp_userdata_as_print, "fp");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_fp_userdata_print, "fp");
 
 static FklVMudMetaTable const FpUserDataMetaTable = {
     // .size = sizeof(FklVMfp),
     .size = sizeof(FklVMvalueFp),
-    .__as_princ = _fp_userdata_as_print,
-    .__as_prin1 = _fp_userdata_as_print,
-    .__finalizer = _fp_userdata_finalizer,
+    .princ = _fp_userdata_print,
+    .prin1 = _fp_userdata_print,
+    .finalize = _fp_userdata_finalize,
 };
 
 #define VM_FP_STATIC_INIT(FP, RW)                                              \
@@ -1476,16 +1474,16 @@ static FKL_ALWAYS_INLINE FklVMvalueCodeObj *as_co(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueCodeObj *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_code_obj_userdata_as_print, "code-obj");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_code_obj_userdata_print, "code-obj");
 
-static int _code_obj_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
+static int _code_obj_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     FklByteCodelnt *t = &as_co(v)->bcl;
     fklUninitByteCodelnt(t);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static void __code_obj_atomic(const FklVMvalue *v, FklVMgc *gc) {
+static void code_obj_atomic(const FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     FklByteCodelnt *t = &as_co(v)->bcl;
     fklVMgcMarkCodeObject(gc, t);
@@ -1494,10 +1492,10 @@ static void __code_obj_atomic(const FklVMvalue *v, FklVMgc *gc) {
 static FklVMudMetaTable const CodeObjUserDataMetaTable = {
     // .size = sizeof(FklByteCodelnt),
     .size = sizeof(FklVMvalueCodeObj),
-    .__as_princ = _code_obj_userdata_as_print,
-    .__as_prin1 = _code_obj_userdata_as_print,
-    .__atomic = __code_obj_atomic,
-    .__finalizer = _code_obj_userdata_finalizer,
+    .princ = _code_obj_userdata_print,
+    .prin1 = _code_obj_userdata_print,
+    .atomic = code_obj_atomic,
+    .finalize = _code_obj_userdata_finalize,
 };
 
 FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *exe) {
@@ -1522,7 +1520,7 @@ int fklIsVMvalueCodeObj(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CodeObjUserDataMetaTable;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dll_userdata_as_print, "dll");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_dll_userdata_print, "dll");
 
 // static FKL_ALWAYS_INLINE FklVMvalueDll *as_dll(const FklVMvalue *v) {
 //     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -1535,7 +1533,7 @@ static void _dll_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
     fklVMgcToGray(dll->pd, gc);
 }
 
-static int _dll_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
+static int _dll_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(dll, FklVMdll, v);
     FklVMvalueDll *dll = FKL_VM_DLL(v);
     FklDllUninitFunc uninit =
@@ -1549,10 +1547,10 @@ static int _dll_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
 static FklVMudMetaTable const DllUserDataMetaTable = {
     // .size = sizeof(FklVMdll),
     .size = sizeof(FklVMvalueDll),
-    .__as_princ = _dll_userdata_as_print,
-    .__as_prin1 = _dll_userdata_as_print,
-    .__atomic = _dll_userdata_atomic,
-    .__finalizer = _dll_userdata_finalizer,
+    .princ = _dll_userdata_print,
+    .prin1 = _dll_userdata_print,
+    .atomic = _dll_userdata_atomic,
+    .finalize = _dll_userdata_finalize,
 };
 
 FklVMvalue *
@@ -1588,7 +1586,7 @@ int fklIsVMvalueDll(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &DllUserDataMetaTable;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_libs_userdata_as_print, "libs");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_libs_userdata_print, "libs");
 
 static FKL_ALWAYS_INLINE FklVMvalueLibs *as_libs(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueLibs(v));
@@ -1610,7 +1608,7 @@ static void _libs_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     }
 }
 
-static int _libs_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
+static int _libs_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
     // struct FklVMlibs *t = &as_libs(v)->_libs;
     FklVMvalueLibs *t = as_libs(v);
@@ -1627,10 +1625,10 @@ static int _libs_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
 static FklVMudMetaTable const LibsUserDataMetaTable = {
     // .size = sizeof(struct FklVMlibs),
     .size = sizeof(FklVMvalueLibs),
-    .__as_princ = _libs_userdata_as_print,
-    .__as_prin1 = _libs_userdata_as_print,
-    .__atomic = _libs_userdata_atomic,
-    .__finalizer = _libs_userdata_finalizer,
+    .princ = _libs_userdata_print,
+    .prin1 = _libs_userdata_print,
+    .atomic = _libs_userdata_atomic,
+    .finalize = _libs_userdata_finalize,
 };
 
 FklVMvalueLibs *fklCreateVMvalueLibs(FklVM *exe) {
@@ -1658,7 +1656,7 @@ static FKL_ALWAYS_INLINE FklVMvalueProtos *as_protos(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueProtos *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_protos_userdata_as_print, "protos");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_protos_userdata_print, "protos");
 
 static void _protos_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, FklFuncPrototypes, v);
@@ -1666,7 +1664,7 @@ static void _protos_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     fklVMgcMarkPrototypes(gc, t);
 }
 
-static int _protos_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
+static int _protos_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(t, FklFuncPrototypes, v);
     FklFuncPrototypes *t = &as_protos(v)->p;
     fklUninitFuncPrototypes(t);
@@ -1676,10 +1674,10 @@ static int _protos_userdata_finalizer(FklVMvalue *v, FklVMgc *gc) {
 static FklVMudMetaTable const ProtosUserDataMetaTable = {
     // .size = sizeof(FklFuncPrototypes),
     .size = sizeof(FklVMvalueProtos),
-    .__as_princ = _protos_userdata_as_print,
-    .__as_prin1 = _protos_userdata_as_print,
-    .__atomic = _protos_userdata_atomic,
-    .__finalizer = _protos_userdata_finalizer,
+    .princ = _protos_userdata_print,
+    .prin1 = _protos_userdata_print,
+    .atomic = _protos_userdata_atomic,
+    .finalize = _protos_userdata_finalize,
 };
 
 FklVMvalueProtos *fklCreateVMvalueProtos(FklVM *exe, uint32_t count) {
@@ -1748,15 +1746,15 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
 #undef NEW_OBJ
 
 static void
-_eof_userdata_as_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
+_eof_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
     fklCodeBuilderPuts(buf, "#<eof>");
 }
 
 static FklVMudMetaTable const EofUserDataMetaTable = {
     // .size = 0,
     .size = sizeof(FklVMvalueUd),
-    .__as_princ = _eof_userdata_as_print,
-    .__as_prin1 = _eof_userdata_as_print,
+    .princ = _eof_userdata_print,
+    .prin1 = _eof_userdata_print,
 };
 
 static const alignas(8) FklVMvalueUd FklVMvalueEof = {
@@ -1807,12 +1805,12 @@ void fklAtomicVMbox(FklVMvalue *root, FklVMgc *gc) {
 void fklAtomicVMuserdata(FklVMvalue *root, FklVMgc *gc) {
     FklVMvalueUd *ud = FKL_VM_UD(root);
     fklVMgcToGray(ud->dll_, gc);
-    if (ud->mt_->__atomic)
-        ud->mt_->__atomic(root, gc);
+    if (ud->mt_->atomic)
+        ud->mt_->atomic(root, gc);
 }
 
 static inline int is_callable_ud(const FklVMvalueUd *ud) {
-    return ud->mt_->__call != NULL;
+    return ud->mt_->call != NULL;
 }
 
 int fklIsCallable(FklVMvalue *v) {
@@ -1821,7 +1819,7 @@ int fklIsCallable(FklVMvalue *v) {
 }
 
 static inline int is_writable_ud(const FklVMvalueUd *u) {
-    return u->mt_->__write != NULL;
+    return u->mt_->write != NULL;
 }
 
 // static inline int is_to_string_castable_ud(const FklVMvalueUd *u) {
@@ -1829,15 +1827,15 @@ static inline int is_writable_ud(const FklVMvalueUd *u) {
 // }
 
 static inline int is_ud_has_length(const FklVMvalueUd *u) {
-    return u->mt_->__length != NULL;
+    return u->mt_->length != NULL;
 }
 
 static inline size_t ud_length(const FklVMvalue *a) {
-    return FKL_VM_UD(a)->mt_->__length(a);
+    return FKL_VM_UD(a)->mt_->length(a);
 }
 
 static inline void write_vm_ud(const FklVMvalue *a, FklCodeBuilder *b) {
-    FKL_VM_UD(a)->mt_->__write(a, b);
+    FKL_VM_UD(a)->mt_->write(a, b);
 }
 
 int fklWriteVMvalue(const FklVMvalue *r, FklCodeBuilder *b) {

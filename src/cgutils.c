@@ -1159,7 +1159,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCodegenMacroScope *as_macro_scope(
     return FKL_TYPE_CAST(FklVMvalueCodegenMacroScope *, r);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(macro_scope_as_print, "macro-scope")
+FKL_VM_USER_DATA_DEFAULT_PRINT(macro_scope_print, "macro-scope")
 
 static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCodegenMacroScope *ms = as_macro_scope(ud);
@@ -1176,7 +1176,7 @@ static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-static int macro_scope_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(ms, struct FklCodegenMacroScope, ud);
     FklVMvalueCodegenMacroScope *ms = as_macro_scope(ud);
     for (FklCodegenMacro *cur = ms->head; cur;) {
@@ -1196,10 +1196,10 @@ static int macro_scope_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const MacroScopeUserDataMetaTable = {
     // .size = sizeof(struct FklCodegenMacroScope),
     .size = sizeof(FklVMvalueCodegenMacroScope),
-    .__as_princ = macro_scope_as_print,
-    .__as_prin1 = macro_scope_as_print,
-    .__atomic = macro_scope_atomic,
-    .__finalizer = macro_scope_finalizer,
+    .princ = macro_scope_print,
+    .prin1 = macro_scope_print,
+    .atomic = macro_scope_atomic,
+    .finalize = macro_scope_finalize,
 };
 
 FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
@@ -1228,7 +1228,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCodegenEnv *as_env(const FklVMvalue *r) {
     return FKL_TYPE_CAST(FklVMvalueCodegenEnv *, r);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(env_as_print, "env");
+FKL_VM_USER_DATA_DEFAULT_PRINT(env_print, "env");
 
 static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCodegenEnv *e = as_env(ud);
@@ -1273,10 +1273,10 @@ static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const EnvUserDataMetaTable = {
     // .size = sizeof(struct FklCodegenEnv),
     .size = sizeof(FklVMvalueCodegenEnv),
-    .__as_princ = env_as_print,
-    .__as_prin1 = env_as_print,
-    .__atomic = env_atomic,
-    .__finalizer = env_finalizer,
+    .princ = env_print,
+    .prin1 = env_print,
+    .atomic = env_atomic,
+    .finalize = env_finalizer,
 };
 
 FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *c,
@@ -1311,7 +1311,7 @@ FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *c,
     return r;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(info_as_print, "info");
+FKL_VM_USER_DATA_DEFAULT_PRINT(info_print, "info");
 
 static void *custom_action(void *c,
         void *ctx,
@@ -1398,10 +1398,10 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const InfoUserDataMetaTable = {
     // .size = sizeof(struct FklCodegenInfo),
     .size = sizeof(FklVMvalueCodegenInfo),
-    .__as_princ = info_as_print,
-    .__as_prin1 = info_as_print,
-    .__atomic = info_atomic,
-    .__finalizer = info_finalizer,
+    .princ = info_print,
+    .prin1 = info_print,
+    .atomic = info_atomic,
+    .finalize = info_finalizer,
 };
 
 FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
@@ -1543,7 +1543,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActionCtx *as_custom_ctx(
     return FKL_TYPE_CAST(FklVMvalueCustomActionCtx *, v);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(custom_action_ctx_ud_as_print,
+FKL_VM_USER_DATA_DEFAULT_PRINT(custom_action_ctx_ud_as_print,
         "custom-action-ctx")
 
 static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
@@ -1567,10 +1567,10 @@ static int custom_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static const FklVMudMetaTable CustomActionCtxUdMetaTable = {
     // .size = sizeof(struct FklCustomActionCtx),
     .size = sizeof(FklVMvalueCustomActionCtx),
-    .__atomic = custom_action_ctx_ud_atomic,
-    .__as_prin1 = custom_action_ctx_ud_as_print,
-    .__as_princ = custom_action_ctx_ud_as_print,
-    .__finalizer = custom_action_ctx_ud_finalizer,
+    .atomic = custom_action_ctx_ud_atomic,
+    .prin1 = custom_action_ctx_ud_as_print,
+    .princ = custom_action_ctx_ud_as_print,
+    .finalize = custom_action_ctx_ud_finalizer,
 };
 
 static void *custom_action(void *c,
@@ -2552,7 +2552,7 @@ static void simple_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(c->vec, gc);
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(simple_action_ctx_ud_as_print,
+FKL_VM_USER_DATA_DEFAULT_PRINT(simple_action_ctx_ud_as_print,
         "simple-action-ctx")
 
 static int simple_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -2569,10 +2569,10 @@ static int simple_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static const FklVMudMetaTable SimpleActionCtxUdMetaTable = {
     // .size = sizeof(FklSimpleActionCtx),
     .size = sizeof(FklVMvalueSimpleActionCtx),
-    .__atomic = simple_action_ctx_ud_atomic,
-    .__as_prin1 = simple_action_ctx_ud_as_print,
-    .__as_princ = simple_action_ctx_ud_as_print,
-    .__finalizer = simple_action_ctx_ud_finalizer,
+    .atomic = simple_action_ctx_ud_atomic,
+    .prin1 = simple_action_ctx_ud_as_print,
+    .princ = simple_action_ctx_ud_as_print,
+    .finalize = simple_action_ctx_ud_finalizer,
 };
 
 static inline FklVMvalue *create_simple_prod_action_ctx(FklCodegenCtx *cg_ctx,

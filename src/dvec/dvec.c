@@ -158,20 +158,20 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
     return new_vec_val;
 }
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(_dvec_as_print, "dvec");
+FKL_VM_USER_DATA_DEFAULT_PRINT(_dvec_print, "dvec");
 
 static FklVMudMetaTable const DvecMetaTable = {
     // .size = sizeof(FklValueVector),
     .size = sizeof(FklVMvalueDvec),
-    .__equal = _dvec_equal,
-    .__as_prin1 = _dvec_as_print,
-    .__as_princ = _dvec_as_print,
-    .__append = _dvec_append,
-    .__copy_append = _dvec_copy_append,
-    .__length = _dvec_length,
-    .__hash = _dvec_hash,
-    .__atomic = _dvec_atomic,
-    .__finalizer = _dvec_finalizer,
+    .equal = _dvec_equal,
+    .prin1 = _dvec_print,
+    .princ = _dvec_print,
+    .append = _dvec_append,
+    .copy_append = _dvec_copy_append,
+    .length = _dvec_length,
+    .hash = _dvec_hash,
+    .atomic = _dvec_atomic,
+    .finalize = _dvec_finalizer,
 };
 
 static int export_dvec_p(FKL_CPROC_ARGL) {

@@ -362,8 +362,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, {
 
 typedef struct {
     size_t size;
-    void (*__finalizer)(void *);
-    void (*__atomic)(FklVMgc *, void *);
+    void (*finalize)(void *);
+    void (*atomic)(FklVMgc *, void *);
 } FklCodegenActionContextMethodTable;
 
 typedef struct FklCodegenActionContext {
@@ -401,7 +401,7 @@ typedef int (*CgGetNextExpCb)(void *, //
 
 typedef struct {
     CgGetNextExpCb get_next_exp;
-    void (*finalizer)(void *);
+    void (*finalize)(void *);
     void (*atomic)(FklVMgc *, void *);
 } FklNextExpressionMethodTable;
 

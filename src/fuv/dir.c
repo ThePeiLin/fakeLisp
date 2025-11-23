@@ -1,8 +1,8 @@
 #include "fuv.h"
 
-FKL_VM_USER_DATA_DEFAULT_AS_PRINT(fuv_dir_as_print, "dir");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_dir_print, "dir");
 
-static int fuv_dir_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static int fuv_dir_finalize(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(dir, FuvDir, ud);
     FuvValueDir *dir = FUV_DIR(ud);
     if (dir->req == NULL) {
@@ -15,9 +15,9 @@ static int fuv_dir_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 static FklVMudMetaTable const FuvDirUdMetaTable = {
     // .size = sizeof(FuvDir),
     .size = sizeof(FuvValueDir),
-    .__as_prin1 = fuv_dir_as_print,
-    .__as_princ = fuv_dir_as_print,
-    .__finalizer = fuv_dir_finalizer,
+    .prin1 = fuv_dir_print,
+    .princ = fuv_dir_print,
+    .finalize = fuv_dir_finalize,
 };
 
 int isFuvDir(const FklVMvalue *v) {

@@ -427,7 +427,7 @@ int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *b, size_t j) {
 
 int fklVMfpFileno(FklVMvalueFp *vfp) { return fileno(vfp->fp); }
 
-int fklUninitVMfp(FklVMvalueFp *vfp) {
+int fklVMfpClose(FklVMvalueFp *vfp) {
     int r = 0;
     FILE *fp = vfp->fp;
     if (fp == NULL || fclose(fp) == EOF)
@@ -1174,7 +1174,7 @@ static int _fp_userdata_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(fp, FklVMfp, ud);
     // FklVMfp *fp = &as_vm_fp(ud)->fp;
     // fklUninitVMfp(fp);
-    fklUninitVMfp(FKL_VM_FP(ud));
+    fklVMfpClose(FKL_VM_FP(ud));
     return FKL_VM_UD_FINALIZE_NOW;
 }
 

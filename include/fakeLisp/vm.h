@@ -130,11 +130,6 @@ typedef struct {
     struct FklVMvalue *dll_;                                                   \
     const struct FklVMudMetaTable *mt_
 
-typedef struct {
-    FKL_VM_UD_COMMON_HEADER;
-    void *data[];
-} FklVMud;
-
 typedef enum {
     FKL_MARK_W = 0,
     FKL_MARK_G,
@@ -206,7 +201,7 @@ typedef struct {
         };                                                                     \
     } NAME
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, { void *data[]; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
     FILE *fp;
@@ -1561,9 +1556,7 @@ FklVMfpRW fklGetVMfpRwFromCstr(const char *mode);
 int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *, size_t j);
 int fklVMfpEof(FklVMvalueFp *);
 int fklVMfpFileno(FklVMvalueFp *);
-
-FKL_DEPRECATED
-int fklUninitVMfp(FklVMvalueFp *);
+int fklVMfpClose(FklVMvalueFp *);
 
 typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
 
@@ -1619,11 +1612,6 @@ void fklVMcontinueTheWorld(FklVMgc *);
 void fklChanlSend(FklVMvalueChanl *, FklVMvalue *msg, FklVM *);
 void fklChanlRecv(FklVMvalueChanl *, uint32_t, FklVM *);
 int fklChanlRecvOk(FklVMvalueChanl *, FklVMvalue **);
-
-#define FKL_GET_UD_DATA(TYPE, UD) ((TYPE *)(UD)->data)
-#define FKL_DECL_UD_DATA(NAME, TYPE, UD) TYPE *NAME = FKL_GET_UD_DATA(TYPE, UD)
-#define FKL_DECL_VM_UD_DATA(NAME, TYPE, UD)                                    \
-    TYPE *NAME = FKL_GET_UD_DATA(TYPE, FKL_VM_UD(UD))
 
 int fklWriteVMvalue(const FklVMvalue *v, FklCodeBuilder *fp);
 int fklVMvalueLength(const FklVMvalue *v, size_t *len);

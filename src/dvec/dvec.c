@@ -64,8 +64,7 @@ _dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
-            FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
-            new_size += d->size;
+            new_size += as_dvec(cur)->vec.size;
         } else if (FKL_IS_VECTOR(cur))
             new_size += FKL_VM_VEC(cur)->size;
         else
@@ -78,7 +77,7 @@ _dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
         size_t ss;
         FklVMvalue **mem;
         if (is_dvec_ud(cur)) {
-            FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
+            FklVMvalueVector *d = &as_dvec(cur)->vec;
             ss = d->size;
             mem = d->base;
         } else {
@@ -95,7 +94,7 @@ _dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
 static inline FklVMvalue *
 create_dvec(FklVM *exe, size_t size, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
+    FklVMvalueVector *v = &as_dvec(r)->vec;
     fklVMvalueVectorInit(v, size);
     v->size = size;
     return r;
@@ -104,15 +103,14 @@ create_dvec(FklVM *exe, size_t size, FklVMvalue *dll) {
 static inline FklVMvalue *
 create_dvec_with_capacity(FklVM *exe, size_t capacity, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
-    fklVMvalueVectorInit(v, capacity);
+    fklVMvalueVectorInit(&as_dvec(r)->vec, capacity);
     return r;
 }
 
 static inline FklVMvalue *
 create_dvec2(FklVM *exe, size_t size, FklVMvalue *const *ptr, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DvecMetaTable, dll);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, r);
+    FklVMvalueVector *v = &as_dvec(r)->vec;
     fklVMvalueVectorInit(v, size);
     v->size = size;
     if (size)
@@ -131,15 +129,14 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
-            FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
-            new_size += d->size;
+            new_size += as_dvec(cur)->vec.size;
         } else if (FKL_IS_VECTOR(cur))
             new_size += FKL_VM_VEC(cur)->size;
         else
             return NULL;
     }
     FklVMvalue *new_vec_val = create_dvec(exe, new_size, v->dll_);
-    FKL_DECL_VM_UD_DATA(new_vec, FklVMvalueVector, new_vec_val);
+    FklVMvalueVector *new_vec = &as_dvec(new_vec_val)->vec;
     new_size = dvec->size;
     if (new_vec->base)
         memcpy(new_vec->base, dvec->base, new_size * sizeof(FklVMvalue *));
@@ -148,7 +145,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
         size_t ss;
         FklVMvalue **mem;
         if (is_dvec_ud(cur)) {
-            FKL_DECL_VM_UD_DATA(d, FklVMvalueVector, cur);
+            FklVMvalueVector *d = &as_dvec(cur)->vec;
             ss = d->size;
             mem = d->base;
         } else {
@@ -186,7 +183,7 @@ static int export_dvec_p(FKL_CPROC_ARGL) {
 
 static int export_dvec(FKL_CPROC_ARGL) {
     FklVMvalue *vec = create_dvec(exe, argc, FKL_VM_CPROC(ctx->proc)->dll);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     if (v->base) {
         for (uint32_t i = 0; i < argc; ++i)
@@ -206,7 +203,7 @@ static int export_make_dvec(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
     FklVMvalue *r = create_dvec(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
-    FKL_DECL_VM_UD_DATA(vec, FklVMvalueVector, r);
+    FklVMvalueVector *vec = &as_dvec(r)->vec;
     for (size_t i = 0; i < len; i++)
         vec->base[i] = content;
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -230,7 +227,7 @@ static int export_dvec_empty_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, obj);
+    FklVMvalueVector *v = &as_dvec(obj)->vec;
     FKL_CPROC_RETURN(exe, ctx, v->size ? FKL_VM_NIL : FKL_VM_TRUE);
     return 0;
 }
@@ -244,7 +241,7 @@ static int export_dvec_ref(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     if (index >= v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, v->base[index]);
@@ -261,7 +258,7 @@ static int export_dvec_set(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     size_t size = v->size;
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -274,7 +271,7 @@ static int export_dvec_to_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     FKL_CPROC_RETURN(exe,
             ctx,
             fklCreateVMvalueVecWithPtr(exe, v->size, v->base));
@@ -285,7 +282,7 @@ static int export_dvec_to_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < v->size; i++) {
@@ -306,7 +303,7 @@ static int export_subdvec(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(vend, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vend))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FKL_DECL_VM_UD_DATA(vec, FklVMvalueVector, ovec);
+    FklVMvalueVector *vec = &as_dvec(ovec)->vec;
     size_t size = vec->size;
     size_t start = fklVMgetUint(vstart);
     size_t end = fklVMgetUint(vend);
@@ -331,7 +328,7 @@ static int export_sub_dvec(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(vsize, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vsize))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FKL_DECL_VM_UD_DATA(vec, FklVMvalueVector, ovec);
+    FklVMvalueVector *vec = &as_dvec(ovec)->vec;
     size_t size = vec->size;
     size_t start = fklVMgetUint(vstart);
     size_t osize = fklVMgetUint(vsize);
@@ -349,8 +346,7 @@ static int export_dvec_capacity(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, obj);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(v->capacity, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(as_dvec(obj)->vec.capacity, exe));
     return 0;
 }
 
@@ -358,7 +354,7 @@ static int export_dvec_first(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     if (!v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, v->base[0]);
@@ -369,7 +365,7 @@ static int export_dvec_last(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     if (!v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, v->base[v->size - 1]);
@@ -384,7 +380,7 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
     case 2: {
         FklVMvalue *another_vec_val = FKL_CPROC_GET_ARG(exe, ctx, 1);
         if (FKL_IS_VECTOR(another_vec_val)) {
-            FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+            FklVMvalueVector *v = &as_dvec(vec)->vec;
             FklVMvec *another_vec = FKL_VM_VEC(another_vec_val);
             fklVMvalueVectorReserve(v, another_vec->size);
             memcpy(v->base,
@@ -392,8 +388,8 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
                     another_vec->size * sizeof(FklVMvalue *));
             v->size = another_vec->size;
         } else if (is_dvec_ud(another_vec_val)) {
-            FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
-            FKL_DECL_VM_UD_DATA(another_vec, FklVMvalueVector, another_vec_val);
+            FklVMvalueVector *v = &as_dvec(vec)->vec;
+            FklVMvalueVector *another_vec = &as_dvec(another_vec_val)->vec;
             fklVMvalueVectorReserve(v, another_vec->size);
             memcpy(v->base,
                     another_vec->base,
@@ -409,7 +405,7 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(count_val))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t count = fklVMgetUint(count_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         fklVMvalueVectorReserve(v, count);
         for (size_t i = 0; i < count; i++)
             v->base[i] = content;
@@ -428,7 +424,7 @@ static int export_dvec_fill(FKL_CPROC_ARGL) {
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *content = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     size_t size = v->size;
     for (size_t i = 0; i < size; i++)
         v->base[i] = content;
@@ -440,7 +436,7 @@ static int export_dvec_clear(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     v->size = 0;
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
@@ -454,9 +450,8 @@ static int export_dvec_reserve(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(new_cap_val, fklIsVMint, exe);
     if (fklIsVMnumberLt0(new_cap_val))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
     size_t new_cap = fklVMgetUint(new_cap_val);
-    fklVMvalueVectorReserve(v, new_cap);
+    fklVMvalueVectorReserve(&as_dvec(vec)->vec, new_cap);
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
 }
@@ -467,7 +462,7 @@ static int export_dvec_shrink(FKL_CPROC_ARGL) {
     FklVMvalue *shrink_to_val =
             argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     size_t shrink_to;
     if (shrink_to_val) {
         FKL_CHECK_TYPE(shrink_to_val, fklIsVMint, exe);
@@ -491,9 +486,8 @@ static int export_dvec_resize(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(new_size_val, fklIsVMint, exe);
     if (fklIsVMnumberLt0(new_size_val))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
     size_t new_size = fklVMgetUint(new_size_val);
-    fklVMvalueVectorResize(v, new_size, &content);
+    fklVMvalueVectorResize(&as_dvec(vec)->vec, new_size, &content);
     FKL_CPROC_RETURN(exe, ctx, vec);
     return 0;
 }
@@ -503,8 +497,7 @@ static int export_dvec_push(FKL_CPROC_ARGL) {
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
-    fklVMvalueVectorPushBack2(v, obj);
+    fklVMvalueVectorPushBack2(&as_dvec(vec)->vec, obj);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -513,7 +506,7 @@ static int export_dvec_pop(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     if (!v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, v->base[--v->size]);
@@ -524,7 +517,7 @@ static int export_dvec_pop7(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     if (v->size)
         FKL_CPROC_RETURN(exe,
                 ctx,
@@ -546,7 +539,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(idx_val))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t idx = fklVMgetUint(idx_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         if (idx > v->size)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         fklVMvalueVectorReserve(v, v->size + 1);
@@ -565,7 +558,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(idx_val) || fklIsVMnumberLt0(count_val))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t idx = fklVMgetUint(idx_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         if (idx > v->size)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         size_t count = fklVMgetUint(count_val);
@@ -594,7 +587,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
                 || fklIsVMnumberLt0(count_val))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t idx = fklVMgetUint(idx_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         if (idx > v->size)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         FklVMvalue **src_mem = NULL;
@@ -606,7 +599,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             src_mem = &v->base[start_idx];
         } else if (is_dvec_ud(another_vec_val)) {
-            FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, another_vec_val);
+            FklVMvalueVector *v = &as_dvec(another_vec_val)->vec;
             if (start_idx + count > v->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             src_mem = &v->base[start_idx];
@@ -641,7 +634,7 @@ static int export_dvec_remove(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(index_val))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t index = fklVMgetUint(index_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         if (index >= v->size)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         FklVMvalue *r = v->base[index];
@@ -662,7 +655,7 @@ static int export_dvec_remove(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         size_t start_index = fklVMgetUint(start_index_val);
         size_t size = fklVMgetUint(size_val);
-        FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+        FklVMvalueVector *v = &as_dvec(vec)->vec;
         if (start_index + size > v->size)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         v->size -= size;
@@ -686,7 +679,7 @@ static int export_dvec_to_string(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     size_t size = v->size;
     FklVMvalue *r = fklCreateVMvalueStr2(exe, size, NULL);
     FklString *str = FKL_VM_STR(r);
@@ -702,7 +695,7 @@ static int export_dvec_to_bytevector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     size_t size = v->size;
     FklVMvalue *r = fklCreateVMvalueBvec2(exe, v->size, NULL);
     FklVMvalue **base = v->base;
@@ -723,7 +716,7 @@ static int export_string_to_dvec(FKL_CPROC_ARGL) {
     FklString *str = FKL_VM_STR(obj);
     size_t len = str->size;
     FklVMvalue *r = create_dvec(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
-    FKL_DECL_VM_UD_DATA(vec, FklVMvalueVector, r);
+    FklVMvalueVector *vec = &as_dvec(r)->vec;
     for (size_t i = 0; i < len; i++)
         vec->base[i] = FKL_MAKE_VM_CHR(str->str[i]);
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -752,7 +745,7 @@ static int export_list_to_dvec(FKL_CPROC_ARGL) {
     FklVMvalue *r = create_dvec(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
     if (len == 0)
         goto exit;
-    FKL_DECL_VM_UD_DATA(vec, FklVMvalueVector, r);
+    FklVMvalueVector *vec = &as_dvec(r)->vec;
     for (size_t i = 0; obj != FKL_VM_NIL; i++, obj = FKL_VM_CDR(obj))
         vec->base[i] = FKL_VM_CAR(obj);
 exit:
@@ -768,7 +761,7 @@ static int export_bytevector_to_dvec(FKL_CPROC_ARGL) {
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *vec = create_dvec(exe, size, FKL_VM_CPROC(ctx->proc)->dll);
-    FKL_DECL_VM_UD_DATA(v, FklVMvalueVector, vec);
+    FklVMvalueVector *v = &as_dvec(vec)->vec;
     for (size_t i = 0; i < size; i++)
         v->base[i] = FKL_MAKE_VM_FIX(u8a[i]);
     FKL_CPROC_RETURN(exe, ctx, vec);

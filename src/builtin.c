@@ -1635,7 +1635,7 @@ static int builtin_fclose(FKL_CPROC_ARGL) {
     FklVMvalue *vfp = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vfp, fklIsVMvalueFp, exe);
     FklVMvalueFp *fp = FKL_VM_FP(vfp);
-    if (fp->fp == NULL || fklUninitVMfp(fp))
+    if (fp->fp == NULL || fklVMfpClose(fp))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;

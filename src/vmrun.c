@@ -81,16 +81,19 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe) {
     fputc('\n', stderr);
 }
 
-void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc) {
+void fklPrintCprocBacktrace(const char *name,
+        FklCodeBuilder *build,
+        FklVMgc *gc) {
     if (name) {
-        fprintf(fp, "at cproc: ");
-        fklPrintSymLiteral(name, fp);
-        fputc('\n', fp);
+        fklCodeBuilderPuts(build, "at cproc: ");
+        fklPrintSymLiteral2(name, build);
+        fklCodeBuilderPutc(build, '\n');
     } else
-        fputs("at <cproc>\n", fp);
+        fklCodeBuilderPuts(build, "at <cproc>\n");
 }
 
-static void cproc_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
+static void
+cproc_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
     fklPrintCprocBacktrace(cproc->name, fp, gc);
@@ -336,7 +339,7 @@ static void raise_error_frame_atomic(void *data, FklVMgc *gc) {
 }
 
 static void
-raise_error_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
+raise_error_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {
     FKL_UNREACHABLE();
     return;
 }
@@ -843,7 +846,9 @@ static void vm_thread_cb(void *arg) {
         exe->buf = NULL;
         if (r) {
             FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-            fklPrintErrBacktrace(ev, exe, stderr);
+            FklCodeBuilder builder = { 0 };
+            fklInitCodeBuilderFp(&builder, stderr, NULL);
+            fklPrintErrBacktrace(ev, exe, &builder);
             if (exe->chan) {
                 fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
                 exe->chan = NULL;

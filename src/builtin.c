@@ -10,6 +10,7 @@
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+#include <stdio.h>
 #include <uv.h>
 
 #include <math.h>
@@ -1733,8 +1734,9 @@ static int read_frame_step(void *d, FklVM *exe) {
     return 1;
 }
 
-static void read_frame_print_backtrace(void *d, FILE *fp, FklVMgc *gc) {
-    fklPrintCprocBacktrace(((ReadCtx *)d)->name, fp, gc);
+static void
+read_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVMgc *gc) {
+    fklPrintCprocBacktrace(((ReadCtx *)d)->name, build, gc);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable = {
@@ -2461,7 +2463,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(grammer, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(exe->gc, grammer, itemSet, &err_msg)) {
         FklVMvalue *err_str =
                 fklCreateVMvalueStr2(exe, err_msg.index, err_msg.buf);
         fklUninitStringBuffer(&err_msg);
@@ -2582,9 +2584,10 @@ static inline void init_custom_parse_ctx(void *data,
     ctx->state = PARSE_CONTINUE;
 }
 
-static inline void
-custom_parse_frame_print_backtrace(void *d, FILE *fp, FklVMgc *gc) {
-    fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, fp, gc);
+static inline void custom_parse_frame_print_backtrace(void *d,
+        FklCodeBuilder *build,
+        FklVMgc *gc) {
+    fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, build, gc);
 }
 
 static const FklVMframeContextMethodTable CustomParseContextMethodTable = {
@@ -3190,6 +3193,8 @@ static int builtin_pmatch(FKL_CPROC_ARGL) {
 }
 
 static int builtin_go(FKL_CPROC_ARGL) {
+    if (exe->is_single_thread)
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CANTCREATETHREAD, exe);
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *thread_proc = arg_base[0];
     if (!fklIsCallable(thread_proc))
@@ -3418,16 +3423,18 @@ typedef struct {
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
-static void
-error_handler_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {
+static void error_handler_frame_print_backtrace(void *data,
+        FklCodeBuilder *build,
+        FklVMgc *gc) {
     EhFrameContext *c = (EhFrameContext *)data;
     FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
     if (cproc->name) {
-        fprintf(fp, "at cproc: ");
-        fklPrintStrLiteral(cproc->name, fp);
-        fputc('\n', fp);
-    } else
-        fputs("at <cproc>\n", fp);
+        fklCodeBuilderPuts(build, "at cproc: ");
+        fklPrintStrLiteral2(cproc->name, build);
+        fklCodeBuilderPutc(build, '\n');
+    } else {
+        fklCodeBuilderPuts(build, "at <cproc>\n");
+    }
 }
 
 static void error_handler_frame_atomic(void *data, FklVMgc *gc) {
@@ -3651,7 +3658,9 @@ static void vm_atexit_idle_queue_work_cb(FklVM *exe, void *a) {
             arg->arg_num - 1,
             &arg->args[1]);
     if (r.err) {
-        fklPrintErrBacktrace(r.v, exe, stderr);
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderFp(&builder, stderr, NULL);
+        fklPrintErrBacktrace(r.v, exe, &builder);
     }
 
     fklVMrecover(exe, &recover_args);

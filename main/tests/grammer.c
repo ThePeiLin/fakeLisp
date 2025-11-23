@@ -23,7 +23,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(g, stdout);
+    fklPrintGrammer(gc, g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     // fputs("item sets:\n",stdout);
@@ -32,7 +32,7 @@ int main() {
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);

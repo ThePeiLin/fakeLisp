@@ -114,21 +114,21 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(g, stdout);
+    fklPrintGrammer(gc, g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
 
     fputc('\n', stdout);
     fputs("item sets:\n", stdout);
     FILE *gzf = fopen("items.gz.txt", "w");
     FILE *lalrgzf = fopen("items-lalr.gz.txt", "w");
-    fklPrintItemStateSetAsDot(itemSet, g, gzf);
+    fklPrintItemStateSetAsDot(gc, itemSet, g, gzf);
     fklLr0ToLalrItems(itemSet, g);
-    fklPrintItemStateSet(itemSet, g, stdout);
-    fklPrintItemStateSetAsDot(itemSet, g, lalrgzf);
+    fklPrintItemStateSet(gc, itemSet, g, stdout);
+    fklPrintItemStateSetAsDot(gc, itemSet, g, lalrgzf);
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);

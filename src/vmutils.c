@@ -108,20 +108,22 @@ static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
     return FKL_VM_PROC(frame->c.proc)->codeObj;
 }
 
-static inline void print_back_trace(FklVMframe *f, FILE *fp, FklVMgc *gc) {
-    void (*backtrace)(void *data, FILE *, FklVMgc *) = f->t->print_backtrace;
+static inline void
+print_back_trace(FklVMframe *f, FklCodeBuilder *build, FklVMgc *gc) {
+    void (*backtrace)(void *data, FklCodeBuilder *, FklVMgc *) =
+            f->t->print_backtrace;
     if (backtrace)
-        backtrace(f->data, fp, gc);
+        backtrace(f->data, build, gc);
     else
-        fprintf(fp, "at callable-obj\n");
+        fklCodeBuilderPuts(build, "at callable-obj\n");
 }
 
-void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
+void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
     if (cur->type == FKL_FRAME_COMPOUND) {
         FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
         if (proc->name) {
-            fprintf(fp, "at proc: ");
-            fklPrintSymbolLiteral(FKL_VM_SYM(proc->name), fp);
+            fklCodeBuilderPuts(build, "at proc: ");
+            fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
         } else if (cur->prev) {
             FklFuncPrototype *pt = fklGetCompoundFrameProcPrototype(cur, exe);
             FklVMvalue *sid = fklGetCompoundFrameSid(cur);
@@ -130,51 +132,54 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp) {
                 sid = pt->name;
             }
             if (pt->name) {
-                fprintf(fp, "at proc: ");
-                fklPrintSymbolLiteral(FKL_VM_SYM(pt->name), fp);
+                fklCodeBuilderPuts(build, "at proc: ");
+                fklPrintSymbolLiteral2(FKL_VM_SYM(pt->name), build);
             } else {
-                fprintf(fp, "at proc: <");
-                if (pt->file)
-                    fklPrintStringLiteral(FKL_VM_SYM(pt->file), fp);
-                else
-                    fputs("stdin", fp);
-                fprintf(fp, ":%" PRIu64 ">", pt->line);
+                fklCodeBuilderPuts(build, "at proc: <");
+                if (pt->file) {
+                    fklPrintStringLiteral2(FKL_VM_SYM(pt->file), build);
+                } else {
+                    fklCodeBuilderPuts(build, "stdin");
+                }
+                fklCodeBuilderFmt(build, ":%" PRIu64 ">", pt->line);
             }
-        } else
-            fprintf(fp, "at <top>");
+        } else {
+            fklCodeBuilderPuts(build, "at <top>");
+        }
         FklByteCodelnt *codeObj = FKL_VM_CO(get_compound_frame_code_obj(cur));
         const FklLineNumberTableItem *node = fklFindLineNumTabNode(
                 fklGetCompoundFrameCode(cur) - codeObj->bc.code - 1,
                 codeObj->ls,
                 codeObj->l);
         if (node->fid) {
-            fprintf(fp, " (%u:", node->line);
-            fklPrintString(FKL_VM_SYM(node->fid), fp);
-            fprintf(fp, ")\n");
-        } else
-            fprintf(fp, " (%u)\n", node->line);
+            fklCodeBuilderFmt(build, " (%u:", node->line);
+            fklPrintString2(FKL_VM_SYM(node->fid), build);
+            fklCodeBuilderPuts(build, ")\n");
+        } else {
+            fklCodeBuilderFmt(build, " (%u)\n", node->line);
+        }
     } else
-        print_back_trace(cur, fp, exe->gc);
+        print_back_trace(cur, build, exe->gc);
 }
 
-void fklPrintBacktrace(FklVM *exe, FILE *fp) {
+void fklPrintBacktrace(FklVM *exe, FklCodeBuilder *build) {
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
-        fklPrintFrame(cur, exe, fp);
+        fklPrintFrame(cur, exe, build);
 }
 
-void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FILE *fp) {
+void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build) {
     uv_mutex_lock(&exe->gc->print_backtrace_lock);
     if (fklIsVMvalueError(ev)) {
         FklVMvalueError *err = FKL_VM_ERR(ev);
-        fklPrintSymbolLiteral(FKL_VM_SYM(err->type), fp);
-        fputs(": ", fp);
-        fklPrincVMvalue(err->message, fp, exe);
-        fputc('\n', fp);
-        fklPrintBacktrace(exe, fp);
+        fklPrintSymbolLiteral2(FKL_VM_SYM(err->type), build);
+        fklCodeBuilderPuts(build, ": ");
+        fklPrincVMvalue2(err->message, build, exe);
+        fklCodeBuilderPutc(build, '\n');
+        fklPrintBacktrace(exe, build);
     } else {
-        fprintf(fp, "interrupt with value: ");
-        fklPrin1VMvalue(ev, fp, exe);
-        fputc('\n', fp);
+        fklCodeBuilderPuts(build, "interrupt with value: ");
+        fklPrin1VMvalue2(ev, build, exe);
+        fklCodeBuilderPutc(build, '\n');
     }
     uv_mutex_unlock(&exe->gc->print_backtrace_lock);
 }

@@ -5444,7 +5444,7 @@ static inline int add_all_group_to_grammer(uint64_t line,
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
 
-    int r = fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg);
+    int r = fklGenerateLalrAnalyzeTable(codegen->ctx->gc, g, itemSet, &err_msg);
     if (r)
         error_state->msg2 = fklZstrdup(err_msg.buf);
     fklUninitStringBuffer(&err_msg);

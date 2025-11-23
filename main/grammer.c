@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);

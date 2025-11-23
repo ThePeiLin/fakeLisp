@@ -538,7 +538,8 @@ static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
     sym->start_with_ignore = start_with_ignore;
 }
 
-int fklGenerateLalrAnalyzeTable(FklGrammer *grammer,
+int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
+        FklGrammer *grammer,
         FklLalrItemSetHashMap *states,
         FklStringBuffer *error_msg);
 void fklPrintAnalysisTable(const FklGrammer *grammer, FILE *fp);
@@ -557,23 +558,28 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
 
 void fklLr0ToLalrItems(FklLalrItemSetHashMap *, FklGrammer *grammer);
 
-void fklPrintItemSet(const FklLalrItemHashSet *itemSet,
+void fklPrintItemSet(FklVMgc *gc,
+        const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
         FklCodeBuilder *build);
 
-void fklPrintItemStateSet(const FklLalrItemSetHashMap *i,
+void fklPrintItemStateSet(FklVMgc *gc,
+        const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FILE *fp);
 
-void fklPrintItemStateSet2(const FklLalrItemSetHashMap *i,
+void fklPrintItemStateSet2(FklVMgc *gc,
+        const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FklCodeBuilder *fp);
 
 int fklAddExtraProdToGrammer(FklGrammer *grammer);
-void fklPrintItemStateSetAsDot(const FklLalrItemSetHashMap *i,
+void fklPrintItemStateSetAsDot(FklVMgc *gc,
+        const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FILE *fp);
-void fklPrintItemStateSetAsDot2(const FklLalrItemSetHashMap *i,
+void fklPrintItemStateSetAsDot2(FklVMgc *gc,
+        const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FklCodeBuilder *fp);
 
@@ -621,12 +627,15 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
         const FklRegexTable *rt,
         FklCodeBuilder *build);
 
-void fklPrintGrammerProduction(const FklGrammerProduction *prod,
+void fklPrintGrammerProduction(FklVMgc *gc,
+        const FklGrammerProduction *prod,
         const FklRegexTable *rt,
         FklCodeBuilder *build);
 
-void fklPrintGrammer(const FklGrammer *grammer, FILE *fp);
-void fklPrintGrammer2(const FklGrammer *grammer, FklCodeBuilder *fp);
+void fklPrintGrammer(FklVMgc *gc, const FklGrammer *grammer, FILE *fp);
+void fklPrintGrammer2(FklVMgc *gc,
+        const FklGrammer *grammer,
+        FklCodeBuilder *fp);
 
 typedef enum {
     FKL_PARSE_TERMINAL_MATCH_FAILED = 1,

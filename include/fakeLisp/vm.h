@@ -316,7 +316,7 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 
 typedef struct {
     int (*step)(void *data, FklVM *);
-    void (*print_backtrace)(void *data, FILE *fp, FklVMgc *);
+    void (*print_backtrace)(void *data, FklCodeBuilder *build, FklVMgc *);
     void (*atomic)(void *data, FklVMgc *);
     void (*finalizer)(void *data);
 } FklVMframeContextMethodTable;
@@ -1108,9 +1108,9 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
 
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
 
-void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FILE *fp);
-void fklPrintFrame(FklVMframe *cur, FklVM *exe, FILE *fp);
-void fklPrintBacktrace(FklVM *, FILE *fp);
+void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *fp);
+void fklPrintBacktrace(FklVM *, FklCodeBuilder *fp);
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
@@ -1255,7 +1255,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *,
         FklVMvalue *pd,
         const char *name);
 
-void fklPrintCprocBacktrace(const char *name, FILE *fp, FklVMgc *gc);
+void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build, FklVMgc *gc);
 
 void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);

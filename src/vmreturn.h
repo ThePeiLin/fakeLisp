@@ -39,7 +39,9 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 __LINE__,
                 __FUNCTION__,
                 value_count);
-        fklPrintBacktrace(VM, stderr);
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderFp(&builder, stderr, NULL);
+        fklPrintBacktrace(VM, &builder);
         abort();
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
@@ -66,7 +68,9 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 __FILE__,
                 __LINE__,
                 __FUNCTION__);
-        fklPrintBacktrace(VM, stderr);
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderFp(&builder, stderr, NULL);
+        fklPrintBacktrace(VM, &builder);
         abort();
         break;
     }

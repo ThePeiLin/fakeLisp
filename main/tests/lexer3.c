@@ -161,20 +161,20 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 
-    fklPrintGrammer(g, stdout);
+    fklPrintGrammer(gc, g, stdout);
     fputs("\n===\n\n", stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     printf("lr0 item set:\n");
-    fklPrintItemStateSet(itemSet, g, stdout);
+    fklPrintItemStateSet(gc, itemSet, g, stdout);
     fputc('\n', stdout);
 
     fklLr0ToLalrItems(itemSet, g);
     fprintf(stdout, "lalr item set:\n");
-    fklPrintItemStateSet(itemSet, g, stdout);
+    fklPrintItemStateSet(gc, itemSet, g, stdout);
 
     FklStringBuffer err_msg;
     fklInitStringBuffer(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);

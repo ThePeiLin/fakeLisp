@@ -1312,7 +1312,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
     // return 1;
 }
 
-static void repl_frame_print_backtrace(void *data, FILE *fp, FklVMgc *gc) {}
+static void
+repl_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {}
 
 static void repl_frame_atomic(void *data, FklVMgc *gc) {
     ReplCtx *ctx = (ReplCtx *)data;
@@ -1364,7 +1365,9 @@ static const FklVMframeContextMethodTable ReplContextMethodTable = {
 };
 
 static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
-    fklPrintErrBacktrace(errValue, exe, stderr);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderFp(&builder, stderr, NULL);
+    fklPrintErrBacktrace(errValue, exe, &builder);
     FklVMframe *main_frame = exe->top_frame;
     if (main_frame->prev) {
         for (; main_frame->prev->prev; main_frame = main_frame->prev)

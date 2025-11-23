@@ -1043,8 +1043,9 @@ static void macro_expand_frame_atomic(void *data, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
 }
 
-static void macro_expand_frame_backtrace(void *data, FILE *fp, FklVMgc *gc) {
-    fputs("at <macroexpand>\n", fp);
+static void
+macro_expand_frame_backtrace(void *data, FklCodeBuilder *build, FklVMgc *gc) {
+    fklCodeBuilderPuts(build, "at <macroexpand>\n");
 }
 
 static const FklVMframeContextMethodTable MacroExpandMethodTable = {

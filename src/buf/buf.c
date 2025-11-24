@@ -292,7 +292,7 @@ static int export_strbuf_to_vector(FKL_CPROC_ARGL) {
     size_t len = buf->index;
     const char *ptr = buf->buf;
     FklVMvalue *r = fklCreateVMvalueVec(exe, len);
-    FklVMvec *vec = FKL_VM_VEC(r);
+    FklVMvalueVec *vec = FKL_VM_VEC(r);
     for (size_t i = 0; i < len; i++)
         vec->base[i] = FKL_MAKE_VM_CHR(ptr[i]);
     FKL_CPROC_RETURN(exe, ctx, r);

@@ -6,7 +6,6 @@
 #include "common.h"
 #include "grammer.h"
 #include "parser.h"
-#include "utils.h"
 #include "vm_decl.h"
 
 #include <setjmp.h>
@@ -28,22 +27,22 @@ extern "C" {
     X(BIGINT, BIGINT)                                                          \
     X(STR, STR)                                                                \
     X(SYM, SYM)                                                                \
-    X(VECTOR, VECTOR)                                                          \
-    X(PAIR, PAIR)                                                              \
-    X(BOX, BOX)                                                                \
     X(BYTEVECTOR, BYTEVECTOR)                                                  \
-    X(USERDATA, USERDATA)                                                      \
+    X(PAIR, PAIR)                                                              \
+    X(VECTOR, VECTOR)                                                          \
+    X(BOX, BOX)                                                                \
+    X(HASHTABLE, HASHTABLE)                                                    \
     X(PROC, PROC)                                                              \
     X(CPROC, CPROC)                                                            \
-    X(HASHTABLE, HASHTABLE)                                                    \
-    X(VAR_REF, VAR_REF)
+    X(VAR_REF, VAR_REF)                                                        \
+    X(USERDATA, USERDATA)
 
 typedef enum {
 #define X(A, B) FKL_TYPE_##A,
     FKL_VM_TYPE_X
 #undef X
 } FklValueType;
-#define FKL_VM_VALUE_GC_TYPE_NUM (FKL_TYPE_VAR_REF + 1)
+#define FKL_VM_VALUE_GC_TYPE_NUM (FKL_TYPE_USERDATA + 1)
 
 struct FklCprocFrameContext;
 #define FKL_CPROC_ARGL                                                         \
@@ -59,77 +58,6 @@ typedef enum {
     FKL_PTR_TAG_NUM,
 } FklVMptrTag;
 
-// typedef struct {
-//     uv_lib_t dll;
-//     struct FklVMvalue *pd;
-// } FklVMdll;
-
-// typedef struct {
-//     struct FklVMchanlRecvq {
-//         struct FklVMchanlRecv *head;
-//         struct FklVMchanlRecv **tail;
-//     } recvq;
-//
-//     struct FklVMchanlSendq {
-//         struct FklVMchanlSend *head;
-//         struct FklVMchanlSend **tail;
-//     } sendq;
-//
-//     uv_mutex_t lock;
-//
-//     uint32_t recvx;
-//     uint32_t sendx;
-//     uint32_t count;
-//     uint32_t qsize;
-//     struct FklVMvalue *buf[];
-// } FklVMchanl;
-
-typedef struct FklVMchanlSend {
-    struct FklVMchanlSend *next;
-    uv_cond_t cond;
-    struct FklVMvalue *msg;
-} FklVMchanlSend;
-
-typedef struct FklVMchanlRecv {
-    struct FklVMchanlRecv *next;
-    uv_cond_t cond;
-    FklVM *exe;
-    uint32_t slot;
-} FklVMchanlRecv;
-
-typedef struct {
-    struct FklVMvalue *car;
-    struct FklVMvalue *cdr;
-} FklVMpair;
-
-// typedef struct {
-//     int64_t num;
-//     FklBigIntDigit digits[1];
-// } FklVMvalueBigInt;
-
-#define FKL_VM_FP_R_MASK (1)
-#define FKL_VM_FP_W_MASK (2)
-
-typedef enum {
-    FKL_VM_FP_R = 1,
-    FKL_VM_FP_W = 2,
-    FKL_VM_FP_RW = 3,
-} FklVMfpRW;
-
-// typedef struct {
-//     FILE *fp;
-//     FklVMfpRW rw;
-// } FklVMfp;
-
-typedef struct {
-    size_t size;
-    struct FklVMvalue *base[];
-} FklVMvec;
-
-#define FKL_VM_UD_COMMON_HEADER                                                \
-    struct FklVMvalue *dll_;                                                   \
-    const struct FklVMudMetaTable *mt_
-
 typedef enum {
     FKL_MARK_W = 0,
     FKL_MARK_G,
@@ -144,7 +72,6 @@ typedef enum {
 
 typedef struct FklVMvalue {
     FKL_VM_VALUE_COMMON_HEADER;
-    void *data[];
 } FklVMvalue;
 
 // builtin values
@@ -172,23 +99,93 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklVMvec vec;
-} FklVMvalueVec;
+    FklBytevector bvec;
+} FklVMvalueBvec;
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklVMpair pair;
+    FklVMvalue *car;
+    FklVMvalue *cdr;
 } FklVMvaluePair;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
+    size_t size;
+    struct FklVMvalue *base[];
+} FklVMvalueVec;
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
     FklVMvalue *box;
 } FklVMvalueBox;
 
+// FklValueHashMap
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklVMvalue *
+#define FKL_HASH_ELM_NAME Value
+#define FKL_HASH_KEY_HASH                                                      \
+    {                                                                          \
+        fprintf(stderr,                                                        \
+                "[%s: %d] calling %s is not allowed!\n",                       \
+                __FILE__,                                                      \
+                __LINE__,                                                      \
+                __FUNCTION__);                                                 \
+        abort();                                                               \
+    }
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    fprintf(stderr,                                                            \
+            "[%s: %d] calling %s is not allowed!\n",                           \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            __FUNCTION__),                                                     \
+            abort(), 1
+#include "cont/hash.h"
+
+typedef enum {
+    FKL_HASH_EQ = 0,
+    FKL_HASH_EQV,
+    FKL_HASH_EQUAL,
+} FklHashTableEqType;
+
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklBytevector bvec;
-} FklVMvalueBvec;
+    FklValueHashMap ht;
+    FklHashTableEqType eq_type;
+} FklVMvalueHash;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
+    const FklInstruction *spc;
+    const FklInstruction *end;
+    FklVMvalue *name;
+    uint32_t protoId;
+    uint32_t lcount;
+    uint32_t rcount;
+    FklVMvalue **closure;
+    FklVMvalue *codeObj;
+
+    struct FklVMvalueProtos *pts;
+    FklVMvalue **konsts;
+} FklVMvalueProc;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
+    FklVMcFunc func;
+    const char *name;
+    FklVMvalue *dll;
+    FklVMvalue *pd;
+} FklVMvalueCproc;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
+    uint32_t idx;
+    _Atomic(FklVMvalue **) ref;
+    FklVMvalue *v;
+} FklVMvalueVarRef;
+
+#define FKL_VM_UD_COMMON_HEADER                                                \
+    struct FklVMvalue *dll_;                                                   \
+    const struct FklVMudMetaTable *mt_
 
 #define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
     typedef struct NAME {                                                      \
@@ -204,6 +201,15 @@ typedef struct {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
 
+#define FKL_VM_FP_R_MASK (1)
+#define FKL_VM_FP_W_MASK (2)
+
+typedef enum {
+    FKL_VM_FP_R = 1,
+    FKL_VM_FP_W = 2,
+    FKL_VM_FP_RW = 3,
+} FklVMfpRW;
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
     FILE *fp;
     FklVMfpRW rw;
@@ -216,42 +222,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueLibs, {
 });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueProtos, { FklFuncPrototypes p; });
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    uint32_t idx;
-    _Atomic(FklVMvalue **) ref;
-    FklVMvalue *v;
-} FklVMvalueVarRef;
-
-// typedef struct FklVMproc {
-//     const FklInstruction *spc;
-//     const FklInstruction *end;
-//     FklVMvalue *name;
-//     uint32_t protoId;
-//     uint32_t lcount;
-//     uint32_t rcount;
-//     FklVMvalue **closure;
-//     FklVMvalue *codeObj;
-//
-//     FklVMvalueProtos *pts;
-//     FklVMvalue **konsts;
-// } FklVMproc;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    const FklInstruction *spc;
-    const FklInstruction *end;
-    FklVMvalue *name;
-    uint32_t protoId;
-    uint32_t lcount;
-    uint32_t rcount;
-    FklVMvalue **closure;
-    FklVMvalue *codeObj;
-
-    FklVMvalueProtos *pts;
-    FklVMvalue **konsts;
-} FklVMvalueProc;
 
 typedef enum {
     FKL_FRAME_COMPOUND = 0,
@@ -501,9 +471,14 @@ static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
 #define FKL_QUEUE_ELM_TYPE_NAME Value
 #include "cont/queue.h"
 
-// FklVMpairVector
-#define FKL_VECTOR_ELM_TYPE FklVMpair
-#define FKL_VECTOR_ELM_TYPE_NAME VMpair
+typedef struct {
+    FklVMvalue *car;
+    FklVMvalue *cdr;
+} FklPair;
+
+// FklPairVector
+#define FKL_VECTOR_ELM_TYPE FklPair
+#define FKL_VECTOR_ELM_TYPE_NAME Pair
 #include "cont/vector.h"
 
 // FklValueHashSet
@@ -540,15 +515,11 @@ typedef int (*FklVMudEqualCb)(const FklVMvalue *, const FklVMvalue *);
 #define FKL_VM_UD_FINALIZE_DELAY (1)
 
 typedef struct FklVMudMetaTable {
-    // size_t size;
     size_t size;
     FklVMudPrintCb princ;
     FklVMudPrintCb prin1;
-    // void (*__as_princ)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
-    // void (*__as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
     int (*finalize)(FklVMvalue *, FklVMgc *gc);
     FklVMudEqualCb equal;
-    // int (*__equal)(const FklVMvalue *, const FklVMvalue *);
     void (*call)(FklVMvalue *, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
     void (*write)(const FklVMvalue *, FklCodeBuilder *);
@@ -716,31 +687,23 @@ typedef struct FklVMgc {
     FklVM gcvm;
 } FklVMgc;
 
-// typedef struct {
-//     FklVMcFunc func;
-//     const char *name;
-//     FklVMvalue *dll;
-//     FklVMvalue *pd;
-// } FklVMcproc;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    FklVMcFunc func;
-    const char *name;
-    FklVMvalue *dll;
-    FklVMvalue *pd;
-} FklVMvalueCproc;
-
-// FKL_DEPRECATED
-// typedef struct {
-//     FklVMvalue *type;
-//     FklVMvalue *message;
-// } FklVMerror;
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueError, {
     FklVMvalue *type;
     FklVMvalue *message;
 });
+
+typedef struct FklVMchanlSend {
+    struct FklVMchanlSend *next;
+    uv_cond_t cond;
+    struct FklVMvalue *msg;
+} FklVMchanlSend;
+
+typedef struct FklVMchanlRecv {
+    struct FklVMchanlRecv *next;
+    uv_cond_t cond;
+    FklVM *exe;
+    uint32_t slot;
+} FklVMchanlRecv;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
     struct FklVMchanlRecvq {
@@ -768,45 +731,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
     uv_lib_t dll;
     struct FklVMvalue *pd;
 });
-
-// FklValueHashMap
-#define FKL_HASH_KEY_TYPE FklVMvalue *
-#define FKL_HASH_VAL_TYPE FklVMvalue *
-#define FKL_HASH_ELM_NAME Value
-#define FKL_HASH_KEY_HASH                                                      \
-    {                                                                          \
-        fprintf(stderr,                                                        \
-                "[%s: %d] calling %s is not allowed!\n",                       \
-                __FILE__,                                                      \
-                __LINE__,                                                      \
-                __FUNCTION__);                                                 \
-        abort();                                                               \
-    }
-#define FKL_HASH_KEY_EQUAL(A, B)                                               \
-    fprintf(stderr,                                                            \
-            "[%s: %d] calling %s is not allowed!\n",                           \
-            __FILE__,                                                          \
-            __LINE__,                                                          \
-            __FUNCTION__),                                                     \
-            abort(), 1
-#include "cont/hash.h"
-
-typedef enum {
-    FKL_HASH_EQ = 0,
-    FKL_HASH_EQV,
-    FKL_HASH_EQUAL,
-} FklHashTableEqType;
-
-// typedef struct {
-//     FklValueHashMap ht;
-//     FklHashTableEqType eq_type;
-// } FklVMhash;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    FklValueHashMap ht;
-    FklHashTableEqType eq_type;
-} FklVMvalueHash;
 
 void fklPopVMframe(FklVM *);
 
@@ -1171,27 +1095,8 @@ FklVMvalue *fklCreateVMvalueBvec(FklVM *, const FklBytevector *bvec);
 FklVMvalue *fklCreateVMvalueBvec2(FklVM *, size_t size, const uint8_t *);
 
 FklVMvalue *fklCreateVMvalueVec(FklVM *, size_t);
-FklVMvalue *fklCreateVMvalueVecWithPtr(FklVM *, size_t, FklVMvalue *const *);
-FklVMvalue *
-fklCreateVMvalueVec3(FklVM *vm, FklVMvalue *a, FklVMvalue *b, FklVMvalue *c);
-FklVMvalue *fklCreateVMvalueVec4(FklVM *vm,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d);
-FklVMvalue *fklCreateVMvalueVec5(FklVM *vm,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d,
-        FklVMvalue *f);
-FklVMvalue *fklCreateVMvalueVec6(FklVM *vm,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d,
-        FklVMvalue *f,
-        FklVMvalue *e);
+FklVMvalue *fklCreateVMvalueVec2(FklVM *, size_t, FklVMvalue *const *);
+FklVMvalue *fklCreateVMvalueVecExt(FklVM *, size_t, ...);
 
 #define FKL_VM_F64_STATIC_INIT(F64)                                            \
     ((FklVMvalueF64){                                                          \
@@ -1255,7 +1160,9 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *,
         FklVMvalue *pd,
         const char *name);
 
-void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build, FklVMgc *gc);
+void fklPrintCprocBacktrace(const char *name,
+        FklCodeBuilder *build,
+        FklVMgc *gc);
 
 void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
@@ -1309,8 +1216,9 @@ FklVMvalue *fklCreateVMvalueBigIntWithU64(FklVM *, uint64_t);
 
 FklVMvalue *fklCreateVMvalueBigIntWithF64(FklVM *, double);
 
-FklVMvalue *
-fklCreateVMvalueUd(FklVM *, const FklVMudMetaTable *t, FklVMvalue *dll);
+FklVMvalue *fklCreateVMvalueUd(FklVM *, //
+        const FklVMudMetaTable *t,
+        FklVMvalue *dll);
 FklVMvalue *fklCreateVMvalueUd2(FklVM *,
         const FklVMudMetaTable *t,
         size_t extra_size,
@@ -1356,11 +1264,13 @@ static FKL_ALWAYS_INLINE FklVMvalue *FKL_VM_VAL(const void *c) {
 }
 
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CAR(const FklVMvalue *V) {
-    return &(((FklVMvaluePair *)(V))->pair.car);
+    FKL_ASSERT(FKL_IS_PAIR(V));
+    return &FKL_TYPE_CAST(FklVMvaluePair *, V)->car;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CDR(const FklVMvalue *V) {
-    return &(((FklVMvaluePair *)(V))->pair.cdr);
+    FKL_ASSERT(FKL_IS_PAIR(V));
+    return &FKL_TYPE_CAST(FklVMvaluePair *, V)->cdr;
 }
 
 #define FKL_VM_CAR(V) (*FKL_VM_CAR(V))
@@ -1378,21 +1288,16 @@ static FKL_ALWAYS_INLINE uint8_t *FKL_VM_SYM_INTERNED(const FklVMvalue *V) {
     return &(((FklVMvalueSym *)(V))->interned);
 }
 
-// #define FKL_VM_STR(V) (&((FklVMvalueStr *)(V))->str)
-// #define FKL_VM_SYM(V) (&((FklVMvalueSym *)(V))->str)
 #define FKL_VM_SYM_INTERNED(V) (*FKL_VM_SYM_INTERNED(V))
 
 static FKL_ALWAYS_INLINE FklBytevector *FKL_VM_BVEC(const FklVMvalue *V) {
     return (&((FklVMvalueBvec *)(V))->bvec);
 }
 
-// #define FKL_VM_BVEC(V) (&((FklVMvalueBvec *)(V))->bvec)
-
-static FKL_ALWAYS_INLINE FklVMvec *FKL_VM_VEC(const FklVMvalue *V) {
-    return (&((FklVMvalueVec *)(V))->vec);
+static FKL_ALWAYS_INLINE FklVMvalueVec *FKL_VM_VEC(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_VECTOR(V));
+    return FKL_TYPE_CAST(FklVMvalueVec *, V);
 }
-
-// #define FKL_VM_VEC(V) (&(((FklVMvalueVec *)(V))->vec))
 
 #define FKL_VM_VEC_CAS(V, I, O, N)                                             \
     (atomic_compare_exchange_strong(FKL_TYPE_CAST(_Atomic(FklVMvalue *) *,     \
@@ -1409,40 +1314,27 @@ static FKL_ALWAYS_INLINE double *FKL_VM_F64(const FklVMvalue *V) {
 static FKL_ALWAYS_INLINE FklVMvalueProc *FKL_VM_PROC(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_PROC(V));
     return FKL_TYPE_CAST(FklVMvalueProc *, V);
-    // return (&(((FklVMvalueProc *)(V))->proc));
 }
-
-// #define FKL_VM_PROC(V) (&(((FklVMvalueProc *)(V))->proc))
 
 static FKL_ALWAYS_INLINE FklVMvalueCproc *FKL_VM_CPROC(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_CPROC(V));
     return FKL_TYPE_CAST(FklVMvalueCproc *, (V));
 }
 
-// #define FKL_VM_CPROC(V) (&(((FklVMvalueCproc *)(V))->cproc))
-
 static FKL_ALWAYS_INLINE FklVMvalueHash *FKL_VM_HASH(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_HASHTABLE(V));
     return FKL_TYPE_CAST(FklVMvalueHash *, (V));
 }
 
-// #define FKL_VM_HASH(V) (&(((FklVMvalueHash *)(V))->hash))
-
 static FKL_ALWAYS_INLINE FklVMvalueBigInt *FKL_VM_BI(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_BIGINT(V));
     return FKL_TYPE_CAST(FklVMvalueBigInt *, V);
-    // return (&(((FklVMvalueBigInt *)(V))->bi));
 }
-
-// #define FKL_VM_BI(V) (&(((FklVMvalueBigInt *)(V))->bi))
 
 static FKL_ALWAYS_INLINE FklVMvalueUd *FKL_VM_UD(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_USERDATA(V));
     return FKL_TYPE_CAST(FklVMvalueUd *, V);
-    // (&(((FklVMvalueUd *)(V))->ud));
 }
-
-// #define FKL_VM_UD(V) (&(((FklVMvalueUd *)(V))->ud))
 
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
     return &(((FklVMvalueBox *)(V))->box);
@@ -1458,35 +1350,25 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
 
 #define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef *)(V))
 
-// #define FKL_VM_ERR(V) FKL_GET_UD_DATA(FklVMerror, FKL_VM_UD(V))
-
 static FKL_ALWAYS_INLINE FklVMvalueError *FKL_VM_ERR(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueError(V));
     return FKL_TYPE_CAST(FklVMvalueError *, V);
 }
-
-// #define FKL_VM_CHANL(V) FKL_GET_UD_DATA(FklVMchanl, FKL_VM_UD(V))
 
 static FKL_ALWAYS_INLINE FklVMvalueChanl *FKL_VM_CHANL(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueChanl(V));
     return FKL_TYPE_CAST(FklVMvalueChanl *, V);
 }
 
-// #define FKL_VM_DLL(V) FKL_GET_UD_DATA(FklVMdll, FKL_VM_UD(V))
-
 static FKL_ALWAYS_INLINE FklVMvalueDll *FKL_VM_DLL(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueDll(V));
     return FKL_TYPE_CAST(FklVMvalueDll *, V);
 }
 
-// #define FKL_VM_FP(V) FKL_GET_UD_DATA(FklVMfp, FKL_VM_UD(V))
-
 static FKL_ALWAYS_INLINE FklVMvalueFp *FKL_VM_FP(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueFp(V));
     return FKL_TYPE_CAST(FklVMvalueFp *, V);
 }
-
-// #define FKL_VM_CO(V) FKL_GET_UD_DATA(FklByteCodelnt, FKL_VM_UD(V))
 
 static FKL_ALWAYS_INLINE FklByteCodelnt *FKL_VM_CO(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueCodeObj(V));

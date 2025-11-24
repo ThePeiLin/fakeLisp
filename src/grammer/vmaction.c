@@ -213,7 +213,7 @@ static inline void *prod_action_vector(void *ctx,
     FklVMvalue *list = nodes[1].ast;
     size_t len = fklVMlistLength(list);
     FklVMvalue *r = fklCreateVMvalueVec(exe, len);
-    FklVMvec *vec = FKL_VM_VEC(r);
+    FklVMvalueVec *vec = FKL_VM_VEC(r);
     for (size_t i = 0; FKL_IS_PAIR(list); list = FKL_VM_CDR(list), i++)
         vec->base[i] = FKL_VM_CAR(list);
     put_line_number(c->ln, r, line);

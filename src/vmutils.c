@@ -4,6 +4,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -383,7 +384,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
         } else if (FKL_IS_VECTOR(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
-                FklVMvec *vec = FKL_VM_VEC(v);
+                FklVMvalueVec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklValueVectorPushBack2(&stack, vec->base[i - 1]);
                 putValueInSet(circle_heads, v);
@@ -426,7 +427,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                 dec_value_degree(ht, FKL_VM_CAR(v));
                 dec_value_degree(ht, FKL_VM_CDR(v));
             } else if (FKL_IS_VECTOR(v)) {
-                FklVMvec *vec = FKL_VM_VEC(v);
+                FklVMvalueVec *vec = FKL_VM_VEC(v);
                 FklVMvalue **base = vec->base;
                 FklVMvalue **const end = &base[vec->size];
                 for (; base < end; base++)
@@ -468,7 +469,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                     dec_value_degree(ht, FKL_VM_CAR(v));
                     dec_value_degree(ht, FKL_VM_CDR(v));
                 } else if (FKL_IS_VECTOR(v)) {
-                    FklVMvec *vec = FKL_VM_VEC(v);
+                    FklVMvalueVec *vec = FKL_VM_VEC(v);
                     FklVMvalue **base = vec->base;
                     FklVMvalue **const end = &base[vec->size];
                     for (; base < end; base++)
@@ -510,7 +511,7 @@ static inline void traverse_value_dfs(const FklVMvalue *first_value,
             }
         } else if (FKL_IS_VECTOR(v)) {
             if (!fklValueHashSetPut2(&value_set, v)) {
-                FklVMvec *vec = FKL_VM_VEC(v);
+                FklVMvalueVec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklValueVectorPushBack2(&stack, vec->base[i - 1]);
             }
@@ -554,7 +555,7 @@ static inline void traverse_value_bfs(const FklVMvalue *first_value,
             }
         } else if (FKL_IS_VECTOR(v)) {
             if (!fklValueHashSetPut2(&value_set, v)) {
-                FklVMvec *vec = FKL_VM_VEC(v);
+                FklVMvalueVec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
                     fklValueQueuePush2(&queue, vec->base[i - 1]);
             }
@@ -607,7 +608,7 @@ static inline void reduce_degrees(VmValueDegreeHashMap *degree_table) {
                 dec_value_degree(degree_table, FKL_VM_CAR(v));
                 dec_value_degree(degree_table, FKL_VM_CDR(v));
             } else if (FKL_IS_VECTOR(v)) {
-                FklVMvec *vec = FKL_VM_VEC(v);
+                FklVMvalueVec *vec = FKL_VM_VEC(v);
                 FklVMvalue **base = vec->base;
                 FklVMvalue **const end = &base[vec->size];
                 for (; base < end; base++)

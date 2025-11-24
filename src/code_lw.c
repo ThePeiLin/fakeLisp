@@ -3,6 +3,7 @@
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
 #include <inttypes.h>

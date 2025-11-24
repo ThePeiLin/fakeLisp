@@ -6619,7 +6619,7 @@ static inline FklVMvalue *cpu_infos_to_vmvec(FklVM *exe,
         FuvValuePd *fpd) {
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
-    FklVMvec *vec = FKL_VM_VEC(v);
+    FklVMvalueVec *vec = FKL_VM_VEC(v);
 
     for (int i = 0; i < count; i++)
         vec->base[i] = cpu_info_to_vmtable(exe, &infos[i], fpd);
@@ -6653,7 +6653,7 @@ static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
         FuvValuePd *fpd) {
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
-    FklVMvec *vec = FKL_VM_VEC(v);
+    FklVMvalueVec *vec = FKL_VM_VEC(v);
     char ip[INET6_ADDRSTRLEN];
     char netmask[INET6_ADDRSTRLEN];
     for (int i = 0; i < count; i++) {
@@ -6719,7 +6719,8 @@ static int fuv_loadavg(FKL_CPROC_ARGL) {
     uv_loadavg(r);
     FKL_CPROC_RETURN(exe,
             ctx,
-            fklCreateVMvalueVec3(exe,
+            fklCreateVMvalueVecExt(exe,
+                    3,
                     fklCreateVMvalueF64(exe, r[0]),
                     fklCreateVMvalueF64(exe, r[1]),
                     fklCreateVMvalueF64(exe, r[2])));
@@ -6962,7 +6963,7 @@ static int fuv_os_environ(FKL_CPROC_ARGL) {
     int r = uv_os_environ(&items, &count);
     CHECK_UV_RESULT(r, exe, ctx->pd);
     FklVMvalue *v = fklCreateVMvalueVec(exe, count);
-    FklVMvec *vec = FKL_VM_VEC(v);
+    FklVMvalueVec *vec = FKL_VM_VEC(v);
     for (int i = 0; i < count; i++)
         vec->base[i] = fklCreateVMvaluePair(exe,
                 fklCreateVMvalueStrFromCstr(exe, items[i].name),

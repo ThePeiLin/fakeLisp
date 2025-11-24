@@ -97,7 +97,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_PUSH_VEC_0: {
         size_t size = exe->tp - exe->bp;
         FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
-        FklVMvec *vv = FKL_VM_VEC(vec);
+        FklVMvalueVec *vv = FKL_VM_VEC(vec);
         memcpy(vv->base, &exe->base[exe->bp], size * sizeof(FklVMvalue *));
         exe->tp = exe->bp - 1;
         exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
@@ -106,7 +106,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_PUSH_VEC:
         size = ins->bu;
         FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
-        FklVMvec *v = FKL_VM_VEC(vec);
+        FklVMvalueVec *v = FKL_VM_VEC(vec);
         exe->tp -= size;
         memcpy(v->base, &exe->base[exe->tp], size * sizeof(FklVMvalue *));
         FKL_VM_PUSH_VALUE(exe, vec);
@@ -1015,7 +1015,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
             if (!FKL_IS_VECTOR(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-            FklVMvec *vv = FKL_VM_VEC(vec);
+            FklVMvalueVec *vv = FKL_VM_VEC(vec);
             if (!vv->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             FKL_VM_PUSH_VALUE(exe, vv->base[vv->size - 1]);
@@ -1024,7 +1024,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
             if (!FKL_IS_VECTOR(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-            FklVMvec *vv = FKL_VM_VEC(vec);
+            FklVMvalueVec *vv = FKL_VM_VEC(vec);
             if (!vv->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             FKL_VM_PUSH_VALUE(exe, vv->base[0]);
@@ -1037,7 +1037,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
             size_t index = fklVMgetUint(place);
-            FklVMvec *vv = FKL_VM_VEC(vec);
+            FklVMvalueVec *vv = FKL_VM_VEC(vec);
             if (index >= vv->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             FKL_VM_PUSH_VALUE(exe, vv->base[index]);
@@ -1051,7 +1051,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
             size_t index = fklVMgetUint(place);
-            FklVMvec *v = FKL_VM_VEC(vec);
+            FklVMvalueVec *v = FKL_VM_VEC(vec);
             size_t size = v->size;
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);

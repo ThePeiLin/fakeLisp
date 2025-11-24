@@ -11,6 +11,7 @@
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/symbol.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -3306,14 +3307,14 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
     // fklNastImmPairVectorInit(&s, 8);
     // fklNastImmPairVectorPushBack2(&s,
     //         (FklNastImmPair){ .car = cadr_nast_node(p), .cdr = e });
-    FklVMpairVector s;
-    fklVMpairVectorInit(&s, 8);
-    fklVMpairVectorPushBack2(&s, (FklVMpair){ .car = cadr(p), .cdr = e });
+    FklPairVector s;
+    fklPairVectorInit(&s, 8);
+    fklPairVectorPushBack2(&s, (FklPair){ .car = cadr(p), .cdr = e });
 
     FklVMvalue *slot_id = FKL_VM_CAR(p);
     int r = 1;
-    while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+    while (!fklPairVectorIsEmpty(&s)) {
+        const FklPair *top = fklPairVectorPopBackNonNull(&s);
         const FklVMvalue *p = top->car;
         const FklVMvalue *e = top->cdr;
         if (is_compile_check_pattern_slot_node(slot_id, p))
@@ -3326,20 +3327,20 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
         if (FKL_IS_PTR(p)) {
             switch (p->type_) {
             case FKL_TYPE_BOX:
-                fklVMpairVectorPushBack2(&s,
-                        (FklVMpair){
+                fklPairVectorPushBack2(&s,
+                        (FklPair){
                             .car = FKL_VM_BOX(p),
                             .cdr = FKL_VM_BOX(e),
                         });
                 break;
             case FKL_TYPE_PAIR:
-                fklVMpairVectorPushBack2(&s,
-                        (FklVMpair){
+                fklPairVectorPushBack2(&s,
+                        (FklPair){
                             .car = FKL_VM_CAR(p),
                             .cdr = FKL_VM_CAR(e),
                         });
-                fklVMpairVectorPushBack2(&s,
-                        (FklVMpair){
+                fklPairVectorPushBack2(&s,
+                        (FklPair){
                             .car = FKL_VM_CDR(p),
                             .cdr = FKL_VM_CDR(e),
                         });
@@ -3350,8 +3351,8 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                     goto exit;
                 }
                 for (size_t i = 0; i < FKL_VM_VEC(p)->size; i++) {
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = FKL_VM_VEC(p)->base[i],
                                 .cdr = FKL_VM_VEC(e)->base[i],
                             });
@@ -3371,14 +3372,14 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                 FklValueHashMapNode *a = FKL_VM_HASH(p)->ht.first;
                 FklValueHashMapNode *b = FKL_VM_HASH(e)->ht.first;
                 for (; a; a = a->next, b = b->next) {
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = a->k,
                                 .cdr = b->k,
                             });
 
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = a->v,
                                 .cdr = b->v,
                             });
@@ -3397,7 +3398,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
     }
 
 exit:
-    fklVMpairVectorUninit(&s);
+    fklPairVectorUninit(&s);
     return r;
 }
 

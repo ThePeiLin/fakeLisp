@@ -272,9 +272,7 @@ static int export_dvec_to_vector(FKL_CPROC_ARGL) {
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
     FklValueVector *v = &as_dvec(vec)->vec;
-    FKL_CPROC_RETURN(exe,
-            ctx,
-            fklCreateVMvalueVecWithPtr(exe, v->size, v->base));
+    FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueVec2(exe, v->size, v->base));
     return 0;
 }
 
@@ -381,7 +379,7 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
         FklVMvalue *another_vec_val = FKL_CPROC_GET_ARG(exe, ctx, 1);
         if (FKL_IS_VECTOR(another_vec_val)) {
             FklValueVector *v = &as_dvec(vec)->vec;
-            FklVMvec *another_vec = FKL_VM_VEC(another_vec_val);
+            FklVMvalueVec *another_vec = FKL_VM_VEC(another_vec_val);
             fklValueVectorReserve(v, another_vec->size);
             memcpy(v->base,
                     another_vec->base,
@@ -594,7 +592,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
         size_t start_idx = fklVMgetUint(start_idx_val);
         size_t count = fklVMgetUint(count_val);
         if (FKL_IS_VECTOR(another_vec_val)) {
-            FklVMvec *v = FKL_VM_VEC(another_vec_val);
+            FklVMvalueVec *v = FKL_VM_VEC(another_vec_val);
             if (start_idx + count > v->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             src_mem = &v->base[start_idx];
@@ -660,7 +658,7 @@ static int export_dvec_remove(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
         v->size -= size;
         FklVMvalue **cur = &v->base[start_index];
-        FklVMvalue *r = fklCreateVMvalueVecWithPtr(exe, size, cur);
+        FklVMvalue *r = fklCreateVMvalueVec2(exe, size, cur);
         if (start_index < v->size) {
             FklVMvalue **const end = &v->base[v->size];
             for (; cur < end; cur++)
@@ -727,7 +725,7 @@ static int export_vector_to_dvec(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_VECTOR, exe);
-    FklVMvec *vec = FKL_VM_VEC(obj);
+    FklVMvalueVec *vec = FKL_VM_VEC(obj);
     FKL_CPROC_RETURN(exe,
             ctx,
             create_dvec2(exe,

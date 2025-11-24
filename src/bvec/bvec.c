@@ -199,7 +199,7 @@ static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
     size_t size = bvec->size;
     int8_t *s8a = (int8_t *)bvec->ptr;
     FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
-    FklVMvec *v = FKL_VM_VEC(vec);
+    FklVMvalueVec *v = FKL_VM_VEC(vec);
     for (size_t i = 0; i < size; i++)
         v->base[i] = FKL_MAKE_VM_FIX(s8a[i]);
     FKL_CPROC_RETURN(exe, ctx, vec);
@@ -214,7 +214,7 @@ static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
-    FklVMvec *v = FKL_VM_VEC(vec);
+    FklVMvalueVec *v = FKL_VM_VEC(vec);
     for (size_t i = 0; i < size; i++)
         v->base[i] = FKL_MAKE_VM_FIX(u8a[i]);
     FKL_CPROC_RETURN(exe, ctx, vec);

@@ -118,36 +118,36 @@ static inline int is_pattern_equal(const FklVMvalue *pattern,
         return 0;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
-    FklVMpairVector s;
-    fklVMpairVectorInit(&s, 8);
-    fklVMpairVectorPushBack(&s,
-            &(FklVMpair){
+    FklPairVector s;
+    fklPairVectorInit(&s, 8);
+    fklPairVectorPushBack(&s,
+            &(FklPair){
                 .car = FKL_VM_CDR(pattern),
                 .cdr = FKL_VM_CDR(exp),
             });
     int r = 1;
-    while (r && !fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+    while (r && !fklPairVectorIsEmpty(&s)) {
+        const FklPair *top = fklPairVectorPopBackNonNull(&s);
         FklVMvalue *n0 = top->car;
         FklVMvalue *n1 = top->cdr;
         if (fklIsVMvalueSlot(n0) && fklIsVMvalueSlot(n1))
             continue;
         else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
+            fklPairVectorPushBack(&s,
+                    &(FklPair){
                         .car = FKL_VM_CDR(n0),
                         .cdr = FKL_VM_CDR(n1),
                     });
 
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
+            fklPairVectorPushBack(&s,
+                    &(FklPair){
                         .car = FKL_VM_CAR(n0),
                         .cdr = FKL_VM_CAR(n1),
                     });
         } else if (!fklVMvalueEqual(n0, n1))
             r = 0;
     }
-    fklVMpairVectorUninit(&s);
+    fklPairVectorUninit(&s);
     return r;
 }
 
@@ -158,36 +158,36 @@ static inline int is_partly_covered(const FklVMvalue *pattern,
         return r;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return r;
-    FklVMpairVector s;
-    fklVMpairVectorInit(&s, 8);
-    fklVMpairVectorPushBack(&s,
-            &(FklVMpair){
+    FklPairVector s;
+    fklPairVectorInit(&s, 8);
+    fklPairVectorPushBack(&s,
+            &(FklPair){
                 .car = FKL_VM_CDR(pattern),
                 .cdr = FKL_VM_CDR(exp),
             });
-    while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+    while (!fklPairVectorIsEmpty(&s)) {
+        const FklPair *top = fklPairVectorPopBackNonNull(&s);
         FklVMvalue *n0 = top->car;
         FklVMvalue *n1 = top->cdr;
         if (fklIsVMvalueSlot(n0)) {
             r = 1;
             break;
         } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
+            fklPairVectorPushBack(&s,
+                    &(FklPair){
                         .car = FKL_VM_CDR(n0),
                         .cdr = FKL_VM_CDR(n1),
                     });
 
-            fklVMpairVectorPushBack(&s,
-                    &(FklVMpair){
+            fklPairVectorPushBack(&s,
+                    &(FklPair){
                         .car = FKL_VM_CAR(n0),
                         .cdr = FKL_VM_CAR(n1),
                     });
         } else if (!fklVMvalueEqual(n0, n1))
             break;
     }
-    fklVMpairVectorUninit(&s);
+    fklPairVectorUninit(&s);
     return r;
 }
 

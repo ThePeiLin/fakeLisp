@@ -1,3 +1,4 @@
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 

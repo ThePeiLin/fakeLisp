@@ -83,8 +83,8 @@ static FklVMvalue *fkl_bigint_copyer(const FklVMvalue *obj, FklVM *vm) {
 }
 
 static FklVMvalue *fkl_vector_copyer(const FklVMvalue *obj, FklVM *vm) {
-    FklVMvec *vec = FKL_VM_VEC(obj);
-    return fklCreateVMvalueVecWithPtr(vm, vec->size, vec->base);
+    FklVMvalueVec *vec = FKL_VM_VEC(obj);
+    return fklCreateVMvalueVec2(vm, vec->size, vec->base);
 }
 
 static FklVMvalue *fkl_str_copyer(const FklVMvalue *obj, FklVM *vm) {
@@ -150,7 +150,6 @@ FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
         break;
     case FKL_TAG_PTR: {
         FklValueType type = obj->type_;
-        FKL_ASSERT(type <= FKL_TYPE_HASHTABLE);
         FklVMvalue *(*valueCopyer)(const FklVMvalue *obj, FklVM *vm) =
                 valueCopyers[type];
         if (!valueCopyer)
@@ -170,7 +169,7 @@ FklVMvalue *fklCreateTrueValue() { return FKL_MAKE_VM_FIX(1); }
 FklVMvalue *fklCreateNilValue() { return FKL_VM_NIL; }
 
 int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
-    FklVMpairVector s;
+    FklPairVector s;
 
     if (FKL_IS_PTR(fir) && FKL_IS_PTR(sec)) {
         if (fir->type_ != sec->type_)
@@ -223,13 +222,15 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         return fir == sec;
 
 nested_equal:
-    fklVMpairVectorInit(&s, 8);
-    fklVMpairVectorPushBack2(&s,
-            (FklVMpair){ .car = FKL_TYPE_CAST(FklVMvalue *, fir),
-                .cdr = FKL_TYPE_CAST(FklVMvalue *, sec) });
+    fklPairVectorInit(&s, 8);
+    fklPairVectorPushBack2(&s,
+            (FklPair){
+                .car = FKL_TYPE_CAST(FklVMvalue *, fir),
+                .cdr = FKL_TYPE_CAST(FklVMvalue *, sec),
+            });
     int r = 1;
-    while (!fklVMpairVectorIsEmpty(&s)) {
-        const FklVMpair *top = fklVMpairVectorPopBackNonNull(&s);
+    while (!fklPairVectorIsEmpty(&s)) {
+        const FklPair *top = fklPairVectorPopBackNonNull(&s);
         FklVMvalue *root1 = top->car;
         FklVMvalue *root2 = top->cdr;
         if (FKL_GET_TAG(root1) != FKL_GET_TAG(root2))
@@ -258,35 +259,35 @@ nested_equal:
                     break;
                 case FKL_TYPE_PAIR:
                     r = 1;
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = FKL_VM_CDR(root1),
                                 .cdr = FKL_VM_CDR(root2),
                             });
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = FKL_VM_CAR(root1),
                                 .cdr = FKL_VM_CAR(root2),
                             });
                     break;
                 case FKL_TYPE_BOX:
                     r = 1;
-                    fklVMpairVectorPushBack2(&s,
-                            (FklVMpair){
+                    fklPairVectorPushBack2(&s,
+                            (FklPair){
                                 .car = FKL_VM_BOX(root1),
                                 .cdr = FKL_VM_BOX(root2),
                             });
                     break;
                 case FKL_TYPE_VECTOR: {
-                    FklVMvec *vec1 = FKL_VM_VEC(root1);
-                    FklVMvec *vec2 = FKL_VM_VEC(root2);
+                    FklVMvalueVec *vec1 = FKL_VM_VEC(root1);
+                    FklVMvalueVec *vec2 = FKL_VM_VEC(root2);
                     if (vec1->size != vec2->size)
                         r = 0;
                     else {
                         r = 1;
                         for (size_t i = vec1->size; i > 0; --i) {
-                            fklVMpairVectorPushBack2(&s,
-                                    (FklVMpair){
+                            fklPairVectorPushBack2(&s,
+                                    (FklPair){
                                         .car = vec1->base[i - 1],
                                         .cdr = vec2->base[i - 1],
                                     });
@@ -314,10 +315,10 @@ nested_equal:
                         FklValueHashMapNode *i1 = h1->ht.last;
                         FklValueHashMapNode *i2 = h2->ht.last;
                         for (; i1; i1 = i1->prev, i2 = i2->prev) {
-                            fklVMpairVectorPushBack2(&s,
-                                    (FklVMpair){ .car = i1->v, .cdr = i2->v });
-                            fklVMpairVectorPushBack2(&s,
-                                    (FklVMpair){ .car = i1->k, .cdr = i2->k });
+                            fklPairVectorPushBack2(&s,
+                                    (FklPair){ .car = i1->v, .cdr = i2->v });
+                            fklPairVectorPushBack2(&s,
+                                    (FklPair){ .car = i1->k, .cdr = i2->k });
                         }
                     }
                 } break;
@@ -337,7 +338,7 @@ nested_equal:
         if (!r)
             break;
     }
-    fklVMpairVectorUninit(&s);
+    fklPairVectorUninit(&s);
     return r;
 }
 
@@ -632,7 +633,7 @@ static uintptr_t _bytevector_hashFunc(const FklVMvalue *v) {
 }
 
 static uintptr_t _vector_hashFunc(const FklVMvalue *v) {
-    const FklVMvec *vec = FKL_VM_VEC(v);
+    const FklVMvalueVec *vec = FKL_VM_VEC(v);
     uintptr_t seed = vec->size;
     for (size_t i = 0; i < vec->size; ++i)
         seed = fklHashCombine(seed, fklVMvalueEqualHashv(vec->base[i]));
@@ -843,99 +844,37 @@ FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
             sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *));
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
+    FklVMvalueVec *v = FKL_VM_VEC(r);
     v->size = size;
     fklAddToGC(r, exe);
     return r;
 }
+FklVMvalue *fklCreateVMvalueVecExt(FklVM *exe, size_t size, ...) {
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
+            sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *));
+    FKL_ASSERT(r);
+    r->type_ = FKL_TYPE_VECTOR;
+    FklVMvalueVec *v = FKL_VM_VEC(r);
+    v->size = size;
+    fklAddToGC(r, exe);
+    va_list ap;
+    va_start(ap, size);
+    for (size_t i = 0; i < size; ++i) {
+        v->base[i] = va_arg(ap, FklVMvalue *);
+    }
+    va_end(ap);
+    return r;
+}
 
 FklVMvalue *
-fklCreateVMvalueVecWithPtr(FklVM *exe, size_t size, FklVMvalue *const *ptr) {
+fklCreateVMvalueVec2(FklVM *exe, size_t size, FklVMvalue *const *ptr) {
     size_t ss = size * sizeof(FklVMvalue *);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec) + ss);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
+    FklVMvalueVec *v = FKL_VM_VEC(r);
     memcpy(v->base, ptr, ss);
     v->size = size;
-    fklAddToGC(r, exe);
-    return r;
-}
-
-FklVMvalue *
-fklCreateVMvalueVec3(FklVM *exe, FklVMvalue *a, FklVMvalue *b, FklVMvalue *c) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + 3 * sizeof(FklVMvalue *));
-    FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
-    v->base[0] = a;
-    v->base[1] = b;
-    v->base[2] = c;
-    v->size = 3;
-    fklAddToGC(r, exe);
-    return r;
-}
-
-FklVMvalue *fklCreateVMvalueVec4(FklVM *exe,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + 4 * sizeof(FklVMvalue *));
-    FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
-    v->base[0] = a;
-    v->base[1] = b;
-    v->base[2] = c;
-    v->base[3] = d;
-    v->size = 4;
-    fklAddToGC(r, exe);
-    return r;
-}
-
-FklVMvalue *fklCreateVMvalueVec5(FklVM *exe,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d,
-        FklVMvalue *f) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + 5 * sizeof(FklVMvalue *));
-    FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
-    v->base[0] = a;
-    v->base[1] = b;
-    v->base[2] = c;
-    v->base[3] = d;
-    v->base[4] = f;
-    v->size = 5;
-    fklAddToGC(r, exe);
-    return r;
-}
-
-FklVMvalue *fklCreateVMvalueVec6(FklVM *exe,
-        FklVMvalue *a,
-        FklVMvalue *b,
-        FklVMvalue *c,
-        FklVMvalue *d,
-        FklVMvalue *f,
-        FklVMvalue *e) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + 6 * sizeof(FklVMvalue *));
-    FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
-    FklVMvec *v = FKL_VM_VEC(r);
-    v->base[0] = a;
-    v->base[1] = b;
-    v->base[2] = c;
-    v->base[3] = d;
-    v->base[4] = f;
-    v->base[5] = e;
-    v->size = 6;
     fklAddToGC(r, exe);
     return r;
 }
@@ -1713,8 +1652,9 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
     return r;
 }
 
-FklVMvalue *
-fklCreateVMvalueUd(FklVM *exe, const FklVMudMetaTable *t, FklVMvalue *dll) {
+FklVMvalue *fklCreateVMvalueUd(FklVM *exe, //
+        const FklVMudMetaTable *t,
+        FklVMvalue *dll) {
     // FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueUd) +
     // t->size);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, t->size);
@@ -1771,7 +1711,7 @@ FklVMvalue *fklVMvalueEof(void) {
 }
 
 void fklAtomicVMvec(FklVMvalue *pVec, FklVMgc *gc) {
-    FklVMvec *vec = FKL_VM_VEC(pVec);
+    FklVMvalueVec *vec = FKL_VM_VEC(pVec);
     for (size_t i = 0; i < vec->size; i++)
         fklVMgcToGray(vec->base[i], gc);
 }

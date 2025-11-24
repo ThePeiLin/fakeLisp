@@ -108,7 +108,7 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FklVMvalue *equal = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, ctx->proc);
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, NULL);
     FklVMvalueHt *ht = as_ht(ud);
     // FKL_DECL_VM_UD_DATA(ht, HashTable, ud);
     ht->hash_func = hashv;

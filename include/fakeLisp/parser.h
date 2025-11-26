@@ -2,7 +2,6 @@
 #define FKL_PARSER_H
 
 #include "grammer.h"
-#include "symbol.h"
 #include "vm_decl.h"
 
 #ifdef __cplusplus

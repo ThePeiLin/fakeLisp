@@ -422,7 +422,7 @@ void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_mutex_init(&gc->extra_mark_lock);
-    uv_mutex_init(&gc->print_backtrace_lock);
+    uv_mutex_init_recursive(&gc->print_backtrace_lock);
     gc->obarray = obarray;
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
@@ -444,6 +444,7 @@ void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
     fklInitGlobalVMclosureForGC(gc);
+    fklInitCodeBuilderFp(&gc->err_out, stderr, NULL);
 }
 
 FklVMgc *fklCreateVMgc(FklVMobarray *obarray) {

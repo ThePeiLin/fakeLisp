@@ -106,10 +106,15 @@ static inline FklGrammer *create_grammer_with_cstr(FklVM *vm,
             test_prod_action_resolver,
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, rules);
+
+    FklCodeBuilder err_out = { 0 };
+    fklInitCodeBuilderFp(&err_out, stderr, NULL);
+
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklPrintParserGrammerParseError(err, &args, &err_out);
+        fklCodeBuilderPuts(&err_out, "garmmer create fail\n");
+
         fklDestroyGrammer(g);
-        fprintf(stderr, "garmmer create fail\n");
         fklUninitParserGrammerParseArg(&args);
         return NULL;
     }
@@ -118,9 +123,9 @@ static inline FklGrammer *create_grammer_with_cstr(FklVM *vm,
 
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        fputs("nonterm: ", stderr);
-        fklPrintSymbolLiteral(FKL_VM_SYM(nonterm.sid), stderr);
-        fputs(" is not defined\n", stderr);
+        fklCodeBuilderPuts(&err_out, "nonterm: ");
+        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm.sid), &err_out);
+        fklCodeBuilderPuts(&err_out, " is not defined\n");
         fklDestroyGrammer(g);
         return NULL;
     }

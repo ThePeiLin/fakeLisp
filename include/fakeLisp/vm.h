@@ -672,6 +672,7 @@ typedef struct FklVMgc {
 
     FklVMvalue **builtin_refs;
 
+    FklCodeBuilder err_out;
     uv_mutex_t print_backtrace_lock;
 
     FklVMvalue *seek_set;
@@ -909,9 +910,12 @@ void fklDeleteCallChain(FklVM *);
 FklGCstate fklGetGCstate(FklVMgc *);
 void fklVMgcToGray(const FklVMvalue *, FklVMgc *);
 
-void fklDBG_printVMvalue(FklVMvalue *, FILE *, FklVM *exe);
-void fklDBG_printVMstack(FklVM *, uint32_t c, FILE *, int, FklVM *exe);
-void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe);
+void fklDBG_printVMstack(FklVM *,
+        uint32_t c,
+        FklCodeBuilder *,
+        int,
+        FklVM *exe);
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *, FklVM *exe);
 
 FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *, char mode);
 

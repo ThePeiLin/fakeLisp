@@ -54,31 +54,31 @@ static inline void call_compound_procedure(FklVM *exe, FklVMvalue *proc) {
     fklPushVMframe(tmpFrame, exe);
 }
 
-void fklDBG_printLinkBacktrace(FklVMframe *t, FklVM *exe) {
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *fp, FklVM *exe) {
     if (t->type == FKL_FRAME_COMPOUND) {
         FklVMvalue *name = FKL_VM_PROC(t->c.proc)->name;
 
         if (name)
-            fklPrintString(FKL_VM_SYM(name), stderr);
+            fklPrintString2(FKL_VM_SYM(name), fp);
         else
-            fputs("<lambda>", stderr);
-        fprintf(stderr, "[%u]", t->c.mark);
+            fklCodeBuilderPuts(fp, "<lambda>");
+        fklCodeBuilderFmt(fp, "[%u]", t->c.mark);
     } else
-        fputs("<obj>", stderr);
+        fklCodeBuilderPuts(fp, "<obj>");
 
     for (FklVMframe *cur = t->prev; cur; cur = cur->prev) {
-        fputs(" --> ", stderr);
+        fklCodeBuilderPuts(fp, " --> ");
         if (cur->type == FKL_FRAME_COMPOUND) {
             FklVMvalue *name = FKL_VM_PROC(cur->c.proc)->name;
             if (name)
-                fklPrintString(FKL_VM_SYM(name), stderr);
+                fklPrintString2(FKL_VM_SYM(name), fp);
             else
-                fputs("<lambda>", stderr);
-            fprintf(stderr, "[%u]", cur->c.mark);
+                fklCodeBuilderPuts(fp, "<lambda>");
+            fklCodeBuilderFmt(fp, "[%u]", cur->c.mark);
         } else
-            fputs("<obj>", stderr);
+            fklCodeBuilderPuts(fp, "<obj>");
     }
-    fputc('\n', stderr);
+    fklCodeBuilderPutc(fp, '\n');
 }
 
 void fklPrintCprocBacktrace(const char *name,
@@ -846,9 +846,7 @@ static void vm_thread_cb(void *arg) {
         exe->buf = NULL;
         if (r) {
             FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-            FklCodeBuilder builder = { 0 };
-            fklInitCodeBuilderFp(&builder, stderr, NULL);
-            fklPrintErrBacktrace(ev, exe, &builder);
+            fklPrintErrBacktrace(ev, exe, NULL);
             if (exe->chan) {
                 fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
                 exe->chan = NULL;
@@ -1347,30 +1345,24 @@ void fklVMstackShrink(FklVM *exe) {
 
 void fklDBG_printVMstack(FklVM *stack,
         uint32_t count,
-        FILE *fp,
+        FklCodeBuilder *fp,
         int mode,
         FklVM *exe) {
-    if (fp != stdout)
-        fprintf(fp, "Current stack:\n");
+    fklCodeBuilderPuts(fp, "Current stack:\n");
     if (stack->tp == 0)
-        fprintf(fp, "[#EMPTY]\n");
+        fklCodeBuilderPuts(fp, "[#EMPTY]\n");
     else {
         int64_t i = stack->tp - 1;
         int64_t end = stack->tp - count;
         for (; i >= end; i--) {
             if (mode && stack->bp == i)
-                fputs("->", stderr);
-            if (fp != stdout)
-                fprintf(fp, "%" PRId64 ":", i);
+                fklCodeBuilderPuts(fp, "->");
+            fklCodeBuilderFmt(fp, "%" PRId64 ":", i);
             FklVMvalue *tmp = stack->base[i];
-            fklPrin1VMvalue(tmp, fp, exe);
-            putc('\n', fp);
+            fklPrin1VMvalue2(tmp, fp, exe);
+            fklCodeBuilderPutc(fp, '\n');
         }
     }
-}
-
-void fklDBG_printVMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
-    fklPrin1VMvalue(v, fp, exe);
 }
 
 FklVM *fklCreateVM(FklVMvalue *proc,

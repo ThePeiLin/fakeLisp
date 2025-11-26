@@ -106,7 +106,7 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
 
 void fklPrintParserGrammerParseError(int err,
         const FklParserGrammerParseArg *arg,
-        FILE *fp);
+        FklCodeBuilder *cb);
 
 static inline int fklParseProductionRuleWithString(
         FklParserGrammerParseArg *arg,

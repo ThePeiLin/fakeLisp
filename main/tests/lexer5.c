@@ -89,11 +89,14 @@ int main() {
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        FklCodeBuilder err_out = { 0 };
+        fklInitCodeBuilderFp(&err_out, stderr, NULL);
+
+        fklPrintParserGrammerParseError(err, &args, &err_out);
+        fklCodeBuilderPuts(&err_out, "garmmer create fail\n");
+        fklUninitParserGrammerParseArg(&args);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
-        fprintf(stderr, "garmmer create fail\n");
-        fklUninitParserGrammerParseArg(&args);
         exit(1);
     }
 

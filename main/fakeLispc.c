@@ -60,7 +60,7 @@ static inline int pre_compile(const char *main_file_name,
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev);
+    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
     outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
 
@@ -155,7 +155,7 @@ static inline int compile(const char *filename,
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev);
+    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
     if (output) {
         outputname = fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR);

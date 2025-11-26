@@ -47,7 +47,8 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklVMvalue *id,
 }
 
 void fklPrintCodegenError(FklCodegenErrorState *error_state,
-        const FklVMvalueCodegenInfo *info) {
+        const FklVMvalueCodegenInfo *info,
+        FklCodeBuilder *cb) {
     FklVMvalue *obj = error_state->p.place;
     FklBuiltinErrorType type = error_state->type;
     size_t line = error_state->p.line;
@@ -65,17 +66,19 @@ void fklPrintCodegenError(FklCodegenErrorState *error_state,
 
     if (type == FKL_ERR_DUMMY || type == FKL_ERR_SYMUNDEFINE)
         return;
-    fklPrintSymLiteral(builtInErrorType[type], stderr);
-    fputs(": ", stderr);
+    fklPrintSymLiteral2(builtInErrorType[type], cb);
+    fklCodeBuilderPuts(cb, ": ");
     if (msg || msg2) {
         if (msg)
-            fputs(msg, stderr);
-        if (msg2)
-            fputs(msg2, stderr);
+            fklCodeBuilderPuts(cb, msg);
+        if (msg2) {
+            fklCodeBuilderPuts(cb, msg2);
+            fklCodeBuilderPutc(cb, '\n');
+        }
 
         if (obj) {
-            fputc(' ', stderr);
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklCodeBuilderPutc(cb, ' ');
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         }
 
         goto print_line;
@@ -83,130 +86,128 @@ void fklPrintCodegenError(FklCodegenErrorState *error_state,
 
     switch (type) {
     case FKL_ERR_UNSERIALIZABLE:
-        fputs("It's unserializable to bytecode file", stderr);
+        fklCodeBuilderPuts(cb, "It's unserializable to bytecode file");
         break;
     case FKL_ERR_SYMUNDEFINE:
         break;
     case FKL_ERR_SYNTAXERROR:
-        fputs("Invalid syntax ", stderr);
+        fklCodeBuilderPuts(cb, "Invalid syntax ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_EXP_HAS_NO_VALUE:
-        fputs("Expression ", stderr);
+        fklCodeBuilderPuts(cb, "Expression ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
-        fputs(" has no value", stderr);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, " has no value");
         break;
     case FKL_ERR_INVALIDEXPR:
-        fputs("Invalid expression", stderr);
+        fklCodeBuilderPuts(cb, "Invalid expression");
         if (obj != NULL) {
-            fputc(' ', stderr);
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklCodeBuilderPutc(cb, ' ');
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         }
         break;
     case FKL_ERR_CIRCULARLOAD:
-        fputs("Circular load file ", stderr);
+        fklCodeBuilderPuts(cb, "Circular load file ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_INVALIDPATTERN:
-        fputs("Invalid string match pattern ", stderr);
+        fklCodeBuilderPuts(cb, "Invalid string match pattern ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_INVALID_MACRO_PATTERN:
-        fputs("Invalid macro pattern ", stderr);
+        fklCodeBuilderPuts(cb, "Invalid macro pattern ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_MACROEXPANDFAILED:
-        fputs("Failed to expand macro in ", stderr);
+        fklCodeBuilderPuts(cb, "Failed to expand macro in ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_LIBUNDEFINED:
-        fputs("Library ", stderr);
+        fklCodeBuilderPuts(cb, "Library ");
         if (obj != NULL)
-            fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
-        fputs(" undefined", stderr);
+            fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, " undefined");
         break;
     case FKL_ERR_FILEFAILURE:
-        fputs("Failed for file: ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, "Failed for file: ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_IMPORTFAILED:
-        fputs("Failed for importing module: ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, "Failed for importing module: ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_UNEXPECTED_EOF:
-        fputs("Unexpected eof", stderr);
+        fklCodeBuilderPuts(cb, "Unexpected eof");
         break;
     case FKL_ERR_IMPORT_MISSING:
-        fputs("Missing import for ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, "Missing import for ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP:
-        fputs("Exporting production groups with reference to other group",
-                stderr);
+        fklCodeBuilderPuts(cb,
+                "Exporting production groups with reference to other group");
         break;
     case FKL_ERR_IMPORT_READER_MACRO_ERROR:
-        fputs("Failed to import reader macro", stderr);
+        fklCodeBuilderPuts(cb, "Failed to import reader macro");
         break;
     case FKL_ERR_GRAMMER_CREATE_FAILED:
-        fputs("Failed to create grammer", stderr);
+        fklCodeBuilderPuts(cb, "Failed to create grammer");
         break;
     case FKL_ERR_REGEX_COMPILE_FAILED:
-        fputs("Failed to compile regex in ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, "Failed to compile regex in ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_ASSIGN_CONSTANT:
-        fputs("attempt to assign constant ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, "attempt to assign constant ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
         break;
     case FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT:
-        fputs("attempt to redefine variable ", stderr);
-        fklPrin1VMvalue(obj, stderr, &info->ctx->gc->gcvm);
-        fputs(" as constant", stderr);
+        fklCodeBuilderPuts(cb, "attempt to redefine variable ");
+        fklPrin1VMvalue2(obj, cb, &info->ctx->gc->gcvm);
+        fklCodeBuilderPuts(cb, " as constant");
         break;
     default:
-        fputs("Unknown compiling error", stderr);
+        fklCodeBuilderPuts(cb, "Unknown compiling error");
         break;
     }
 print_line:
-    fputc('\n', stderr);
+    fklCodeBuilderPutc(cb, '\n');
     if (obj) {
         if (fid) {
-            fprintf(stderr,
+            fklCodeBuilderFmt(cb,
                     "at line %" PRIu64 " of file %s",
                     line,
                     FKL_VM_SYM(fid)->str);
-            fputc('\n', stderr);
+            fklCodeBuilderPutc(cb, '\n');
         } else if (info->filename) {
-            fprintf(stderr,
-                    "at line %" PRIu64 " of file %s",
+            fklCodeBuilderFmt(cb,
+                    "at line %" PRIu64 " of file %s\n",
                     line,
                     info->filename);
-            fputc('\n', stderr);
-        } else
-            fprintf(stderr, "at line %" PRIu64 "\n", line);
+        } else {
+            fklCodeBuilderFmt(cb, "at line %" PRIu64 "\n", line);
+        }
     } else {
         if (fid) {
-            fprintf(stderr,
-                    "at line %" PRIu64 " of file %s",
+            fklCodeBuilderFmt(cb,
+                    "at line %" PRIu64 " of file %s\n",
                     line,
                     FKL_VM_SYM(fid)->str);
-            fputc('\n', stderr);
         } else if (info->filename) {
-            fprintf(stderr,
-                    "at line %" PRIu64 " of file %s",
+            fklCodeBuilderFmt(cb,
+                    "at line %" PRIu64 " of file %s\n",
                     line,
                     info->filename);
-            fputc('\n', stderr);
-        } else
-            fprintf(stderr, "at line %" PRIu64 " of file ", line);
+        } else {
+            fklCodeBuilderFmt(cb, "at line %" PRIu64 "\n", line);
+        }
     }
-    error_state->p.place = NULL;
     if (msg2)
         fklZfree(msg2);
 }
@@ -726,18 +727,18 @@ void fklUpdatePrototype(FklFuncPrototypes *cp, FklVMvalueCodegenEnv *env) {
     fklUpdatePrototypeConst(cp, env);
 }
 
-void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env) {
+void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env, FklCodeBuilder *cb) {
     const FklUnReSymbolRefVector *urefs = &env->uref;
     for (uint32_t i = urefs->size; i > 0; i--) {
         FklUnReSymbolRef *ref = &urefs->base[i - 1];
-        fprintf(stderr, "warning: Symbol ");
-        fklPrintSymbolLiteral(FKL_VM_SYM(ref->id), stderr);
-        fprintf(stderr, " is undefined at line %" PRIu64, ref->line);
+        fklCodeBuilderPuts(cb, "warning: Symbol ");
+        fklPrintSymbolLiteral2(FKL_VM_SYM(ref->id), cb);
+        fklCodeBuilderFmt(cb, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
-            fputs(" of ", stderr);
-            fklPrintString(FKL_VM_SYM(ref->fid), stderr);
+            fklCodeBuilderPuts(cb, " of ");
+            fklPrintString2(FKL_VM_SYM(ref->fid), cb);
         }
-        fputc('\n', stderr);
+        fklCodeBuilderPutc(cb, '\n');
     }
 }
 

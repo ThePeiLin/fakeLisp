@@ -168,8 +168,15 @@ void fklPrintBacktrace(FklVM *exe, FklCodeBuilder *build) {
         fklPrintFrame(cur, exe, build);
 }
 
-void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build) {
-    uv_mutex_lock(&exe->gc->print_backtrace_lock);
+void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
+    FklCodeBuilder *build = NULL;
+    if (build_ == NULL) {
+        uv_mutex_lock(&exe->gc->print_backtrace_lock);
+        build = &exe->gc->err_out;
+    } else {
+        build = build_;
+    }
+
     if (fklIsVMvalueError(ev)) {
         FklVMvalueError *err = FKL_VM_ERR(ev);
         fklPrintSymbolLiteral2(FKL_VM_SYM(err->type), build);
@@ -182,7 +189,10 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build) {
         fklPrin1VMvalue2(ev, build, exe);
         fklCodeBuilderPutc(build, '\n');
     }
-    uv_mutex_unlock(&exe->gc->print_backtrace_lock);
+
+    if (build_ == NULL) {
+        uv_mutex_unlock(&exe->gc->print_backtrace_lock);
+    }
 }
 
 void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {

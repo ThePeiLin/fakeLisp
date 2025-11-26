@@ -46,7 +46,9 @@ int main() {
 
     int err = fklParseProductionRuleWithCstr(&args, prod_rule);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        FklCodeBuilder err_out = { 0 };
+        fklInitCodeBuilderFp(&err_out, stderr, NULL);
+        fklPrintParserGrammerParseError(err, &args, &err_out);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         exit(1);

@@ -76,7 +76,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev);
+    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
             gc,

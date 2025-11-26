@@ -86,11 +86,13 @@ int main() {
             builtin_prod_action_resolver,
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, example_grammer_rules);
+    FklCodeBuilder err_out = { 0 };
+    fklInitCodeBuilderFp(&err_out, stderr, NULL);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklPrintParserGrammerParseError(err, &args, &err_out);
+        fklCodeBuilderPuts(&err_out, "garmmer create fail\n");
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
-        fprintf(stderr, "garmmer create fail\n");
         fklUninitParserGrammerParseArg(&args);
         exit(1);
     }
@@ -99,9 +101,11 @@ int main() {
 
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        fputs("nonterm: ", stderr);
-        fklPrintSymbolLiteral(FKL_VM_SYM(nonterm.sid), stderr);
-        fputs(" is not defined\n", stderr);
+
+        fklCodeBuilderPuts(&err_out, "nonterm: ");
+        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm.sid), &err_out);
+        fklCodeBuilderPuts(&err_out, " is not defined\n");
+
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         exit(1);
@@ -130,8 +134,8 @@ int main() {
     fklInitStringBuffer(&err_msg);
     if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
-        fprintf(stderr, "not lalr garmmer\n");
-        fprintf(stderr, "%s\n", err_msg.buf);
+
+        fklCodeBuilderFmt(&err_out, "not lalr garmmer\n%s\n", err_msg.buf);
         fklUninitStringBuffer(&err_msg);
         exit(1);
     }

@@ -513,9 +513,10 @@ FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklVMvalue *id,
         const FklCodegenEnvScope *scopes);
 
 void fklPrintCodegenError(FklCodegenErrorState *error_state,
-        const FklVMvalueCodegenInfo *info);
+        const FklVMvalueCodegenInfo *info,
+        FklCodeBuilder *cb);
 
-void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env);
+void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env, FklCodeBuilder *cb);
 
 FklSymDefHashMapElm *fklAddCodegenBuiltinRefBySid(FklVMvalue *id,
         FklVMvalueCodegenEnv *env);

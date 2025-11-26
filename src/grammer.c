@@ -1674,10 +1674,11 @@ int fklCheckAndInitGrammerSymbols(FklGrammer *g, FklGrammerNonterm *nt) {
     return 0;
 }
 
-static inline void print_unresolved_terminal(const FklGrammerNonterm *nt) {
-    fputs("nonterm: ", stderr);
-    fklPrintSymbolLiteral(FKL_VM_SYM(nt->sid), stderr);
-    fputs(" is not defined\n", stderr);
+static inline void print_unresolved_terminal(const FklGrammerNonterm *nt,
+        FklCodeBuilder *fp) {
+    fklCodeBuilderPuts(fp, "nonterm: ");
+    fklPrintSymbolLiteral2(FKL_VM_SYM(nt->sid), fp);
+    fklCodeBuilderPuts(fp, " is not defined\n");
 }
 
 int fklAddExtraProdToGrammer(FklGrammer *g) {
@@ -4772,7 +4773,7 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklVM *vm) {
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, builtin_grammer_rules);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklPrintParserGrammerParseError(err, &args, &vm->gc->err_out);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return;
@@ -4780,7 +4781,7 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklVM *vm) {
     FklGrammerNonterm nonterm = { 0, 0 };
     fklUninitParserGrammerParseArg(&args);
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        print_unresolved_terminal(&nonterm);
+        print_unresolved_terminal(&nonterm, &vm->gc->err_out);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return;
@@ -4803,7 +4804,7 @@ FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g, FklVMgc *gc) {
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, builtin_grammer_rules);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, stderr);
+        fklPrintParserGrammerParseError(err, &args, &gc->err_out);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return NULL;

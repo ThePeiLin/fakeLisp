@@ -32,17 +32,18 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         VM->tp = F->bp - 1 + value_count;
         do_finalize_compound_frame(VM, popFrame(VM));
         return;
-    return_value_err:
-        fprintf(stderr,
+    return_value_err: {
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderFp(&builder, stderr, NULL);
+        fklCodeBuilderFmt(&builder,
                 "[%s: %d] %s: the return value count should be 1, but is %u\n",
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
                 value_count);
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderFp(&builder, stderr, NULL);
         fklPrintBacktrace(VM, &builder);
         abort();
+    }
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
         close_all_var_ref(&F->c.lr);
@@ -62,17 +63,17 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         F->c.pc = F->c.spc;
         F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     } break;
-    default:
-        fprintf(stderr,
+    default: {
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderFp(&builder, stderr, NULL);
+        fklCodeBuilderFmt(&builder,
                 "[%s: %d] %s: unreachable!\n",
                 __FILE__,
                 __LINE__,
                 __FUNCTION__);
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderFp(&builder, stderr, NULL);
         fklPrintBacktrace(VM, &builder);
         abort();
-        break;
+    } break;
     }
 #ifndef RETURN_HEADER
 }

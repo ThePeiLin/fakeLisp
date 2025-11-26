@@ -3655,9 +3655,7 @@ static void vm_atexit_idle_queue_work_cb(FklVM *exe, void *a) {
             arg->arg_num - 1,
             &arg->args[1]);
     if (r.err) {
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderFp(&builder, stderr, NULL);
-        fklPrintErrBacktrace(r.v, exe, &builder);
+        fklPrintErrBacktrace(r.v, exe, NULL);
     }
 
     fklVMrecover(exe, &recover_args);

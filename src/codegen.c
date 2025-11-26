@@ -6027,7 +6027,7 @@ BC_PROCESS(_library_bc_process) {
     }
 
     fklUpdatePrototype(&codegen->pts->p, env);
-    fklPrintUndefinedRef(env);
+    fklPrintUndefinedRef(env, &codegen->ctx->gc->err_out);
 
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
     FklByteCodelnt *libBc = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
@@ -6697,7 +6697,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *orig,
     FklCodegenLib *lib = NULL;
     if (!libId) {
         if (uv_dlopen(realpath, &dll)) {
-            fprintf(stderr, "%s\n", uv_dlerror(&dll));
+            error_state->msg2 = fklZstrdup(uv_dlerror(&dll));
             error_state->type = FKL_ERR_FILEFAILURE;
             // error_state->place = name;
             error_state->p = PLACE(name, CURLINE(orig));
@@ -6773,7 +6773,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
     FklCodegenLib *lib = NULL;
     if (!libId) {
         if (uv_dlopen(realpath, &dll)) {
-            fprintf(stderr, "%s\n", uv_dlerror(&dll));
+            error_state->msg2 = fklZstrdup(uv_dlerror(&dll));
             error_state->type = FKL_ERR_FILEFAILURE;
             // error_state->place = name;
             error_state->p = PLACE(name, CURLINE(orig));
@@ -6846,7 +6846,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(FklVMvalue *orig,
     FklCodegenLib *lib = NULL;
     if (!libId) {
         if (uv_dlopen(realpath, &dll)) {
-            fprintf(stderr, "%s\n", uv_dlerror(&dll));
+            error_state->msg2 = fklZstrdup(uv_dlerror(&dll));
             error_state->type = FKL_ERR_FILEFAILURE;
             // error_state->place = name;
             error_state->p = PLACE(name, CURLINE(orig));
@@ -6904,7 +6904,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(FklVMvalue *orig,
     FklCodegenLib *lib = NULL;
     if (!libId) {
         if (uv_dlopen(realpath, &dll)) {
-            fprintf(stderr, "%s\n", uv_dlerror(&dll));
+            error_state->msg2 = fklZstrdup(uv_dlerror(&dll));
             error_state->type = FKL_ERR_FILEFAILURE;
             // error_state->place = name;
             error_state->p = PLACE(name, CURLINE(orig));
@@ -6967,7 +6967,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *orig,
     FklCodegenLib *lib = NULL;
     if (!libId) {
         if (uv_dlopen(realpath, &dll)) {
-            fprintf(stderr, "%s\n", uv_dlerror(&dll));
+            error_state->msg2 = fklZstrdup(uv_dlerror(&dll));
             error_state->type = FKL_ERR_FILEFAILURE;
             // error_state->place = name;
             error_state->p = PLACE(name, CURLINE(orig));
@@ -7253,8 +7253,7 @@ static inline void codegen_import_helper(FklVMvalue *orig,
 
             if (fklLoadPreCompile(fp, preCompileFileName, &args)) {
                 if (args.error) {
-                    fprintf(stderr, "%s\n", args.error);
-                    fklZfree(args.error);
+                    error_state->msg2 = args.error;
                     args.error = NULL;
                 }
 
@@ -7503,7 +7502,7 @@ static inline void init_macro_context(MacroContext *r,
 
 BC_PROCESS(_compiler_macro_bc_process) {
     fklUpdatePrototype(&codegen->pts->p, env);
-    fklPrintUndefinedRef(env->prev);
+    fklPrintUndefinedRef(env->prev, &codegen->ctx->gc->err_out);
 
     MacroContext *d = FKL_TYPE_CAST(MacroContext *, data);
     FklByteCodelnt *macroBcl = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
@@ -7565,7 +7564,7 @@ BC_PROCESS(_reader_macro_bc_process) {
 
     // FklVMobarray *pst = &ctx->public_st;
     fklUpdatePrototype(&codegen->pts->p, env);
-    fklPrintUndefinedRef(env->prev);
+    fklPrintUndefinedRef(env->prev, &codegen->ctx->gc->err_out);
 
     FklByteCodelnt *macroBcl = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
@@ -9499,7 +9498,9 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
         print_error:
             ctx->action_vector = NULL;
             ctx->error_state = NULL;
-            fklPrintCodegenError(&error_state, codegen);
+            fklPrintCodegenError(&error_state,
+                    codegen,
+                    &codegen->ctx->gc->err_out);
             while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
                 destroy_cg_action(*fklCodegenActionVectorPopBackNonNull(
                         &codegen_action_vector));

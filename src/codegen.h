@@ -123,13 +123,6 @@ static inline int is_pair_list(const FklVMvalue *v) {
     return 1;
 }
 
-static inline FklVMvalue *
-check_macro_expand_result(FklVMvalue *r, FklVMvalueLnt *lnt, uint64_t line) {
-    if (fklIsSerializableToByteCodeFile(r, lnt, line))
-        return r;
-    return NULL;
-}
-
 static inline FklVMvalue *codegen_create_hash(FklVMparseCtx *c,
         FklHashTableEqType eq_type,
         FklVMvalue *list,

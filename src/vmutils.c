@@ -2205,8 +2205,8 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
 
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
-        FklVMvalue *base[],
-        size_t len) {
+        size_t len,
+        FklVMvalue *base[]) {
     FklStringBuffer buf;
     fklInitStringBuffer(&buf);
     FklCodeBuilder builder = { 0 };

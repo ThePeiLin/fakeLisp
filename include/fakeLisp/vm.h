@@ -950,8 +950,8 @@ FklBuiltinErrorType fklVMformat3(FklVM *,
 
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
-        FklVMvalue *base[],
-        size_t len);
+        size_t len,
+        FklVMvalue *base[]);
 
 FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
 
@@ -1190,6 +1190,13 @@ FklVMvalue *fklCreateVMvalueBoxNil(FklVM *);
 
 FklVMvalue *
 fklCreateVMvalueError(FklVM *, FklVMvalue *type, FklVMvalue *message);
+
+FklVMvalue *fklCreateVMvalueError2(FklVM *exe,
+        FklVMvalue *type,
+        const char *fmt,
+        size_t count,
+        FklVMvalue *values[]);
+
 int fklIsVMvalueError(const FklVMvalue *v);
 
 FklVMvalue *fklCreateVMvalueBigInt(FklVM *, size_t num);
@@ -1600,14 +1607,28 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtArr(
         FklBuiltinErrorType error_type,
         FklVM *exe,
         const char *fmt,
-        FklVMvalue *values[],
-        size_t value_count) {
+        size_t value_count,
+        FklVMvalue *values[]) {
     FklVMvalue *errorMessage =
-            fklVMformatToString(exe, fmt, values, value_count);
+            fklVMformatToString(exe, fmt, value_count, values);
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[error_type],
             errorMessage);
     fklRaiseVMerror(err, exe);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklCreateVMvalueErrorFmt(FklVM *exe,
+        FklBuiltinErrorType error_type,
+        const char *fmt,
+        FklVMvalue *values[]) {
+    size_t count = 0;
+    for (; values[count]; ++count)
+        ;
+    return fklCreateVMvalueError2(exe,
+            exe->gc->builtinErrorTypeId[error_type],
+            fmt,
+            count,
+            values);
 }
 
 noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtV(
@@ -1618,8 +1639,14 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtV(
     size_t count = 0;
     for (; values[count]; ++count)
         ;
-    fklRaiseBuiltinErrorFmtArr(error_type, exe, fmt, values, count);
+    fklRaiseBuiltinErrorFmtArr(error_type, exe, fmt, count, values);
 }
+
+#define FKL_MAKE_VM_ERR(ERRORTYPE, EXE, FMT, ...)                              \
+    fklCreateVMvalueErrorFmt((EXE),                                            \
+            (ERRORTYPE),                                                       \
+            (FMT),                                                             \
+            &((FklVMvalue *[]){ NULL, ##__VA_ARGS__, NULL })[1])
 
 #define FKL_RAISE_BUILTIN_ERROR_FMT(ERRORTYPE, EXE, FMT, ...)                  \
     fklRaiseBuiltinErrorFmtV((ERRORTYPE),                                      \

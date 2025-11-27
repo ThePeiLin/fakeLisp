@@ -1030,6 +1030,16 @@ fklCreateVMvalueError(FklVM *exe, FklVMvalue *type, FklVMvalue *message) {
     return r;
 }
 
+FklVMvalue *fklCreateVMvalueError2(FklVM *exe,
+        FklVMvalue *type,
+        const char *fmt,
+        size_t count,
+        FklVMvalue *values[]) {
+    FklVMvalue *msg = fklVMformatToString(exe, fmt, count, values);
+    FklVMvalue *r = fklCreateVMvalueError(exe, type, msg);
+    return r;
+}
+
 int fklIsVMvalueError(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ErrorUserDataMetaTable;
 }

@@ -377,11 +377,9 @@ typedef struct {
 } FklCodegenErrorPlace;
 
 typedef struct FklCodegenErrorState {
-    FklBuiltinErrorType type;
-    FklCodegenErrorPlace p;
+    FklVMvalue *error;
+    size_t line;
     FklVMvalue *fid;
-    const char *msg;
-    char *msg2;
 } FklCodegenErrorState;
 
 typedef FklByteCodelnt *(*FklCodegenActionCb)(FklVMvalueCodegenInfo *codegen,
@@ -619,7 +617,8 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
         FklVMvalue **pr,
-        uint64_t curline);
+        uint64_t curline,
+        FklCodegenErrorState *error_state);
 
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         FklVMlib *vlib,

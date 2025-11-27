@@ -38,10 +38,9 @@ char *fklReadWithBuiltinParser(FILE *fp,
         size_t *pline,
         FklVM *st,
         int *unexpectEOF,
-        size_t *errLine,
+        size_t *output_line,
         FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln);
 
@@ -52,10 +51,9 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         size_t *pline,
         FklVM *st,
         int *unexpectEOF,
-        size_t *errLine,
+        size_t *output_line,
         FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln);
 
@@ -76,17 +74,15 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *,
         size_t *restLen,
         FklGrammerMatchCtx *,
         FklParseError *err,
-        size_t *errLine,
+        size_t *output_line,
         struct FklAnalysisSymbolVector *symbols,
-        FklUintVector *lines,
         FklParseStateVector *states);
 
 void *fklDefaultParseForCstr(const char *str,
         FklGrammerMatchCtx *,
         FklParseError *err,
-        size_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbols,
-        FklUintVector *lines,
         FklParseStateVector *states);
 
 void *fklDefaultParseForCharBuf(const char *str,
@@ -94,9 +90,8 @@ void *fklDefaultParseForCharBuf(const char *str,
         size_t *restLen,
         FklGrammerMatchCtx *,
         FklParseError *err,
-        size_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbols,
-        FklUintVector *lines,
         FklParseStateVector *states);
 
 #ifdef __cplusplus

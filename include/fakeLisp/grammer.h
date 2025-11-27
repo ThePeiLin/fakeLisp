@@ -241,9 +241,16 @@ typedef struct FklAnalysisSymbol {
 #define FKL_VECTOR_ELM_TYPE_NAME GraSym
 #include "cont/vector.h"
 
+// FklAnalysisSymbolVector
+#define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol
+#define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
+#include "cont/vector.h"
+
 struct FklGrammerProduction;
 
-uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line);
+uint64_t fklGetFirstNthLine(FklAnalysisSymbolVector *symbol_vector,
+        size_t num,
+        size_t line);
 
 typedef void *(*FklProdActionFunc)(void *args,
         void *ctx,
@@ -519,23 +526,27 @@ static inline void fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym,
         const char *s,
         size_t len,
         FklGrammerMatchCtx *ctx,
-        uint8_t start_with_ignore) {
+        uint8_t start_with_ignore,
+        uint64_t line) {
     void *ast = ctx->create(s, len, ctx->line, ctx->ctx);
     sym->nt.group = 0;
     sym->nt.sid = 0;
     sym->ast = ast;
     sym->start_with_ignore = start_with_ignore;
+    sym->line = line;
 }
 
 static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
         FklVMvalue *group,
         FklVMvalue *id,
         void *ast,
-        uint8_t start_with_ignore) {
+        uint8_t start_with_ignore,
+        uint64_t line) {
     sym->nt.group = group;
     sym->nt.sid = id;
     sym->ast = ast;
     sym->start_with_ignore = start_with_ignore;
+    sym->line = line;
 }
 
 int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
@@ -645,16 +656,10 @@ typedef enum {
 
 struct FklParseStateVector;
 
-// FklAnalysisSymbolVector
-#define FKL_VECTOR_ELM_TYPE FklAnalysisSymbol
-#define FKL_VECTOR_ELM_TYPE_NAME AnalysisSymbol
-#include "cont/vector.h"
-
 typedef union FklParseState FklParseState;
 
 typedef int (*FklStateFuncPtr)(struct FklParseStateVector *states,
         FklAnalysisSymbolVector *symbols,
-        FklUintVector *lines,
         int is_action,
         uint8_t start_with_ignore,
         FklVMvalue *left,

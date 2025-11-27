@@ -13,26 +13,22 @@ FklVMvalue *
 fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklVMvalueLnt *ln) {
     FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
-    FklUintVector lineStack;
     fklParseStateVectorInit(&stateStack, 16);
     fklAnalysisSymbolVectorInit(&symbolStack, 16);
-    fklUintVectorInit(&lineStack, 16);
     fklVMvaluePushState0ToStack(&stateStack);
 
     FklParseError err = 0;
-    size_t errLine = 0;
+    size_t output_line = 0;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
     FklVMvalue *node = fklDefaultParseForCstr(cStr,
             &ctx,
             &err,
-            &errLine,
+            &output_line,
             &symbolStack,
-            &lineStack,
             &stateStack);
 
     fklAnalysisSymbolVectorUninit(&symbolStack);
     fklParseStateVectorUninit(&stateStack);
-    fklUintVectorUninit(&lineStack);
 
     return node;
 }
@@ -43,10 +39,9 @@ char *fklReadWithBuiltinParser(FILE *fp,
         size_t *pline,
         FklVM *vm,
         int *unexpectEOF,
-        size_t *errLine,
+        size_t *output_line,
         FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln) {
     FklStringBuffer buf;
@@ -64,26 +59,26 @@ char *fklReadWithBuiltinParser(FILE *fp,
                 &restLen,
                 &ctx,
                 &err,
-                errLine,
+                output_line,
                 symbolStack,
-                lineStack,
                 stateStack);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            *errLine = ctx.line;
+            *output_line = ctx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
-                *errLine = fklUintVectorIsEmpty(lineStack)
-                                 ? ctx.line
-                                 : *fklUintVectorBack(lineStack);
+                *output_line = fklAnalysisSymbolVectorIsEmpty(symbolStack)
+                                     ? ctx.line
+                                     : fklAnalysisSymbolVectorBack(symbolStack)
+                                               ->line;
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
                 fklStringBufferClear(&buf);
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbolStack)) {
-                    *errLine = lineStack->base[0];
+                    *output_line = symbolStack->base[0].line;
                     *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
                     fklStringBufferClear(&buf);
                 }
@@ -119,10 +114,9 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         size_t *pline,
         FklVM *vm,
         int *unexpectEOF,
-        size_t *errLine,
+        size_t *output_line,
         FklVMvalue **output,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln) {
     FklStringBuffer buf;
@@ -141,26 +135,26 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
                 &restLen,
                 &ctx,
                 &err,
-                errLine,
+                output_line,
                 symbolStack,
-                lineStack,
                 stateStack);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            *errLine = ctx.line;
+            *output_line = ctx.line;
             *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
-                *errLine = fklUintVectorIsEmpty(lineStack)
-                                 ? ctx.line
-                                 : *fklUintVectorBack(lineStack);
+                *output_line = fklAnalysisSymbolVectorIsEmpty(symbolStack)
+                                     ? ctx.line
+                                     : fklAnalysisSymbolVectorBack(symbolStack)
+                                               ->line;
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
                 buf.index = 0;
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbolStack)) {
-                    *errLine = lineStack->base[0];
+                    *output_line = symbolStack->base[0].line;
                     *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
                     buf.index = 0;
                 }
@@ -202,13 +196,11 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g,
         FklGrammerMatchCtx *ctx,
         FklParseError *err) {
     const FklAnalysisTable *t = &g->aTable;
-    size_t errLine = 0;
+    size_t output_line = 0;
     FklAnalysisSymbolVector symbolStack;
     FklParseStateVector stateStack;
-    FklUintVector lineStack;
     fklParseStateVectorInit(&stateStack, 16);
     fklAnalysisSymbolVectorInit(&symbolStack, 16);
-    fklUintVectorInit(&lineStack, 16);
     fklParseStateVectorPushBack2(&stateStack,
             (FklParseState){ .state = &t->states[0] });
 
@@ -218,12 +210,10 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g,
             &restLen,
             ctx,
             err,
-            &errLine,
+            &output_line,
             &symbolStack,
-            &lineStack,
             &stateStack);
 
-    fklUintVectorUninit(&lineStack);
     fklParseStateVectorUninit(&stateStack);
     fklAnalysisSymbolVectorUninit(&symbolStack);
     return ast;
@@ -231,11 +221,11 @@ void *fklParseWithTableForCharBuf(const FklGrammer *g,
 
 static inline int do_reduce_action(FklParseStateVector *stateStack,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         const FklGrammerProduction *prod,
         size_t len,
         FklGrammerMatchCtx *ctx,
-        size_t *errLine) {
+        size_t *output_line) {
+    size_t line = fklGetFirstNthLine(symbolStack, len, ctx->line);
     stateStack->size -= len;
     symbolStack->size -= len;
     FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
@@ -252,15 +242,13 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
     }
     if (!state)
         return 1;
-    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
-    lineStack->size -= len;
     void *ast = prod->func(prod->ctx, ctx->ctx, base, len, line);
     for (size_t i = 0; i < len; i++) {
         ctx->destroy(base[i].ast);
         base[i].ast = NULL;
     }
     if (!ast) {
-        *errLine = line;
+        *output_line = line;
         return FKL_PARSE_REDUCE_FAILED;
     }
 
@@ -269,8 +257,8 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
             left.group,
             left.sid,
             ast,
-            len && base[0].start_with_ignore);
-    fklUintVectorPushBack2(lineStack, line);
+            len && base[0].start_with_ignore,
+            line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
     return 0;
 }
@@ -278,9 +266,8 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
 void *fklDefaultParseForCstr(const char *cstr,
         FklGrammerMatchCtx *ctx,
         FklParseError *err,
-        uint64_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack) {
     size_t restLen = strlen(cstr);
     return fklDefaultParseForCharBuf(cstr,
@@ -288,9 +275,8 @@ void *fklDefaultParseForCstr(const char *cstr,
             &restLen,
             ctx,
             err,
-            errLine,
+            output_line,
             symbolStack,
-            lineStack,
             stateStack);
 }
 
@@ -299,9 +285,8 @@ void *fklDefaultParseForCharBuf(const char *cstr,
         size_t *restLen,
         FklGrammerMatchCtx *ctx,
         FklParseError *err,
-        uint64_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack) {
     const char *start = cstr;
     *restLen = len;
@@ -312,7 +297,6 @@ void *fklDefaultParseForCharBuf(const char *cstr,
                 fklParseStateVectorBackNonNull(stateStack)->func;
         *err = state(stateStack,
                 symbolStack,
-                lineStack,
                 1,
                 0,
                 0,
@@ -322,11 +306,14 @@ void *fklDefaultParseForCharBuf(const char *cstr,
                 restLen,
                 ctx,
                 &accept,
-                errLine);
+                output_line);
         if (*err)
             break;
         if (accept) {
-            ast = fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
+            FklAnalysisSymbol top =
+                    *fklAnalysisSymbolVectorPopBackNonNull(symbolStack);
+            *output_line = top.line;
+            ast = top.ast;
             break;
         }
     }

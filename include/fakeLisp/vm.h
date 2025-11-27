@@ -293,8 +293,9 @@ typedef struct {
 
 struct FklVMframe;
 
-typedef int (
-        *FklVMerrorCallBack)(struct FklVMframe *f, FklVMvalue *ev, FklVM *vm);
+typedef int (*FklVMerrorCallBack)(struct FklVMframe *f, //
+        FklVMvalue *ev,
+        FklVM *vm);
 
 typedef int (*FklVMretCallBack)(FklVM *vm, struct FklVMframe *f);
 

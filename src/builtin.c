@@ -1650,7 +1650,6 @@ typedef enum {
 
 struct ParseCtx {
     FklAnalysisSymbolVector symbolStack;
-    FklUintVector lineStack;
     FklParseStateVector stateStack;
     FklVMvalue *reducing_sid;
     uint8_t start_with_ignore;
@@ -1685,7 +1684,6 @@ static void read_frame_finalizer(void *data) {
     fklUninitStringBuffer(&c->buf);
     FklAnalysisSymbolVector *ss = &pctx->symbolStack;
     fklAnalysisSymbolVectorUninit(ss);
-    fklUintVectorUninit(&pctx->lineStack);
     fklParseStateVectorUninit(&pctx->stateStack);
     fklZfree(pctx);
 }
@@ -1699,7 +1697,7 @@ static int read_frame_step(void *d, FklVM *exe) {
 
     FklParseError err = 0;
     size_t restLen = fklStringBufferLen(s) - pctx->offset;
-    size_t errLine = 0;
+    size_t output_line = 0;
 
     FklVMvalue *ast =
             fklDefaultParseForCharBuf(fklStringBufferBody(s) + pctx->offset,
@@ -1707,9 +1705,8 @@ static int read_frame_step(void *d, FklVM *exe) {
                     &restLen,
                     &ctx,
                     &err,
-                    &errLine,
+                    &output_line,
                     &pctx->symbolStack,
-                    &pctx->lineStack,
                     (FklParseStateVector *)&pctx->stateStack);
 
     pctx->offset = fklStringBufferLen(s) - restLen;
@@ -1799,7 +1796,6 @@ static inline struct ParseCtx *create_read_parse_ctx(void) {
 
     fklParseStateVectorInit(&pctx->stateStack, 16);
     fklAnalysisSymbolVectorInit(&pctx->symbolStack, 16);
-    fklUintVectorInit(&pctx->lineStack, 16);
     return pctx;
 }
 
@@ -1826,12 +1822,12 @@ static inline void initReadCtx(void *data,
 static inline int do_custom_parser_reduce_action(
         FklParseStateVector *stateStack,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         const FklGrammerProduction *prod,
         size_t len,
         FklGrammerMatchCtx *ctx,
         uint8_t *start_with_ignore,
-        size_t *errLine) {
+        size_t *output_line) {
+    size_t line = fklGetFirstNthLine(symbolStack, len, ctx->line);
     stateStack->size -= len;
     symbolStack->size -= len;
     FklAnalysisSymbol *base = &symbolStack->base[symbolStack->size];
@@ -1849,14 +1845,11 @@ static inline int do_custom_parser_reduce_action(
     if (!state)
         return 1;
     *start_with_ignore = len && base[0].start_with_ignore;
-    size_t line = fklGetFirstNthLine(lineStack, len, ctx->line);
-    lineStack->size -= len;
     prod->func(prod->ctx, ctx->ctx, base, len, line);
     for (size_t i = 0; i < len; i++) {
         ctx->destroy(base[i].ast);
         base[i].ast = NULL;
     }
-    fklUintVectorPushBack2(lineStack, line);
     fklParseStateVectorPushBack2(stateStack, (FklParseState){ .state = state });
     return 0;
 }
@@ -1867,9 +1860,8 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
         size_t *restLen,
         FklGrammerMatchCtx *ctx,
         int *err,
-        size_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack,
         FklVM *exe,
         int *accept,
@@ -1885,12 +1877,11 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
     *reducing_sid = action->prod->left.sid;                                    \
     if (do_custom_parser_reduce_action(stateStack,                             \
                 symbolStack,                                                   \
-                lineStack,                                                     \
                 action->prod,                                                  \
                 action->actual_len,                                            \
                 ctx,                                                           \
                 start_with_ignore,                                             \
-                errLine))                                                      \
+                output_line))                                                  \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
     return;
 #define PARSE_INCLUDED
@@ -1913,7 +1904,8 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
                 0,
                 pctx->reducing_sid,
                 ast,
-                pctx->start_with_ignore);
+                pctx->start_with_ignore,
+                0);
         rctx->state = PARSE_CONTINUE;
     }
 
@@ -1925,7 +1917,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
     int err = 0;
     int accept = 0;
     size_t restLen = fklStringBufferLen(s) - pctx->offset;
-    size_t errLine = 0;
+    size_t output_line = 0;
 
     parse_with_custom_parser_for_char_buf(g,
             fklStringBufferBody(s) + pctx->offset,
@@ -1933,9 +1925,8 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
             &restLen,
             &ctx,
             &err,
-            &errLine,
+            &output_line,
             &pctx->symbolStack,
-            &pctx->lineStack,
             &pctx->stateStack,
             exe,
             &accept,
@@ -2500,7 +2491,6 @@ static void custom_parse_frame_finalizer(void *data) {
     CustomParseCtx *c = (CustomParseCtx *)data;
     FklAnalysisSymbolVector *ss = &c->pctx->symbolStack;
     fklAnalysisSymbolVectorUninit(ss);
-    fklUintVectorUninit(&c->pctx->lineStack);
     fklParseStateVectorUninit(&c->pctx->stateStack);
     fklZfree(c->pctx);
 }
@@ -2515,7 +2505,8 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
                 0,
                 pctx->reducing_sid,
                 ast,
-                pctx->start_with_ignore);
+                pctx->start_with_ignore,
+                0);
         parse_ctx->state = PARSE_CONTINUE;
     }
 
@@ -2523,7 +2514,7 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     // FKL_DECL_VM_UD_DATA(g, FklGrammer, parse_ctx->parser);
     FklString *str = FKL_VM_STR(parse_ctx->str);
     int err = 0;
-    uint64_t errLine = 0;
+    size_t output_line = 0;
     int accept = 0;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe, NULL);
     size_t restLen = str->size - pctx->offset;
@@ -2534,9 +2525,8 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
             &restLen,
             &ctx,
             &err,
-            &errLine,
+            &output_line,
             &pctx->symbolStack,
-            &pctx->lineStack,
             &pctx->stateStack,
             exe,
             &accept,
@@ -2710,10 +2700,8 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         size_t errorLine = 0;
         FklAnalysisSymbolVector symbolStack;
         FklParseStateVector stateStack;
-        FklUintVector lineStack;
         fklAnalysisSymbolVectorInit(&symbolStack, 16);
         fklParseStateVectorInit(&stateStack, 16);
-        fklUintVectorInit(&lineStack, 16);
         fklVMvaluePushState0ToStack(&stateStack);
 
         size_t restLen = ss->size;
@@ -2726,19 +2714,16 @@ static int builtin_parse(FKL_CPROC_ARGL) {
                 &err,
                 &errorLine,
                 &symbolStack,
-                &lineStack,
                 &stateStack);
 
         if (node == NULL) {
             fklAnalysisSymbolVectorUninit(&symbolStack);
             fklParseStateVectorUninit(&stateStack);
-            fklUintVectorUninit(&lineStack);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
         }
 
         fklAnalysisSymbolVectorUninit(&symbolStack);
         fklParseStateVectorUninit(&stateStack);
-        fklUintVectorUninit(&lineStack);
         FKL_CPROC_RETURN(exe, ctx, node);
         if (box) {
             uint64_t offset = ss->size - restLen;

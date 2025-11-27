@@ -4979,7 +4979,6 @@ typedef struct {
     FklVMvalueCodegenInfo *codegen;
     FklAnalysisSymbolVector symbolStack;
     FklParseStateVector stateStack;
-    FklUintVector lineStack;
 } CodegenLoadContext;
 
 #include <fakeLisp/grammer.h>
@@ -4992,7 +4991,6 @@ static CodegenLoadContext *createCodegenLoadContext(FILE *fp,
     r->codegen = codegen;
     r->fp = fp;
     fklParseStateVectorInit(&r->stateStack, 16);
-    fklUintVectorInit(&r->lineStack, 16);
     fklAnalysisSymbolVectorInit(&r->symbolStack, 16);
     return r;
 }
@@ -5005,7 +5003,6 @@ static void _codegen_load_finalizer(void *pcontext) {
     //             fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast);
     fklAnalysisSymbolVectorUninit(symbolStack);
     fklParseStateVectorUninit(&context->stateStack);
-    fklUintVectorUninit(&context->lineStack);
     fclose(context->fp);
     fklZfree(context);
 }
@@ -5018,10 +5015,9 @@ static void _codegen_load_atomic(FklVMgc *gc, void *ctx) {
 static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
         FILE *fp,
         int *unexpectEOF,
-        size_t *errorLine,
+        size_t *output_line,
         FklCodegenErrorState *error_state,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack) {
     // FklVMobarray *pst = &codegen->ctx->public_st;
     // FklSymbolTable *pst = &codegen->ctx->public_st;
@@ -5041,10 +5037,9 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 &codegen->curline,
                 &codegen->ctx->gc->gcvm,
                 unexpectEOF,
-                errorLine,
+                output_line,
                 &begin,
                 symbolStack,
-                lineStack,
                 stateStack,
                 codegen->ctx->lnt);
     } else {
@@ -5055,10 +5050,9 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
                 &codegen->curline,
                 &codegen->ctx->gc->gcvm,
                 unexpectEOF,
-                errorLine,
+                output_line,
                 &begin,
                 symbolStack,
-                lineStack,
                 stateStack,
                 codegen->ctx->lnt);
     }
@@ -5069,7 +5063,6 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCodegenInfo *codegen,
     // while (!fklAnalysisSymbolVectorIsEmpty(symbolStack))
     //     fklDestroyNastNode(
     //             fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast);
-    lineStack->size = 0;
     return begin;
 }
 
@@ -5082,21 +5075,18 @@ static int _codegen_load_get_next_expression(void *pcontext,
     FklVMvalueCodegenInfo *codegen = context->codegen;
     FklParseStateVector *stateStack = &context->stateStack;
     FklAnalysisSymbolVector *symbolStack = &context->symbolStack;
-    FklUintVector *lineStack = &context->lineStack;
     FILE *fp = context->fp;
     int unexpectEOF = 0;
-    size_t errorLine = 0;
-    uint64_t curline = codegen->curline;
+    size_t output_line = 0;
     FklVMvalue *begin = getExpressionFromFile(codegen,
             fp,
             &unexpectEOF,
-            &errorLine,
+            &output_line,
             error_state,
             symbolStack,
-            lineStack,
             stateStack);
     if (unexpectEOF) {
-        error_state->p = PLACE(NULL, errorLine);
+        error_state->p = PLACE(NULL, output_line);
         // error_state->place = NULL;
         // error_state->line = errorLine;
         error_state->type = unexpectEOF == FKL_PARSE_TERMINAL_MATCH_FAILED
@@ -5108,7 +5098,7 @@ static int _codegen_load_get_next_expression(void *pcontext,
         return 0;
 
     FklVMvalue *contianer = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, begin);
-    put_line_number(codegen->ctx->lnt, contianer, curline);
+    put_line_number(codegen->ctx->lnt, contianer, output_line);
     *out = (FklPmatchRes){ .value = begin, .container = contianer };
     return 1;
 }

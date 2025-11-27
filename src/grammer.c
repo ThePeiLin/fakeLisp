@@ -3942,7 +3942,6 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
                 CB_LINE(",skip_ignore_len>0");
                 CB_LINE(",ctx->ctx);");
             }
-            CB_LINE("fklUintVectorPushBack2(lineStack,ctx->line);");
             CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
             CB_LINE("*in+=matchLen+skip_ignore_len;");
             CB_LINE("*restLen-=matchLen+skip_ignore_len;");
@@ -3958,26 +3957,26 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
                     ++delim_len;
             size_t actual_len = ac->prod->len - delim_len;
 
+            if (actual_len) {
+                CB_LINE("size_t line=fklGetFirstNthLine(symbolStack,%" PRIu64
+                        ",ctx->line);",
+                        actual_len);
+            } else {
+                CB_LINE("size_t line=ctx->line;");
+            }
+
             CB_LINE("stateStack->size-=%" PRIu64 ";", actual_len);
             CB_LINE("symbolStack->size-=%" PRIu64 ";", actual_len);
             CB_LINE("FklAnalysisSymbol* base=&symbolStack->base[symbolStack->size];");
 
             CB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
             CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu64
+            CB_LINE("func(NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu64
                     "),&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     actual_len ? "base[0].start_with_ignore" : "0",
                     fklValueTableAdd(t, ac->prod->left.sid));
             CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
-
-            if (actual_len) {
-                CB_LINE("size_t line=fklGetFirstNthLine(lineStack,%" PRIu64
-                        ",ctx->line);",
-                        actual_len);
-                CB_LINE("lineStack->size-=%" PRIu64 ";", actual_len);
-            } else
-                CB_LINE("size_t line=ctx->line;");
 
             CB_LINE("void* ast=prod_action_%s(ctx->ctx,base,%" PRIu64
                     ",line);\n",
@@ -3991,16 +3990,15 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
             }
             CB_LINE("if(!ast) {");
             CB_INDENT(flag) {
-                CB_LINE("*errLine=line;");
+                CB_LINE("*output_line=line;");
                 CB_LINE("return FKL_PARSE_REDUCE_FAILED;");
             }
             CB_LINE("}");
 
             CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,FKL_MAKE_VM_FIX(%" PRIu64
-                    "),ast,%s);",
+                    "),ast,%s,line);",
                     fklValueTableAdd(t, ac->prod->left.sid),
                     actual_len ? "base[0].start_with_ignore" : "0");
-            CB_LINE("fklUintVectorPushBack2(lineStack,line);");
         } break;
         case FKL_ANALYSIS_IGNORE:
             CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen,'\\n');");
@@ -4020,7 +4018,6 @@ static inline void build_state_prototype_to_c_file(
         FklCodeBuilder *build) {
     CB_LINE_START("static int state_%" PRIu64 "(FklParseStateVector*", idx);
     CB_LINE(",FklAnalysisSymbolVector*");
-    CB_LINE(",FklUintVector*");
     CB_LINE(",int");
     CB_LINE(",uint8_t");
     CB_LINE(",struct FklVMvalue*");
@@ -4044,7 +4041,6 @@ static inline void build_state_to_c_file(FklValueTable *t,
             idx);
     CB_INDENT(flag) {
         CB_LINE(",FklAnalysisSymbolVector* symbolStack");
-        CB_LINE(",FklUintVector* lineStack");
         CB_LINE(",int is_action");
         CB_LINE(",uint8_t start_with_ignore");
         CB_LINE(",struct FklVMvalue* left");
@@ -4054,7 +4050,7 @@ static inline void build_state_to_c_file(FklValueTable *t,
         CB_LINE(",size_t* restLen");
         CB_LINE(",FklGrammerMatchCtx* ctx");
         CB_LINE(",int* accept");
-        CB_LINE(",size_t* errLine) {");
+        CB_LINE(",size_t* output_line) {");
     }
 
     CB_INDENT(flag) {
@@ -4253,6 +4249,7 @@ static inline void build_init_term_analyzing_symbol_src(FklCodeBuilder *build,
         CB_LINE("sym->nt.sid=0;");
         CB_LINE("sym->ast=ast;");
         CB_LINE("sym->start_with_ignore=start_with_ignore;");
+        CB_LINE("sym->line=line;");
     }
     CB_LINE("}");
     CB_LINE("");
@@ -4747,9 +4744,10 @@ match_start:
     return 0;
 }
 
-uint64_t fklGetFirstNthLine(FklUintVector *lineStack, size_t num, size_t line) {
+uint64_t
+fklGetFirstNthLine(FklAnalysisSymbolVector *symbols, size_t num, size_t line) {
     if (num)
-        return lineStack->base[lineStack->size - num];
+        return symbols->base[symbols->size - num].line;
     else
         return line;
 }

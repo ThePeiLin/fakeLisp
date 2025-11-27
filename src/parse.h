@@ -9,18 +9,22 @@
 
 #ifndef PARSE_ACCEPT
 #define PARSE_ACCEPT()                                                         \
-    return fklAnalysisSymbolVectorPopBackNonNull(symbolStack)->ast;
+    {                                                                          \
+        FklAnalysisSymbol top =                                                \
+                *fklAnalysisSymbolVectorPopBackNonNull(symbolStack);           \
+        *output_line = top.line;                                               \
+        return top.ast;                                                        \
+    }
 #endif
 
 #ifndef PARSE_REDUCE
 #define PARSE_REDUCE()                                                         \
     if (do_reduce_action(stateStack,                                           \
                 symbolStack,                                                   \
-                lineStack,                                                     \
                 action->prod,                                                  \
                 action->actual_len,                                            \
                 ctx,                                                           \
-                errLine)) {                                                    \
+                output_line)) {                                                \
         *err = FKL_PARSE_REDUCE_FAILED;                                        \
         return NULL;                                                           \
     }
@@ -33,9 +37,8 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
         size_t *restLen,
         FklGrammerMatchCtx *ctx,
         FklParseError *err,
-        size_t *errLine,
+        size_t *output_line,
         FklAnalysisSymbolVector *symbolStack,
-        FklUintVector *lineStack,
         FklParseStateVector *stateStack) {
 #endif
     *restLen = len;
@@ -79,8 +82,8 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
                         cstr + match_args.skip_ignore_len,
                         match_args.matchLen,
                         ctx,
-                        match_args.skip_ignore_len > 0);
-                fklUintVectorPushBack2(lineStack, ctx->line);
+                        match_args.skip_ignore_len > 0,
+                        ctx->line);
                 ctx->line += fklCountCharInBuf(cstr,
                         match_args.matchLen + match_args.skip_ignore_len,
                         '\n');

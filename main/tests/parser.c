@@ -48,24 +48,20 @@ int main() {
 
         FklParseStateVector stateStack;
         FklAnalysisSymbolVector symbolStack;
-        FklUintVector lineStack;
 
         fklParseStateVectorInit(&stateStack, 8);
         fklVMvaluePushState0ToStack(&stateStack);
         fklAnalysisSymbolVectorInit(&symbolStack, 8);
-        fklUintVectorInit(&lineStack, 8);
         size_t errLine = 0;
         FklVMvalue *ast = fklDefaultParseForCstr(*exp,
                 &ctx,
                 &retval,
                 &errLine,
                 &symbolStack,
-                &lineStack,
                 &stateStack);
 
         fklAnalysisSymbolVectorUninit(&symbolStack);
         fklParseStateVectorUninit(&stateStack);
-        fklUintVectorUninit(&lineStack);
         FKL_ASSERT(ast);
         if (retval)
             break;

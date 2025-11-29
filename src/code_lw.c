@@ -820,7 +820,10 @@ static inline void write_production_rule_action_pass_1(
         FklValueTable *vt) {
     if (fklIsCustomActionProd(prod)) {
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fklWriteByteCodelnt(ctx->bcl, vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
+        fklWriteByteCodelnt(FKL_VM_CO(ctx->bcl),
+                vt,
+                FKL_WRITE_CODE_PASS_FIRST,
+                NULL);
     } else if (fklIsSimpleActionProd(prod)) {
         FklVMvalueSimpleActionCtx *ctx = prod->ctx;
         fklTraverseSerializableValue(vt, ctx->vec);
@@ -841,7 +844,10 @@ static inline void write_production_rule_action_pass_2(
         fwrite(&type, sizeof(type), 1, fp);
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
         fwrite(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
-        fklWriteByteCodelnt(ctx->bcl, vt, FKL_WRITE_CODE_PASS_SECOND, fp);
+        fklWriteByteCodelnt(FKL_VM_CO(ctx->bcl),
+                vt,
+                FKL_WRITE_CODE_PASS_SECOND,
+                fp);
     } else if (fklIsSimpleActionProd(prod)) {
         type = FKL_CODEGEN_PROD_SIMPLE;
         fwrite(&type, sizeof(type), 1, fp);
@@ -1116,10 +1122,10 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 prod_len,
                 syms,
                 0);
-        FklVMvalueCustomActionCtx *ctx = prod->ctx;
-        fread(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
-        ctx->bcl = fklCreateByteCodelnt(0);
-        fklLoadByteCodelnt(fp, values, ctx->bcl);
+        FklVMvalueCustomActionCtx *actx = prod->ctx;
+        fread(&actx->prototype_id, sizeof(actx->prototype_id), 1, fp);
+        actx->bcl = fklCreateVMvalueCodeObj1(&ctx->gc->gcvm);
+        fklLoadByteCodelnt(fp, values, FKL_VM_CO(actx->bcl));
     } break;
 
     case FKL_CODEGEN_PROD_SIMPLE: {
@@ -1365,7 +1371,8 @@ static inline void load_export_sid_idx_table(FILE *fp,
     }
 }
 
-static inline FklCodegenMacro *load_compiler_macros(FILE *fp,
+static inline FklCodegenMacro *load_compiler_macros(FklVM *exe,
+        FILE *fp,
         const FklLoadValueArgs *const values) {
     uint64_t count = 0;
     fread(&count, sizeof(count), 1, fp);
@@ -1375,16 +1382,14 @@ static inline FklCodegenMacro *load_compiler_macros(FILE *fp,
         FklVMvalue *pattern = load_value_id(fp, values);
         uint32_t prototype_id = 0;
         fread(&prototype_id, sizeof(prototype_id), 1, fp);
-        FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
-        fklLoadByteCodelnt(fp, values, bcl);
+        FklVMvalue *bcl = fklCreateVMvalueCodeObj1(exe);
+        fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
 
         FklCodegenMacro *cur = fklCreateCodegenMacro(pattern, //
                 bcl,                                          //
                 NULL,                                         //
                 prototype_id);
-        fklDestroyByteCodelnt(bcl);
 
-        bcl = NULL;
         *pr = cur;
         pr = &cur->next;
     }
@@ -1414,12 +1419,13 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
-    FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
-    fklLoadByteCodelnt(fp, values, bcl);
+    // FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
+    FklVMvalue *bcl = fklCreateVMvalueCodeObj1(&args->ctx->gc->gcvm);
+    fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
     lib->bcl = bcl;
     fread(&lib->epc, sizeof(lib->epc), 1, fp);
     load_export_sid_idx_table(fp, values, &lib->exports);
-    lib->head = load_compiler_macros(fp, values);
+    lib->head = load_compiler_macros(&args->ctx->gc->gcvm, fp, values);
     lib->replacements = load_replacements(fp, values);
     load_named_prods(fp, &lib->named_prod_groups, args->ctx, values);
 }
@@ -1588,7 +1594,7 @@ static inline void increase_compiler_macros_lib_prototype_id(
         uint32_t macro_pts_count) {
     for (; head; head = head->next) {
         head->prototype_id += macro_pts_count;
-        increase_bcl_lib_prototype_id(head->bcl,
+        increase_bcl_lib_prototype_id(FKL_VM_CO(head->bcl),
                 macro_lib_count,
                 macro_pts_count);
     }
@@ -1603,7 +1609,9 @@ static inline void increase_prototype_and_lib_id(uint32_t pts_count,
         FklCodegenLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
             lib->prototypeId += pts_count;
-            increase_bcl_lib_prototype_id(lib->bcl, pts_count, lib_count);
+            increase_bcl_lib_prototype_id(FKL_VM_CO(lib->bcl),
+                    pts_count,
+                    lib_count);
         }
     }
 }
@@ -1624,7 +1632,7 @@ static inline void increase_reader_macro_lib_prototype_id(
                     if (fklIsCustomActionProd(prod)) {
                         FklVMvalueCustomActionCtx *ctx = prod->ctx;
                         ctx->prototype_id += count;
-                        increase_bcl_lib_prototype_id(ctx->bcl,
+                        increase_bcl_lib_prototype_id(FKL_VM_CO(ctx->bcl),
                                 lib_count,
                                 count);
                     }
@@ -1699,7 +1707,10 @@ static inline void write_compiler_macros_pass_1(const FklCodegenMacro *head,
         FklValueTable *vt) {
     for (const FklCodegenMacro *c = head; c; c = c->next) {
         fklTraverseSerializableValue(vt, c->pattern);
-        fklWriteByteCodelnt(c->bcl, vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
+        fklWriteByteCodelnt(FKL_VM_CO(c->bcl),
+                vt,
+                FKL_WRITE_CODE_PASS_FIRST,
+                NULL);
     }
 }
 
@@ -1713,7 +1724,10 @@ static inline void write_compiler_macros_pass_2(const FklCodegenMacro *head,
     for (const FklCodegenMacro *c = head; c; c = c->next) {
         write_value_id(vt, 0, c->pattern, fp);
         fwrite(&c->prototype_id, sizeof(c->prototype_id), 1, fp);
-        fklWriteByteCodelnt(c->bcl, vt, FKL_WRITE_CODE_PASS_SECOND, fp);
+        fklWriteByteCodelnt(FKL_VM_CO(c->bcl),
+                vt,
+                FKL_WRITE_CODE_PASS_SECOND,
+                fp);
     }
 }
 
@@ -1782,7 +1796,10 @@ static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
 
 static inline void write_codegen_script_lib_pass_1(const FklCodegenLib *lib,
         FklValueTable *vt) {
-    fklWriteByteCodelnt(lib->bcl, vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
+    fklWriteByteCodelnt(FKL_VM_CO(lib->bcl),
+            vt,
+            FKL_WRITE_CODE_PASS_FIRST,
+            NULL);
     write_export_sid_idx_table_pass_1(&lib->exports, vt);
     write_compiler_macros_pass_1(lib->head, vt);
     write_replacements_pass_1(lib->replacements, vt);
@@ -1824,7 +1841,10 @@ static inline void write_codegen_script_lib_pass_2(const FklCodegenLib *lib,
         FILE *outfp) {
     write_codegen_script_lib_path(lib->rp, main_dir, outfp);
     fwrite(&lib->prototypeId, sizeof(lib->prototypeId), 1, outfp);
-    fklWriteByteCodelnt(lib->bcl, vt, FKL_WRITE_CODE_PASS_SECOND, outfp);
+    fklWriteByteCodelnt(FKL_VM_CO(lib->bcl),
+            vt,
+            FKL_WRITE_CODE_PASS_SECOND,
+            outfp);
     fwrite(&lib->epc, sizeof(lib->epc), 1, outfp);
     write_export_sid_idx_table_pass_2(&lib->exports, vt, outfp);
     write_compiler_macros_pass_2(lib->head, vt, outfp);

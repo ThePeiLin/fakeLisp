@@ -808,14 +808,14 @@ void fklCheckAndGC(FklVM *exe, int forced);
 
 void fklVMthreadStart(FklVM *, FklVMqueue *q);
 
-FklVM *fklCreateVMwithByteCode(FklByteCodelnt *,
+FklVM *fklCreateVMwithByteCode(FklVMvalue *,
         FklVMgc *gc,
         uint32_t proto_id,
         uint64_t spc,
         FklVMvalueProtos *pts,
         FklVMvalueLibs *libs);
 
-FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *,
+FklVM *fklCreateVMwithByteCode2(FklVMvalue *,
         FklVMgc *gc,
         uint32_t proto_id,
         uint64_t spc,
@@ -1240,6 +1240,11 @@ FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);
 
 FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);
+FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
+        FklInstruction ins,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope);
 
 int fklIsVMvalueCodeObj(const FklVMvalue *v);
 

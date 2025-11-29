@@ -203,7 +203,7 @@ static inline void vm_stack_init(FklVM *exe) {
     FKL_ASSERT(exe->base);
 }
 
-FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
+FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         FklVMgc *gc,
         uint32_t pid,
         uint64_t spc,
@@ -221,8 +221,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     exe->pts = pts;
     exe->libs = libs;
     vm_stack_init(exe);
-    if (mainCode != NULL) {
-        FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
+    if (co != NULL) {
         FklByteCodelnt *bcl = FKL_VM_CO(co);
         FklVMvalue *proc = fklCreateVMvalueProc2(exe,
                 bcl->bc.code + spc,
@@ -230,7 +229,6 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
                 co,
                 pid,
                 pts);
-        fklDestroyByteCodelnt(mainCode);
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -242,7 +240,7 @@ FklVM *fklCreateVMwithByteCode(FklByteCodelnt *mainCode,
     return exe;
 }
 
-FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
+FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         FklVMgc *gc,
         uint32_t pid,
         uint64_t spc,
@@ -260,8 +258,7 @@ FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
     exe->libs = libs;
     exe->pts = pts;
     vm_stack_init(exe);
-    if (mainCode != NULL) {
-        FklVMvalue *co = fklCreateVMvalueCodeObjMove(exe, mainCode);
+    if (co != NULL) {
         FklByteCodelnt *bcl = FKL_VM_CO(co);
         FklVMvalue *proc = fklCreateVMvalueProc2(exe,
                 bcl->bc.code + spc,
@@ -269,7 +266,6 @@ FklVM *fklCreateVMwithByteCode2(FklByteCodelnt *mainCode,
                 co,
                 pid,
                 pts);
-        fklDestroyByteCodelnt(mainCode);
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);

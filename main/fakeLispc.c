@@ -48,12 +48,12 @@ static inline int pre_compile(const char *main_file_name,
                 .is_lib = 1,
             });
 
-    FklByteCodelnt *mainByteCode = fklGenExpressionCodeWithFpForPrecompile(fp,
+    FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(fp,
             codegen,
             ctx.global_env);
 
     char *outputname = NULL;
-    if (mainByteCode == NULL) {
+    if (co == NULL) {
         fklZfree(rp);
         r = EXIT_FAILURE;
         goto pre_compile_exit;
@@ -96,12 +96,10 @@ static inline int pre_compile(const char *main_file_name,
             &(FklWritePreCompileArgs){
                 .ctx = &ctx,
                 .main_info = codegen,
-                .main_bcl = mainByteCode,
+                .main_bcl = FKL_VM_CO(co),
             });
 
     fclose(outfp);
-
-    fklDestroyByteCodelnt(mainByteCode);
 
 pre_compile_exit:
     fklVMclearExtraMarkFunc(gc);
@@ -143,11 +141,10 @@ static inline int compile(const char *filename,
 
     char *outputname = NULL;
     FklVM *anotherVM = NULL;
-    FklByteCodelnt *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
+    FklVMvalue *co = fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
-    if (mainByteCode == NULL) {
+    if (co == NULL) {
         fklZfree(rp);
         r = EXIT_FAILURE;
         goto compile_exit;
@@ -171,7 +168,7 @@ static inline int compile(const char *filename,
 
     fklChdir(ctx.cwd);
 
-    anotherVM = fklCreateVMwithByteCode(mainByteCode,
+    anotherVM = fklCreateVMwithByteCode(co,
             gc,
             1,
             0,
@@ -179,8 +176,7 @@ static inline int compile(const char *filename,
             fklCreateVMvalueLibs(&gc->gcvm));
 
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
-    mainByteCode =
-            FKL_VM_CO(FKL_VM_PROC(anotherVM->top_frame->c.proc)->codeObj);
+    co = FKL_VM_PROC(anotherVM->top_frame->c.proc)->codeObj;
 
     fklUpdateVMlibsWithCodegenLibVector(anotherVM,
             anotherVM->libs,
@@ -202,7 +198,7 @@ static inline int compile(const char *filename,
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
                 .pts = anotherVM->pts,
-                .main_func = mainByteCode,
+                .main_func = FKL_VM_CO(co),
                 .libs = anotherVM->libs,
             });
 

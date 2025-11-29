@@ -1,7 +1,6 @@
 #ifndef FKL_CODEGEN_H
 #define FKL_CODEGEN_H
 
-#include "bytecode.h"
 #include "grammer.h"
 #include "parser.h"
 #include "pattern.h"
@@ -93,7 +92,7 @@ void fklUpdatePrototypeConst(FklFuncPrototypes *cp,
 typedef struct FklCodegenMacro {
     FklVMvalue *pattern;
     uint32_t prototype_id;
-    FklByteCodelnt *bcl;
+    FklVMvalue *bcl;
     struct FklCodegenMacro *next;
 } FklCodegenMacro;
 
@@ -174,7 +173,7 @@ typedef struct {
     FklCodegenLibType type;
     union {
         struct {
-            FklByteCodelnt *bcl;
+            FklVMvalue *bcl;
             uint64_t epc;
             uint32_t prototypeId;
             FklCodegenMacro *head;
@@ -284,6 +283,7 @@ typedef enum {
 
 typedef struct FklCodegenCtx {
     struct FklCodegenActionVector *action_vector;
+    FklValueVector *bcl_vector;
     struct FklVMvalueCodegenEnv *global_env;
     struct FklVMvalueCodegenInfo *global_info;
     struct FklCodegenErrorState *error_state;
@@ -371,23 +371,18 @@ typedef struct FklCodegenActionContext {
     alignas(void *) uint8_t d[];
 } FklCodegenActionContext;
 
-typedef struct {
-    FklVMvalue *place;
-    size_t line;
-} FklCodegenErrorPlace;
-
 typedef struct FklCodegenErrorState {
     FklVMvalue *error;
     size_t line;
     FklVMvalue *fid;
 } FklCodegenErrorState;
 
-typedef FklByteCodelnt *(*FklCodegenActionCb)(FklVMvalueCodegenInfo *codegen,
+typedef FklVMvalue *(*FklCodegenActionCb)(FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *env,
         uint32_t scope,
         FklVMvalueCodegenMacroScope *cms,
         void *data,
-        FklByteCodelntVector *bcl_vec,
+        FklValueVector *bcl_vec,
         FklVMvalue *fid,
         uint64_t line,
         FklCodegenErrorState *error_state,
@@ -421,7 +416,7 @@ typedef struct FklCodegenAction {
     uint32_t scope;
     uint64_t curline;
 
-    FklByteCodelntVector bcl_vector;
+    FklValueVector bcl_vector;
 } FklCodegenAction;
 
 // FklCodegenActionVector
@@ -460,27 +455,14 @@ typedef struct {
     int8_t inherit_grammer;
 } FklCodegenInfoArgs;
 
-// FKL_DEPRECATED
-struct FklCustomActionCtx {
-    FklCodegenCtx *ctx;
-    FklByteCodelnt *bcl;
-    uint32_t prototype_id;
-};
-
-// FKL_DEPRECATED
-typedef struct FklSimpleActionCtx {
-    const FklSimpleProdAction *mt;
-    struct FklVMvalue *vec;
-} FklSimpleActionCtx;
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, {
     const FklSimpleProdAction *mt;
-    struct FklVMvalue *vec;
+    FklVMvalue *vec;
 });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx, {
     FklCodegenCtx *ctx;
-    FklByteCodelnt *bcl;
+    FklVMvalue *bcl;
     uint32_t prototype_id;
 });
 
@@ -490,16 +472,16 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
         const char *filename,
         const FklCodegenInfoArgs *args);
 
-FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
+FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
         FklVMvalueCodegenEnv *cur_env,
         FklVMvalueCodegenInfo *codegen);
-FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *,
+FklVMvalue *fklGenExpressionCodeWithAction(FklCodegenAction *,
         FklVMvalueCodegenInfo *codegen);
-FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *,
+FklVMvalue *fklGenExpressionCodeWithFp(FILE *,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env);
 
-FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *cur_env);
 
@@ -578,7 +560,7 @@ void fklInitFuncPrototypeWithEnv(FklFuncPrototype *cpt,
 
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklVMvalueCodegenInfo *codegen,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         uint64_t epc,
         FklVMvalueCodegenEnv *env);
 
@@ -598,7 +580,7 @@ void fklUninitCodegenLib(FklCodegenLib *);
 void fklUninitCodegenLib(FklCodegenLib *);
 
 FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
-        const FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklCodegenMacro *next,
         uint32_t prototype_id);
 
@@ -610,15 +592,6 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *,
         FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *);
-
-FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
-        FklByteCodelnt *bcl,
-        uint32_t prototype_id,
-        FklPmatchHashMap *ht,
-        FklVMvalueLnt *lnt,
-        FklVMvalue **pr,
-        uint64_t curline,
-        FklCodegenErrorState *error_state);
 
 void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         FklVMlib *vlib,

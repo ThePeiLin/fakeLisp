@@ -48,7 +48,6 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
 
 static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
     macro->pattern = NULL;
-    fklDestroyByteCodelnt(macro->bcl);
     macro->bcl = NULL;
 }
 
@@ -189,7 +188,5 @@ static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
     return info->curline;
     FKL_TODO();
 }
-
-#define PLACE(P, L) ((FklCodegenErrorPlace){ .place = (P), .line = (L) })
 
 #endif

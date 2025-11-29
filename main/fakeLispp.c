@@ -245,12 +245,12 @@ int main(int argc, char **argv) {
                 case FKL_CODEGEN_LIB_SCRIPT:
                     CB_LINE("epc %" PRIu64 "", cur->epc);
                     fklDisassembleByteCodelnt(gc,
-                            cur->bcl,
+                            FKL_VM_CO(cur->bcl),
                             cur->prototypeId,
                             ctx.pts,
                             build);
                     if (stats->count > 0)
-                        do_gather_statistics(cur->bcl, opcode_count);
+                        do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
                     CB_LINE("");
                     if (cur->head)
                         print_compiler_macros(gc,
@@ -291,12 +291,13 @@ int main(int argc, char **argv) {
                     case FKL_CODEGEN_LIB_SCRIPT:
                         CB_LINE("epc %" PRIu64 "", cur->epc);
                         fklDisassembleByteCodelnt(gc,
-                                cur->bcl,
+                                FKL_VM_CO(cur->bcl),
                                 cur->prototypeId,
                                 ctx.macro_pts,
                                 build);
                         if (stats->count > 0)
-                            do_gather_statistics(cur->bcl, opcode_count);
+                            do_gather_statistics(FKL_VM_CO(cur->bcl),
+                                    opcode_count);
                         CB_LINE("");
                         if (cur->head)
                             print_compiler_macros(gc,
@@ -362,12 +363,12 @@ static void print_compiler_macros(FklVMgc *gc,
         CB_LINE_END("");
 
         fklDisassembleByteCodelnt(gc,
-                cur->bcl,
+                FKL_VM_CO(cur->bcl),
                 cur->prototype_id,
                 macro_pts,
                 build);
         if (stats->count > 0)
-            do_gather_statistics(cur->bcl, opcode_count);
+            do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
         CB_LINE("");
     }
 }
@@ -380,7 +381,7 @@ static void print_reader_macro_action(FklVMgc *gc,
         CB_LINE_END("custom");
         FklVMvalueCustomActionCtx *ctx = prod->ctx;
         fklDisassembleByteCodelnt(gc,
-                ctx->bcl,
+                FKL_VM_CO(ctx->bcl),
                 ctx->prototype_id,
                 macro_pts,
                 build);

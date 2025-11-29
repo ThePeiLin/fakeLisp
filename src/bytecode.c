@@ -63,18 +63,26 @@ FklByteCodelnt *fklCreateByteCodelnt(size_t len) {
     return t;
 }
 
-FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
+void fklInitSingleInsBcl(FklByteCodelnt *r,
+        FklInstruction ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
-    FklByteCodelnt *r = fklCreateByteCodelnt(1);
     FklByteCode *bc = &r->bc;
     bc->code[0] = ins;
     r->ls = 1;
     r->l = (FklLineNumberTableItem *)fklZmalloc(sizeof(FklLineNumberTableItem));
     FKL_ASSERT(r->l);
     fklInitLineNumTabNode(&r->l[0], fid, 0, line, scope);
+}
+
+FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope) {
+    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
+    FklByteCodelnt *r = fklCreateByteCodelnt(1);
+    fklInitSingleInsBcl(r, ins, fid, line, scope);
     return r;
 }
 

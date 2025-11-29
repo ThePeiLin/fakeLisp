@@ -88,6 +88,12 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
         uint32_t line,
         uint32_t scope);
 
+void fklInitSingleInsBcl(FklByteCodelnt *bcl,
+        FklInstruction ins,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope);
+
 void fklUninitByteCodelnt(FklByteCodelnt *);
 void fklDestroyByteCodelnt(FklByteCodelnt *);
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *, uint64_t);

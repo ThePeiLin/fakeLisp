@@ -1,7 +1,6 @@
 #ifndef FKL_BUILTIN_H
 #define FKL_BUILTIN_H
 
-#include "bytecode.h"
 #include "codegen.h"
 #include "vm_decl.h"
 
@@ -11,7 +10,8 @@ extern "C" {
 
 #define FKL_BUILTIN_SYMBOL_NUM (201)
 
-typedef FklByteCodelnt *(*FklBuiltinInlineFunc)(FklByteCodelnt *[],
+typedef FklVMvalue *(*FklBuiltinInlineFunc)(FklVM *exe,
+        FklVMvalue *[],
         FklVMvalue *,
         uint32_t line,
         uint32_t scope);

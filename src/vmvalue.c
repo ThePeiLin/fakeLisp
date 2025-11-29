@@ -1453,6 +1453,17 @@ FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *exe) {
     return r;
 }
 
+FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
+        FklInstruction ins,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope) {
+    FklVMvalue *r = fklCreateVMvalueCodeObj1(exe);
+    fklInitByteCodelnt(FKL_VM_CO(r), 1);
+    fklInitSingleInsBcl(FKL_VM_CO(r), ins, fid, line, scope);
+    return r;
+}
+
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
     fklMoveByteCodelnt(FKL_VM_CO(r), bcl);

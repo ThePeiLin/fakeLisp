@@ -30,7 +30,10 @@
 
 #include "codegen.h"
 
-static FklByteCodelnt *gen_push_literal_code(const FklPmatchRes *node,
+#define GCVM (&ctx->gc->gcvm)
+
+static FklVMvalue *gen_push_literal_code(FklVM *exe,
+        const FklPmatchRes *node,
         FklVMvalueCodegenInfo *info,
         FklVMvalueCodegenEnv *env,
         uint32_t scope);
@@ -270,8 +273,8 @@ typedef enum {
     JMP_BACKWARD,
 } JmpInsOrientation;
 
-static inline FklByteCodelnt *create_0len_bcl(void) {
-    return fklCreateByteCodelnt(0);
+static inline FklVMvalue *create_0len_bcl(FklVM *exe) {
+    return fklCreateVMvalueCodeObj1(exe);
 }
 
 #define I24_L8_MASK (0xFF)
@@ -318,9 +321,9 @@ set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op, uint64_t k) {
     return l;
 }
 
-static inline FklByteCodelnt *set_and_append_ins_with_unsigned_imm(
+static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
         InsAppendMode m,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklOpcode op,
         uint64_t k,
         FklVMvalue *fid,
@@ -329,15 +332,23 @@ static inline FklByteCodelnt *set_and_append_ins_with_unsigned_imm(
     FklInstruction ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_unsigned_imm(ins, op, k);
     if (bcl == NULL)
-        bcl = create_0len_bcl();
+        bcl = create_0len_bcl(exe);
     switch (m) {
     case INS_APPEND_BACK:
         for (int i = 0; i < l; i++)
-            fklByteCodeLntPushBackIns(bcl, &ins[i], fid, line, scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(bcl),
+                    &ins[i],
+                    fid,
+                    line,
+                    scope);
         break;
     case INS_APPEND_FRONT:
         for (; l > 0; l--)
-            fklByteCodeLntInsertFrontIns(&ins[l - 1], bcl, fid, line, scope);
+            fklByteCodeLntInsertFrontIns(&ins[l - 1],
+                    FKL_VM_CO(bcl),
+                    fid,
+                    line,
+                    scope);
     }
     return bcl;
 }
@@ -388,9 +399,9 @@ static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins,
 #undef I32_L16_MASK
 #undef I64_L24_MASK
 
-static inline FklByteCodelnt *set_and_append_ins_with_2_unsigned_imm(
+static inline FklVMvalue *set_and_append_ins_with_2_unsigned_imm(FklVM *exe,
         InsAppendMode m,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklOpcode op,
         uint64_t ux,
         uint64_t uy,
@@ -400,15 +411,23 @@ static inline FklByteCodelnt *set_and_append_ins_with_2_unsigned_imm(
     FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_2_unsigned_imm(ins, op, ux, uy);
     if (bcl == NULL)
-        bcl = create_0len_bcl();
+        bcl = create_0len_bcl(exe);
     switch (m) {
     case INS_APPEND_BACK:
         for (int i = 0; i < l; i++)
-            fklByteCodeLntPushBackIns(bcl, &ins[i], fid, line, scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(bcl),
+                    &ins[i],
+                    fid,
+                    line,
+                    scope);
         break;
     case INS_APPEND_FRONT:
         for (; l > 0; l--)
-            fklByteCodeLntInsertFrontIns(&ins[l - 1], bcl, fid, line, scope);
+            fklByteCodeLntInsertFrontIns(&ins[l - 1],
+                    FKL_VM_CO(bcl),
+                    fid,
+                    line,
+                    scope);
     }
     return bcl;
 }
@@ -434,9 +453,9 @@ set_ins_with_signed_imm(FklInstruction *ins, FklOpcode op, int64_t k) {
     return l;
 }
 
-static inline FklByteCodelnt *set_and_append_ins_with_signed_imm(
+static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
         InsAppendMode m,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklOpcode op,
         int64_t k,
         FklVMvalue *fid,
@@ -445,48 +464,26 @@ static inline FklByteCodelnt *set_and_append_ins_with_signed_imm(
     FklInstruction ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_signed_imm(ins, op, k);
     if (bcl == NULL)
-        bcl = create_0len_bcl();
+        bcl = create_0len_bcl(exe);
     switch (m) {
     case INS_APPEND_BACK:
         for (int i = 0; i < l; i++)
-            fklByteCodeLntPushBackIns(bcl, &ins[i], fid, line, scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(bcl),
+                    &ins[i],
+                    fid,
+                    line,
+                    scope);
         break;
     case INS_APPEND_FRONT:
         for (; l > 0; l--)
-            fklByteCodeLntInsertFrontIns(&ins[l - 1], bcl, fid, line, scope);
+            fklByteCodeLntInsertFrontIns(&ins[l - 1],
+                    FKL_VM_CO(bcl),
+                    fid,
+                    line,
+                    scope);
     }
     return bcl;
 }
-
-// static inline FklByteCode *set_and_append_ins_with_unsigned_imm_to_bc(
-//         InsAppendMode m,
-//         FklByteCode *bc,
-//         FklOpcode op,
-//         uint64_t k) {
-//     FklInstruction ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
-//     int l = set_ins_with_unsigned_imm(ins, op, k);
-//     if (bc == NULL)
-//         bc = fklCreateByteCode(0);
-//     switch (m) {
-//     case INS_APPEND_BACK:
-//         for (int i = 0; i < l; i++)
-//             fklByteCodePushBack(bc, ins[i]);
-//         break;
-//     case INS_APPEND_FRONT:
-//         for (; l > 0; l--)
-//             fklByteCodeInsertFront(ins[l - 1], bc);
-//     }
-//     return bc;
-// }
-//
-// static inline FklByteCode *
-// append_push_sym_ins_to_bc(InsAppendMode m, FklByteCode *bc, FklVMvalue *sid)
-// {
-//     return set_and_append_ins_with_unsigned_imm_to_bc(m,
-//             bc,
-//             FKL_OP_PUSH_SYM,
-//             sid);
-// }
 
 static inline FklByteCode *
 append_push_chr_ins_to_bc(InsAppendMode m, FklByteCode *bc, char ch) {
@@ -570,8 +567,9 @@ static inline FklByteCode *append_push_i24_ins_to_bc(InsAppendMode m,
     return bc;
 }
 
-static inline FklByteCodelnt *append_push_i24_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         int64_t k,
         FklVMvalueCodegenInfo *info,
         FklVMvalue *fid,
@@ -594,13 +592,17 @@ static inline FklByteCodelnt *append_push_i24_ins(InsAppendMode m,
         set_ins_uc(&ins, k + FKL_I24_OFFSET);
     append:
         if (bcl == NULL)
-            bcl = create_0len_bcl();
+            bcl = create_0len_bcl(exe);
         switch (m) {
         case INS_APPEND_BACK:
-            fklByteCodeLntPushBackIns(bcl, &ins, fid, line, scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(bcl), &ins, fid, line, scope);
             break;
         case INS_APPEND_FRONT:
-            fklByteCodeLntInsertFrontIns(&ins, bcl, fid, line, scope);
+            fklByteCodeLntInsertFrontIns(&ins,
+                    FKL_VM_CO(bcl),
+                    fid,
+                    line,
+                    scope);
         }
     } else {
         FKL_UNREACHABLE();
@@ -608,50 +610,16 @@ static inline FklByteCodelnt *append_push_i24_ins(InsAppendMode m,
     return bcl;
 }
 
-// static inline FklByteCode *append_push_bigint_ins_to_bc(InsAppendMode m,
-//         FklByteCode *bc,
-//         const FklBigInt *k,
-//         FklVMvalueCodegenInfo *info) {
-//     if (fklIsBigIntGtLtI64(k))
-//         return set_and_append_ins_with_unsigned_imm_to_bc(m,
-//                 bc,
-//                 FKL_OP_PUSH_BI,
-//                 fklAddBigIntConst(info->kt, k));
-//     else
-//         return set_and_append_ins_with_unsigned_imm_to_bc(m,
-//                 bc,
-//                 FKL_OP_PUSH_I64B,
-//                 fklAddI64Const(info->kt, fklBigIntToI(k)));
-// }
-//
-// static inline FklByteCode *append_push_bvec_ins_to_bc(InsAppendMode m,
-//         FklByteCode *bc,
-//         const FklBytevector *k,
-//         FklVMvalueCodegenInfo *info) {
-//     return set_and_append_ins_with_unsigned_imm_to_bc(m,
-//             bc,
-//             FKL_OP_PUSH_BVEC,
-//             fklAddBvecConst(info->kt, k));
-// }
-//
-// static inline FklByteCode *append_push_f64_ins_to_bc(InsAppendMode m,
-//         FklByteCode *bc,
-//         double k,
-//         FklVMvalueCodegenInfo *info) {
-//     return set_and_append_ins_with_unsigned_imm_to_bc(m,
-//             bc,
-//             FKL_OP_PUSH_F64,
-//             fklAddF64Const(info->kt, k));
-// }
-
-static inline FklByteCodelnt *append_push_proc_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_push_proc_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t prototypeId,
         uint64_t len,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(m,
+    return set_and_append_ins_with_2_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_PUSH_PROC,
             prototypeId,
@@ -661,8 +629,9 @@ static inline FklByteCodelnt *append_push_proc_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_jmp_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         int64_t len,
         JmpInsCondition condition,
         JmpInsOrientation orien,
@@ -683,7 +652,8 @@ static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
     }
     switch (orien) {
     case JMP_FORWARD:
-        return set_and_append_ins_with_signed_imm(m,
+        return set_and_append_ins_with_signed_imm(exe,
+                m,
                 bcl,
                 op,
                 len,
@@ -694,7 +664,8 @@ static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
     case JMP_BACKWARD:
         len = -len - 1;
         if (len >= FKL_I24_MIN)
-            return set_and_append_ins_with_signed_imm(m,
+            return set_and_append_ins_with_signed_imm(exe,
+                    m,
                     bcl,
                     op,
                     len,
@@ -703,7 +674,8 @@ static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
                     scope);
         len -= 1;
         if (len >= INT32_MIN)
-            return set_and_append_ins_with_signed_imm(m,
+            return set_and_append_ins_with_signed_imm(exe,
+                    m,
                     bcl,
                     op,
                     len,
@@ -711,7 +683,8 @@ static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
                     line,
                     scope);
         len -= 1;
-        return set_and_append_ins_with_signed_imm(m,
+        return set_and_append_ins_with_signed_imm(exe,
+                m,
                 bcl,
                 op,
                 len,
@@ -723,14 +696,16 @@ static inline FklByteCodelnt *append_jmp_ins(InsAppendMode m,
     return bcl;
 }
 
-static inline FklByteCodelnt *append_import_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_import_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx1,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(m,
+    return set_and_append_ins_with_2_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_IMPORT,
             idx,
@@ -740,13 +715,15 @@ static inline FklByteCodelnt *append_import_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_load_lib_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_load_lib_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t lib_id,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_LOAD_LIB,
             lib_id,
@@ -755,13 +732,15 @@ static inline FklByteCodelnt *append_load_lib_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_load_dll_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_load_dll_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t lib_id,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_LOAD_DLL,
             lib_id,
@@ -770,14 +749,16 @@ static inline FklByteCodelnt *append_load_dll_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_export_to_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_export_to_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t libId,
         uint32_t num,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(m,
+    return set_and_append_ins_with_2_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_EXPORT_TO,
             libId,
@@ -787,13 +768,15 @@ static inline FklByteCodelnt *append_export_to_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_export_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_export_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_EXPORT,
             idx,
@@ -806,13 +789,15 @@ static inline FklInstruction create_op_ins(FklOpcode op) {
     return (FklInstruction){ .op = op };
 }
 
-static inline FklByteCodelnt *append_pop_loc_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_pop_loc_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_POP_LOC,
             idx,
@@ -821,13 +806,15 @@ static inline FklByteCodelnt *append_pop_loc_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_put_loc_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_put_loc_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_PUT_LOC,
             idx,
@@ -836,13 +823,15 @@ static inline FklByteCodelnt *append_put_loc_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_put_var_ref_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_put_var_ref_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_PUT_VAR_REF,
             idx,
@@ -873,7 +862,7 @@ static FklCodegenAction *create_cg_action(FklCodegenActionCb f,
     r->codegen = codegen;
     r->prev = prev;
     r->codegen = codegen;
-    fklByteCodelntVectorInit(&r->bcl_vector, 0);
+    fklValueVectorInit(&r->bcl_vector, 0);
     return r;
 }
 
@@ -893,10 +882,7 @@ static void destroy_cg_action(FklCodegenAction *action) {
 
     action->context = NULL;
 
-    FklByteCodelntVector *s = &action->bcl_vector;
-    while (!fklByteCodelntVectorIsEmpty(s))
-        fklDestroyByteCodelnt(*fklByteCodelntVectorPopBackNonNull(s));
-    fklByteCodelntVectorUninit(s);
+    fklValueVectorUninit(&action->bcl_vector);
 
     fklZfree(action);
 }
@@ -922,54 +908,60 @@ static void destroy_cg_action(FklCodegenAction *action) {
                     (CODEGEN)))
 
 #define BC_PROCESS(NAME)                                                       \
-    static FklByteCodelnt *NAME(FklVMvalueCodegenInfo *codegen,                \
+    static FklVMvalue *NAME(FklVMvalueCodegenInfo *codegen,                    \
             FklVMvalueCodegenEnv *env,                                         \
             uint32_t scope,                                                    \
             FklVMvalueCodegenMacroScope *cms,                                  \
             void *data,                                                        \
-            FklByteCodelntVector *bcl_vec,                                     \
+            FklValueVector *bcl_vec,                                           \
             FklVMvalue *fid,                                                   \
             uint64_t line,                                                     \
             FklCodegenErrorState *error_state,                                 \
             FklCodegenCtx *ctx)
 
 BC_PROCESS(_default_bc_process) {
-    if (!fklByteCodelntVectorIsEmpty(bcl_vec))
-        return *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    if (!fklValueVectorIsEmpty(bcl_vec))
+        return *fklValueVectorPopBackNonNull(bcl_vec);
     else
         return NULL;
 }
 
 BC_PROCESS(_empty_bc_process) { return NULL; }
 
-static FklByteCodelnt *sequnce_exp_bc_process(FklByteCodelntVector *stack,
+static FklVMvalue *sequnce_exp_bc_process(FklVM *exe,
+        FklValueVector *stack,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     if (stack->size) {
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+        FklVMvalue *retval = create_0len_bcl(exe);
         size_t top = stack->size;
         for (size_t i = 0; i < top; i++) {
-            FklByteCodelnt *cur = stack->base[i];
-            if (cur->bc.len) {
-                fklCodeLntConcat(retval, cur);
+            FklVMvalue *cur = stack->base[i];
+            FklByteCodelnt *co = FKL_VM_CO(cur);
+            if (co->bc.len) {
+                fklCodeLntConcat(FKL_VM_CO(retval), co);
                 if (i < top - 1)
-                    fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
+                    fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                            &drop,
+                            fid,
+                            line,
+                            scope);
             }
-            fklDestroyByteCodelnt(cur);
         }
         stack->size = 0;
         return retval;
     } else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(exe,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
 }
 
 BC_PROCESS(_begin_exp_bc_process) {
-    return sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    return sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
 }
 
 static inline void
@@ -1040,8 +1032,8 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
 
 BC_PROCESS(_funcall_exp_bc_process) {
     if (bcl_vec->size) {
-        FklByteCodelnt *func = bcl_vec->base[0];
-        FklByteCode *funcBc = &func->bc;
+        FklVMvalue *func = bcl_vec->base[0];
+        FklByteCode *funcBc = &FKL_VM_CO(func)->bc;
         uint32_t argNum = bcl_vec->size - 1;
         FklBuiltinInlineFunc inlFunc = NULL;
         if (argNum < 4
@@ -1049,27 +1041,34 @@ BC_PROCESS(_funcall_exp_bc_process) {
                             env,
                             argNum,
                             codegen))) {
-            fklDestroyByteCodelnt(func);
             bcl_vec->size = 0;
-            return inlFunc(bcl_vec->base + 1, fid, line, scope);
+            return inlFunc(GCVM, bcl_vec->base + 1, fid, line, scope);
         } else {
-            FklByteCodelnt *retval = fklCreateByteCodelnt(0);
-            FklByteCodelnt **base = bcl_vec->base;
-            FklByteCodelnt **const end = base + bcl_vec->size;
+            FklVMvalue *retval = create_0len_bcl(GCVM);
+            FklVMvalue **base = bcl_vec->base;
+            FklVMvalue **const end = base + bcl_vec->size;
             for (; base < end; ++base) {
-                FklByteCodelnt *cur = *base;
-                fklCodeLntConcat(retval, cur);
-                fklDestroyByteCodelnt(cur);
+                FklVMvalue *cur = *base;
+                fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
             }
             bcl_vec->size = 0;
             FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
             FklInstruction call = create_op_ins(FKL_OP_CALL);
-            fklByteCodeLntInsertFrontIns(&setBp, retval, fid, line, scope);
-            fklByteCodeLntPushBackIns(retval, &call, fid, line, scope);
+            fklByteCodeLntInsertFrontIns(&setBp,
+                    FKL_VM_CO(retval),
+                    fid,
+                    line,
+                    scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                    &call,
+                    fid,
+                    line,
+                    scope);
             return retval;
         }
     } else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -1235,7 +1234,7 @@ static void codegen_funcall(const FklPmatchRes *rest,
     FklVMvalue *last = NULL;
     pushListItemToQueue(rest->value, queue, &last);
     if (last != FKL_VM_NIL) {
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, rest->value);
+        error_state->error = make_syntax_error(GCVM, rest->value);
         error_state->line = CURLINE(rest->container);
 
         cgExpQueueDestroy(queue);
@@ -1322,14 +1321,16 @@ static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
     return r;
 }
 
-static inline FklByteCodelnt *append_close_ref_ins(InsAppendMode m,
-        FklByteCodelnt *retval,
+static inline FklVMvalue *append_close_ref_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *retval,
         uint32_t s,
         uint32_t e,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(m,
+    return set_and_append_ins_with_2_unsigned_imm(exe,
+            m,
             retval,
             FKL_OP_CLOSE_REF,
             s,
@@ -1339,7 +1340,8 @@ static inline FklByteCodelnt *append_close_ref_ins(InsAppendMode m,
             scope);
 }
 
-static inline void check_and_close_ref(FklByteCodelnt *retval,
+static inline void check_and_close_ref(FklVM *exe,
+        FklVMvalue *retval,
         uint32_t scope,
         FklVMvalueCodegenEnv *env,
         FklFuncPrototypes *pa,
@@ -1355,7 +1357,8 @@ static inline void check_and_close_ref(FklByteCodelnt *retval,
                 pa,
                 &start,
                 &end))
-        append_close_ref_ins(INS_APPEND_BACK,
+        append_close_ref_ins(exe,
+                INS_APPEND_BACK,
                 retval,
                 start,
                 end,
@@ -1365,8 +1368,9 @@ static inline void check_and_close_ref(FklByteCodelnt *retval,
 }
 
 BC_PROCESS(_local_exp_bc_process) {
-    FklByteCodelnt *retval = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
-    check_and_close_ref(retval, scope, env, &codegen->pts->p, fid, line);
+    FklVMvalue *retval =
+            sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
+    check_and_close_ref(GCVM, retval, scope, env, &codegen->pts->p, fid, line);
     return retval;
 }
 
@@ -1505,31 +1509,35 @@ BC_PROCESS(_let1_exp_bc_process) {
     Let1Context *let_ctx = FKL_TYPE_CAST(Let1Context *, data);
     FklValueVector *symbolStack = let_ctx->ss;
 
-    FklByteCodelnt *retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *retval = *fklValueVectorPopBackNonNull(bcl_vec);
     FklVMvalue **cur_sid = symbolStack->base;
     FklVMvalue **const sid_end = cur_sid + symbolStack->size;
     for (; cur_sid < sid_end; ++cur_sid) {
         FklVMvalue *id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
-        append_pop_loc_ins(INS_APPEND_FRONT, retval, idx, fid, line, scope);
+        append_pop_loc_ins(GCVM,
+                INS_APPEND_FRONT,
+                retval,
+                idx,
+                fid,
+                line,
+                scope);
     }
-    if (!fklByteCodelntVectorIsEmpty(bcl_vec)) {
-        FklByteCodelnt *args = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        fklCodeLntReverseConcat(args, retval);
-        fklDestroyByteCodelnt(args);
+    if (!fklValueVectorIsEmpty(bcl_vec)) {
+        FklVMvalue *args = *fklValueVectorPopBackNonNull(bcl_vec);
+        fklCodeLntReverseConcat(FKL_VM_CO(args), FKL_VM_CO(retval));
     }
     return retval;
 }
 
 BC_PROCESS(_let_arg_exp_bc_process) {
     if (bcl_vec->size) {
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
-        FklByteCodelnt **cur_bcl = bcl_vec->base;
-        FklByteCodelnt **const end = cur_bcl + bcl_vec->size;
+        FklVMvalue *retval = create_0len_bcl(GCVM);
+        FklVMvalue **cur_bcl = bcl_vec->base;
+        FklVMvalue **const end = cur_bcl + bcl_vec->size;
         for (; cur_bcl < end; ++cur_bcl) {
-            FklByteCodelnt *cur = *cur_bcl;
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = *cur_bcl;
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
         bcl_vec->size = 0;
         return retval;
@@ -1538,10 +1546,9 @@ BC_PROCESS(_let_arg_exp_bc_process) {
 }
 
 BC_PROCESS(_letrec_exp_bc_process) {
-    FklByteCodelnt *body = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    fklCodeLntConcat(retval, body);
-    fklDestroyByteCodelnt(body);
+    FklVMvalue *body = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *retval = *fklValueVectorPopBackNonNull(bcl_vec);
+    fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(body));
     return retval;
 }
 
@@ -1549,18 +1556,23 @@ BC_PROCESS(_letrec_arg_exp_bc_process) {
     Let1Context *let_ctx = FKL_TYPE_CAST(Let1Context *, data);
     FklValueVector *symbolStack = let_ctx->ss;
 
-    FklByteCodelnt *retval = create_0len_bcl();
+    FklVMvalue *retval = create_0len_bcl(GCVM);
     FklVMvalue **cur_sid = symbolStack->base;
     FklVMvalue **const sid_end = cur_sid + symbolStack->size;
-    FklByteCodelnt **cur_bcl = bcl_vec->base;
+    FklVMvalue **cur_bcl = bcl_vec->base;
     for (; cur_sid < sid_end; ++cur_sid, ++cur_bcl) {
-        FklByteCodelnt *value_bc = *cur_bcl;
+        FklVMvalue *value_bc = *cur_bcl;
         FklVMvalue *id = *cur_sid;
         uint32_t idx = fklAddCodegenDefBySid(id, scope, env)->idx;
         fklResolveCodegenPreDef(id, scope, env, &codegen->pts->p);
-        fklCodeLntConcat(retval, value_bc);
-        append_pop_loc_ins(INS_APPEND_BACK, retval, idx, fid, line, scope);
-        fklDestroyByteCodelnt(value_bc);
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(value_bc));
+        append_pop_loc_ins(GCVM,
+                INS_APPEND_BACK,
+                retval,
+                idx,
+                fid,
+                line,
+                scope);
     }
     bcl_vec->size = 0;
     return retval;
@@ -1575,7 +1587,7 @@ static CODEGEN_FUNC(codegen_let1) {
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (!FKL_IS_SYM(first->value)) {
         fklValueVectorDestroy(symStack);
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
+        error_state->error = make_syntax_error(GCVM, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
     }
@@ -1598,7 +1610,7 @@ static CODEGEN_FUNC(codegen_let1) {
         if (!is_valid_let_args(args, env, cs, symStack, builtin_pattern_node)) {
             cgExpQueueDestroy(valueQueue);
             fklValueVectorDestroy(symStack);
-            error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
+            error_state->error = make_syntax_error(GCVM, orig->value);
             error_state->line = CURLINE(orig->container);
             return;
         }
@@ -1670,8 +1682,7 @@ static CODEGEN_FUNC(codegen_let81) {
     // FklNastNode *old = orig->pair->cdr;
     // orig->pair->cdr = restLet8;
 
-    FklVMvalue *restLet8 =
-            fklCreateVMvaluePair(&ctx->gc->gcvm, args->value, rest->value);
+    FklVMvalue *restLet8 = fklCreateVMvaluePair(GCVM, args->value, rest->value);
     FKL_VM_CDR(orig->value) = restLet8;
 
     ListElm a[3] = {
@@ -1679,8 +1690,7 @@ static CODEGEN_FUNC(codegen_let81) {
         { .v = first_name, .line = CURLINE(first_name) },
         { .v = orig->value, .line = CURLINE(orig->container) },
     };
-    letHead =
-            create_nast_list(a, 3, CURLINE(orig->value), &ctx->gc->gcvm, NULL);
+    letHead = create_nast_list(a, 3, CURLINE(orig->value), GCVM, NULL);
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush2(queue,
             (FklPmatchRes){
@@ -1711,7 +1721,7 @@ static CODEGEN_FUNC(codegen_letrec) {
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
     if (!FKL_IS_SYM(first->value)) {
         fklValueVectorDestroy(symStack);
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
+        error_state->error = make_syntax_error(GCVM, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
     }
@@ -1731,7 +1741,7 @@ static CODEGEN_FUNC(codegen_letrec) {
                 symStack,
                 builtin_pattern_node)) {
         fklValueVectorDestroy(symStack);
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
+        error_state->error = make_syntax_error(GCVM, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
     }
@@ -1791,19 +1801,21 @@ static CODEGEN_FUNC(codegen_letrec) {
     fklCodegenActionVectorPushBack2(actions, argAction);
 }
 
-static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt *cond,
-        FklByteCodelnt *rest,
+static inline void insert_jmp_if_true_and_jmp_back_between(FklVM *exe,
+        FklVMvalue *cond,
+        FklVMvalue *rest,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklByteCode *cond_bc = &cond->bc;
-    FklByteCode *rest_bc = &rest->bc;
+    FklByteCode *cond_bc = &FKL_VM_CO(cond)->bc;
+    FklByteCode *rest_bc = &FKL_VM_CO(rest)->bc;
     uint32_t jmp_back_ins_len = 3;
 
     uint64_t cond_len = cond_bc->len;
     uint64_t rest_len = rest_bc->len;
 
-    append_jmp_ins(INS_APPEND_BACK,
+    append_jmp_ins(exe,
+            INS_APPEND_BACK,
             cond,
             rest_bc->len + jmp_back_ins_len,
             JMP_IF_TRUE,
@@ -1812,7 +1824,8 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt *cond,
             line,
             scope);
 
-    append_jmp_ins(INS_APPEND_BACK,
+    append_jmp_ins(exe,
+            INS_APPEND_BACK,
             rest,
             rest_bc->len + cond_bc->len,
             JMP_UNCOND,
@@ -1828,7 +1841,8 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt *cond,
         cond_bc->len = cond_len;
         jmp_back_ins_len = jmp_back_actual_len;
 
-        append_jmp_ins(INS_APPEND_BACK,
+        append_jmp_ins(exe,
+                INS_APPEND_BACK,
                 cond,
                 rest_bc->len + jmp_back_ins_len,
                 JMP_IF_TRUE,
@@ -1837,7 +1851,8 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt *cond,
                 line,
                 scope);
 
-        append_jmp_ins(INS_APPEND_BACK,
+        append_jmp_ins(exe,
+                INS_APPEND_BACK,
                 rest,
                 rest_bc->len + cond_bc->len,
                 JMP_UNCOND,
@@ -1851,22 +1866,20 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklByteCodelnt *cond,
 }
 
 BC_PROCESS(_do0_exp_bc_process) {
-    FklByteCodelnt *rest = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *value = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *cond = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *rest = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *value = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
 
     FklInstruction pop = create_op_ins(FKL_OP_DROP);
 
-    fklByteCodeLntInsertFrontIns(&pop, rest, fid, line, scope);
-    insert_jmp_if_true_and_jmp_back_between(cond, rest, fid, line, scope);
+    fklByteCodeLntInsertFrontIns(&pop, FKL_VM_CO(rest), fid, line, scope);
+    insert_jmp_if_true_and_jmp_back_between(GCVM, cond, rest, fid, line, scope);
 
-    fklCodeLntConcat(cond, rest);
-    fklDestroyByteCodelnt(rest);
+    fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(rest));
 
-    if (value->bc.len)
-        fklByteCodeLntPushBackIns(cond, &pop, fid, line, scope);
-    fklCodeLntReverseConcat(cond, value);
-    fklDestroyByteCodelnt(cond);
+    if (FKL_VM_CO(value)->bc.len)
+        fklByteCodeLntPushBackIns(FKL_VM_CO(cond), &pop, fid, line, scope);
+    fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(value));
 
     return value;
 }
@@ -1874,11 +1887,11 @@ BC_PROCESS(_do0_exp_bc_process) {
 BC_PROCESS(_do_rest_exp_bc_process) {
     if (bcl_vec->size) {
         FklInstruction pop = create_op_ins(FKL_OP_DROP);
-        FklByteCodelnt *r = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
-        fklByteCodeLntPushBackIns(r, &pop, fid, line, scope);
+        FklVMvalue *r = sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
+        fklByteCodeLntPushBackIns(FKL_VM_CO(r), &pop, fid, line, scope);
         return r;
     }
-    return fklCreateByteCodelnt(0);
+    return create_0len_bcl(GCVM);
 }
 
 static CODEGEN_FUNC(codegen_do0) {
@@ -1933,7 +1946,7 @@ static CODEGEN_FUNC(codegen_do0) {
                 codegen);
         fklCodegenActionVectorPushBack2(actions, do0VAction);
     } else {
-        FklByteCodelnt *v = fklCreateByteCodelnt(0);
+        FklVMvalue *v = create_0len_bcl(GCVM);
         FklCodegenAction *action = create_cg_action(_default_bc_process,
                 createDefaultStackContext(),
                 NULL,
@@ -1944,7 +1957,7 @@ static CODEGEN_FUNC(codegen_do0) {
                 // orig->curline,
                 do0Action,
                 codegen);
-        fklByteCodelntVectorPushBack2(&action->bcl_vector, v);
+        fklValueVectorPushBack2(&action->bcl_vector, v);
         fklCodegenActionVectorPushBack2(actions, action);
     }
     CgExpQueue *cQueue = cgExpQueueCreate();
@@ -2019,21 +2032,27 @@ static inline int is_valid_do_bind_list(const FklVMvalue *sl,
 }
 
 BC_PROCESS(_do1_init_val_bc_process) {
-    FklByteCodelnt *ret = fklCreateByteCodelnt(0);
+    FklVMvalue *ret = create_0len_bcl(GCVM);
     Do1Context *let_ctx = FKL_TYPE_CAST(Do1Context *, data);
     FklUintVector *ss = let_ctx->ss;
 
     FklInstruction pop = create_op_ins(FKL_OP_DROP);
 
     uint64_t *idxbase = ss->base;
-    FklByteCodelnt **bclBase = bcl_vec->base;
+    FklVMvalue **bclBase = bcl_vec->base;
     uint32_t top = bcl_vec->size;
     for (uint32_t i = 0; i < top; i++) {
         uint32_t idx = idxbase[i];
-        FklByteCodelnt *curBcl = bclBase[i];
-        append_put_loc_ins(INS_APPEND_BACK, curBcl, idx, fid, line, scope);
-        fklByteCodeLntPushBackIns(curBcl, &pop, fid, line, scope);
-        fklCodeLntConcat(ret, curBcl);
+        FklVMvalue *curBcl = bclBase[i];
+        append_put_loc_ins(GCVM,
+                INS_APPEND_BACK,
+                curBcl,
+                idx,
+                fid,
+                line,
+                scope);
+        fklByteCodeLntPushBackIns(FKL_VM_CO(curBcl), &pop, fid, line, scope);
+        fklCodeLntConcat(FKL_VM_CO(ret), FKL_VM_CO(curBcl));
     }
     return ret;
 }
@@ -2043,18 +2062,28 @@ BC_PROCESS(_do1_next_val_bc_process) {
     FklUintVector *ss = let_ctx->ss;
 
     if (bcl_vec->size) {
-        FklByteCodelnt *ret = fklCreateByteCodelnt(0);
+        FklVMvalue *ret = create_0len_bcl(GCVM);
         FklInstruction pop = create_op_ins(FKL_OP_DROP);
 
         uint64_t *idxbase = ss->base;
-        FklByteCodelnt **bclBase = bcl_vec->base;
+        FklVMvalue **bclBase = bcl_vec->base;
         uint32_t top = bcl_vec->size;
         for (uint32_t i = 0; i < top; i++) {
             uint32_t idx = idxbase[i];
-            FklByteCodelnt *curBcl = bclBase[i];
-            append_put_loc_ins(INS_APPEND_BACK, curBcl, idx, fid, line, scope);
-            fklByteCodeLntPushBackIns(curBcl, &pop, fid, line, scope);
-            fklCodeLntConcat(ret, curBcl);
+            FklVMvalue *curBcl = bclBase[i];
+            append_put_loc_ins(GCVM,
+                    INS_APPEND_BACK,
+                    curBcl,
+                    idx,
+                    fid,
+                    line,
+                    scope);
+            fklByteCodeLntPushBackIns(FKL_VM_CO(curBcl),
+                    &pop,
+                    fid,
+                    line,
+                    scope);
+            fklCodeLntConcat(FKL_VM_CO(ret), FKL_VM_CO(curBcl));
         }
         return ret;
     }
@@ -2062,35 +2091,30 @@ BC_PROCESS(_do1_next_val_bc_process) {
 }
 
 BC_PROCESS(_do1_bc_process) {
-    FklByteCodelnt *next = bcl_vec->size == 5
-                                 ? *fklByteCodelntVectorPopBackNonNull(bcl_vec)
-                                 : NULL;
-    FklByteCodelnt *rest = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *value = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *cond = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *init = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *next =
+            bcl_vec->size == 5 ? *fklValueVectorPopBackNonNull(bcl_vec) : NULL;
+    FklVMvalue *rest = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *value = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *init = *fklValueVectorPopBackNonNull(bcl_vec);
 
     FklInstruction pop = create_op_ins(FKL_OP_DROP);
 
-    fklByteCodeLntInsertFrontIns(&pop, rest, fid, line, scope);
+    fklByteCodeLntInsertFrontIns(&pop, FKL_VM_CO(rest), fid, line, scope);
     if (next) {
-        fklCodeLntConcat(rest, next);
-        fklDestroyByteCodelnt(next);
+        fklCodeLntConcat(FKL_VM_CO(rest), FKL_VM_CO(next));
     }
 
-    insert_jmp_if_true_and_jmp_back_between(cond, rest, fid, line, scope);
+    insert_jmp_if_true_and_jmp_back_between(GCVM, cond, rest, fid, line, scope);
 
-    fklCodeLntConcat(cond, rest);
-    fklDestroyByteCodelnt(rest);
+    fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(rest));
 
-    if (value->bc.len)
-        fklByteCodeLntPushBackIns(cond, &pop, fid, line, scope);
-    fklCodeLntReverseConcat(cond, value);
-    fklDestroyByteCodelnt(cond);
+    if (FKL_VM_CO(value)->bc.len)
+        fklByteCodeLntPushBackIns(FKL_VM_CO(cond), &pop, fid, line, scope);
+    fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(value));
 
-    fklCodeLntReverseConcat(init, value);
-    fklDestroyByteCodelnt(init);
-    check_and_close_ref(value, scope, env, &codegen->pts->p, fid, line);
+    fklCodeLntReverseConcat(FKL_VM_CO(init), FKL_VM_CO(value));
+    check_and_close_ref(GCVM, value, scope, env, &codegen->pts->p, fid, line);
     return value;
 }
 
@@ -2125,7 +2149,7 @@ static CODEGEN_FUNC(codegen_do1) {
         cgExpQueueDestroy(valueQueue);
         cgExpQueueDestroy(nextValueQueue);
 
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
+        error_state->error = make_syntax_error(GCVM, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
     }
@@ -2184,7 +2208,7 @@ static CODEGEN_FUNC(codegen_do1) {
                 codegen);
         fklCodegenActionVectorPushBack2(actions, do1VAction);
     } else {
-        FklByteCodelnt *v = fklCreateByteCodelnt(0);
+        FklVMvalue *v = create_0len_bcl(GCVM);
         FklCodegenAction *action = create_cg_action(_default_bc_process,
                 createDefaultStackContext(),
                 NULL,
@@ -2195,7 +2219,7 @@ static CODEGEN_FUNC(codegen_do1) {
                 // orig->curline,
                 do1Action,
                 codegen);
-        fklByteCodelntVectorPushBack2(&action->bcl_vector, v);
+        fklValueVectorPushBack2(&action->bcl_vector, v);
         fklCodegenActionVectorPushBack2(actions, action);
     }
 
@@ -2253,7 +2277,7 @@ get_sid_with_ref_idx(FklSymDefHashMap *refs, uint32_t idx, FklCodegenCtx *ctx) {
     return 0;
 }
 
-static inline FklByteCodelnt *process_set_var(FklByteCodelntVector *stack,
+static inline FklVMvalue *process_set_var(FklValueVector *stack,
         FklVMvalueCodegenInfo *codegen,
         FklCodegenCtx *ctx,
         FklVMvalueCodegenEnv *env,
@@ -2261,11 +2285,11 @@ static inline FklByteCodelnt *process_set_var(FklByteCodelntVector *stack,
         FklVMvalue *fid,
         uint32_t line) {
     if (stack->size >= 2) {
-        FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(stack);
-        FklByteCodelnt *popVar = *fklByteCodelntVectorPopBackNonNull(stack);
-        const FklInstruction *cur_ins = &cur->bc.code[0];
+        FklVMvalue *cur = *fklValueVectorPopBackNonNull(stack);
+        FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
+        const FklInstruction *cur_ins = &FKL_VM_CO(cur)->bc.code[0];
         if (fklIsPushProcIns(cur_ins)) {
-            const FklInstruction *popVar_ins = &popVar->bc.code[0];
+            const FklInstruction *popVar_ins = &FKL_VM_CO(popVar)->bc.code[0];
             if (fklIsPutLocIns(popVar_ins)) {
                 FklInstructionArg arg;
                 fklGetInsOpArg(cur_ins, &arg);
@@ -2289,13 +2313,16 @@ static inline FklByteCodelnt *process_set_var(FklByteCodelntVector *stack,
                             get_sid_with_ref_idx(&env->refs, idx, ctx);
             }
         }
-        fklCodeLntReverseConcat(cur, popVar);
-        fklDestroyByteCodelnt(cur);
+        fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(popVar));
         return popVar;
     } else {
-        FklByteCodelnt *popVar = *fklByteCodelntVectorPopBackNonNull(stack);
+        FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
         FklInstruction pushNil = create_op_ins(FKL_OP_PUSH_NIL);
-        fklByteCodeLntInsertFrontIns(&pushNil, popVar, fid, line, scope);
+        fklByteCodeLntInsertFrontIns(&pushNil,
+                FKL_VM_CO(popVar),
+                fid,
+                line,
+                scope);
         return popVar;
     }
 }
@@ -2327,8 +2354,9 @@ BC_PROCESS(_def_var_exp_bc_process) {
     DefineVarContext *var_ctx = FKL_TYPE_CAST(DefineVarContext *, data);
     uint32_t idx = fklAddCodegenDefBySid(var_ctx->id, var_ctx->scope, env)->idx;
     fklResolveCodegenPreDef(var_ctx->id, var_ctx->scope, env, &codegen->pts->p);
-    fklByteCodelntVectorInsertFront2(bcl_vec,
-            append_put_loc_ins(INS_APPEND_BACK,
+    fklValueVectorInsertFront2(bcl_vec,
+            append_put_loc_ins(GCVM,
+                    INS_APPEND_BACK,
                     NULL,
                     idx,
                     codegen->fid,
@@ -2342,77 +2370,77 @@ BC_PROCESS(_set_var_exp_bc_process) {
 }
 
 BC_PROCESS(_lambda_exp_bc_process) {
-    FklByteCodelnt *retval = NULL;
+    FklVMvalue *retval = NULL;
     FklInstruction ret = create_op_ins(FKL_OP_RET);
     if (bcl_vec->size > 1) {
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
-        retval = fklCreateByteCodelnt(0);
+        retval = create_0len_bcl(GCVM);
         size_t top = bcl_vec->size;
         for (size_t i = 1; i < top; i++) {
-            FklByteCodelnt *cur = bcl_vec->base[i];
-            if (cur->bc.len) {
-                fklCodeLntConcat(retval, cur);
+            FklVMvalue *cur = bcl_vec->base[i];
+            if (FKL_VM_CO(cur)->bc.len) {
+                fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
                 if (i < top - 1)
-                    fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
+                    fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                            &drop,
+                            fid,
+                            line,
+                            scope);
             }
-            fklDestroyByteCodelnt(cur);
         }
-        fklByteCodeLntPushBackIns(retval, &ret, fid, line, scope);
+        fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &ret, fid, line, scope);
     } else {
-        retval = fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        retval = fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
-        fklByteCodeLntPushBackIns(retval, &ret, fid, line, scope);
+        fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &ret, fid, line, scope);
     }
-    fklCodeLntReverseConcat(bcl_vec->base[0], retval);
-    fklDestroyByteCodelnt(bcl_vec->base[0]);
+    fklCodeLntReverseConcat(FKL_VM_CO(bcl_vec->base[0]), FKL_VM_CO(retval));
     bcl_vec->size = 0;
-    fklScanAndSetTailCall(&retval->bc);
+    fklScanAndSetTailCall(&FKL_VM_CO(retval)->bc);
     FklFuncPrototypes *pts = &codegen->pts->p;
     fklUpdatePrototype(pts, env);
-    append_push_proc_ins(INS_APPEND_FRONT,
+    append_push_proc_ins(GCVM,
+            INS_APPEND_FRONT,
             retval,
             env->prototypeId,
-            retval->bc.len,
+            FKL_VM_CO(retval)->bc.len,
             fid,
             line,
             scope);
     return retval;
 }
 
-static inline FklByteCodelnt *processArgs(FklVMvalue *args,
+static inline FklVMvalue *processArgs(FklVM *exe,
+        FklVMvalue *args,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen) {
-    FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+    FklVMvalue *retval = create_0len_bcl(exe);
 
     uint32_t arg_count = 0;
     for (; FKL_IS_PAIR(args); args = FKL_VM_CDR(args)) {
         FklVMvalue *cur = FKL_VM_CAR(args);
         if (!FKL_IS_SYM(cur)) {
-            fklDestroyByteCodelnt(retval);
             return NULL;
         }
         if (fklIsSymbolDefined(cur, 1, env)) {
-            fklDestroyByteCodelnt(retval);
             return NULL;
         }
         if (arg_count > UINT16_MAX) {
-            fklDestroyByteCodelnt(retval);
             return NULL;
         }
         fklAddCodegenDefBySid(cur, 1, env);
         ++arg_count;
     }
     if (args != FKL_VM_NIL && !FKL_IS_SYM(args)) {
-        fklDestroyByteCodelnt(retval);
         return NULL;
     }
 
     int rest_list = 0;
     if (FKL_IS_SYM(args)) {
         if (fklIsSymbolDefined(args, 1, env)) {
-            fklDestroyByteCodelnt(retval);
             return NULL;
         }
         rest_list = 1;
@@ -2423,7 +2451,7 @@ static inline FklByteCodelnt *processArgs(FklVMvalue *args,
         .ai = rest_list,
         .bu = arg_count,
     };
-    fklByteCodeLntPushBackIns(retval,
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
             &check_arg,
             codegen->fid,
             CURLINE(args),
@@ -2431,11 +2459,12 @@ static inline FklByteCodelnt *processArgs(FklVMvalue *args,
     return retval;
 }
 
-static inline FklByteCodelnt *processArgsInStack(FklValueVector *stack,
+static inline FklVMvalue *processArgsInStack(FklVM *exe,
+        FklValueVector *stack,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen,
         uint64_t curline) {
-    FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+    FklVMvalue *retval = create_0len_bcl(exe);
     uint32_t top = stack->size;
     FklVMvalue **base = stack->base;
     for (uint32_t i = 0; i < top; i++) {
@@ -2444,25 +2473,32 @@ static inline FklByteCodelnt *processArgsInStack(FklValueVector *stack,
         fklAddCodegenDefBySid(curId, 1, env);
     }
     FklInstruction check_arg = { .op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top };
-    fklByteCodeLntPushBackIns(retval, &check_arg, codegen->fid, curline, 1);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+            &check_arg,
+            codegen->fid,
+            curline,
+            1);
     return retval;
 }
 
 BC_PROCESS(_named_let_set_var_exp_bc_process) {
-    FklByteCodelnt *popVar = NULL;
+    FklVMvalue *pop_var = NULL;
     if (bcl_vec->size >= 2) {
-        FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        popVar = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        fklCodeLntReverseConcat(cur, popVar);
-        fklDestroyByteCodelnt(cur);
+        FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
+        pop_var = *fklValueVectorPopBackNonNull(bcl_vec);
+        fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(pop_var));
     } else {
-        FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        popVar = cur;
+        FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
+        pop_var = cur;
         FklInstruction pushNil = create_op_ins(FKL_OP_PUSH_NIL);
-        fklByteCodeLntInsertFrontIns(&pushNil, popVar, fid, line, scope);
+        fklByteCodeLntInsertFrontIns(&pushNil,
+                FKL_VM_CO(pop_var),
+                fid,
+                line,
+                scope);
     }
-    check_and_close_ref(popVar, scope, env, &codegen->pts->p, fid, line);
-    return popVar;
+    check_and_close_ref(GCVM, pop_var, scope, env, &codegen->pts->p, fid, line);
+    return pop_var;
 }
 
 static CODEGEN_FUNC(codegen_named_let0) {
@@ -2509,8 +2545,9 @@ static CODEGEN_FUNC(codegen_named_let0) {
                     // name->curline,
                     NULL,
                     codegen);
-    fklByteCodelntVectorPushBack2(&action->bcl_vector,
-            append_put_loc_ins(INS_APPEND_BACK,
+    fklValueVectorPushBack2(&action->bcl_vector,
+            append_put_loc_ins(GCVM,
+                    INS_APPEND_BACK,
                     NULL,
                     idx,
                     codegen->fid,
@@ -2522,7 +2559,7 @@ static CODEGEN_FUNC(codegen_named_let0) {
     FklVMvalueCodegenEnv *lambdaCodegenEnv =
             fklCreateVMvalueCodegenEnv(ctx, env, cs, cms);
     FklVMvalue *argsNode = caddr(orig->value);
-    FklByteCodelnt *argBc = processArgs(argsNode, lambdaCodegenEnv, codegen);
+    FklVMvalue *argBc = processArgs(GCVM, argsNode, lambdaCodegenEnv, codegen);
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
 
@@ -2544,7 +2581,7 @@ static CODEGEN_FUNC(codegen_named_let0) {
             // rest->curline,
             NULL,
             codegen);
-    fklByteCodelntVectorPushBack2(&action1->bcl_vector, argBc);
+    fklValueVectorPushBack2(&action1->bcl_vector, argBc);
     fklCodegenActionVectorPushBack2(actions, action1);
 }
 
@@ -2644,8 +2681,9 @@ static CODEGEN_FUNC(codegen_named_let1) {
                     // name->curline,
                     funcallAction,
                     codegen);
-    fklByteCodelntVectorPushBack2(&action->bcl_vector,
-            append_put_loc_ins(INS_APPEND_BACK,
+    fklValueVectorPushBack2(&action->bcl_vector,
+            append_put_loc_ins(GCVM,
+                    INS_APPEND_BACK,
                     NULL,
                     idx,
                     codegen->fid,
@@ -2660,7 +2698,8 @@ static CODEGEN_FUNC(codegen_named_let1) {
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
 
-    FklByteCodelnt *argBc = processArgsInStack(symStack,
+    FklVMvalue *argBc = processArgsInStack(GCVM,
+            symStack,
             lambdaCodegenEnv,
             codegen,
             CURLINE(orig->container)
@@ -2686,7 +2725,7 @@ static CODEGEN_FUNC(codegen_named_let1) {
             // rest->curline,
             NULL,
             codegen);
-    fklByteCodelntVectorPushBack2(&action1->bcl_vector, argBc);
+    fklValueVectorPushBack2(&action1->bcl_vector, argBc);
 
     fklCodegenActionVectorPushBack2(actions, action1);
 }
@@ -2694,26 +2733,31 @@ static CODEGEN_FUNC(codegen_named_let1) {
 BC_PROCESS(_and_exp_bc_process) {
     if (bcl_vec->size) {
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
-        while (!fklByteCodelntVectorIsEmpty(bcl_vec)) {
-            if (retval->bc.len) {
-                fklByteCodeLntInsertFrontIns(&drop, retval, fid, line, scope);
-                append_jmp_ins(INS_APPEND_FRONT,
+        FklVMvalue *retval = create_0len_bcl(GCVM);
+        while (!fklValueVectorIsEmpty(bcl_vec)) {
+            if (FKL_VM_CO(retval)->bc.len) {
+                fklByteCodeLntInsertFrontIns(&drop,
+                        FKL_VM_CO(retval),
+                        fid,
+                        line,
+                        scope);
+                append_jmp_ins(GCVM,
+                        INS_APPEND_FRONT,
                         retval,
-                        retval->bc.len,
+                        FKL_VM_CO(retval)->bc.len,
                         JMP_IF_FALSE,
                         JMP_FORWARD,
                         fid,
                         line,
                         scope);
             }
-            FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-            fklCodeLntReverseConcat(cur, retval);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
+            fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(retval));
         }
         return retval;
     } else
-        return append_push_i24_ins(INS_APPEND_BACK,
+        return append_push_i24_ins(GCVM,
+                INS_APPEND_BACK,
                 NULL,
                 1,
                 codegen,
@@ -2745,26 +2789,31 @@ static CODEGEN_FUNC(codegen_and) {
 BC_PROCESS(_or_exp_bc_process) {
     if (bcl_vec->size) {
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
-        while (!fklByteCodelntVectorIsEmpty(bcl_vec)) {
-            if (retval->bc.len) {
-                fklByteCodeLntInsertFrontIns(&drop, retval, fid, line, scope);
-                append_jmp_ins(INS_APPEND_FRONT,
+        FklVMvalue *retval = create_0len_bcl(GCVM);
+        while (!fklValueVectorIsEmpty(bcl_vec)) {
+            if (FKL_VM_CO(retval)->bc.len) {
+                fklByteCodeLntInsertFrontIns(&drop,
+                        FKL_VM_CO(retval),
+                        fid,
+                        line,
+                        scope);
+                append_jmp_ins(GCVM,
+                        INS_APPEND_FRONT,
                         retval,
-                        retval->bc.len,
+                        FKL_VM_CO(retval)->bc.len,
                         JMP_IF_TRUE,
                         JMP_FORWARD,
                         fid,
                         line,
                         scope);
             }
-            FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-            fklCodeLntReverseConcat(cur, retval);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
+            fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(retval));
         }
         return retval;
     } else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -2807,8 +2856,8 @@ static CODEGEN_FUNC(codegen_lambda) {
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_rest);
     FklVMvalueCodegenEnv *lambdaCodegenEnv =
             fklCreateVMvalueCodegenEnv(ctx, env, scope, macro_scope);
-    FklByteCodelnt *argsBc =
-            processArgs(args->value, lambdaCodegenEnv, codegen);
+    FklVMvalue *argsBc =
+            processArgs(GCVM, args->value, lambdaCodegenEnv, codegen);
     if (!argsBc) {
         error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
         error_state->line = CURLINE(orig->container);
@@ -2832,7 +2881,7 @@ static CODEGEN_FUNC(codegen_lambda) {
             // rest->curline,
             NULL,
             codegen);
-    fklByteCodelntVectorPushBack2(&action->bcl_vector, argsBc);
+    fklValueVectorPushBack2(&action->bcl_vector, argsBc);
     fklCodegenActionVectorPushBack2(actions, action);
 }
 
@@ -2911,8 +2960,9 @@ BC_PROCESS(_def_const_exp_bc_process) {
     def->isConst = 1;
     uint32_t idx = def->idx;
     fklResolveCodegenPreDef(var_ctx->id, var_ctx->scope, env, &codegen->pts->p);
-    fklByteCodelntVectorInsertFront2(bcl_vec,
-            append_put_loc_ins(INS_APPEND_BACK,
+    fklValueVectorInsertFront2(bcl_vec,
+            append_put_loc_ins(GCVM,
+                    INS_APPEND_BACK,
                     NULL,
                     idx,
                     codegen->fid,
@@ -2980,8 +3030,8 @@ static CODEGEN_FUNC(codegen_defun) {
 
     FklVMvalueCodegenEnv *lambdaCodegenEnv =
             fklCreateVMvalueCodegenEnv(ctx, env, scope, macro_scope);
-    FklByteCodelnt *argsBc =
-            processArgs(args->value, lambdaCodegenEnv, codegen);
+    FklVMvalue *argsBc =
+            processArgs(GCVM, args->value, lambdaCodegenEnv, codegen);
     if (!argsBc) {
         error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
         error_state->line = CURLINE(orig->container);
@@ -3033,7 +3083,7 @@ static CODEGEN_FUNC(codegen_defun) {
             // rest->curline,
             prevAction,
             codegen);
-    fklByteCodelntVectorPushBack2(&cur->bcl_vector, argsBc);
+    fklValueVectorPushBack2(&cur->bcl_vector, argsBc);
     fklCodegenActionVectorPushBack2(actions, cur);
 }
 
@@ -3064,8 +3114,8 @@ static CODEGEN_FUNC(codegen_defun_const) {
 
     FklVMvalueCodegenEnv *lambdaCodegenEnv =
             fklCreateVMvalueCodegenEnv(ctx, env, scope, macro_scope);
-    FklByteCodelnt *argsBc =
-            processArgs(args->value, lambdaCodegenEnv, codegen);
+    FklVMvalue *argsBc =
+            processArgs(GCVM, args->value, lambdaCodegenEnv, codegen);
     if (!argsBc) {
         error_state->error = make_syntax_error(&ctx->gc->gcvm, orig->value);
         error_state->line = CURLINE(orig->container);
@@ -3111,7 +3161,7 @@ static CODEGEN_FUNC(codegen_defun_const) {
             // rest->curline,
             prevAction,
             codegen);
-    fklByteCodelntVectorPushBack2(&cur->bcl_vector, argsBc);
+    fklValueVectorPushBack2(&cur->bcl_vector, argsBc);
     fklCodegenActionVectorPushBack2(actions, cur);
 }
 
@@ -3146,8 +3196,9 @@ static CODEGEN_FUNC(codegen_setq) {
             error_state->line = CURLINE(name->container);
             return;
         }
-        fklByteCodelntVectorPushBack2(&cur->bcl_vector,
-                append_put_loc_ins(INS_APPEND_BACK,
+        fklValueVectorPushBack2(&cur->bcl_vector,
+                append_put_loc_ins(GCVM,
+                        INS_APPEND_BACK,
                         NULL,
                         def->v.idx,
                         codegen->fid,
@@ -3167,8 +3218,9 @@ static CODEGEN_FUNC(codegen_setq) {
             error_state->line = CURLINE(name->container);
             return;
         }
-        fklByteCodelntVectorPushBack2(&cur->bcl_vector,
-                append_put_var_ref_ins(INS_APPEND_BACK,
+        fklValueVectorPushBack2(&cur->bcl_vector,
+                append_put_var_ref_ins(GCVM,
+                        INS_APPEND_BACK,
                         NULL,
                         def->v.idx,
                         codegen->fid,
@@ -3179,7 +3231,8 @@ static CODEGEN_FUNC(codegen_setq) {
     fklCodegenActionVectorPushBack2(actions, cur);
 }
 
-static inline void push_default_codegen_quest(const FklPmatchRes *value,
+static inline void push_default_codegen_quest(FklVM *exe,
+        const FklPmatchRes *value,
         FklCodegenActionVector *actions,
         uint32_t scope,
         FklVMvalueCodegenMacroScope *macro_scope,
@@ -3196,8 +3249,8 @@ static inline void push_default_codegen_quest(const FklPmatchRes *value,
             // value->curline,
             prev,
             codegen);
-    fklByteCodelntVectorPushBack2(&cur->bcl_vector,
-            gen_push_literal_code(value, codegen, env, scope));
+    fklValueVectorPushBack2(&cur->bcl_vector,
+            gen_push_literal_code(exe, value, codegen, env, scope));
     fklCodegenActionVectorPushBack2(actions, cur);
 }
 
@@ -3213,7 +3266,7 @@ static CODEGEN_FUNC(codegen_macroexpand) {
                 error_state);
     if (error_state->error)
         return;
-    push_default_codegen_quest(
+    push_default_codegen_quest(GCVM,
             &(FklPmatchRes){
                 .value = next_value,
                 .container = value->container,
@@ -3230,7 +3283,7 @@ static CODEGEN_FUNC(codegen_macroexpand) {
 static void add_compiler_macro(FklCodegenMacro **pmacro,
         FklVMvalue *pattern,
         // FklVMvalue *origin_exp,
-        const FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         uint32_t prototype_id) {
     int coverState = FKL_PATTERN_NOT_EQUAL;
     FklCodegenMacro **phead = pmacro;
@@ -3251,7 +3304,7 @@ static void add_compiler_macro(FklCodegenMacro **pmacro,
         uninit_codegen_macro(macro);
         macro->prototype_id = prototype_id;
         macro->pattern = pattern;
-        macro->bcl = fklCopyByteCodelnt(bcl);
+        macro->bcl = bcl;
     } else {
         FklCodegenMacro *next = *pmacro;
         *pmacro = fklCreateCodegenMacro(pattern, bcl, next, prototype_id);
@@ -3309,7 +3362,7 @@ static inline void add_export_symbol(FklVMvalueCodegenInfo *codegen,
     }
 }
 
-static inline void push_single_bcl_codegen_quest(FklByteCodelnt *bcl,
+static inline void push_single_bcl_codegen_quest(FklVMvalue *bcl,
         FklCodegenActionVector *actions,
         uint32_t scope,
         FklVMvalueCodegenMacroScope *macro_scope,
@@ -3326,7 +3379,7 @@ static inline void push_single_bcl_codegen_quest(FklByteCodelnt *bcl,
             curline,
             prev,
             codegen);
-    fklByteCodelntVectorPushBack2(&quest->bcl_vector, bcl);
+    fklValueVectorPushBack2(&quest->bcl_vector, bcl);
     fklCodegenActionVectorPushBack2(actions, quest);
 }
 
@@ -3958,8 +4011,7 @@ static CODEGEN_FUNC(codegen_check) {
             error_state);
     if (error_state->error)
         return;
-    FklByteCodelnt *bcl = NULL;
-    bcl = fklCreateSingleInsBclnt(
+    FklVMvalue *bcl = fklCreateVMvalueCodeObjExt(GCVM,
             create_op_ins(r ? FKL_OP_PUSH_1 : FKL_OP_PUSH_NIL),
             codegen->fid,
             CURLINE(orig->container),
@@ -4063,7 +4115,8 @@ static CODEGEN_FUNC(codegen_cond_compile) {
 static CODEGEN_FUNC(codegen_quote) {
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtInPatternVar_value);
-    push_default_codegen_quest(value,
+    push_default_codegen_quest(GCVM,
+            value,
             actions,
             scope,
             macro_scope,
@@ -4109,74 +4162,68 @@ static CODEGEN_FUNC(codegen_unquote) {
 }
 
 BC_PROCESS(_qsquote_box_bc_process) {
-    FklByteCodelnt *retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *retval = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction pushBox = { .op = FKL_OP_PUSH_BOX, .ai = 1 };
-    fklByteCodeLntPushBackIns(retval, &pushBox, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushBox, fid, line, scope);
     return retval;
 }
 
 BC_PROCESS(_qsquote_vec_bc_process) {
-    FklByteCodelnt *retval = bcl_vec->base[0];
+    FklVMvalue *retval = bcl_vec->base[0];
     for (size_t i = 1; i < bcl_vec->size; i++) {
-        FklByteCodelnt *cur = bcl_vec->base[i];
-        fklCodeLntConcat(retval, cur);
-        fklDestroyByteCodelnt(cur);
+        FklVMvalue *cur = bcl_vec->base[i];
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
     FklInstruction pushVec = create_op_ins(FKL_OP_PUSH_VEC_0);
     FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
-    fklByteCodeLntInsertFrontIns(&setBp, retval, fid, line, scope);
-    fklByteCodeLntPushBackIns(retval, &pushVec, fid, line, scope);
+    fklByteCodeLntInsertFrontIns(&setBp, FKL_VM_CO(retval), fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushVec, fid, line, scope);
     return retval;
 }
 
 BC_PROCESS(_unqtesp_vec_bc_process) {
-    FklByteCodelnt *retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-    FklByteCodelnt *other =
-            fklByteCodelntVectorIsEmpty(bcl_vec)
-                    ? NULL
-                    : *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *retval = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *other = fklValueVectorIsEmpty(bcl_vec)
+                              ? NULL
+                              : *fklValueVectorPopBackNonNull(bcl_vec);
     if (other) {
-        while (!fklByteCodelntVectorIsEmpty(bcl_vec)) {
-            FklByteCodelnt *cur = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-            fklCodeLntConcat(other, cur);
-            fklDestroyByteCodelnt(cur);
+        while (!fklValueVectorIsEmpty(bcl_vec)) {
+            FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
+            fklCodeLntConcat(FKL_VM_CO(other), FKL_VM_CO(cur));
         }
-        fklCodeLntReverseConcat(other, retval);
-        fklDestroyByteCodelnt(other);
+        fklCodeLntReverseConcat(FKL_VM_CO(other), FKL_VM_CO(retval));
     }
     FklInstruction listPush = { .op = FKL_OP_PAIR,
         .ai = FKL_SUBOP_PAIR_UNPACK };
-    fklByteCodeLntPushBackIns(retval, &listPush, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &listPush, fid, line, scope);
     return retval;
 }
 
 BC_PROCESS(_qsquote_pair_bc_process) {
-    FklByteCodelnt *retval = bcl_vec->base[0];
+    FklVMvalue *retval = bcl_vec->base[0];
     for (size_t i = 1; i < bcl_vec->size; i++) {
-        FklByteCodelnt *cur = bcl_vec->base[i];
-        fklCodeLntConcat(retval, cur);
-        fklDestroyByteCodelnt(cur);
+        FklVMvalue *cur = bcl_vec->base[i];
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
     FklInstruction pushPair = create_op_ins(FKL_OP_PUSH_LIST_0);
     FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
-    fklByteCodeLntInsertFrontIns(&setBp, retval, fid, line, scope);
-    fklByteCodeLntPushBackIns(retval, &pushPair, fid, line, scope);
+    fklByteCodeLntInsertFrontIns(&setBp, FKL_VM_CO(retval), fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushPair, fid, line, scope);
     return retval;
 }
 
 BC_PROCESS(_qsquote_list_bc_process) {
-    FklByteCodelnt *retval = bcl_vec->base[0];
+    FklVMvalue *retval = bcl_vec->base[0];
     for (size_t i = 1; i < bcl_vec->size; i++) {
-        FklByteCodelnt *cur = bcl_vec->base[i];
-        fklCodeLntConcat(retval, cur);
-        fklDestroyByteCodelnt(cur);
+        FklVMvalue *cur = bcl_vec->base[i];
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
     FklInstruction pushPair = { .op = FKL_OP_PAIR,
         .ai = FKL_SUBOP_PAIR_APPEND };
-    fklByteCodeLntPushBackIns(retval, &pushPair, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushPair, fid, line, scope);
     return retval;
 }
 
@@ -4456,7 +4503,8 @@ static void qsquote_state_none(const QsquoteStateNoneArgs *args) {
     } else if (FKL_IS_BOX(value)) {
         qsquote_state_none_box(value, container, args, &table);
     } else
-        push_default_codegen_quest(&top->node,
+        push_default_codegen_quest(GCVM,
+                &top->node,
                 action_vector,
                 scope,
                 macro_scope,
@@ -4520,11 +4568,12 @@ static CODEGEN_FUNC(codegen_qsquote) {
 }
 
 BC_PROCESS(_cond_exp_bc_process_0) {
-    FklByteCodelnt *retval = NULL;
+    FklVMvalue *retval = NULL;
     if (bcl_vec->size)
-        retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+        retval = *fklValueVectorPopBackNonNull(bcl_vec);
     else
-        retval = fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        retval = fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -4585,39 +4634,48 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
 }
 
 BC_PROCESS(_cond_exp_bc_process_1) {
-    FklByteCodelnt *retval = NULL;
+    FklVMvalue *retval = NULL;
     if (bcl_vec->size >= 2) {
-        FklByteCodelnt *prev = bcl_vec->base[0];
-        FklByteCodelnt *first = bcl_vec->base[1];
-        retval = fklCreateByteCodelnt(0);
+        FklVMvalue *prev = bcl_vec->base[0];
+        FklVMvalue *first = bcl_vec->base[1];
+        retval = create_0len_bcl(GCVM);
 
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
 
-        fklByteCodeLntInsertFrontIns(&drop, prev, fid, line, scope);
+        fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(prev), fid, line, scope);
 
-        uint64_t prev_len = prev->bc.len;
+        uint64_t prev_len = FKL_VM_CO(prev)->bc.len;
 
-        int true_bcl = is_const_true_bytecode_lnt(first);
+        int true_bcl = is_const_true_bytecode_lnt(FKL_VM_CO(first));
 
         if (bcl_vec->size > 2) {
-            FklByteCodelnt *cur = bcl_vec->base[2];
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[2];
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
 
         for (size_t i = 3; i < bcl_vec->size; i++) {
-            FklByteCodelnt *cur = bcl_vec->base[i];
-            fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[i];
+            fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                    &drop,
+                    fid,
+                    line,
+                    scope);
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
 
-        size_t retval_len = retval->bc.len;
+        size_t retval_len = FKL_VM_CO(retval)->bc.len;
 
-        check_and_close_ref(retval, scope, env, &codegen->pts->p, fid, line);
+        check_and_close_ref(GCVM,
+                retval,
+                scope,
+                env,
+                &codegen->pts->p,
+                fid,
+                line);
 
         if (bcl_vec->size > 2) {
-            append_jmp_ins(INS_APPEND_BACK,
+            append_jmp_ins(GCVM,
+                    INS_APPEND_BACK,
                     retval,
                     prev_len,
                     JMP_UNCOND,
@@ -4629,34 +4687,38 @@ BC_PROCESS(_cond_exp_bc_process_1) {
 
         if (retval_len) {
             if (!true_bcl) {
-                fklByteCodeLntInsertFrontIns(&drop, retval, fid, line, scope);
-                append_jmp_ins(INS_APPEND_FRONT,
+                fklByteCodeLntInsertFrontIns(&drop,
+                        FKL_VM_CO(retval),
+                        fid,
+                        line,
+                        scope);
+                append_jmp_ins(GCVM,
+                        INS_APPEND_FRONT,
                         retval,
-                        retval->bc.len,
+                        FKL_VM_CO(retval)->bc.len,
                         JMP_IF_FALSE,
                         JMP_FORWARD,
                         fid,
                         line,
                         scope);
-                fklCodeLntReverseConcat(first, retval);
+                fklCodeLntReverseConcat(FKL_VM_CO(first), FKL_VM_CO(retval));
             }
         } else {
-            append_jmp_ins(INS_APPEND_BACK,
+            append_jmp_ins(GCVM,
+                    INS_APPEND_BACK,
                     first,
-                    prev->bc.len,
+                    FKL_VM_CO(prev)->bc.len,
                     true_bcl ? JMP_UNCOND : JMP_IF_TRUE,
                     JMP_FORWARD,
                     fid,
                     line,
                     scope);
-            fklCodeLntReverseConcat(first, retval);
+            fklCodeLntReverseConcat(FKL_VM_CO(first), FKL_VM_CO(retval));
         }
 
-        fklCodeLntConcat(retval, prev);
-        fklDestroyByteCodelnt(prev);
-        fklDestroyByteCodelnt(first);
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(prev));
     } else
-        retval = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+        retval = *fklValueVectorPopBackNonNull(bcl_vec);
     bcl_vec->size = 0;
 
     return retval;
@@ -4665,39 +4727,45 @@ BC_PROCESS(_cond_exp_bc_process_1) {
 BC_PROCESS(_cond_exp_bc_process_2) {
     FklInstruction drop = create_op_ins(FKL_OP_DROP);
 
-    FklByteCodelnt *retval = NULL;
+    FklVMvalue *retval = NULL;
     if (bcl_vec->size) {
-        retval = fklCreateByteCodelnt(0);
-        FklByteCodelnt *first = bcl_vec->base[0];
-        int true_bcl = is_const_true_bytecode_lnt(first);
+        retval = create_0len_bcl(GCVM);
+        FklVMvalue *first = bcl_vec->base[0];
+        int true_bcl = is_const_true_bytecode_lnt(FKL_VM_CO(first));
         if (bcl_vec->size > 1) {
-            FklByteCodelnt *cur = bcl_vec->base[1];
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[1];
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
         for (size_t i = 2; i < bcl_vec->size; i++) {
-            FklByteCodelnt *cur = bcl_vec->base[i];
-            fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[i];
+            fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                    &drop,
+                    fid,
+                    line,
+                    scope);
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
 
-        if (retval->bc.len) {
+        if (FKL_VM_CO(retval)->bc.len) {
             if (!true_bcl) {
-                fklByteCodeLntInsertFrontIns(&drop, retval, fid, line, scope);
-                append_jmp_ins(INS_APPEND_FRONT,
+                fklByteCodeLntInsertFrontIns(&drop,
+                        FKL_VM_CO(retval),
+                        fid,
+                        line,
+                        scope);
+                append_jmp_ins(GCVM,
+                        INS_APPEND_FRONT,
                         retval,
-                        retval->bc.len,
+                        FKL_VM_CO(retval)->bc.len,
                         JMP_IF_FALSE,
                         JMP_FORWARD,
                         fid,
                         line,
                         scope);
-                fklCodeLntReverseConcat(first, retval);
+                fklCodeLntReverseConcat(FKL_VM_CO(first), FKL_VM_CO(retval));
             }
         } else
-            fklCodeLntReverseConcat(first, retval);
-        fklDestroyByteCodelnt(first);
+            fklCodeLntReverseConcat(FKL_VM_CO(first), FKL_VM_CO(retval));
     }
     bcl_vec->size = 0;
     return retval;
@@ -4798,24 +4866,25 @@ BC_PROCESS(_if_exp_bc_process_0) {
     FklInstruction drop = create_op_ins(FKL_OP_DROP);
 
     if (bcl_vec->size >= 2) {
-        FklByteCodelnt *exp = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        FklByteCodelnt *cond = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        fklByteCodeLntInsertFrontIns(&drop, exp, fid, line, scope);
-        append_jmp_ins(INS_APPEND_BACK,
+        FklVMvalue *exp = *fklValueVectorPopBackNonNull(bcl_vec);
+        FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
+        fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(exp), fid, line, scope);
+        append_jmp_ins(GCVM,
+                INS_APPEND_BACK,
                 cond,
-                exp->bc.len,
+                FKL_VM_CO(exp)->bc.len,
                 JMP_IF_FALSE,
                 JMP_FORWARD,
                 fid,
                 line,
                 scope);
-        fklCodeLntConcat(cond, exp);
-        fklDestroyByteCodelnt(exp);
+        fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(exp));
         return cond;
     } else if (bcl_vec->size >= 1)
-        return *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+        return *fklValueVectorPopBackNonNull(bcl_vec);
     else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -4851,51 +4920,52 @@ BC_PROCESS(_if_exp_bc_process_1) {
     FklInstruction drop = create_op_ins(FKL_OP_DROP);
 
     if (bcl_vec->size >= 3) {
-        FklByteCodelnt *exp0 = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        FklByteCodelnt *cond = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        FklByteCodelnt *exp1 = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        fklByteCodeLntInsertFrontIns(&drop, exp0, fid, line, scope);
-        fklByteCodeLntInsertFrontIns(&drop, exp1, fid, line, scope);
-        append_jmp_ins(INS_APPEND_BACK,
+        FklVMvalue *exp0 = *fklValueVectorPopBackNonNull(bcl_vec);
+        FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
+        FklVMvalue *exp1 = *fklValueVectorPopBackNonNull(bcl_vec);
+        fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(exp0), fid, line, scope);
+        fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(exp1), fid, line, scope);
+        append_jmp_ins(GCVM,
+                INS_APPEND_BACK,
                 exp0,
-                exp1->bc.len,
+                FKL_VM_CO(exp1)->bc.len,
                 JMP_UNCOND,
                 JMP_FORWARD,
                 fid,
                 line,
                 scope);
-        append_jmp_ins(INS_APPEND_BACK,
+        append_jmp_ins(GCVM,
+                INS_APPEND_BACK,
                 cond,
-                exp0->bc.len,
+                FKL_VM_CO(exp0)->bc.len,
                 JMP_IF_FALSE,
                 JMP_FORWARD,
                 fid,
                 line,
                 scope);
-        fklCodeLntConcat(cond, exp0);
-        fklCodeLntConcat(cond, exp1);
-        fklDestroyByteCodelnt(exp0);
-        fklDestroyByteCodelnt(exp1);
+        fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(exp0));
+        fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(exp1));
         return cond;
     } else if (bcl_vec->size >= 2) {
-        FklByteCodelnt *exp0 = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        FklByteCodelnt *cond = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
-        fklByteCodeLntInsertFrontIns(&drop, exp0, fid, line, scope);
-        append_jmp_ins(INS_APPEND_BACK,
+        FklVMvalue *exp0 = *fklValueVectorPopBackNonNull(bcl_vec);
+        FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
+        fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(exp0), fid, line, scope);
+        append_jmp_ins(GCVM,
+                INS_APPEND_BACK,
                 cond,
-                exp0->bc.len,
+                FKL_VM_CO(exp0)->bc.len,
                 JMP_IF_FALSE,
                 JMP_FORWARD,
                 fid,
                 line,
                 scope);
-        fklCodeLntConcat(cond, exp0);
-        fklDestroyByteCodelnt(exp0);
+        fklCodeLntConcat(FKL_VM_CO(cond), FKL_VM_CO(exp0));
         return cond;
     } else if (bcl_vec->size >= 1)
-        return *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+        return *fklValueVectorPopBackNonNull(bcl_vec);
     else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -4948,32 +5018,42 @@ static CODEGEN_FUNC(codegen_if1) {
 
 BC_PROCESS(_when_exp_bc_process) {
     if (bcl_vec->size) {
-        FklByteCodelnt *cond = bcl_vec->base[0];
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+        FklVMvalue *cond = bcl_vec->base[0];
+        FklVMvalue *retval = create_0len_bcl(GCVM);
 
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
         for (size_t i = 1; i < bcl_vec->size; i++) {
-            FklByteCodelnt *cur = bcl_vec->base[i];
-            fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[i];
+            fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                    &drop,
+                    fid,
+                    line,
+                    scope);
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
         bcl_vec->size = 0;
-        if (retval->bc.len)
-            append_jmp_ins(INS_APPEND_FRONT,
+        if (FKL_VM_CO(retval)->bc.len)
+            append_jmp_ins(GCVM,
+                    INS_APPEND_FRONT,
                     retval,
-                    retval->bc.len,
+                    FKL_VM_CO(retval)->bc.len,
                     JMP_IF_FALSE,
                     JMP_FORWARD,
                     fid,
                     line,
                     scope);
-        fklCodeLntReverseConcat(cond, retval);
-        fklDestroyByteCodelnt(cond);
-        check_and_close_ref(retval, scope, env, &codegen->pts->p, fid, line);
+        fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(retval));
+        check_and_close_ref(GCVM,
+                retval,
+                scope,
+                env,
+                &codegen->pts->p,
+                fid,
+                line);
         return retval;
     } else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -4981,32 +5061,42 @@ BC_PROCESS(_when_exp_bc_process) {
 
 BC_PROCESS(_unless_exp_bc_process) {
     if (bcl_vec->size) {
-        FklByteCodelnt *cond = bcl_vec->base[0];
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+        FklVMvalue *cond = bcl_vec->base[0];
+        FklVMvalue *retval = create_0len_bcl(GCVM);
 
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
         for (size_t i = 1; i < bcl_vec->size; i++) {
-            FklByteCodelnt *cur = bcl_vec->base[i];
-            fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
-            fklCodeLntConcat(retval, cur);
-            fklDestroyByteCodelnt(cur);
+            FklVMvalue *cur = bcl_vec->base[i];
+            fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                    &drop,
+                    fid,
+                    line,
+                    scope);
+            fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
         }
         bcl_vec->size = 0;
-        if (retval->bc.len)
-            append_jmp_ins(INS_APPEND_FRONT,
+        if (FKL_VM_CO(retval)->bc.len)
+            append_jmp_ins(GCVM,
+                    INS_APPEND_FRONT,
                     retval,
-                    retval->bc.len,
+                    FKL_VM_CO(retval)->bc.len,
                     JMP_IF_TRUE,
                     JMP_FORWARD,
                     fid,
                     line,
                     scope);
-        fklCodeLntReverseConcat(cond, retval);
-        fklDestroyByteCodelnt(cond);
-        check_and_close_ref(retval, scope, env, &codegen->pts->p, fid, line);
+        fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(retval));
+        check_and_close_ref(GCVM,
+                retval,
+                scope,
+                env,
+                &codegen->pts->p,
+                fid,
+                line);
         return retval;
     } else
-        return fklCreateSingleInsBclnt(create_op_ins(FKL_OP_PUSH_NIL),
+        return fklCreateVMvalueCodeObjExt(GCVM,
+                create_op_ins(FKL_OP_PUSH_NIL),
                 fid,
                 line,
                 scope);
@@ -5337,15 +5427,17 @@ static inline char *combineFileNameFromListAndCheckPrivate(
     return r;
 }
 
-static void add_symbol_to_local_env_in_array(FklVMvalueCodegenEnv *env,
+static void add_symbol_to_local_env_in_array(FklVM *exe,
+        FklVMvalueCodegenEnv *env,
         const FklCgExportSidIdxHashMap *exports,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
-        append_import_ins(INS_APPEND_BACK,
+        append_import_ins(exe,
+                INS_APPEND_BACK,
                 bcl,
                 fklAddCodegenDefBySid(l->k, scope, env)->idx,
                 l->v.idx,
@@ -5355,11 +5447,11 @@ static void add_symbol_to_local_env_in_array(FklVMvalueCodegenEnv *env,
     }
 }
 
-static void add_symbol_with_prefix_to_local_env_in_array(
+static void add_symbol_with_prefix_to_local_env_in_array(FklVM *exe,
         FklVMvalueCodegenEnv *env,
         const FklString *prefix,
         const FklCgExportSidIdxHashMap *exports,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope,
@@ -5375,7 +5467,8 @@ static void add_symbol_with_prefix_to_local_env_in_array(
         FklVMvalue *sym = add_symbol_char_buf(ctx, buf.buf, buf.index);
         // fklAddSymbolCharBuf(buf.buf, buf.index, pst);
         uint32_t idx = fklAddCodegenDefBySid(sym, scope, env)->idx;
-        append_import_ins(INS_APPEND_BACK,
+        append_import_ins(exe,
+                INS_APPEND_BACK,
                 bcl,
                 idx,
                 l->v.idx,
@@ -5569,7 +5662,7 @@ static inline FklGrammer *init_builtin_grammer_and_prod_group(
     return g;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -5613,14 +5706,16 @@ static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
         }
     }
 
-    FklByteCodelnt *load_lib = append_load_lib_ins(INS_APPEND_BACK,
+    FklVMvalue *load_lib = append_load_lib_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
             curline,
             scope);
 
-    add_symbol_to_local_env_in_array(env,
+    add_symbol_to_local_env_in_array(&codegen->ctx->gc->gcvm,
+            env,
             &lib->exports,
             load_lib,
             codegen->fid,
@@ -5630,7 +5725,7 @@ static inline FklByteCodelnt *process_import_imported_lib_common(uint32_t libId,
     return load_lib;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -5688,14 +5783,16 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
             return NULL;
         }
     }
-    FklByteCodelnt *load_lib = append_load_lib_ins(INS_APPEND_BACK,
+    FklVMvalue *load_lib = append_load_lib_ins(GCVM,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
             curline,
             scope);
 
-    add_symbol_with_prefix_to_local_env_in_array(env,
+    add_symbol_with_prefix_to_local_env_in_array(GCVM,
+            env,
             prefix,
             &lib->exports,
             load_lib,
@@ -5707,7 +5804,7 @@ static inline FklByteCodelnt *process_import_imported_lib_prefix(uint32_t libId,
     return load_lib;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -5716,7 +5813,8 @@ static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
         uint64_t curline,
         FklVMvalue *only,
         FklCodegenErrorState *error_state) {
-    FklByteCodelnt *load_lib = append_load_lib_ins(INS_APPEND_BACK,
+    FklVMvalue *load_lib = append_load_lib_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -5766,7 +5864,8 @@ static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
         FklCodegenExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur, scope, env)->idx;
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_lib,
                     idx,
                     item->idx,
@@ -5790,7 +5889,7 @@ static inline FklByteCodelnt *process_import_imported_lib_only(uint32_t libId,
     return load_lib;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_except(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -5806,7 +5905,7 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
 
     FklValueHashSet excepts;
     fklValueHashSetInit(&excepts);
-    FklByteCodelnt *load_lib = NULL;
+    FklVMvalue *load_lib = NULL;
 
     for (FklVMvalue *list = except; FKL_IS_PAIR(list); list = FKL_VM_CDR(list))
         fklValueHashSetPut2(&excepts, FKL_VM_CAR(list));
@@ -5854,7 +5953,8 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
         }
     }
 
-    load_lib = append_load_lib_ins(INS_APPEND_BACK,
+    load_lib = append_load_lib_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -5866,7 +5966,8 @@ static inline FklByteCodelnt *process_import_imported_lib_except(uint32_t libId,
         if (!fklValueHashSetHas2(&excepts, l->k)) {
             uint32_t idx = fklAddCodegenDefBySid(l->k, scope, env)->idx;
 
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_lib,
                     idx,
                     l->v.idx,
@@ -5882,7 +5983,7 @@ exit:
     return load_lib;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -5891,7 +5992,8 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
         uint64_t curline,
         FklVMvalue *alias,
         FklCodegenErrorState *error_state) {
-    FklByteCodelnt *load_lib = append_load_lib_ins(INS_APPEND_BACK,
+    FklVMvalue *load_lib = append_load_lib_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -5954,7 +6056,8 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
         FklCodegenExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur0, scope, env)->idx;
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_lib,
                     idx,
                     item->idx,
@@ -5978,7 +6081,7 @@ static inline FklByteCodelnt *process_import_imported_lib_alias(uint32_t libId,
     return load_lib;
 }
 
-static inline FklByteCodelnt *process_import_imported_lib(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib(uint32_t libId,
         FklVMvalueCodegenInfo *codegen,
         const FklCodegenLib *lib,
         FklVMvalueCodegenEnv *env,
@@ -6055,13 +6158,14 @@ static inline int is_exporting_outer_ref_group(FklVMvalueCodegenInfo *codegen) {
 }
 
 static inline void process_export_bc(FklVMvalueCodegenInfo *info,
-        FklByteCodelnt *libBc,
+        FklVMvalue *libBc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    info->epc = libBc->bc.len;
+    info->epc = FKL_VM_CO(libBc)->bc.len;
 
-    append_export_to_ins(INS_APPEND_BACK,
+    append_export_to_ins(&info->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             libBc,
             info->libraries->size + 1,
             info->exports.count,
@@ -6070,11 +6174,17 @@ static inline void process_export_bc(FklVMvalueCodegenInfo *info,
             scope);
     for (const FklCgExportSidIdxHashMapNode *l = info->exports.first; l;
             l = l->next) {
-        append_export_ins(INS_APPEND_BACK, libBc, l->v.oidx, fid, line, scope);
+        append_export_ins(&info->ctx->gc->gcvm,
+                INS_APPEND_BACK,
+                libBc,
+                l->v.oidx,
+                fid,
+                line,
+                scope);
     }
 
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(libBc, &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(libBc), &ret, fid, line, scope);
 }
 
 BC_PROCESS(_library_bc_process) {
@@ -6088,19 +6198,19 @@ BC_PROCESS(_library_bc_process) {
     fklPrintUndefinedRef(env, &codegen->ctx->gc->err_out);
 
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
-    FklByteCodelnt *libBc = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    FklVMvalue *co = sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
 
     FklInstruction ret = create_op_ins(FKL_OP_RET);
 
-    fklByteCodeLntPushBackIns(libBc, &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(co), &ret, fid, line, scope);
 
     if (!env->is_debugging)
-        fklPeepholeOptimize(libBc);
+        fklPeepholeOptimize(FKL_VM_CO(co));
 
-    process_export_bc(codegen, libBc, fid, line, scope);
+    process_export_bc(codegen, co, fid, line, scope);
 
     FklCodegenLib *lib = fklCodegenLibVectorPushBack(codegen->libraries, NULL);
-    fklInitCodegenScriptLib(lib, codegen, libBc, codegen->epc, env);
+    fklInitCodegenScriptLib(lib, codegen, co, codegen->epc, env);
 
     codegen->realpath = NULL;
 
@@ -6197,23 +6307,26 @@ static inline FklVMvalue *recompute_import_src_idx(FklByteCodelnt *bcl,
     return ctx.id;
 }
 
-static inline FklByteCodelnt *export_sequnce_exp_bc_process(
-        FklByteCodelntVector *stack,
+static inline FklVMvalue *export_sequnce_exp_bc_process(FklVM *exe,
+        FklValueVector *stack,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     if (stack->size) {
         FklInstruction drop = create_op_ins(FKL_OP_DROP);
-        FklByteCodelnt *retval = fklCreateByteCodelnt(0);
+        FklVMvalue *retval = create_0len_bcl(exe);
         size_t top = stack->size;
         for (size_t i = 0; i < top; i++) {
-            FklByteCodelnt *cur = stack->base[i];
-            if (cur->bc.len) {
-                fklCodeLntConcat(retval, cur);
+            FklVMvalue *cur = stack->base[i];
+            if (FKL_VM_CO(cur)->bc.len) {
+                fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
                 if (i < top - 1)
-                    fklByteCodeLntPushBackIns(retval, &drop, fid, line, scope);
+                    fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
+                            &drop,
+                            fid,
+                            line,
+                            scope);
             }
-            fklDestroyByteCodelnt(cur);
         }
         stack->size = 0;
         return retval;
@@ -6223,8 +6336,8 @@ static inline FklByteCodelnt *export_sequnce_exp_bc_process(
 
 BC_PROCESS(_export_import_bc_process) {
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
-    FklByteCodelnt *bcl =
-            export_sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    FklVMvalue *bcl =
+            export_sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
     if (bcl == NULL)
         return NULL;
     FklVMvalueCodegenEnv *targetEnv = d->env;
@@ -6241,9 +6354,8 @@ BC_PROCESS(_export_import_bc_process) {
 
     if (idPstack.size) {
         FklVMvalue *const_def_id =
-                recompute_import_src_idx(bcl, targetEnv, &idPstack);
+                recompute_import_src_idx(FKL_VM_CO(bcl), targetEnv, &idPstack);
         if (const_def_id) {
-            fklDestroyByteCodelnt(bcl);
             bcl = NULL;
             error_state->error =
                     make_assign_const_error(&ctx->gc->gcvm, const_def_id);
@@ -6332,8 +6444,8 @@ typedef struct {
 BC_PROCESS(exports_bc_process) {
     ExportSequnceContextData *d =
             FKL_TYPE_CAST(ExportSequnceContextData *, data);
-    FklByteCodelnt *bcl =
-            export_sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    FklVMvalue *bcl =
+            export_sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
     if (d->must_has_retval && !bcl) {
         error_state->error =
                 make_has_no_value_error(&ctx->gc->gcvm, d->orig.value);
@@ -6458,7 +6570,7 @@ BC_PROCESS(_export_define_bc_process) {
     ExportDefineContext *exp_ctx = FKL_TYPE_CAST(ExportDefineContext *, data);
     exp_ctx->item->oidx =
             fklGetCodegenDefByIdInScope(exp_ctx->id, 1, env->scopes)->v.idx;
-    return sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    return sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
 }
 
 static CODEGEN_FUNC(codegen_export_single) {
@@ -6697,7 +6809,7 @@ static inline void process_import_script_common_header(FklVMvalue *orig,
         nextCodegen->export_replacement = NULL;
         const FklCodegenLib *lib = &codegen->libraries->base[libId - 1];
 
-        FklByteCodelnt *importBc = process_import_imported_lib(libId,
+        FklVMvalue *importBc = process_import_imported_lib(libId,
                 codegen,
                 lib,
                 env,
@@ -6722,7 +6834,7 @@ static inline void process_import_script_common_header(FklVMvalue *orig,
                 NULL,
                 nextCodegen);
 
-        fklByteCodelntVectorPushBack2(&cur->bcl_vector, importBc);
+        fklValueVectorPushBack2(&cur->bcl_vector, importBc);
         fklCodegenActionVectorPushBack2(actions, cur);
     }
 }
@@ -6731,7 +6843,7 @@ FklCgDllLibInitExportCb fklGetCodegenInitExportFunc(uv_lib_t *dll) {
     return (FklCgDllLibInitExportCb)fklGetAddress("_fklExportSymbolInit", dll);
 }
 
-static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_only(FklVMvalue *orig,
         FklVMvalue *name,
         FklVMvalue *only,
         const char *filename,
@@ -6772,7 +6884,8 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *orig,
         fklZfree(realpath);
     }
 
-    FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
+    FklVMvalue *load_dll = append_load_dll_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -6787,7 +6900,8 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *orig,
         FklCodegenExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
         if (item) {
             uint32_t idx = fklAddCodegenDefBySid(cur, scope, env)->idx;
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_dll,
                     idx,
                     item->idx,
@@ -6807,7 +6921,7 @@ static inline FklByteCodelnt *process_import_from_dll_only(FklVMvalue *orig,
     return load_dll;
 }
 
-static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_except(FklVMvalue *orig,
         FklVMvalue *name,
         FklVMvalue *except,
         const char *filename,
@@ -6848,7 +6962,8 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
         fklZfree(realpath);
     }
 
-    FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
+    FklVMvalue *load_dll = append_load_dll_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -6867,7 +6982,8 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
             l = l->next) {
         if (!fklValueHashSetHas2(&excepts, l->k)) {
             uint32_t idx = fklAddCodegenDefBySid(l->k, scope, env)->idx;
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_dll,
                     idx,
                     l->v.idx,
@@ -6882,7 +6998,7 @@ static inline FklByteCodelnt *process_import_from_dll_except(FklVMvalue *orig,
     return load_dll;
 }
 
-static inline FklByteCodelnt *process_import_from_dll_common(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_common(FklVMvalue *orig,
         FklVMvalue *name,
         const char *filename,
         FklVMvalueCodegenEnv *env,
@@ -6922,7 +7038,8 @@ static inline FklByteCodelnt *process_import_from_dll_common(FklVMvalue *orig,
         fklZfree(realpath);
     }
 
-    FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
+    FklVMvalue *load_dll = append_load_dll_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -6930,7 +7047,8 @@ static inline FklByteCodelnt *process_import_from_dll_common(FklVMvalue *orig,
             // orig->curline,
             scope);
 
-    add_symbol_to_local_env_in_array(env,
+    add_symbol_to_local_env_in_array(&codegen->ctx->gc->gcvm,
+            env,
             &lib->exports,
             load_dll,
             codegen->fid,
@@ -6940,7 +7058,7 @@ static inline FklByteCodelnt *process_import_from_dll_common(FklVMvalue *orig,
     return load_dll;
 }
 
-static inline FklByteCodelnt *process_import_from_dll_prefix(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_prefix(FklVMvalue *orig,
         FklVMvalue *name,
         FklVMvalue *prefixNode,
         const char *filename,
@@ -6983,7 +7101,8 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(FklVMvalue *orig,
 
     const FklString *prefix = FKL_VM_SYM(prefixNode);
 
-    FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
+    FklVMvalue *load_dll = append_load_dll_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -6991,7 +7110,8 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(FklVMvalue *orig,
             // orig->curline,
             scope);
 
-    add_symbol_with_prefix_to_local_env_in_array(env,
+    add_symbol_with_prefix_to_local_env_in_array(&codegen->ctx->gc->gcvm,
+            env,
             prefix,
             &lib->exports,
             load_dll,
@@ -7004,7 +7124,7 @@ static inline FklByteCodelnt *process_import_from_dll_prefix(FklVMvalue *orig,
     return load_dll;
 }
 
-static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_alias(FklVMvalue *orig,
         FklVMvalue *name,
         FklVMvalue *alias,
         const char *filename,
@@ -7045,7 +7165,8 @@ static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *orig,
         fklZfree(realpath);
     }
 
-    FklByteCodelnt *load_dll = append_load_dll_ins(INS_APPEND_BACK,
+    FklVMvalue *load_dll = append_load_dll_ins(&codegen->ctx->gc->gcvm,
+            INS_APPEND_BACK,
             NULL,
             libId,
             codegen->fid,
@@ -7064,7 +7185,8 @@ static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *orig,
             // FklSid_t cur0 = curNode->pair->cdr->pair->car->sym;
             FklVMvalue *cur0 = FKL_VM_CAR(FKL_VM_CDR(cur_alias));
             uint32_t idx = fklAddCodegenDefBySid(cur0, scope, env)->idx;
-            append_import_ins(INS_APPEND_BACK,
+            append_import_ins(&codegen->ctx->gc->gcvm,
+                    INS_APPEND_BACK,
                     load_dll,
                     idx,
                     item->idx,
@@ -7084,7 +7206,7 @@ static inline FklByteCodelnt *process_import_from_dll_alias(FklVMvalue *orig,
     return load_dll;
 }
 
-static inline FklByteCodelnt *process_import_from_dll(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll(FklVMvalue *orig,
         FklVMvalue *name,
         const char *filename,
         FklVMvalueCodegenEnv *env,
@@ -7322,7 +7444,7 @@ static inline void codegen_import_helper(FklVMvalue *orig,
         }
         const FklCodegenLib *lib = &codegen->libraries->base[libId - 1];
 
-        FklByteCodelnt *importBc = process_import_imported_lib(libId,
+        FklVMvalue *importBc = process_import_imported_lib(libId,
                 codegen,
                 lib,
                 env,
@@ -7345,10 +7467,10 @@ static inline void codegen_import_helper(FklVMvalue *orig,
                 // orig->curline,
                 NULL,
                 codegen);
-        fklByteCodelntVectorPushBack2(&action->bcl_vector, importBc);
+        fklValueVectorPushBack2(&action->bcl_vector, importBc);
         fklCodegenActionVectorPushBack2(actions, action);
     } else if (fklIsAccessibleRegFile(dllFileName)) {
-        FklByteCodelnt *bc = process_import_from_dll(orig,
+        FklVMvalue *bc = process_import_from_dll(orig,
                 name,
                 dllFileName,
                 env,
@@ -7370,7 +7492,7 @@ static inline void codegen_import_helper(FklVMvalue *orig,
                     // orig->curline,
                     NULL,
                     codegen);
-            fklByteCodelntVectorPushBack2(&action->bcl_vector, bc);
+            fklValueVectorPushBack2(&action->bcl_vector, bc);
             fklCodegenActionVectorPushBack2(actions, action);
         }
     } else {
@@ -7560,21 +7682,20 @@ BC_PROCESS(_compiler_macro_bc_process) {
     fklPrintUndefinedRef(env->prev, &codegen->ctx->gc->err_out);
 
     MacroContext *d = FKL_TYPE_CAST(MacroContext *, data);
-    FklByteCodelnt *macroBcl = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(macroBcl, &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(macroBcl), &ret, fid, line, scope);
 
     FklVMvalue *pattern = d->pattern;
     FklVMvalueCodegenMacroScope *macros = d->macro_scope;
     uint32_t prototype_id = d->prototype_id;
 
-    fklPeepholeOptimize(macroBcl);
+    fklPeepholeOptimize(FKL_VM_CO(macroBcl));
     add_compiler_macro(&macros->head,
             pattern,
             // fklMakeNastNodeRef(d->origin_exp),
             macroBcl,
             prototype_id);
-    fklDestroyByteCodelnt(macroBcl);
     return NULL;
 }
 
@@ -7621,11 +7742,11 @@ BC_PROCESS(_reader_macro_bc_process) {
     fklUpdatePrototype(&codegen->pts->p, env);
     fklPrintUndefinedRef(env->prev, &codegen->ctx->gc->err_out);
 
-    FklByteCodelnt *macroBcl = *fklByteCodelntVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(macroBcl, &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(macroBcl), &ret, fid, line, scope);
 
-    fklPeepholeOptimize(macroBcl);
+    fklPeepholeOptimize(FKL_VM_CO(macroBcl));
     custom_ctx->bcl = macroBcl;
     return NULL;
 }
@@ -8962,11 +9083,15 @@ static CODEGEN_FUNC(codegen_def_reader_macros) {
 typedef void (*FklCodegenFunc)(CODEGEN_ARGS);
 
 BC_PROCESS(last_bc_process) {
-    FklByteCodelnt *r = sequnce_exp_bc_process(bcl_vec, fid, line, scope);
+    FklVMvalue *r = sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
     FklInstruction r_ins = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(r, &r_ins, codegen->fid, codegen->curline, 1);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(r),
+            &r_ins,
+            codegen->fid,
+            codegen->curline,
+            1);
     if (!env->is_debugging)
-        fklPeepholeOptimize(r);
+        fklPeepholeOptimize(FKL_VM_CO(r));
     return r;
 }
 
@@ -8974,14 +9099,15 @@ BC_PROCESS(last_bc_process) {
 #undef CODEGEN_ARGS
 #undef CODEGEN_FUNC
 
-static FklByteCodelnt *gen_push_literal_code(const FklPmatchRes *cnode,
+static FklVMvalue *gen_push_literal_code(FklVM *exe,
+        const FklPmatchRes *cnode,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *env,
         uint32_t scope) {
     FklVMvalue *node = cnode->value;
 
-    FklByteCodelnt *r = fklCreateByteCodelnt(0);
-    FklByteCode *retval = &r->bc;
+    FklVMvalue *r = create_0len_bcl(exe);
+    FklByteCode *retval = &FKL_VM_CO(r)->bc;
     uint64_t k = 0;
     switch (FKL_TYPE_CAST(FklVMptrTag, FKL_GET_TAG(node))) {
     default:
@@ -9009,10 +9135,12 @@ static FklByteCodelnt *gen_push_literal_code(const FklPmatchRes *cnode,
     } break;
     }
 
-    r->ls = 1;
-    r->l = (FklLineNumberTableItem *)fklZmalloc(sizeof(FklLineNumberTableItem));
-    FKL_ASSERT(r->l);
-    fklInitLineNumTabNode(&r->l[0], codegen->fid, 0, CURLINE(node), scope);
+    FklByteCodelnt *rr = FKL_VM_CO(r);
+    rr->ls = 1;
+    rr->l = (FklLineNumberTableItem *)fklZmalloc(
+            sizeof(FklLineNumberTableItem));
+    FKL_ASSERT(rr->l);
+    fklInitLineNumTabNode(&rr->l[0], codegen->fid, 0, CURLINE(node), scope);
 
     return r;
 }
@@ -9129,9 +9257,9 @@ static inline void mark_action_vector(FklVMgc *gc, FklCodegenActionVector *v) {
             a->expressions->t->atomic(gc, a->expressions->context);
         }
 
-        FklByteCodelntVector *bcv = &a->bcl_vector;
+        FklValueVector *bcv = &a->bcl_vector;
         for (size_t i = 0; i < bcv->size; ++i)
-            fklVMgcMarkCodeObject(gc, bcv->base[i]);
+            fklVMgcToGray(bcv->base[i], gc);
     }
 }
 
@@ -9142,9 +9270,10 @@ static inline void mark_codegen_lib(FklVMgc *gc, const FklCodegenLib *lib) {
     }
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
+        fklVMgcToGray(lib->bcl, gc);
         for (const FklCodegenMacro *cur = lib->head; cur; cur = cur->next) {
             fklVMgcToGray(cur->pattern, gc);
-            fklVMgcMarkCodeObject(gc, cur->bcl);
+            fklVMgcToGray(cur->bcl, gc);
         }
         for (const FklReplacementHashMapNode *cur = lib->replacements->first;
                 cur;
@@ -9191,6 +9320,12 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     if (ctx->error_state) {
         fklVMgcToGray(ctx->error_state->fid, gc);
         fklVMgcToGray(ctx->error_state->error, gc);
+    }
+
+    if (ctx->bcl_vector) {
+        for (size_t i = 0; i < ctx->bcl_vector->size; ++i) {
+            fklVMgcToGray(ctx->bcl_vector->base[i], gc);
+        }
     }
 
     {
@@ -9374,13 +9509,15 @@ static inline int mapAllBuiltInPattern(const FklPmatchRes *curExp,
     return 1;
 }
 
-static inline FklByteCodelnt *append_get_loc_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_get_loc_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_GET_LOC,
             idx,
@@ -9389,13 +9526,15 @@ static inline FklByteCodelnt *append_get_loc_ins(InsAppendMode m,
             scope);
 }
 
-static inline FklByteCodelnt *append_get_var_ref_ins(InsAppendMode m,
-        FklByteCodelnt *bcl,
+static inline FklVMvalue *append_get_var_ref_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t curline,
         uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(m,
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
             bcl,
             FKL_OP_GET_VAR_REF,
             idx,
@@ -9410,12 +9549,12 @@ static inline FklByteCodelnt *append_get_var_ref_ins(InsAppendMode m,
 #define FORCE_GC (1)
 #endif
 
-FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
+FklVMvalue *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
         FklVMvalueCodegenInfo *info) {
     FklCodegenCtx *ctx = info->ctx;
     // FklSymbolTable *pst = &ctx->public_st;
-    FklByteCodelntVector results;
-    fklByteCodelntVectorInit(&results, 1);
+    FklValueVector results;
+    fklValueVectorInit(&results, 1);
     FklCodegenErrorState error_state = { 0 };
     FklCodegenActionVector codegen_action_vector;
     fklCodegenActionVectorInit(&codegen_action_vector, 32);
@@ -9435,6 +9574,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
 
     info->ctx->action_vector = &codegen_action_vector;
     info->ctx->error_state = &error_state;
+    info->ctx->bcl_vector = &results;
 
     while (!fklCodegenActionVectorIsEmpty(&codegen_action_vector)) {
         FklCodegenAction *cur_action =
@@ -9487,13 +9627,14 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         exp.value = t;
                         goto skip;
                     } else {
-                        FklByteCodelnt *bcl = NULL;
+                        FklVMvalue *bcl = NULL;
                         FklSymDefHashMapElm *def =
                                 fklFindSymbolDefByIdAndScope(exp.value,
                                         cur_action->scope,
                                         env->scopes);
                         if (def)
-                            bcl = append_get_loc_ins(INS_APPEND_BACK,
+                            bcl = append_get_loc_ins(GCVM,
+                                    INS_APPEND_BACK,
                                     NULL,
                                     def->v.idx,
                                     codegen->fid,
@@ -9508,7 +9649,8 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                                             // curExp->curline,
                                             CURLINE(exp.container),
                                             0);
-                            bcl = append_get_var_ref_ins(INS_APPEND_BACK,
+                            bcl = append_get_var_ref_ins(GCVM,
+                                    INS_APPEND_BACK,
                                     NULL,
                                     idx,
                                     codegen->fid,
@@ -9516,8 +9658,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                                     CURLINE(exp.container),
                                     cur_action->scope);
                         }
-                        fklByteCodelntVectorPushBack2(&cur_action->bcl_vector,
-                                bcl);
+                        fklValueVectorPushBack2(&cur_action->bcl_vector, bcl);
                         // fklDestroyNastNode(curExp);
                         continue;
                     }
@@ -9532,8 +9673,9 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         &error_state,
                         must_has_retval);
                 if (r) {
-                    fklByteCodelntVectorPushBack2(&cur_action->bcl_vector,
-                            gen_push_literal_code(&exp,
+                    fklValueVectorPushBack2(&cur_action->bcl_vector,
+                            gen_push_literal_code(GCVM,
+                                    &exp,
                                     codegen,
                                     env,
                                     cur_action->scope));
@@ -9561,7 +9703,7 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                         &codegen_action_vector));
             }
             fklCodegenActionVectorUninit(&codegen_action_vector);
-            fklByteCodelntVectorUninit(&results);
+            fklValueVectorUninit(&results);
             fklCheckAndGC(&ctx->gc->gcvm, FORCE_GC);
             return NULL;
         }
@@ -9575,23 +9717,21 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                             ? NULL
                             : *fklCodegenActionVectorBackNonNull(
                                       &codegen_action_vector);
-            FklByteCodelnt *resultBcl =
-                    cur_action->processer(cur_action->codegen,
-                            env,
-                            cur_action->scope,
-                            cur_action->macros,
-                            FKL_TYPE_CAST(void *, cur_context->d),
-                            &cur_action->bcl_vector,
-                            cur_action->codegen->fid,
-                            cur_action->curline,
-                            &error_state,
-                            ctx);
+            FklVMvalue *resultBcl = cur_action->processer(cur_action->codegen,
+                    env,
+                    cur_action->scope,
+                    cur_action->macros,
+                    FKL_TYPE_CAST(void *, cur_context->d),
+                    &cur_action->bcl_vector,
+                    cur_action->codegen->fid,
+                    cur_action->curline,
+                    &error_state,
+                    ctx);
             if (resultBcl) {
                 if (fklCodegenActionVectorIsEmpty(&codegen_action_vector))
-                    fklByteCodelntVectorPushBack2(&results, resultBcl);
+                    fklValueVectorPushBack2(&results, resultBcl);
                 else {
-                    fklByteCodelntVectorPushBack2(&prevAction->bcl_vector,
-                            resultBcl);
+                    fklValueVectorPushBack2(&prevAction->bcl_vector, resultBcl);
                 }
                 fklCheckAndGC(&ctx->gc->gcvm, FORCE_GC);
             }
@@ -9606,15 +9746,16 @@ FklByteCodelnt *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
     fklCheckAndGC(&ctx->gc->gcvm, FORCE_GC);
     ctx->action_vector = NULL;
     ctx->error_state = NULL;
-    FklByteCodelnt *retval = NULL;
-    if (!fklByteCodelntVectorIsEmpty(&results))
-        retval = *fklByteCodelntVectorPopBackNonNull(&results);
-    fklByteCodelntVectorUninit(&results);
+    ctx->bcl_vector = NULL;
+    FklVMvalue *retval = NULL;
+    if (!fklValueVectorIsEmpty(&results))
+        retval = *fklValueVectorPopBackNonNull(&results);
+    fklValueVectorUninit(&results);
     fklCodegenActionVectorUninit(&codegen_action_vector);
     return retval;
 }
 
-FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *env) {
     static const uint32_t scope = 1;
@@ -9630,8 +9771,7 @@ FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
             NULL,
             codegen);
 
-    FklByteCodelnt *bcl =
-            fklGenExpressionCodeWithAction(initialAction, codegen);
+    FklVMvalue *bcl = fklGenExpressionCodeWithAction(initialAction, codegen);
     if (bcl == NULL)
         return NULL;
 
@@ -9640,7 +9780,7 @@ FklByteCodelnt *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
     return bcl;
 }
 
-FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFp(FILE *fp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenEnv *env) {
     FklCodegenAction *initialAction = create_cg_action(_begin_exp_bc_process,
@@ -9655,7 +9795,7 @@ FklByteCodelnt *fklGenExpressionCodeWithFp(FILE *fp,
     return fklGenExpressionCodeWithAction(initialAction, codegen);
 }
 
-FklByteCodelnt *fklGenExpressionCode(FklVMvalue *exp,
+FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
         FklVMvalueCodegenEnv *env,
         FklVMvalueCodegenInfo *codegen) {
     FklVMvalue *cont = fklCreateVMvalueBox(&codegen->ctx->gc->gcvm, exp);

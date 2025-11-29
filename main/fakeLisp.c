@@ -65,7 +65,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             });
 
     fklZfree(rp);
-    FklByteCodelnt *mainByteCode =
+    FklVMvalue *mainByteCode =
             fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
@@ -231,7 +231,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     }
 
     FklCodegenLib *main_lib = fklCodegenLibVectorPopBackNonNull(&ctx.libraries);
-    FklByteCodelnt *main_byte_code = fklCopyByteCodelnt(main_lib->bcl);
+    FklVMvalue *main_byte_code = main_lib->bcl;
     fklUninitCodegenLib(main_lib);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,

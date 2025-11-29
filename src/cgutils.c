@@ -16,6 +16,15 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+static FklVM *init_macro_expand_vm(FklCodegenCtx *ctx,
+        FklVMvalue *bcl,
+        uint32_t prototype_id,
+        FklPmatchHashMap *ht,
+        FklVMvalueLnt *lnt,
+        FklVMvalue **pr,
+        uint64_t curline,
+        FklCodegenErrorState *error_state);
+
 static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
         uint32_t scopeId,
         const FklCodegenEnvScope *scope) {
@@ -623,9 +632,8 @@ void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
         const FklVMvalueProtos *pts) {
     FklVMvalue *val = FKL_VM_NIL;
     if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        FklVMvalue *codeObj = fklCreateVMvalueCodeObj(exe, clib->bcl);
         FklVMvalue *proc = fklCreateVMvalueProc(exe,
-                codeObj,
+                clib->bcl,
                 clib->prototypeId,
                 FKL_TYPE_CAST(FklVMvalueProtos *, pts));
         fklInitMainProcRefs(exe, proc);
@@ -649,7 +657,6 @@ void fklUninitCodegenLib(FklCodegenLib *lib) {
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
         if (lib->bcl != NULL) {
-            fklDestroyByteCodelnt(lib->bcl);
             lib->bcl = NULL;
         }
         break;
@@ -695,7 +702,7 @@ void fklInitCodegenDllLib(FklCodegenCtx *ctx,
 
 void fklInitCodegenScriptLib(FklCodegenLib *lib,
         FklVMvalueCodegenInfo *info,
-        FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         uint64_t epc,
         FklVMvalueCodegenEnv *env) {
     memset(lib, 0, sizeof(*lib));
@@ -814,13 +821,13 @@ void fklClearCodegenLibMacros2(FklCodegenCtx *ctx) {
 }
 
 FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
-        const FklByteCodelnt *bcl,
+        FklVMvalue *bcl,
         FklCodegenMacro *next,
         uint32_t prototype_id) {
     FklCodegenMacro *r = (FklCodegenMacro *)fklZmalloc(sizeof(FklCodegenMacro));
     FKL_ASSERT(r);
     r->pattern = pattern;
-    r->bcl = fklCopyByteCodelnt(bcl);
+    r->bcl = bcl;
     r->next = next;
     r->prototype_id = prototype_id;
     return r;
@@ -855,7 +862,7 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
         const char *cwd = ctx->cwd;
         fklChdir(codegen->dir);
 
-        FklVM *exe = fklInitMacroExpandVM(ctx,
+        FklVM *exe = init_macro_expand_vm(ctx,
                 macro->bcl,
                 macro->prototype_id,
                 &ht,
@@ -1000,8 +1007,8 @@ void fklUpdateVMlibsWithCodegenLibVector(FklVM *vm,
     update_new_codegen_to_new_vm_lib(vm, clibs, pts, libs);
 }
 
-FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
-        FklByteCodelnt *bcl,
+static inline FklVM *init_macro_expand_vm(FklCodegenCtx *ctx,
+        FklVMvalue *bcl,
         uint32_t prototype_id,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
@@ -1018,8 +1025,7 @@ FklVM *fklInitMacroExpandVM(FklCodegenCtx *ctx,
     }
 
     FklVM *exe = fklCreateVM(NULL, gc, pts, libs);
-    FklVMvalue *code_obj = fklCreateVMvalueCodeObj(exe, bcl);
-    FklVMvalue *proc = fklCreateVMvalueProc(exe, code_obj, prototype_id, pts);
+    FklVMvalue *proc = fklCreateVMvalueProc(exe, bcl, prototype_id, pts);
 
     push_macro_expand_frame(exe, pr, lnt, curline, error_state);
 
@@ -1058,7 +1064,7 @@ static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ms->prev), gc);
     for (const FklCodegenMacro *cur = ms->head; cur; cur = cur->next) {
         fklVMgcToGray(cur->pattern, gc);
-        fklVMgcMarkCodeObject(gc, cur->bcl);
+        fklVMgcToGray(cur->bcl, gc);
     }
     for (const FklReplacementHashMapNode *cur = ms->replacements->first; cur;
             cur = cur->next) {
@@ -1442,15 +1448,14 @@ static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(c, struct FklCustomActionCtx, ud);
     if (c->bcl == NULL)
         return;
-    fklVMgcMarkCodeObject(gc, c->bcl);
+    fklVMgcToGray(c->bcl, gc);
 }
 
 static int custom_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCustomActionCtx *c = as_custom_ctx(ud);
     // FKL_DECL_UD_DATA(c, struct FklCustomActionCtx, ud);
 
-    if (c->bcl)
-        fklDestroyByteCodelnt(c->bcl);
+    c->bcl = NULL;
 
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -1503,7 +1508,7 @@ static void *custom_action(void *c,
     const char *file_dir = cg_ctx->cur_file_dir;
     fklChdir(file_dir);
 
-    FklVM *exe = fklInitMacroExpandVM(cg_ctx,
+    FklVM *exe = init_macro_expand_vm(cg_ctx,
             action_ctx->bcl,
             action_ctx->prototype_id,
             &ht,

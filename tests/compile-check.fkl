@@ -62,25 +62,25 @@
 
 (assert (println (cfg (defmacro foo)))) ;; 1
 (assert (println (cfg (defmacro (foobar))))) ;; 1
-(assert (println (cfg (defmacro #(foobar))))) ;; 1
+(assert (println (cfg (defmacro #&foobar)))) ;; 1
 
 ;; 1
 (assert
   (println (cfg (and
                   (defmacro foo)
                   (defmacro (foobar))
-                  (defmacro #(foobar))))))
+                  (defmacro #&foobar)))))
 
 (assert (not (println (cfg (defmacro bar))))) ;; ()
 (assert (not (println (cfg (defmacro (barfoo)))))) ;;()
-(assert (not (println (cfg (defmacro #(barfoo)))))) ;;()
+(assert (not (println (cfg (defmacro #&barfoo))))) ;;()
 
 ;; ()
 (assert
   (not (println (cfg (or
                        (defmacro bar)
                        (defmacro (barfoo))
-                       (defmacro #(barfoo)))))))
+                       (defmacro #&barfoo))))))
 
 ;; main!
 (cfg *main?* (println "main!"))
@@ -95,7 +95,7 @@
   (import (lib json)) (println '(lib json))
   (defmacro foo) (println foo)
   (defmacro (cc)) (println '(cc))
-  (defmacro #(cc)) (println '#(cc))
+  (defmacro #&cc) (println '#&cc)
   (or (import (lib json))
     (define foo)
     *main?*)

@@ -3629,15 +3629,14 @@ static inline int cfg_check_macro_defined(const FklVMvalueCodegenInfo *codegen,
                 break;
         }
         return r;
-    } else if (FKL_IS_VECTOR(value->value)            //
-               && FKL_VM_VEC(value->value)->size == 1 //
-               && FKL_IS_SYM(FKL_VM_VEC(value->value)->base[0])) {
-        FklVMvalue *id = FKL_VM_VEC(value->value)->base[0];
+    } else if (FKL_IS_BOX(value->value) //
+               && FKL_IS_SYM(FKL_VM_BOX(value->value))) {
+        FklVMvalue *id = FKL_VM_BOX(value->value);
         return *(info->g) != NULL
             && fklGraProdGroupHashMapGet2(info->named_prod_groups, id) != NULL;
     } else {
-        error_state->error = make_syntax_error(&ctx->gc->gcvm, exp->value);
-        error_state->line = CURLINE(exp->container);
+        error_state->error = make_syntax_error(&ctx->gc->gcvm, value->value);
+        error_state->line = CURLINE(value->container);
         return 0;
     }
 }

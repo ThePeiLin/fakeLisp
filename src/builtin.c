@@ -1003,8 +1003,8 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
             obj = FKL_VM_CDR(obj);
         }
     } else if (FKL_IS_USERDATA(obj) && is_to_str_able_ud(FKL_VM_UD(obj))) {
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
 
         FklCodeBuilder b = { 0 };
         fklInitCodeBuilderStrBuf(&b, &buf, NULL);
@@ -1012,10 +1012,10 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
         fklPrincVMvalue2(obj, &b, exe);
 
         retval = fklCreateVMvalueStr2(exe,
-                fklStringBufferLen(&buf),
-                fklStringBufferBody(&buf));
+                fklStrBufLen(&buf),
+                fklStrBufBody(&buf));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CPROC_RETURN(exe, ctx, retval);
@@ -1660,7 +1660,7 @@ typedef struct {
     const char *name;
     FklVMvalue *vfp;
     FklVMvalue *parser;
-    FklStringBuffer buf;
+    FklStrBuf buf;
     struct ParseCtx *pctx;
     ParsingState state;
 } ReadCtx;
@@ -1681,7 +1681,7 @@ static void read_frame_atomic(void *data, FklVMgc *gc) {
 static void read_frame_finalizer(void *data) {
     ReadCtx *c = (ReadCtx *)data;
     struct ParseCtx *pctx = c->pctx;
-    fklUninitStringBuffer(&c->buf);
+    fklUninitStrBuf(&c->buf);
     FklAnalysisSymbolVector *ss = &pctx->symbolStack;
     fklAnalysisSymbolVectorUninit(ss);
     fklParseStateVectorUninit(&pctx->stateStack);
@@ -1692,24 +1692,23 @@ static int read_frame_step(void *d, FklVM *exe) {
     ReadCtx *rctx = FKL_TYPE_CAST(ReadCtx *, d);
     FklVMvalueFp *vfp = FKL_VM_FP(rctx->vfp);
     struct ParseCtx *pctx = rctx->pctx;
-    FklStringBuffer *s = &rctx->buf;
+    FklStrBuf *s = &rctx->buf;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe, NULL);
 
     FklParseError err = 0;
-    size_t restLen = fklStringBufferLen(s) - pctx->offset;
+    size_t restLen = fklStrBufLen(s) - pctx->offset;
     size_t output_line = 0;
 
-    FklVMvalue *ast =
-            fklDefaultParseForCharBuf(fklStringBufferBody(s) + pctx->offset,
-                    restLen,
-                    &restLen,
-                    &ctx,
-                    &err,
-                    &output_line,
-                    &pctx->symbolStack,
-                    (FklParseStateVector *)&pctx->stateStack);
+    FklVMvalue *ast = fklDefaultParseForCharBuf(fklStrBufBody(s) + pctx->offset,
+            restLen,
+            &restLen,
+            &ctx,
+            &err,
+            &output_line,
+            &pctx->symbolStack,
+            (FklParseStateVector *)&pctx->stateStack);
 
-    pctx->offset = fklStringBufferLen(s) - restLen;
+    pctx->offset = fklStrBufLen(s) - restLen;
 
     if (pctx->symbolStack.size == 0 && fklVMfpEof(vfp)) {
         FKL_CPROC_RETURN(exe, rctx, FKL_VM_EOF);
@@ -1724,7 +1723,7 @@ static int read_frame_step(void *d, FklVM *exe) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
     else if (ast) {
         if (restLen)
-            fklVMfpRewind(vfp, s, fklStringBufferLen(s) - restLen);
+            fklVMfpRewind(vfp, s, fklStrBufLen(s) - restLen);
         FKL_CPROC_RETURN(exe, rctx, ast);
         return 0;
     } else
@@ -1808,7 +1807,7 @@ static inline void initReadCtx(void *data,
     ctx->name = name;
     ctx->parser = parser;
     ctx->vfp = vfp;
-    fklInitStringBuffer(&ctx->buf);
+    fklInitStrBuf(&ctx->buf);
     struct ParseCtx *pctx = create_read_parse_ctx();
     ctx->pctx = pctx;
     if (parser == FKL_VM_NIL)
@@ -1895,7 +1894,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
     ReadCtx *rctx = (ReadCtx *)d;
     FklVMvalueFp *vfp = FKL_VM_FP(rctx->vfp);
     struct ParseCtx *pctx = rctx->pctx;
-    FklStringBuffer *s = &rctx->buf;
+    FklStrBuf *s = &rctx->buf;
 
     if (rctx->state == PARSE_REDUCING) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
@@ -1916,11 +1915,11 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     int err = 0;
     int accept = 0;
-    size_t restLen = fklStringBufferLen(s) - pctx->offset;
+    size_t restLen = fklStrBufLen(s) - pctx->offset;
     size_t output_line = 0;
 
     parse_with_custom_parser_for_char_buf(g,
-            fklStringBufferBody(s) + pctx->offset,
+            fklStrBufBody(s) + pctx->offset,
             restLen,
             &restLen,
             &ctx,
@@ -1936,7 +1935,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
 
     if (accept) {
         if (restLen)
-            fklVMfpRewind(vfp, s, fklStringBufferLen(s) - restLen);
+            fklVMfpRewind(vfp, s, fklStrBufLen(s) - restLen);
         FKL_CPROC_RETURN(exe,
                 rctx,
                 fklAnalysisSymbolVectorPopBackNonNull(&pctx->symbolStack)->ast);
@@ -1953,7 +1952,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
     else if (err == FKL_PARSE_REDUCE_FAILED)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
     else {
-        pctx->offset = fklStringBufferLen(s) - restLen;
+        pctx->offset = fklStrBufLen(s) - restLen;
         if (rctx->state == PARSE_CONTINUE)
             fklVMread(exe, FKL_VM_FP(rctx->vfp)->fp, &rctx->buf, 1, '\n');
     }
@@ -2453,19 +2452,19 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(grammer);
     fklLr0ToLalrItems(itemSet, grammer);
 
-    FklStringBuffer err_msg;
-    fklInitStringBuffer(&err_msg);
+    FklStrBuf err_msg;
+    fklInitStrBuf(&err_msg);
     if (fklGenerateLalrAnalyzeTable(exe->gc, grammer, itemSet, &err_msg)) {
         FklVMvalue *err_str =
                 fklCreateVMvalueStr2(exe, err_msg.index, err_msg.buf);
-        fklUninitStringBuffer(&err_msg);
+        fklUninitStrBuf(&err_msg);
         fklLalrItemSetHashMapDestroy(itemSet);
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,
                 exe,
                 "%s",
                 err_str);
     }
-    fklUninitStringBuffer(&err_msg);
+    fklUninitStrBuf(&err_msg);
     fklLalrItemSetHashMapDestroy(itemSet);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -2786,13 +2785,12 @@ static int builtin_fgetd(FKL_CPROC_ARGL) {
     CHECK_FP_OPEN(file, exe);
     CHECK_FP_READABLE(file, exe);
 
-    FklStringBuffer buf;
-    fklInitStringBufferWithCapacity(&buf, 80);
+    FklStrBuf buf;
+    fklInitStrBufWithCapacity(&buf, 80);
     fklVMread(exe, FKL_VM_FP(file)->fp, &buf, 80, d);
-    FklVMvalue *r = fklCreateVMvalueStr2(exe,
-            fklStringBufferLen(&buf),
-            fklStringBufferBody(&buf));
-    fklUninitStringBuffer(&buf);
+    FklVMvalue *r =
+            fklCreateVMvalueStr2(exe, fklStrBufLen(&buf), fklStrBufBody(&buf));
+    fklUninitStrBuf(&buf);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -2809,13 +2807,12 @@ static int builtin_fgets(FKL_CPROC_ARGL) {
     CHECK_FP_READABLE(file, exe);
 
     uint64_t len = fklVMgetUint(psize);
-    FklStringBuffer buf;
-    fklInitStringBufferWithCapacity(&buf, len);
+    FklStrBuf buf;
+    fklInitStrBufWithCapacity(&buf, len);
     fklVMread(exe, FKL_VM_FP(file)->fp, &buf, len, EOF);
-    FklVMvalue *r = fklCreateVMvalueStr2(exe,
-            fklStringBufferLen(&buf),
-            fklStringBufferBody(&buf));
-    fklUninitStringBuffer(&buf);
+    FklVMvalue *r =
+            fklCreateVMvalueStr2(exe, fklStrBufLen(&buf), fklStrBufBody(&buf));
+    fklUninitStrBuf(&buf);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -2833,13 +2830,13 @@ static int builtin_fgetb(FKL_CPROC_ARGL) {
 
     uint64_t len = fklVMgetUint(psize);
 
-    FklStringBuffer buf;
-    fklInitStringBufferWithCapacity(&buf, len);
+    FklStrBuf buf;
+    fklInitStrBufWithCapacity(&buf, len);
     fklVMread(exe, FKL_VM_FP(file)->fp, &buf, len, EOF);
     FklVMvalue *r = fklCreateVMvalueBvec2(exe,
-            fklStringBufferLen(&buf),
-            (const uint8_t *)fklStringBufferBody(&buf));
-    fklUninitStringBuffer(&buf);
+            fklStrBufLen(&buf),
+            (const uint8_t *)fklStrBufBody(&buf));
+    fklUninitStrBuf(&buf);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -2924,8 +2921,8 @@ static int builtin_format(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *fmt_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
@@ -2937,14 +2934,13 @@ static int builtin_format(FKL_CPROC_ARGL) {
             argc - 1,
             start);
     if (err_type) {
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     }
 
-    FklVMvalue *str_value = fklCreateVMvalueStr2(exe,
-            fklStringBufferLen(&buf),
-            fklStringBufferBody(&buf));
-    fklUninitStringBuffer(&buf);
+    FklVMvalue *str_value =
+            fklCreateVMvalueStr2(exe, fklStrBufLen(&buf), fklStrBufBody(&buf));
+    fklUninitStrBuf(&buf);
     FKL_CPROC_RETURN(exe, ctx, str_value);
     return 0;
 }
@@ -4223,8 +4219,8 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
             obj = FKL_VM_CDR(obj);
         }
     } else if (FKL_IS_USERDATA(obj) && is_writable_ud(FKL_VM_UD(obj))) {
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
 
         FklCodeBuilder b = { 0 };
         fklInitCodeBuilderStrBuf(&b, &buf, NULL);
@@ -4232,10 +4228,10 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
         fklWriteVMvalue(obj, &b);
 
         retval = fklCreateVMvalueBvec2(exe,
-                fklStringBufferLen(&buf),
-                (const uint8_t *)fklStringBufferBody(&buf));
+                fklStrBufLen(&buf),
+                (const uint8_t *)fklStrBufBody(&buf));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CPROC_RETURN(exe, ctx, retval);

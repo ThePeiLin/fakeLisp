@@ -1558,14 +1558,14 @@ static inline FklVMvalue *create_custom_prod_action_ctx(FklCodegenCtx *cg_ctx,
     v->doller_s = add_symbol_cstr(cg_ctx, "$$");
     v->line_s = add_symbol_cstr(cg_ctx, "$$");
 
-    FklStringBuffer buf = { 0 };
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf = { 0 };
+    fklInitStrBuf(&buf);
     for (size_t i = 0; i < actual_len; ++i) {
-        fklStringBufferPrintf(&buf, "$%zu", i);
+        fklStrBufPrintf(&buf, "$%zu", i);
         v->dollers[i] = add_symbol_char_buf(cg_ctx, buf.buf, buf.index);
-        fklStringBufferClear(&buf);
+        fklStrBufClear(&buf);
     }
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
 
     return FKL_TYPE_CAST(FklVMvalue *, v);
 }
@@ -1953,8 +1953,8 @@ static void *simple_action_symbol(void *c,
         const char *cstr = str->str;
         size_t cstr_size = str->size;
 
-        FklStringBuffer buffer;
-        fklInitStringBuffer(&buffer);
+        FklStrBuf buffer;
+        fklInitStrBuf(&buffer);
         const char *end_cstr = cstr + str->size;
         while (cstr < end_cstr) {
             if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
@@ -1966,7 +1966,7 @@ static void *simple_action_symbol(void *c,
                     return 0;
                 size_t size = 0;
                 char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
-                fklStringBufferBincpy(&buffer, s, size);
+                fklStrBufBincpy(&buffer, s, size);
                 fklZfree(s);
                 cstr += len;
                 cstr_size -= len;
@@ -1980,12 +1980,12 @@ static void *simple_action_symbol(void *c,
                             cstr_size - len)
                         >= 0)
                     break;
-            fklStringBufferBincpy(&buffer, cstr, len);
+            fklStrBufBincpy(&buffer, cstr, len);
             cstr += len;
             cstr_size -= len;
         }
         sym = fklVMaddSymbolCharBuf(ct->exe, buffer.buf, buffer.index);
-        fklUninitStringBuffer(&buffer);
+        fklUninitStrBuf(&buffer);
     } else {
         sym = fklVMaddSymbol(ct->exe, FKL_VM_STR(node));
     }

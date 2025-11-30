@@ -830,22 +830,22 @@ int64_t fklStringToInt(const char *cstr, size_t maxLen, int *base) {
     }
 }
 
-int fklGetDelim(FILE *fp, FklStringBuffer *b, char d) {
+int fklGetDelim(FILE *fp, FklStrBuf *b, char d) {
     int c;
     while ((c = fgetc(fp)) != EOF) {
-        fklStringBufferPutc(b, c);
+        fklStrBufPutc(b, c);
         if (c == d)
             break;
     }
     return c;
 }
 
-void fklStoreHistoryInStringBuffer(FklStringBuffer *buf, size_t offset) {
+void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset) {
     char ch = buf->buf[offset];
     buf->buf[offset] = '\0';
 
     fklReadlineHistoryAdd(buf->buf);
 
     buf->buf[offset] = ch;
-    fklStringBufferMoveToFront(buf, offset);
+    fklStrBufMoveToFront(buf, offset);
 }

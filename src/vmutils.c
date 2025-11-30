@@ -1215,16 +1215,16 @@ void fklPrincVMvalue2(FklVMvalue *v, FklCodeBuilder *build, FklVM *exe) {
 
 FklVMvalue *fklVMstringify(FklVMvalue *value, FklVM *exe, char mode) {
     FKL_ASSERT(mode == '1' || mode == 'c');
-    FklStringBuffer result;
-    fklInitStringBuffer(&result);
+    FklStrBuf result;
+    fklInitStrBuf(&result);
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, &result, NULL);
     print_value(value, &builder, mode == '1' ? prin1VMatom : princVMatom, exe);
 
     FklVMvalue *retval = fklCreateVMvalueStr2(exe,
-            fklStringBufferLen(&result),
-            fklStringBufferBody(&result));
-    fklUninitStringBuffer(&result);
+            fklStrBufLen(&result),
+            fklStrBufBody(&result));
+    fklUninitStrBuf(&result);
     return retval;
 }
 
@@ -1565,11 +1565,7 @@ void fklVMsleep(FklVM *exe, uint64_t ms) {
     FKL_VM_UNLOCK_BLOCK(exe, flag) { uv_sleep(ms); }
 }
 
-void fklVMread(FklVM *exe,
-        FILE *fp,
-        FklStringBuffer *buf,
-        uint64_t len,
-        int d) {
+void fklVMread(FklVM *exe, FILE *fp, FklStrBuf *buf, uint64_t len, int d) {
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
         if (d != EOF)
             fklGetDelim(fp, buf, d);
@@ -1687,20 +1683,20 @@ static inline uint64_t format_fix_int(int64_t integer_val,
 }
 
 static inline void
-format_prin1_value(FklVMvalue *v, FklStringBuffer *buf, FklVM *exe) {
+format_prin1_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, buf, NULL);
     return print_value(v, &builder, prin1VMatom, exe);
 }
 
 static inline void
-format_princ_value(FklVMvalue *v, FklStringBuffer *buf, FklVM *exe) {
+format_princ_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, buf, NULL);
     return print_value(v, &builder, princVMatom, exe);
 }
 
-static inline uint64_t format_bigint(FklStringBuffer *buf,
+static inline uint64_t format_bigint(FklStrBuf *buf,
         const FklVMvalueBigInt *bi,
         uint32_t flags,
         uint32_t base,
@@ -1718,7 +1714,7 @@ static inline uint64_t format_bigint(FklStringBuffer *buf,
     if (flags & FLAGS_UPPERCASE)
         bigint_fmt_flags |= FKL_BIGINT_FMT_FLAG_CAPITALS;
     const FklBigInt bigint = fklVMbigIntToBigInt(bi);
-    fklBigIntToStringBuffer(&bigint, buf, base, bigint_fmt_flags);
+    fklBigIntToStrBuf(&bigint, buf, base, bigint_fmt_flags);
 
     const char *p = buf->buf;
     length += buf->index;
@@ -1769,7 +1765,7 @@ static inline uint64_t format_bigint(FklStringBuffer *buf,
     return length;
 }
 
-static inline uint64_t format_f64(FklStringBuffer *buf,
+static inline uint64_t format_f64(FklStrBuf *buf,
         char ch,
         double value,
         uint32_t flags,
@@ -1806,11 +1802,11 @@ static inline uint64_t format_f64(FklStringBuffer *buf,
         if (!(flags & FLAGS_PRECISION)) {
             char fmt[] = "%*a";
             fmt[sizeof(fmt) - 2] = ch;
-            fklStringBufferPrintf(buf, fmt, width, value);
+            fklStrBufPrintf(buf, fmt, width, value);
         } else {
             char fmt[] = "%.*a";
             fmt[sizeof(fmt) - 2] = ch;
-            fklStringBufferPrintf(buf, fmt, precision, value);
+            fklStrBufPrintf(buf, fmt, precision, value);
         }
     } else {
         char fmt[] = "%.*f";
@@ -1818,7 +1814,7 @@ static inline uint64_t format_f64(FklStringBuffer *buf,
         if (!(flags & FLAGS_PRECISION))
             precision = 6;
 
-        fklStringBufferPrintf(buf, fmt, precision, value);
+        fklStrBufPrintf(buf, fmt, precision, value);
     }
     const char *p = buf->buf;
     length += buf->index;
@@ -1879,8 +1875,8 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
     uint64_t precision;
     FklBuiltinErrorType err = 0;
 
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
 
     uint64_t length = 0;
     while (fmt < end) {
@@ -2142,7 +2138,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
     if (plen)
         *plen = length;
 exit:
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     return err;
 }
 
@@ -2207,13 +2203,13 @@ FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         size_t len,
         FklVMvalue *base[]) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
     fklVMformat(exe, &builder, fmt, NULL, len, base);
     FklVMvalue *s = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     return s;
 }
 

@@ -65,12 +65,11 @@ static inline uintptr_t fklStringHash(const FklString *s) {
     return fklCharBufHash(s->str, s->size);
 }
 
-static inline void fklStringBufferConcatWithString(FklStringBuffer *b,
-        const FklString *s) {
-    fklStringBufferBincpy(b, s->str, s->size);
+static inline void fklStrBufConcatWithString(FklStrBuf *b, const FklString *s) {
+    fklStrBufBincpy(b, s->str, s->size);
 }
 
-static inline FklString *fklStringBufferToString(FklStringBuffer *b) {
+static inline FklString *fklStrBufToString(FklStrBuf *b) {
     return fklCreateString(b->index, b->buf);
 }
 
@@ -157,7 +156,7 @@ typedef struct FklBytevector {
     uint64_t size;
     uint8_t ptr[];
 } FklBytevector;
-FklBytevector *fklStringBufferToBytevector(FklStringBuffer *);
+FklBytevector *fklStrBufToBytevector(FklStrBuf *);
 
 FklBytevector *fklCreateBytevector(size_t, const uint8_t *);
 FklBytevector *fklBytevectorRealloc(FklBytevector *b, size_t new_size);
@@ -184,8 +183,8 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv);
 #define FKL_VECTOR_ELM_TYPE_NAME String
 #include "cont/vector.h"
 
-size_t fklBigIntToStringBuffer(const FklBigInt *a,
-        FklStringBuffer *string_buffer,
+size_t fklBigIntToStrBuf(const FklBigInt *a,
+        FklStrBuf *string_buffer,
         uint8_t radix,
         FklBigIntFmtFlags flags);
 

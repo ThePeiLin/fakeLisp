@@ -422,7 +422,7 @@ ret:
 
 int fklVMfpEof(FklVMvalueFp *vfp) { return feof(vfp->fp); }
 
-int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *b, size_t j) {
+int fklVMfpRewind(FklVMvalueFp *vfp, FklStrBuf *b, size_t j) {
     return fklRewindStream(vfp->fp, b->buf + j, b->index - j);
 }
 

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueStrBuf, { FklStringBuffer buf; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueStrBuf, { FklStrBuf buf; });
 
 static FklVMudMetaTable const StringBufferMetaTable;
 
@@ -20,8 +20,8 @@ static FKL_ALWAYS_INLINE FklVMvalueStrBuf *as_strbuf(const FklVMvalue *v) {
 }
 
 static int strbuf_equal(const FklVMvalue *a, const FklVMvalue *b) {
-    FklStringBuffer *bufa = &as_strbuf(a)->buf;
-    FklStringBuffer *bufb = &as_strbuf(b)->buf;
+    FklStrBuf *bufa = &as_strbuf(a)->buf;
+    FklStrBuf *bufb = &as_strbuf(b)->buf;
     // FKL_DECL_UD_DATA(bufa, FklStringBuffer, a);
     // FKL_DECL_UD_DATA(bufb, FklStringBuffer, b);
     return bufa->index == bufb->index
@@ -31,14 +31,14 @@ static int strbuf_equal(const FklVMvalue *a, const FklVMvalue *b) {
 static int strbuf_finalize(FklVMvalue *p, FklVMgc *gc) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, p);
     // fklUninitStringBuffer(buf);
-    fklUninitStringBuffer(&as_strbuf(p)->buf);
+    fklUninitStrBuf(&as_strbuf(p)->buf);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void
 strbuf_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
-    FklStringBuffer *bufa = &as_strbuf(ud)->buf;
+    FklStrBuf *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderPuts(build, "#<strbuf ");
     fklPrintBufLiteralExt(bufa->index, bufa->buf, "\"", "\"", '"', build);
     fklCodeBuilderPutc(build, '>');
@@ -47,29 +47,29 @@ strbuf_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
 static void
 strbuf_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     // FKL_DECL_UD_DATA(bufa, FklStringBuffer, ud);
-    FklStringBuffer *bufa = &as_strbuf(ud)->buf;
+    FklStrBuf *bufa = &as_strbuf(ud)->buf;
     fklCodeBuilderWrite(build, bufa->index, bufa->buf);
 }
 
 static void strbuf_write(const FklVMvalue *ud, FklCodeBuilder *build) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklStringBuffer *buf = &as_strbuf(ud)->buf;
+    FklStrBuf *buf = &as_strbuf(ud)->buf;
     fklCodeBuilderWrite(build, buf->index, buf->buf);
 }
 
 static int
 strbuf_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklStringBuffer *buf = &as_strbuf(ud)->buf;
+    FklStrBuf *buf = &as_strbuf(ud)->buf;
     FklVMvalue *const *const end = base + argc;
     for (; base < end; ++base) {
         FklVMvalue *cur = *base;
         if (FKL_IS_CHR(cur))
-            fklStringBufferPutc(buf, FKL_GET_CHR(cur));
+            fklStrBufPutc(buf, FKL_GET_CHR(cur));
         else if (FKL_IS_STR(cur))
-            fklStringBufferConcatWithString(buf, FKL_VM_STR(cur));
+            fklStrBufConcatWithString(buf, FKL_VM_STR(cur));
         else if (is_strbuf_ud(cur)) {
-            fklStringBufferConcatWithStringBuffer(buf, &as_strbuf(cur)->buf);
+            fklStrBufConcatWithStrBuf(buf, &as_strbuf(cur)->buf);
         } else
             return 1;
     }
@@ -79,18 +79,18 @@ strbuf_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
 static inline FklVMvalue *
 create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
-    fklInitStringBuffer(&as_strbuf(r)->buf);
-    fklStringBufferReserve(&as_strbuf(r)->buf, capacity);
+    fklInitStrBuf(&as_strbuf(r)->buf);
+    fklStrBufReserve(&as_strbuf(r)->buf, capacity);
     return r;
 }
 
 static inline FklVMvalue *
 create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalue *dll) {
     FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
-    FklStringBuffer *buf = &as_strbuf(r)->buf;
-    fklInitStringBuffer(buf);
-    fklStringBufferReserve(buf, size);
-    fklStringBufferBincpy(buf, ptr, size);
+    FklStrBuf *buf = &as_strbuf(r)->buf;
+    fklInitStrBuf(buf);
+    fklStrBufReserve(buf, size);
+    fklStrBufBincpy(buf, ptr, size);
     return r;
 }
 
@@ -102,16 +102,16 @@ static FklVMvalue *strbuf_copy_append(FklVM *exe,
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
     FklVMvalue *retval = create_vmstrbuf(exe, 0, ud->dll_);
     FklVMvalue *const *const end = base + argc;
-    FklStringBuffer *rbuf = &as_strbuf(retval)->buf;
-    fklStringBufferConcatWithStringBuffer(rbuf, &ud->buf);
+    FklStrBuf *rbuf = &as_strbuf(retval)->buf;
+    fklStrBufConcatWithStrBuf(rbuf, &ud->buf);
     for (; base < end; ++base) {
         FklVMvalue *cur = *base;
         if (FKL_IS_CHR(cur))
-            fklStringBufferPutc(rbuf, FKL_GET_CHR(cur));
+            fklStrBufPutc(rbuf, FKL_GET_CHR(cur));
         else if (FKL_IS_STR(cur))
-            fklStringBufferConcatWithString(rbuf, FKL_VM_STR(cur));
+            fklStrBufConcatWithString(rbuf, FKL_VM_STR(cur));
         else if (is_strbuf_ud(cur)) {
-            fklStringBufferConcatWithStringBuffer(rbuf, &as_strbuf(cur)->buf);
+            fklStrBufConcatWithStrBuf(rbuf, &as_strbuf(cur)->buf);
         } else
             return NULL;
     }
@@ -120,23 +120,23 @@ static FklVMvalue *strbuf_copy_append(FklVM *exe,
 
 static size_t strbuf_length(const FklVMvalue *ud) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklStringBuffer *buf = &as_strbuf(ud)->buf;
+    FklStrBuf *buf = &as_strbuf(ud)->buf;
     return buf->index;
 }
 
 static uintptr_t strbuf_hash(const FklVMvalue *ud) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklStringBuffer *buf = &as_strbuf(ud)->buf;
+    FklStrBuf *buf = &as_strbuf(ud)->buf;
     return fklCharBufHash(buf->buf, buf->size);
 }
 
 static int strbuf_cmp(const FklVMvalue *ud, const FklVMvalue *v, int *err) {
     // FKL_DECL_UD_DATA(buf, FklStringBuffer, ud);
-    FklStringBuffer *buf = &as_strbuf(ud)->buf;
+    FklStrBuf *buf = &as_strbuf(ud)->buf;
     if (FKL_IS_STR(v))
         return -fklStringCharBufCmp(FKL_VM_STR(v), buf->index, buf->buf);
     else if (is_strbuf_ud(v)) {
-        return fklStringBufferCmp(buf, &as_strbuf(v)->buf);
+        return fklStrBufCmp(buf, &as_strbuf(v)->buf);
     } else
         *err = 1;
     return 0;
@@ -179,7 +179,7 @@ static int export_make_strbuf(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
     FklVMvalue *r = create_vmstrbuf(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
-    FklStringBuffer *buf = &as_strbuf(r)->buf;
+    FklStrBuf *buf = &as_strbuf(r)->buf;
     char ch = 0;
     if (content) {
         FKL_CHECK_TYPE(content, FKL_IS_CHR, exe);
@@ -221,7 +221,7 @@ static int export_strbuf(FKL_CPROC_ARGL) {
                             b->str,
                             FKL_VM_CPROC(ctx->proc)->dll));
         } else if (is_strbuf_ud(str_or_buf)) {
-            FklStringBuffer *b = &as_strbuf(str_or_buf)->buf;
+            FklStrBuf *b = &as_strbuf(str_or_buf)->buf;
             FKL_CPROC_RETURN(exe,
                     ctx,
                     create_vmstrbuf2(exe,
@@ -232,13 +232,13 @@ static int export_strbuf(FKL_CPROC_ARGL) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     } else {
         FklVMvalue *r = create_vmstrbuf(exe, 0, FKL_VM_CPROC(ctx->proc)->dll);
-        FklStringBuffer *b = &as_strbuf(r)->buf;
+        FklStrBuf *b = &as_strbuf(r)->buf;
         FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue **const arg_end = arg_base + argc;
         for (; arg_base < arg_end; ++arg_base) {
             FklVMvalue *cur = *arg_base;
             FKL_CHECK_TYPE(cur, FKL_IS_CHR, exe);
-            fklStringBufferPutc(b, FKL_GET_CHR(cur));
+            fklStrBufPutc(b, FKL_GET_CHR(cur));
         }
         FKL_CPROC_RETURN(exe, ctx, r);
     }
@@ -249,7 +249,7 @@ static int export_strbuf_to_string(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *buf = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(buf, is_strbuf_ud, exe);
-    FklStringBuffer *b = &as_strbuf(buf)->buf;
+    FklStrBuf *b = &as_strbuf(buf)->buf;
     FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr2(exe, b->index, b->buf));
     return 0;
 }
@@ -258,7 +258,7 @@ static int export_strbuf_to_bytevector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *buf = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(buf, is_strbuf_ud, exe);
-    FklStringBuffer *b = &as_strbuf(buf)->buf;
+    FklStrBuf *b = &as_strbuf(buf)->buf;
     FKL_CPROC_RETURN(exe,
             ctx,
             fklCreateVMvalueBvec2(exe,
@@ -271,7 +271,7 @@ static int export_strbuf_to_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_strbuf_ud, exe);
-    FklStringBuffer *buf = &as_strbuf(obj)->buf;
+    FklStrBuf *buf = &as_strbuf(obj)->buf;
     size_t len = buf->index;
     const char *ptr = buf->buf;
     FklVMvalue *r = FKL_VM_NIL;
@@ -288,7 +288,7 @@ static int export_strbuf_to_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_strbuf_ud, exe);
-    FklStringBuffer *buf = &as_strbuf(obj)->buf;
+    FklStrBuf *buf = &as_strbuf(obj)->buf;
     size_t len = buf->index;
     const char *ptr = buf->buf;
     FklVMvalue *r = fklCreateVMvalueVec(exe, len);
@@ -303,7 +303,7 @@ static int export_strbuf_to_symbol(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_strbuf_ud, exe);
-    FklStringBuffer *buf = &as_strbuf(obj)->buf;
+    FklStrBuf *buf = &as_strbuf(obj)->buf;
     FKL_CPROC_RETURN(exe,
             ctx,
             fklVMaddSymbolCharBuf(exe, buf->buf, buf->index));
@@ -319,7 +319,7 @@ static int export_strbuf_ref(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FklStringBuffer *buf = &as_strbuf(str)->buf;
+    FklStrBuf *buf = &as_strbuf(str)->buf;
     if (index >= buf->index)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     FKL_CPROC_RETURN(exe, ctx, FKL_MAKE_VM_CHR(buf->buf[index]));
@@ -336,7 +336,7 @@ static int export_strbuf_set1(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FklStringBuffer *buf = &as_strbuf(str)->buf;
+    FklStrBuf *buf = &as_strbuf(str)->buf;
     if (index >= buf->index)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     if (!FKL_IS_CHR(target) && !fklIsVMint(target))
@@ -351,7 +351,7 @@ static int export_strbuf_clear(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_strbuf_ud, exe);
-    fklStringBufferClear(&as_strbuf(obj)->buf);
+    fklStrBufClear(&as_strbuf(obj)->buf);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -365,7 +365,7 @@ static int export_strbuf_reserve(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t capacity = fklVMgetUint(place);
-    fklStringBufferReserve(&as_strbuf(str)->buf, capacity);
+    fklStrBufReserve(&as_strbuf(str)->buf, capacity);
     FKL_CPROC_RETURN(exe, ctx, str);
     return 0;
 }
@@ -409,7 +409,7 @@ static int export_strbuf_fmt(FKL_CPROC_ARGL) {
                 argc - 2,
                 start);
     } else {
-        FklStringBuffer *fmt_buf = &as_strbuf(fmt_obj)->buf;
+        FklStrBuf *fmt_buf = &as_strbuf(fmt_obj)->buf;
         err_type = fklVMformat3(exe,
                 &builder,
                 fmt_buf->index,
@@ -432,7 +432,7 @@ static int export_strbuf_shrink(FKL_CPROC_ARGL) {
     FklVMvalue *shrink_to_val =
             argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(buf_obj, is_strbuf_ud, exe);
-    FklStringBuffer *buf = &as_strbuf(buf_obj)->buf;
+    FklStrBuf *buf = &as_strbuf(buf_obj)->buf;
     size_t shrink_to;
     if (shrink_to_val) {
         FKL_CHECK_TYPE(shrink_to_val, fklIsVMint, exe);
@@ -442,7 +442,7 @@ static int export_strbuf_shrink(FKL_CPROC_ARGL) {
     } else
         shrink_to = buf->index + 1;
     if (shrink_to < buf->size && shrink_to > buf->index)
-        fklStringBufferShrinkTo(buf, shrink_to);
+        fklStrBufShrinkTo(buf, shrink_to);
     FKL_CPROC_RETURN(exe, ctx, buf_obj);
     return 0;
 }
@@ -461,10 +461,10 @@ static int export_strbuf_resize(FKL_CPROC_ARGL) {
         content = FKL_GET_CHR(content_obj);
     } else
         content = '\0';
-    FklStringBuffer *buf = &as_strbuf(buf_obj)->buf;
+    FklStrBuf *buf = &as_strbuf(buf_obj)->buf;
     if (fklIsVMnumberLt0(resize_to))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    fklStringBufferResize(buf, fklVMgetUint(resize_to), content);
+    fklStrBufResize(buf, fklVMgetUint(resize_to), content);
     FKL_CPROC_RETURN(exe, ctx, buf_obj);
     return 0;
 }
@@ -479,7 +479,7 @@ static int export_substrbuf(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(vend, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vend))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklStringBuffer *buf = &as_strbuf(ostr)->buf;
+    FklStrBuf *buf = &as_strbuf(ostr)->buf;
     size_t size = buf->index;
     size_t start = fklVMgetUint(vstart);
     size_t end = fklVMgetUint(vend);
@@ -504,7 +504,7 @@ static int export_sub_strbuf(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(vsize, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vsize))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklStringBuffer *buf = &as_strbuf(ostr)->buf;
+    FklStrBuf *buf = &as_strbuf(ostr)->buf;
     size_t size = buf->index;
     size_t start = fklVMgetUint(vstart);
     size_t osize = fklVMgetUint(vsize);

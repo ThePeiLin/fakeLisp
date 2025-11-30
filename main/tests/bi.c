@@ -395,168 +395,168 @@ static void sub_test3(void) {
         fklUninitBigInt(&c);
     }
     {
-        FklStringBuffer buf;
+        FklStrBuf buf;
         FklBigInt a;
         FklString *str = NULL;
         fklInitBigIntI(&a, 1145141919);
-        fklInitStringBuffer(&buf);
+        fklInitStrBuf(&buf);
 
         // pos
-        fklBigIntToStringBuffer(&a, &buf, 10, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 10, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 10, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "1145141919"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "1145141919"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "1145141919"));
 
         // neg
         fklZfree(str);
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
 
         fklSetBigIntI(&a, -1145141919);
-        fklBigIntToStringBuffer(&a, &buf, 10, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 10, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 10, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-1145141919"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-1145141919"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-1145141919"));
 
         fklUninitBigInt(&a);
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
     }
     {
         // oct
-        FklStringBuffer buf;
+        FklStrBuf buf;
         FklBigInt a;
         FklString *str = NULL;
         fklInitBigIntI(&a, 1145141919);
-        fklInitStringBuffer(&buf);
+        fklInitStrBuf(&buf);
 
         fklSetBigIntI(&a, 1145141919);
-        fklBigIntToStringBuffer(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 8, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "10420275237"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "10420275237"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "10420275237"));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // oct alternate
 
-        fklBigIntToStringBuffer(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
+        fklBigIntToStrBuf(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
         str = fklBigIntToString(&a, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "010420275237"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "010420275237"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "010420275237"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // oct neg
 
         fklSetBigIntI(&a, -1145141919);
-        fklBigIntToStringBuffer(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 8, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-10420275237"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-10420275237"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-10420275237"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // oct neg alternate
 
-        fklBigIntToStringBuffer(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
+        fklBigIntToStrBuf(&a, &buf, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
         str = fklBigIntToString(&a, 8, FKL_BIGINT_FMT_FLAG_ALTERNATE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-010420275237"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-010420275237"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-010420275237"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
         fklUninitBigInt(&a);
     }
     {
-        FklStringBuffer buf;
+        FklStrBuf buf;
         FklBigInt a;
         FklString *str = NULL;
         fklSetBigIntI(&a, 1145141919);
 
         // hex
 
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "44417a9f"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "44417a9f"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417a9f"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex alternate
 
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "0x44417a9f"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "0x44417a9f"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0x44417a9f"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex capitals
 
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "44417A9F"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "44417A9F"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "44417A9F"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex alternate capitals
 
-        fklBigIntToStringBuffer(&a,
+        fklBigIntToStrBuf(&a,
                 &buf,
                 16,
                 FKL_BIGINT_FMT_FLAG_ALTERNATE | FKL_BIGINT_FMT_FLAG_CAPITALS);
@@ -566,60 +566,60 @@ static void sub_test3(void) {
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "0X44417A9F"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "0X44417A9F"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "0X44417A9F"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex neg
         fklSetBigIntI(&a, -1145141919);
 
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_NONE);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_NONE);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_NONE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-44417a9f"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-44417a9f"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417a9f"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex neg alternate
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_ALTERNATE);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-0x44417a9f"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-0x44417a9f"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0x44417a9f"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex neg capitals
-        fklBigIntToStringBuffer(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
+        fklBigIntToStrBuf(&a, &buf, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
         str = fklBigIntToString(&a, 16, FKL_BIGINT_FMT_FLAG_CAPITALS);
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-44417A9F"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-44417A9F"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-44417A9F"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         // hex neg alternate capitals
-        fklBigIntToStringBuffer(&a,
+        fklBigIntToStrBuf(&a,
                 &buf,
                 16,
                 FKL_BIGINT_FMT_FLAG_CAPITALS | FKL_BIGINT_FMT_FLAG_ALTERNATE);
@@ -629,12 +629,12 @@ static void sub_test3(void) {
 
         fprintf(stderr,
                 "buf: %s, len: %u\n",
-                fklStringBufferBody(&buf),
-                fklStringBufferLen(&buf));
-        FKL_ASSERT(!strcmp(fklStringBufferBody(&buf), "-0X44417A9F"));
+                fklStrBufBody(&buf),
+                fklStrBufLen(&buf));
+        FKL_ASSERT(!strcmp(fklStrBufBody(&buf), "-0X44417A9F"));
         fprintf(stderr, "str: %s, len: %" PRIu64 "\n", str->str, str->size);
         FKL_ASSERT(!strcmp(str->str, "-0X44417A9F"));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklZfree(str);
 
         fklUninitBigInt(&a);
@@ -647,8 +647,8 @@ static void sub_test4(void) {
     {
         FklBigInt a;
         FklBigInt rem = FKL_BIGINT_0;
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
         fklInitBigIntI(&a, h);
         fklMulBigIntI(&a, i);
 
@@ -666,15 +666,15 @@ static void sub_test4(void) {
         FKL_ASSERT(d == 114514 + A_BIG_NUM);
         FKL_ASSERT(r == 0);
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklUninitBigInt(&a);
         fklUninitBigInt(&rem);
     }
     {
         FklBigInt a;
         FklBigInt rem = FKL_BIGINT_0;
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
         fklInitBigIntI(&a, h);
         fklMulBigIntI(&a, -i);
 
@@ -692,7 +692,7 @@ static void sub_test4(void) {
         FKL_ASSERT(d == -114514 - A_BIG_NUM);
         FKL_ASSERT(r == 0);
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklUninitBigInt(&a);
     }
     {
@@ -700,10 +700,10 @@ static void sub_test4(void) {
         int64_t r;
         FklBigInt a;
         FklBigInt rem;
-        FklStringBuffer buf;
+        FklStrBuf buf;
         const int64_t h = 114514;
         const int64_t i = 19198;
-        fklInitStringBuffer(&buf);
+        fklInitStrBuf(&buf);
         fklInitBigIntI(&a, -h);
         fklInitBigInt0(&rem);
 
@@ -763,7 +763,7 @@ static void sub_test4(void) {
         FKL_ASSERT(d == (h / -i));
         FKL_ASSERT(r == (h % -i));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklUninitBigInt(&a);
         fklUninitBigInt(&rem);
     }
@@ -772,10 +772,10 @@ static void sub_test4(void) {
         int64_t r;
         FklBigInt a;
         FklBigInt rem;
-        FklStringBuffer buf;
+        FklStrBuf buf;
         const int64_t h = 114514 + A_BIG_NUM * 2;
         const int64_t i = 19198 + A_BIG_NUM;
-        fklInitStringBuffer(&buf);
+        fklInitStrBuf(&buf);
         fklInitBigIntI(&a, -h);
         fklInitBigInt0(&rem);
 
@@ -835,17 +835,17 @@ static void sub_test4(void) {
         FKL_ASSERT(d == (h / -i));
         FKL_ASSERT(r == (h % -i));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklUninitBigInt(&a);
         fklUninitBigInt(&rem);
     }
     {
         int64_t r;
         FklBigInt a;
-        FklStringBuffer buf;
+        FklStrBuf buf;
         const int64_t h = 114514 + A_BIG_NUM * 2;
         const int64_t i = 19198 + A_BIG_NUM;
-        fklInitStringBuffer(&buf);
+        fklInitStrBuf(&buf);
         fklInitBigIntI(&a, -h);
 
         fklRemBigIntI(&a, -i);
@@ -888,7 +888,7 @@ static void sub_test4(void) {
                 r);
         FKL_ASSERT(r == (h % -i));
 
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         fklUninitBigInt(&a);
     }
 }

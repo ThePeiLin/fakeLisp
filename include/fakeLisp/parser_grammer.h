@@ -64,7 +64,7 @@ typedef struct {
     struct FklVMgc *gc;
     struct FklVMvalue *current_nonterm;
     FklParserGrammerState state;
-    FklStringBuffer error_msg;
+    FklStrBuf error_msg;
     void *resolver_ctx;
     int need_add_extra_prod;
 } FklParserGrammerParseArg;
@@ -84,7 +84,7 @@ static inline void fklInitParserGrammerParseArg(FklParserGrammerParseArg *arg,
     arg->prod_action_resolver = resolver;
     arg->resolver_ctx = resolver_ctx;
     arg->need_add_extra_prod = need_add_extra_prod;
-    fklInitStringBuffer(&arg->error_msg);
+    fklInitStrBuf(&arg->error_msg);
 }
 
 static inline void fklUninitParserGrammerParseArg(
@@ -97,7 +97,7 @@ static inline void fklUninitParserGrammerParseArg(
     arg->prod_action_resolver = NULL;
     arg->resolver_ctx = NULL;
     arg->need_add_extra_prod = 0;
-    fklUninitStringBuffer(&arg->error_msg);
+    fklUninitStrBuf(&arg->error_msg);
 }
 
 int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,

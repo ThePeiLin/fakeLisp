@@ -3192,7 +3192,7 @@ static inline int is_only_single_way_to_reduce(
 int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
         FklGrammer *grammer,
         FklLalrItemSetHashMap *states,
-        FklStringBuffer *error_msg) {
+        FklStrBuf *error_msg) {
     FklCodeBuilder err = { 0 };
     fklInitCodeBuilderStrBuf(&err, error_msg, NULL);
 

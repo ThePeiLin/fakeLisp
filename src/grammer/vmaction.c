@@ -1,5 +1,6 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
 #ifdef __clang__
@@ -26,8 +27,8 @@ static inline void *prod_action_symbol(void *ctx,
     const char *cstr = str->str;
     size_t cstr_size = str->size;
 
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
+    FklStrBuf buffer;
+    fklInitStrBuf(&buffer);
     const char *end_cstr = cstr + str->size;
     while (cstr < end_cstr) {
         if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
@@ -38,7 +39,7 @@ static inline void *prod_action_symbol(void *ctx,
                 return 0;
             size_t size = 0;
             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
-            fklStringBufferBincpy(&buffer, s, size);
+            fklStrBufBincpy(&buffer, s, size);
             fklZfree(s);
             cstr += len;
             cstr_size -= len;
@@ -49,14 +50,14 @@ static inline void *prod_action_symbol(void *ctx,
             if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
                     >= 0)
                 break;
-        fklStringBufferBincpy(&buffer, cstr, len);
+        fklStrBufBincpy(&buffer, cstr, len);
         cstr += len;
         cstr_size -= len;
     }
     const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
     FklVMvalue *retval =
             fklVMaddSymbolCharBuf(c->exe, buffer.buf, buffer.index);
-    fklUninitStringBuffer(&buffer);
+    fklUninitStrBuf(&buffer);
     return retval;
 }
 

@@ -53,7 +53,7 @@ int fklIsScriptFile(const char *);
 int fklIsByteCodeFile(const char *);
 int fklIsPrecompileFile(const char *filename);
 
-int fklGetDelim(FILE *fp, FklStringBuffer *b, char d);
+int fklGetDelim(FILE *fp, FklStrBuf *b, char d);
 
 void *fklCopyMemory(const void *, size_t);
 
@@ -85,7 +85,7 @@ int fklIsAccessibleRegFile(const char *s);
 int fklIsAccessibleDirectory(const char *s);
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
-void fklStoreHistoryInStringBuffer(FklStringBuffer *buf, size_t offset);
+void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset);
 
 #ifdef __cplusplus
 }

@@ -44,8 +44,8 @@ char *fklReadWithBuiltinParser(FILE *fp,
         FklAnalysisSymbolVector *symbolStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     *unexpectEOF = 0;
     FklVMvalue *ast = NULL;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
@@ -74,19 +74,19 @@ char *fklReadWithBuiltinParser(FILE *fp,
                                      : fklAnalysisSymbolVectorBack(symbolStack)
                                                ->line;
                 *unexpectEOF = FKL_PARSE_REDUCE_FAILED;
-                fklStringBufferClear(&buf);
+                fklStrBufClear(&buf);
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbolStack)) {
                     *output_line = symbolStack->base[0].line;
                     *unexpectEOF = FKL_PARSE_TERMINAL_MATCH_FAILED;
-                    fklStringBufferClear(&buf);
+                    fklStrBufClear(&buf);
                 }
                 break;
             }
         } else if (err == FKL_PARSE_REDUCE_FAILED) {
             *unexpectEOF = err;
-            fklStringBufferClear(&buf);
+            fklStrBufClear(&buf);
             break;
         } else if (ast) {
             if (restLen) {
@@ -103,7 +103,7 @@ char *fklReadWithBuiltinParser(FILE *fp,
     *pline = ctx.line;
     *psize = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     return tmp;
 }
 
@@ -119,8 +119,8 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
         FklAnalysisSymbolVector *symbolStack,
         FklParseStateVector *stateStack,
         FklVMvalueLnt *ln) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     *unexpectEOF = 0;
     FklVMvalue *ast = NULL;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
@@ -179,7 +179,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g,
     *pline = ctx.line;
     *psize = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     return tmp;
 }
 

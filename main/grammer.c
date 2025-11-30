@@ -25,18 +25,18 @@ int main(int argc, char *argv[]) {
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
 
-    FklStringBuffer err_msg;
-    fklInitStringBuffer(&err_msg);
+    FklStrBuf err_msg;
+    fklInitStrBuf(&err_msg);
     if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
-        fklUninitStringBuffer(&err_msg);
+        fklUninitStrBuf(&err_msg);
         return 1;
     }
-    fklUninitStringBuffer(&err_msg);
+    fklUninitStrBuf(&err_msg);
 
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(outer_file_name, "w");

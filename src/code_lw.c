@@ -1333,25 +1333,25 @@ static inline void load_named_prods(FILE *fp,
 }
 
 static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    fklStringBufferConcatWithCstr(&buf, main_dir);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
+    fklStrBufConcatWithCstr(&buf, main_dir);
     int ch = fgetc(fp);
     for (;;) {
         while (ch) {
-            fklStringBufferPutc(&buf, ch);
+            fklStrBufPutc(&buf, ch);
             ch = fgetc(fp);
         }
         ch = fgetc(fp);
         if (!ch)
             break;
-        fklStringBufferPutc(&buf, FKL_PATH_SEPARATOR);
+        fklStrBufPutc(&buf, FKL_PATH_SEPARATOR);
     }
 
-    fklStringBufferPutc(&buf, FKL_PRE_COMPILE_FKL_SUFFIX);
+    fklStrBufPutc(&buf, FKL_PRE_COMPILE_FKL_SUFFIX);
 
     char *path = fklZstrdup(buf.buf);
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     return path;
 }
 
@@ -1430,25 +1430,25 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
 }
 
 static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
-    fklStringBufferConcatWithCstr(&buf, main_dir);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
+    fklStrBufConcatWithCstr(&buf, main_dir);
     int ch = fgetc(fp);
     for (;;) {
         while (ch) {
-            fklStringBufferPutc(&buf, ch);
+            fklStrBufPutc(&buf, ch);
             ch = fgetc(fp);
         }
         ch = fgetc(fp);
         if (!ch)
             break;
-        fklStringBufferPutc(&buf, FKL_PATH_SEPARATOR);
+        fklStrBufPutc(&buf, FKL_PATH_SEPARATOR);
     }
 
-    fklStringBufferConcatWithCstr(&buf, FKL_DLL_FILE_TYPE);
+    fklStrBufConcatWithCstr(&buf, FKL_DLL_FILE_TYPE);
 
     char *path = fklZstrdup(buf.buf);
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
     char *rp = fklRealpath(path);
     fklZfree(path);
     return rp;

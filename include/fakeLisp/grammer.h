@@ -552,7 +552,7 @@ static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
 int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
         FklGrammer *grammer,
         FklLalrItemSetHashMap *states,
-        FklStringBuffer *error_msg);
+        FklStrBuf *error_msg);
 void fklPrintAnalysisTable(const FklGrammer *grammer, FILE *fp);
 void fklPrintAnalysisTable2(const FklGrammer *grammer, FklCodeBuilder *fp);
 

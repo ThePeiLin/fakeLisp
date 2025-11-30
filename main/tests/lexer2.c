@@ -81,17 +81,17 @@ int main() {
     fklPrintItemStateSet(gc, itemSet, g, stdout);
     fklPrintItemStateSetAsDot(gc, itemSet, g, lalrgzf);
 
-    FklStringBuffer err_msg;
-    fklInitStringBuffer(&err_msg);
+    FklStrBuf err_msg;
+    fklInitStrBuf(&err_msg);
     if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
         fklCodeBuilderFmt(&err_out, "not lalr garmmer\n%s\n", err_msg.buf);
-        fklUninitStringBuffer(&err_msg);
+        fklUninitStrBuf(&err_msg);
         exit(1);
     }
     fklPrintAnalysisTable(g, stdout);
     fklLalrItemSetHashMapDestroy(itemSet);
-    fklUninitStringBuffer(&err_msg);
+    fklUninitStrBuf(&err_msg);
 
     FILE *tablef = fopen("table.txt", "w");
     fklPrintAnalysisTableForGraphEasy(g, tablef);

@@ -260,7 +260,7 @@ size_t fklCountCharInString(FklString *s, char c) {
     return fklCountCharInBuf(s->str, s->size, c);
 }
 
-FklBytevector *fklStringBufferToBytevector(FklStringBuffer *b) {
+FklBytevector *fklStrBufToBytevector(FklStrBuf *b) {
     return fklCreateBytevector(b->index, (uint8_t *)b->buf);
 }
 
@@ -373,16 +373,16 @@ void fklWriteBytevector(const FklBytevector *b, FILE *fp) {
 }
 
 static char *string_buffer_alloc(void *ptr, size_t len) {
-    FklStringBuffer *buf = ptr;
-    fklStringBufferReserve(buf, len + 1);
+    FklStrBuf *buf = ptr;
+    fklStrBufReserve(buf, len + 1);
     buf->index = len;
-    char *body = fklStringBufferBody(buf);
+    char *body = fklStrBufBody(buf);
     body[len] = '\0';
     return body;
 }
 
-size_t fklBigIntToStringBuffer(const FklBigInt *a,
-        FklStringBuffer *buf,
+size_t fklBigIntToStrBuf(const FklBigInt *a,
+        FklStrBuf *buf,
         uint8_t radix,
         FklBigIntFmtFlags flags) {
     return fklBigIntToStr(a, string_buffer_alloc, buf, radix, flags);

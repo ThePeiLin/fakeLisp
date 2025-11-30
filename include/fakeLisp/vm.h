@@ -1473,7 +1473,7 @@ int fklVMvalueCmp(FklVMvalue *, FklVMvalue *, int *);
 
 FklVMfpRW fklGetVMfpRwFromCstr(const char *mode);
 
-int fklVMfpRewind(FklVMvalueFp *vfp, FklStringBuffer *, size_t j);
+int fklVMfpRewind(FklVMvalueFp *vfp, FklStrBuf *, size_t j);
 int fklVMfpEof(FklVMvalueFp *);
 int fklVMfpFileno(FklVMvalueFp *);
 int fklVMfpClose(FklVMvalueFp *);
@@ -1496,7 +1496,7 @@ int fklVMchanlEmpty(FklVMvalueChanl *ch);
 
 void fklVMsleep(FklVM *, uint64_t ms);
 
-void fklVMread(FklVM *, FILE *fp, FklStringBuffer *buf, uint64_t len, int d);
+void fklVMread(FklVM *, FILE *fp, FklStrBuf *buf, uint64_t len, int d);
 
 void fklVMacquireWq(FklVMgc *);
 void fklVMreleaseWq(FklVMgc *);

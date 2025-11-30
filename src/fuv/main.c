@@ -4293,9 +4293,9 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
     FklVMvalue *err = NULL;
     // FKL_DECL_VM_UD_DATA(fpd, FuvPublicData, pd);
     if (dest_path) {
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
-        fklStringBufferPrintf(&buf,
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
+        fklStrBufPrintf(&buf,
                 "%s: %s -> %s",
                 uv_strerror(r),
                 req->path,
@@ -4303,15 +4303,15 @@ static inline FklVMvalue *create_fs_uv_err(FklVM *exe,
         err = fklCreateVMvalueError(exe,
                 uvErrToSid(r, fpd),
                 fklCreateVMvalueStr2(exe, buf.index, buf.buf));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
     } else if (req->path) {
-        FklStringBuffer buf;
-        fklInitStringBuffer(&buf);
-        fklStringBufferPrintf(&buf, "%s: %s", uv_strerror(r), req->path);
+        FklStrBuf buf;
+        fklInitStrBuf(&buf);
+        fklStrBufPrintf(&buf, "%s: %s", uv_strerror(r), req->path);
         err = fklCreateVMvalueError(exe,
                 uvErrToSid(r, fpd),
                 fklCreateVMvalueStr2(exe, buf.index, buf.buf));
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
     } else
         err = createUvError2(r, exe, fpd);
     return err;
@@ -4942,15 +4942,13 @@ static int fuv_fs_open(FKL_CPROC_ARGL) {
 
 static inline FklBuiltinErrorType setup_fs_write_buf(FklVMvalue **parg,
         FklVMvalue **const arg_end,
-        FklStringBuffer *buf) {
+        FklStrBuf *buf) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
         if (FKL_IS_STR(cur))
-            fklStringBufferConcatWithString(buf, FKL_VM_STR(cur));
+            fklStrBufConcatWithString(buf, FKL_VM_STR(cur));
         else if (FKL_IS_BYTEVECTOR(cur))
-            fklStringBufferBincpy(buf,
-                    FKL_VM_BVEC(cur)->ptr,
-                    FKL_VM_BVEC(cur)->size);
+            fklStrBufBincpy(buf, FKL_VM_BVEC(cur)->ptr, FKL_VM_BVEC(cur)->size);
         else
             return FKL_ERR_INCORRECT_TYPE_VALUE;
     }
@@ -5064,14 +5062,14 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
     // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
 
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     FklBuiltinErrorType err_type =
             argc > 4 ? setup_fs_write_buf(&arg_base[4], arg_base + argc, &buf)
                      : 0;
 
     if (err_type) {
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
     }
 
@@ -5082,7 +5080,7 @@ static int fuv_fs_write(FKL_CPROC_ARGL) {
             loop_obj,
             cb_obj,
             &(const FuvFsReqArgs){ .len = buf.index, .str = buf.buf });
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
 
     FS_CALL(exe,
             as_pd(ctx->pd),
@@ -6977,23 +6975,23 @@ static int fuv_os_getenv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *env_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(env_obj, FKL_IS_STR, exe);
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     size_t size = buf.size;
     int r = 0;
     while ((r = uv_os_getenv(FKL_VM_STR(env_obj)->str, buf.buf, &size))
             == UV_ENOBUFS)
-        fklStringBufferReserve(&buf, size + 1);
+        fklStrBufReserve(&buf, size + 1);
     if (r == 0) {
         buf.index = size;
         FKL_CPROC_RETURN(exe,
                 ctx,
                 fklCreateVMvalueStr2(exe,
-                        fklStringBufferLen(&buf),
-                        fklStringBufferBody(&buf)));
-        fklUninitStringBuffer(&buf);
+                        fklStrBufLen(&buf),
+                        fklStrBufBody(&buf)));
+        fklUninitStrBuf(&buf);
     } else {
-        fklUninitStringBuffer(&buf);
+        fklUninitStrBuf(&buf);
         raiseUvError(r, exe, ctx->pd);
     }
     return 0;

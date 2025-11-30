@@ -547,10 +547,10 @@ int main(int argc, char *argv[]) {
                 priority_array[4] = PRIORITY_PACKAGE_PRECOMPILE;
             }
 
-            FklStringBuffer main_script_buf;
-            fklInitStringBuffer(&main_script_buf);
+            FklStrBuf main_script_buf;
+            fklInitStrBuf(&main_script_buf);
 
-            fklStringBufferConcatWithCstr(&main_script_buf, filename);
+            fklStrBufConcatWithCstr(&main_script_buf, filename);
             char *module_script_file =
                     fklStrCat(fklZstrdup(main_script_buf.buf),
                             FKL_SCRIPT_FILE_EXTENSION);
@@ -558,9 +558,8 @@ int main(int argc, char *argv[]) {
                     fklStrCat(fklZstrdup(main_script_buf.buf),
                             FKL_BYTECODE_FILE_EXTENSION);
 
-            fklStringBufferConcatWithCstr(&main_script_buf,
-                    FKL_PATH_SEPARATOR_STR);
-            fklStringBufferConcatWithCstr(&main_script_buf, "main.fkl");
+            fklStrBufConcatWithCstr(&main_script_buf, FKL_PATH_SEPARATOR_STR);
+            fklStrBufConcatWithCstr(&main_script_buf, "main.fkl");
 
             char *main_code_file = fklStrCat(fklZstrdup(main_script_buf.buf),
                     FKL_BYTECODE_FKL_SUFFIX_STR);
@@ -613,7 +612,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "%s: No such file or directory\n", filename);
 
         execute_done:
-            fklUninitStringBuffer(&main_script_buf);
+            fklUninitStrBuf(&main_script_buf);
             fklZfree(main_code_file);
             fklZfree(main_pre_file);
             fklZfree(module_script_file);
@@ -668,7 +667,7 @@ typedef struct {
 struct ReplFrameCtx {
     FklVMvalue *stdinVal;
     FklVMvalue *mainProc;
-    FklStringBuffer buf;
+    FklStrBuf buf;
     FklVMvarRefList *lrefl;
     FklVMvalue **lref;
     uint32_t lcount;
@@ -932,9 +931,8 @@ static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef *lr,
 
 #include <fakeLisp/grammer.h>
 
-static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx *cc,
-        FklStringBuffer *s,
-        FklGrammer *g) {
+static inline void
+repl_nast_ctx_and_buf_reset(NastCreatCtx *cc, FklStrBuf *s, FklGrammer *g) {
     FKL_TODO();
     // cc->offset = 0;
     // if (s) {
@@ -957,7 +955,7 @@ static inline void repl_nast_ctx_and_buf_reset(NastCreatCtx *cc,
 }
 
 static inline void
-eval_nast_ctx_reset(NastCreatCtx *cc, FklStringBuffer *s, FklGrammer *g) {
+eval_nast_ctx_reset(NastCreatCtx *cc, FklStrBuf *s, FklGrammer *g) {
     FKL_TODO();
     // cc->offset = 0;
     // FklAnalysisSymbolVector *ss = &cc->symbolStack;
@@ -1057,16 +1055,16 @@ static int read_expression_end_cb(const char *str,
     // }
 }
 
-static inline int repl_read_expression(FklStringBuffer *buf,
+static inline int repl_read_expression(FklStrBuf *buf,
         ReadExpressionEndArgs *args) {
     char *next = fklReadline3(REPL_PROMPT,
             buf->buf,
             read_expression_end_cb,
             FKL_TYPE_CAST(void *, args));
-    fklStringBufferClear(buf);
+    fklStrBufClear(buf);
     int eof = next == NULL;
     if (next) {
-        fklStringBufferConcatWithCstr(buf, next);
+        fklStrBufConcatWithCstr(buf, next);
         fklZfree(next);
     }
     return eof;
@@ -1342,7 +1340,7 @@ static inline void destroyNastCreatCtx(NastCreatCtx *cc) {
 
 static void repl_frame_finalizer(void *data) {
     ReplCtx *ctx = (ReplCtx *)data;
-    fklUninitStringBuffer(&ctx->c->buf);
+    fklUninitStrBuf(&ctx->c->buf);
     destroyNastCreatCtx(ctx->cc);
 
     struct ReplFrameCtx *fctx = ctx->c;
@@ -1642,11 +1640,11 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     ctx->c->lrefl = NULL;
     ctx->interactive = interactive;
     ctx->new_var_count = 0;
-    fklInitStringBuffer(&ctx->c->buf);
+    fklInitStrBuf(&ctx->c->buf);
     if (eval_expression) {
         replFrame->errorCallBack = NULL;
         replFrame->t = &EvalContextMethodTable;
-        fklStringBufferConcatWithCstr(&ctx->c->buf, eval_expression);
+        fklStrBufConcatWithCstr(&ctx->c->buf, eval_expression);
     }
     fklSetBp(exe);
     ctx->c->bp = exe->bp;

@@ -1,4 +1,3 @@
-#include "fakeLisp/str_buf.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
@@ -12,6 +11,7 @@
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/regex.h>
+#include <fakeLisp/str_buf.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
@@ -4602,7 +4602,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
             if (is_unqtesp(ctx, top.node.value, NULL)) {
                 error_state->error = make_syntax_error(GCVM, top.node.value);
                 error_state->line = CURLINE(top.node.container);
-				goto done;
+                goto done;
             }
 
             QsquoteStateNoneArgs args = {
@@ -5512,13 +5512,13 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklVM *exe,
         uint32_t line,
         uint32_t scope,
         FklCodegenCtx *ctx) {
-    FklStringBuffer buf;
-    fklInitStringBuffer(&buf);
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
         const FklString *origSymbol = FKL_VM_SYM(l->k);
-        fklStringBufferConcatWithString(&buf, prefix);
-        fklStringBufferConcatWithString(&buf, origSymbol);
+        fklStrBufConcatWithString(&buf, prefix);
+        fklStrBufConcatWithString(&buf, origSymbol);
 
         FklVMvalue *sym = add_symbol_char_buf(ctx, buf.buf, buf.index);
         // fklAddSymbolCharBuf(buf.buf, buf.index, pst);
@@ -5531,9 +5531,9 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklVM *exe,
                 fid,
                 line,
                 scope);
-        fklStringBufferClear(&buf);
+        fklStrBufClear(&buf);
     }
-    fklUninitStringBuffer(&buf);
+    fklUninitStrBuf(&buf);
 }
 
 static FklVMvalue *add_prefix_for_exp_head(FklVMvalue *orig,
@@ -5667,8 +5667,8 @@ static inline int add_all_group_to_grammer(uint64_t line,
 
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fklLr0ToLalrItems(itemSet, g);
-    FklStringBuffer err_msg;
-    fklInitStringBuffer(&err_msg);
+    FklStrBuf err_msg;
+    fklInitStrBuf(&err_msg);
 
     int r = fklGenerateLalrAnalyzeTable(codegen->ctx->gc, g, itemSet, &err_msg);
     if (r) {
@@ -5677,7 +5677,7 @@ static inline int add_all_group_to_grammer(uint64_t line,
                         err_msg.buf,
                         NULL);
     }
-    fklUninitStringBuffer(&err_msg);
+    fklUninitStrBuf(&err_msg);
     fklLalrItemSetHashMapDestroy(itemSet);
 
     return r;
@@ -5804,15 +5804,14 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
 
     export_replacement_with_prefix(lib->replacements, macro_scope, prefix, ctx);
     if (lib->named_prod_groups.buckets) {
-        FklStringBuffer buffer;
-        fklInitStringBuffer(&buffer);
+        FklStrBuf buffer;
+        fklInitStrBuf(&buffer);
         for (FklGraProdGroupHashMapNode *prod_group_item =
                         lib->named_prod_groups.first;
                 prod_group_item;
                 prod_group_item = prod_group_item->next) {
-            fklStringBufferConcatWithString(&buffer, prefix);
-            fklStringBufferConcatWithString(&buffer,
-                    FKL_VM_SYM(prod_group_item->k));
+            fklStrBufConcatWithString(&buffer, prefix);
+            fklStrBufConcatWithString(&buffer, FKL_VM_SYM(prod_group_item->k));
             // fklStringBufferConcatWithString(&buffer,
             //         fklGetSymbolWithId(prod_group_item->k, pst));
 
@@ -5830,9 +5829,9 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
                         group_id_with_prefix))
                 break;
 
-            fklStringBufferClear(&buffer);
+            fklStrBufClear(&buffer);
         }
-        fklUninitStringBuffer(&buffer);
+        fklUninitStrBuf(&buffer);
         if (!error_state->error
                 && add_all_group_to_grammer(curline, codegen, error_state)) {
             error_state->line = curline;

@@ -273,15 +273,15 @@ int main(int argc, char **argv) {
         if (file->count > 0 || output->count > 0)
             goto error;
         const char *package_name = precompile->filename[0];
-        FklStringBuffer buffer;
-        fklInitStringBuffer(&buffer);
-        fklStringBufferConcatWithCstr(&buffer, package_name);
-        fklStringBufferConcatWithCstr(&buffer, FKL_PATH_SEPARATOR_STR);
-        fklStringBufferConcatWithCstr(&buffer, FKL_PACKAGE_MAIN_FILE);
+        FklStrBuf buffer;
+        fklInitStrBuf(&buffer);
+        fklStrBufConcatWithCstr(&buffer, package_name);
+        fklStrBufConcatWithCstr(&buffer, FKL_PATH_SEPARATOR_STR);
+        fklStrBufConcatWithCstr(&buffer, FKL_PACKAGE_MAIN_FILE);
 
         if (!fklIsAccessibleRegFile(buffer.buf)) {
             perror(buffer.buf);
-            fklUninitStringBuffer(&buffer);
+            fklUninitStrBuf(&buffer);
             goto compile_error;
         }
 
@@ -292,11 +292,11 @@ int main(int argc, char **argv) {
                                  : NULL;
         if (pre_compile(buffer.buf, output_dir, argc, argv)) {
             fklZfree(output_dir);
-            fklUninitStringBuffer(&buffer);
+            fklUninitStrBuf(&buffer);
             goto compile_error;
         }
         fklZfree(output_dir);
-        fklUninitStringBuffer(&buffer);
+        fklUninitStrBuf(&buffer);
         goto exit;
     }
 
@@ -316,15 +316,15 @@ int main(int argc, char **argv) {
                 goto exit;
             }
         } else {
-            FklStringBuffer buffer;
-            fklInitStringBuffer(&buffer);
-            fklStringBufferConcatWithCstr(&buffer, filename);
-            fklStringBufferConcatWithCstr(&buffer, FKL_PATH_SEPARATOR_STR);
-            fklStringBufferConcatWithCstr(&buffer, "main.fkl");
+            FklStrBuf buffer;
+            fklInitStrBuf(&buffer);
+            fklStrBufConcatWithCstr(&buffer, filename);
+            fklStrBufConcatWithCstr(&buffer, FKL_PATH_SEPARATOR_STR);
+            fklStrBufConcatWithCstr(&buffer, "main.fkl");
 
             if (!fklIsAccessibleRegFile(buffer.buf)) {
                 perror(buffer.buf);
-                fklUninitStringBuffer(&buffer);
+                fklUninitStrBuf(&buffer);
                 goto compile_error;
             }
             if (compile(buffer.buf,
@@ -332,10 +332,10 @@ int main(int argc, char **argv) {
                         cwd,
                         argc,
                         argv)) {
-                fklUninitStringBuffer(&buffer);
+                fklUninitStrBuf(&buffer);
                 goto compile_error;
             }
-            fklUninitStringBuffer(&buffer);
+            fklUninitStrBuf(&buffer);
         }
     }
 

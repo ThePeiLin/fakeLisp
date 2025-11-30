@@ -255,34 +255,34 @@ static inline void unexpected_token_error(FklParserGrammerParseArg *arg,
         const Token *t) {
 
     arg->errline = t->line;
-    FklStringBuffer *buf = &arg->error_msg;
-    fklStringBufferPrintf(buf, "unexcpet token: ");
-    fklStringBufferBincpy(buf, t->str, t->len);
+    FklStrBuf *buf = &arg->error_msg;
+    fklStrBufPrintf(buf, "unexcpet token: ");
+    fklStrBufBincpy(buf, t->str, t->len);
 }
 
 static inline void unresolved_action_name_error(FklParserGrammerParseArg *arg,
         const Token *t) {
     arg->errline = t->line;
-    FklStringBuffer *buf = &arg->error_msg;
-    fklStringBufferPrintf(buf, "unresolved action name: ");
-    fklStringBufferBincpy(buf, t->str, t->len);
+    FklStrBuf *buf = &arg->error_msg;
+    fklStrBufPrintf(buf, "unresolved action name: ");
+    fklStrBufBincpy(buf, t->str, t->len);
 }
 
 static inline void unresolved_builtin_terminal_error(
         FklParserGrammerParseArg *arg,
         const Token *t) {
     arg->errline = t->line;
-    FklStringBuffer *buf = &arg->error_msg;
-    fklStringBufferPrintf(buf, "unresolved builtin terminal: ");
-    fklStringBufferBincpy(buf, t->str, t->len);
+    FklStrBuf *buf = &arg->error_msg;
+    fklStrBufPrintf(buf, "unresolved builtin terminal: ");
+    fklStrBufBincpy(buf, t->str, t->len);
 }
 
 static inline void invalid_left_part_error(FklParserGrammerParseArg *arg,
         const Token *t) {
     arg->errline = t->line;
-    FklStringBuffer *buf = &arg->error_msg;
-    fklStringBufferPrintf(buf, "invalid production rule left part: ");
-    fklStringBufferBincpy(buf, t->str, t->len);
+    FklStrBuf *buf = &arg->error_msg;
+    fklStrBufPrintf(buf, "invalid production rule left part: ");
+    fklStrBufBincpy(buf, t->str, t->len);
 }
 
 static inline void builtin_terminal_init_failed_error(
@@ -290,10 +290,10 @@ static inline void builtin_terminal_init_failed_error(
         FklParserGrammerParseArg *arg,
         const Token *t) {
     arg->errline = t->line;
-    FklStringBuffer *buf = &arg->error_msg;
-    fklStringBufferPrintf(buf, "failed to init builtin terminal: ");
-    fklStringBufferBincpy(buf, t->str, t->len);
-    fklStringBufferPrintf(buf, ", %s", fklBuiltinTerminalInitErrorToCstr(err));
+    FklStrBuf *buf = &arg->error_msg;
+    fklStrBufPrintf(buf, "failed to init builtin terminal: ");
+    fklStrBufBincpy(buf, t->str, t->len);
+    fklStrBufPrintf(buf, ", %s", fklBuiltinTerminalInitErrorToCstr(err));
 }
 
 static inline const char *parse_adding_terminal(FklParserGrammerParseArg *arg,

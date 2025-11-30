@@ -29,8 +29,8 @@ static void *prod_action_symbol(void *args,
     const char *cstr = str->str;
     size_t cstr_size = str->size;
 
-    FklStringBuffer buffer;
-    fklInitStringBuffer(&buffer);
+    FklStrBuf buffer;
+    fklInitStrBuf(&buffer);
     const char *end_cstr = cstr + str->size;
     while (cstr < end_cstr) {
         if (fklCharBufMatch(start, start_size, cstr, cstr_size) >= 0) {
@@ -41,7 +41,7 @@ static void *prod_action_symbol(void *args,
                 return 0;
             size_t size = 0;
             char *s = fklCastEscapeCharBuf(cstr, len - end_size, &size);
-            fklStringBufferBincpy(&buffer, s, size);
+            fklStrBufBincpy(&buffer, s, size);
             fklZfree(s);
             cstr += len;
             cstr_size -= len;
@@ -52,14 +52,14 @@ static void *prod_action_symbol(void *args,
             if (fklCharBufMatch(start, start_size, cstr + len, cstr_size - len)
                     >= 0)
                 break;
-        fklStringBufferBincpy(&buffer, cstr, len);
+        fklStrBufBincpy(&buffer, cstr, len);
         cstr += len;
         cstr_size -= len;
     }
     const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
     FklVMvalue *retval =
             fklVMaddSymbolCharBuf(c->exe, buffer.buf, buffer.index);
-    fklUninitStringBuffer(&buffer);
+    fklUninitStrBuf(&buffer);
     return retval;
 }
 

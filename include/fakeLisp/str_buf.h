@@ -11,53 +11,49 @@
 extern "C" {
 #endif
 
-typedef struct FklStringBuffer {
+typedef struct FklStrBuf {
     uint32_t size;
     uint32_t index;
     char *buf;
-} FklStringBuffer;
+} FklStrBuf;
 
 #define FKL_STRING_BUFFER_INIT { 0, 0, NULL }
 
-FklStringBuffer *fklCreateStringBuffer(void);
-void fklInitStringBuffer(FklStringBuffer *);
-void fklInitStringBufferWithCapacity(FklStringBuffer *, size_t s);
-void fklStringBufferReserve(FklStringBuffer *, size_t s);
-void fklStringBufferShrinkTo(FklStringBuffer *, size_t s);
-void fklStringBufferResize(FklStringBuffer *, size_t s, char content);
-void fklUninitStringBuffer(FklStringBuffer *);
-void fklDestroyStringBuffer(FklStringBuffer *);
-void fklStringBufferClear(FklStringBuffer *);
-void fklStringBufferMoveToFront(FklStringBuffer *buf, uint32_t idx);
-void fklStringBufferFill(FklStringBuffer *, char);
-void fklStringBufferBincpy(FklStringBuffer *, const void *, size_t);
+FklStrBuf *fklCreateStrBuf(void);
+void fklInitStrBuf(FklStrBuf *);
+void fklInitStrBufWithCapacity(FklStrBuf *, size_t s);
+void fklStrBufReserve(FklStrBuf *, size_t s);
+void fklStrBufShrinkTo(FklStrBuf *, size_t s);
+void fklStrBufResize(FklStrBuf *, size_t s, char content);
+void fklUninitStrBuf(FklStrBuf *);
+void fklDestroyStrBuf(FklStrBuf *);
+void fklStrBufClear(FklStrBuf *);
+void fklStrBufMoveToFront(FklStrBuf *buf, uint32_t idx);
+void fklStrBufFill(FklStrBuf *, char);
+void fklStrBufBincpy(FklStrBuf *, const void *, size_t);
 
-void fklStringBufferPutc(FklStringBuffer *, char);
-long fklStringBufferPrintfVa(FklStringBuffer *b, const char *fmt, va_list ap);
+void fklStrBufPutc(FklStrBuf *, char);
+long fklStrBufPrintfVa(FklStrBuf *b, const char *fmt, va_list ap);
 
 FKL_FMT_ATTR(2, 3)
-long fklStringBufferPrintf(FklStringBuffer *, const char *fmt, ...);
+long fklStrBufPrintf(FklStrBuf *, const char *fmt, ...);
 
-int fklStringBufferCmp(const FklStringBuffer *a, const FklStringBuffer *b);
+int fklStrBufCmp(const FklStrBuf *a, const FklStrBuf *b);
 
-static inline uint32_t fklStringBufferLen(FklStringBuffer *b) {
-    return b->index;
+static inline uint32_t fklStrBufLen(FklStrBuf *b) { return b->index; }
+
+static inline char *fklStrBufBody(FklStrBuf *b) { return b->buf; }
+
+static inline void fklStrBufConcatWithCstr(FklStrBuf *b, const char *s) {
+    fklStrBufBincpy(b, s, strlen(s));
 }
 
-static inline char *fklStringBufferBody(FklStringBuffer *b) { return b->buf; }
-
-static inline void fklStringBufferConcatWithCstr(FklStringBuffer *b,
-        const char *s) {
-    fklStringBufferBincpy(b, s, strlen(s));
-}
-
-static inline void fklStringBufferConcatWithStringBuffer(FklStringBuffer *a,
-        const FklStringBuffer *b) {
-    fklStringBufferBincpy(a, b->buf, b->index);
+static inline void fklStrBufConcatWithStrBuf(FklStrBuf *a, const FklStrBuf *b) {
+    fklStrBufBincpy(a, b->buf, b->index);
 }
 
 void fklInitCodeBuilderStrBuf(FklCodeBuilder *b,
-        FklStringBuffer *buf,
+        FklStrBuf *buf,
         const char *indent_str);
 
 #ifdef __cplusplus

@@ -1260,19 +1260,6 @@ static void codegen_funcall(const FklPmatchRes *rest,
             FklCodegenCtx *ctx, FklCodegenErrorState *error_state,             \
             uint8_t must_has_retval
 
-typedef struct {
-    const FklPmatchHashMap *orig;
-    FklPmatchHashMap *ht;
-    FklCodegenActionVector *actions;
-    uint32_t scope;
-    FklVMvalueCodegenMacroScope *macro_scope;
-    FklVMvalueCodegenEnv *env;
-    FklVMvalueCodegenInfo *codegen;
-    FklCodegenCtx *ctx;
-    FklCodegenErrorState *error_state;
-    uint8_t must_has_retval;
-} CgCbArgs;
-
 #define CODEGEN_FUNC(NAME) void NAME(CODEGEN_ARGS)
 
 static CODEGEN_FUNC(codegen_begin) {
@@ -4176,10 +4163,24 @@ BC_PROCESS(_qsquote_vec_bc_process) {
         fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
-    FklInstruction pushVec = create_op_ins(FKL_OP_PUSH_VEC_0);
-    FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
-    fklByteCodeLntInsertFrontIns(&setBp, FKL_VM_CO(retval), fid, line, scope);
-    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushVec, fid, line, scope);
+    FklInstruction push_vec = create_op_ins(FKL_OP_PUSH_VEC_0);
+    FklInstruction set_bp = create_op_ins(FKL_OP_SET_BP);
+    fklByteCodeLntInsertFrontIns(&set_bp, FKL_VM_CO(retval), fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &push_vec, fid, line, scope);
+    return retval;
+}
+
+BC_PROCESS(_qsquote_hash_bc_process) {
+    FklVMvalue *push_hash = bcl_vec->base[0];
+    FklVMvalue *retval = bcl_vec->base[1];
+    for (size_t i = 2; i < bcl_vec->size; ++i) {
+        FklVMvalue *cur = bcl_vec->base[i];
+        fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
+    }
+    fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(push_hash));
+    bcl_vec->size = 0;
+    FklInstruction set_bp = create_op_ins(FKL_OP_SET_BP);
+    fklByteCodeLntInsertFrontIns(&set_bp, FKL_VM_CO(retval), fid, line, scope);
     return retval;
 }
 
@@ -4305,7 +4306,6 @@ static void qsquote_state_none_pair(FklVMvalue *value,
             macro_scope,
             env,
             CURLINE(container),
-            // curValue->curline,
             prev,
             codegen);
     fklCodegenActionVectorPushBack2(action_vector, curAction);
@@ -4336,7 +4336,6 @@ static void qsquote_state_none_pair(FklVMvalue *value,
                                 macro_scope,
                                 env,
                                 CURLINE(container),
-                                // curValue->curline,
                                 curAction,
                                 codegen);
                 fklCodegenActionVectorPushBack2(action_vector, appendAction);
@@ -4352,7 +4351,6 @@ static void qsquote_state_none_pair(FklVMvalue *value,
                             .value = FKL_VM_CDR(node),
                             .container = node,
                         },
-                        // node->pair->cdr,
                         appendAction);
             } else
                 init_qsquote_helper_struct(
@@ -4409,21 +4407,17 @@ static void qsquote_state_none_vector(FklVMvalue *value,
             macro_scope,
             env,
             CURLINE(container),
-            // curValue->curline,
             prev,
             codegen);
     fklCodegenActionVectorPushBack2(action_vector, action);
     for (size_t i = 0; i < vec_len; i++) {
-        if (is_unqtesp(ctx,
-                    FKL_VM_VEC(value)->base[i],
-                    // curValue->vec->base[i],
-                    table))
+        if (is_unqtesp(ctx, FKL_VM_VEC(value)->base[i], table)) {
             init_qsquote_helper_struct(
                     cgQsquoteHelperVectorPushBack(pending, NULL),
                     QSQUOTE_UNQTESP_VEC,
                     fklPmatchHashMapGet2(table, ctx->builtInPatternVar_value),
                     action);
-        else
+        } else {
             init_qsquote_helper_struct(
                     cgQsquoteHelperVectorPushBack(pending, NULL),
                     QSQUOTE_NONE,
@@ -4431,8 +4425,62 @@ static void qsquote_state_none_vector(FklVMvalue *value,
                         .value = FKL_VM_VEC(value)->base[i],
                         .container = value,
                     },
-                    // curValue->vec->base[i],
                     action);
+        }
+    }
+}
+
+static void qsquote_state_none_hash(FklVMvalue *value,
+        const FklVMvalue *container,
+        const QsquoteStateNoneArgs *args,
+        FklPmatchHashMap *table) {
+
+    FklCodegenCtx *ctx = args->ctx;
+    const QsquoteHelperStruct *top = args->top;
+    FklVMvalueCodegenEnv *env = args->env;
+    uint32_t scope = args->scope;
+    FklCodegenAction *prev = top->prev;
+    FklVMvalueCodegenMacroScope *macro_scope = args->macro_scope;
+    FklCodegenActionVector *action_vector = args->action_vector;
+    FklVMvalueCodegenInfo *codegen = args->codegen;
+    CgQsquoteHelperVector *pending = args->pending;
+
+    FklCodegenAction *action = create_cg_action(_qsquote_hash_bc_process,
+            createDefaultStackContext(),
+            NULL,
+            scope,
+            macro_scope,
+            env,
+            CURLINE(container),
+            prev,
+            codegen);
+    fklCodegenActionVectorPushBack2(action_vector, action);
+
+    FklVMvalueHash *hash = FKL_VM_HASH(value);
+    FklVMvalue *push_hash = fklCreateVMvalueCodeObjExt(GCVM,
+            create_op_ins(FKL_OP_PUSH_HASHEQ_0 + hash->eq_type),
+            codegen->fid,
+            CURLINE(container),
+            scope);
+
+    fklValueVectorPushBack2(&action->bcl_vector, push_hash);
+
+    for (const FklValueHashMapNode *cur = hash->ht.first; cur;
+            cur = cur->next) {
+        init_qsquote_helper_struct(cgQsquoteHelperVectorPushBack(pending, NULL),
+                QSQUOTE_NONE,
+                &(FklPmatchRes){
+                    .value = cur->k,
+                    .container = value,
+                },
+                action);
+        init_qsquote_helper_struct(cgQsquoteHelperVectorPushBack(pending, NULL),
+                QSQUOTE_NONE,
+                &(FklPmatchRes){
+                    .value = cur->v,
+                    .container = value,
+                },
+                action);
     }
 }
 
@@ -4457,7 +4505,6 @@ static void qsquote_state_none_box(FklVMvalue *value,
             macro_scope,
             env,
             CURLINE(container),
-            // curValue->curline,
             prev,
             codegen);
     fklCodegenActionVectorPushBack2(action_vector, action);
@@ -4467,7 +4514,6 @@ static void qsquote_state_none_box(FklVMvalue *value,
                 .value = FKL_VM_BOX(value),
                 .container = value,
             },
-            // curValue->box,
             action);
 }
 
@@ -4503,6 +4549,8 @@ static void qsquote_state_none(const QsquoteStateNoneArgs *args) {
         qsquote_state_none_vector(value, container, args, &table);
     } else if (FKL_IS_BOX(value)) {
         qsquote_state_none_box(value, container, args, &table);
+    } else if (FKL_IS_HASHTABLE(value)) {
+        qsquote_state_none_hash(value, container, args, &table);
     } else
         push_default_codegen_quest(GCVM,
                 &top->node,
@@ -4551,6 +4599,12 @@ static CODEGEN_FUNC(codegen_qsquote) {
                     codegen);
             break;
         case QSQUOTE_NONE: {
+            if (is_unqtesp(ctx, top.node.value, NULL)) {
+                error_state->error = make_syntax_error(GCVM, top.node.value);
+                error_state->line = CURLINE(top.node.container);
+				goto done;
+            }
+
             QsquoteStateNoneArgs args = {
                 .ctx = ctx,
                 .top = &top,
@@ -4565,6 +4619,7 @@ static CODEGEN_FUNC(codegen_qsquote) {
         } break;
         }
     }
+done:
     cgQsquoteHelperVectorUninit(&pending);
 }
 

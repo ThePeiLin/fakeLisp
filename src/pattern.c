@@ -85,10 +85,11 @@ int fklPatternMatch(const FklVMvalue *pattern,
         if (fklIsVMvalueSlot(pat)) {
             if (ht != NULL)
                 fklPmatchHashMapAdd2(ht,
-                        // n0->sym,
                         FKL_VM_SLOT_SYM(pat),
-                        // FKL_TYPE_CAST(FklNastNode *, n1)
-                        (FklPmatchRes){ .value = exp, .container = top->cont });
+                        (FklPmatchRes){
+                            .value = exp,
+                            .container = top->cont,
+                        });
         } else if (FKL_IS_PAIR(pat) && FKL_IS_PAIR(exp)) {
             paPmatchPairVectorPushBack(&s,
                     &(PmatchPair){

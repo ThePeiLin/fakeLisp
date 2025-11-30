@@ -464,6 +464,11 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx, {
     FklCodegenCtx *ctx;
     FklVMvalue *bcl;
     uint32_t prototype_id;
+
+    FklVMvalue *doller_s;
+    FklVMvalue *line_s;
+    size_t actual_len;
+    FklVMvalue *dollers[];
 });
 
 int fklIsVMvalueCodegenInfo(const FklVMvalue *v);

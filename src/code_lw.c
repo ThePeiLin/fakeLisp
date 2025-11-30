@@ -1419,7 +1419,6 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
-    // FklByteCodelnt *bcl = fklCreateByteCodelnt(0);
     FklVMvalue *bcl = fklCreateVMvalueCodeObj1(&args->ctx->gc->gcvm);
     fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
     lib->bcl = bcl;

@@ -8300,8 +8300,8 @@ static inline FklGrammerIgnore *nast_vector_to_ignore(const FklVMvalue *vec,
 static inline FklVMvalueCodegenInfo *macro_compile_prepare(
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macro_scope,
-        FklValueHashSet *symbolSet,
-        FklVMvalueCodegenEnv **pmacroEnv) {
+        FklValueHashSet *symbol_set,
+        FklVMvalueCodegenEnv **penv) {
     FklVMvalueCodegenInfo *macroCodegen =
             fklCreateVMvalueCodegenInfo(codegen->ctx,
                     codegen,
@@ -8317,12 +8317,16 @@ static inline FklVMvalueCodegenInfo *macro_compile_prepare(
                     1,
                     macro_scope);
 
-    for (FklValueHashSetNode *list = symbolSet->first; list;
+    *penv = macro_main_env;
+    if (symbol_set == NULL)
+        return macroCodegen;
+
+    for (FklValueHashSetNode *list = symbol_set->first; list;
             list = list->next) {
         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
         fklAddCodegenDefBySid(id, 1, macro_main_env);
     }
-    *pmacroEnv = macro_main_env;
+
     return macroCodegen;
 }
 
@@ -8625,31 +8629,15 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 args->actions);
         args->production = prod;
     } else if (action_type == codegen->ctx->builtInPatternVar_custom) {
-        FklValueHashSet symbolSet;
-        fklValueHashSetInit(&symbolSet);
-        size_t actual_len =
-                fklComputeProdActualLen(other_args.len, other_args.syms);
-        FklStringBuffer buf = { 0 };
-        fklInitStringBuffer(&buf);
-        for (size_t i = 0; i < actual_len; ++i) {
-            fklStringBufferPrintf(&buf, "$%zu", i);
-            fklValueHashSetPut2(&symbolSet,
-                    add_symbol_char_buf(args->ctx, buf.buf, buf.index));
-            fklStringBufferClear(&buf);
-        }
-        fklUninitStringBuffer(&buf);
-
-        fklValueHashSetPut2(&symbolSet, add_symbol_cstr(args->ctx, "$$"));
-        FklVMvalueCodegenEnv *macroEnv = NULL;
+        FklVMvalueCodegenEnv *macro_env = NULL;
         FklVMvalueCodegenInfo *macroCodegen = macro_compile_prepare(codegen,
                 args->macro_scope,
-                &symbolSet,
-                &macroEnv);
-        fklValueHashSetUninit(&symbolSet);
+                NULL,
+                &macro_env);
 
         create_and_insert_to_pool(macroCodegen,
                 0,
-                macroEnv,
+                macro_env,
                 0,
                 // action_ast->curline,
                 CURLINE(action_ast));
@@ -8666,7 +8654,13 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 left_sid,
                 other_args.len,
                 other_args.syms,
-                macroEnv->prototypeId);
+                macro_env->prototypeId);
+        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+        for (size_t i = 0; i < ctx->actual_len; ++i) {
+            fklAddCodegenDefBySid(ctx->dollers[i], 1, macro_env);
+        }
+        fklAddCodegenDefBySid(ctx->doller_s, 1, macro_env);
+        fklAddCodegenDefBySid(ctx->line_s, 1, macro_env);
 
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(process_adding_production,
                 createAddingProductionCtx(prod,
@@ -8693,8 +8687,8 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 createReaderMacroActionContext(prod->ctx),
                 createMustHasRetvalQueueNextExpression(queue),
                 1,
-                macroEnv->macros,
-                macroEnv,
+                macro_env->macros,
+                macro_env,
                 CURLINE(action_ast),
                 // action_ast->curline,
                 macroCodegen,

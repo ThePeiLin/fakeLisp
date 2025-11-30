@@ -1450,6 +1450,11 @@ static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     if (c->bcl == NULL)
         return;
     fklVMgcToGray(c->bcl, gc);
+    fklVMgcToGray(c->doller_s, gc);
+    fklVMgcToGray(c->line_s, gc);
+    for (size_t i = 0; i < c->actual_len; ++i) {
+        fklVMgcToGray(c->dollers[i], gc);
+    }
 }
 
 static int custom_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1479,44 +1484,35 @@ static void *custom_action(void *c,
     FklVMvalueCustomActionCtx *action_ctx = c;
     FklCodegenCtx *cg_ctx = action_ctx->ctx;
     FklVMvalue *nodes_vector = fklCreateVMvalueVec(&cg_ctx->gc->gcvm, line);
-    // nodes_vector->vec = fklCreateNastVector(num);
     for (size_t i = 0; i < num; i++)
         FKL_VM_VEC(nodes_vector)->base[i] = nodes[i].ast;
     FklPmatchHashMap ht;
     fklPmatchHashMapInit(&ht);
-    FklVMvalue *line_node = NULL;
-    if (line > FKL_FIX_INT_MAX) {
-        line_node = fklCreateVMvalueBigIntWithU64(&cg_ctx->gc->gcvm, line);
-        // line_node->bigInt = fklCreateBigIntU(line);
-    } else {
-        line_node = FKL_MAKE_VM_FIX(line);
-        // fklCreateNastNode(FKL_NAST_FIX, line);
-        //       line_node->fix = line;
-    }
+    FklVMvalue *line_node = fklMakeVMuint(line, &cg_ctx->gc->gcvm);
 
     put_line_number(pctx->ln, nodes_vector, line);
-    {
-        FklStringBuffer buf = { 0 };
-        fklInitStringBuffer(&buf);
-        for (size_t i = 0; i < num; ++i) {
-            fklStringBufferPrintf(&buf, "$%zu", i);
-            FklVMvalue *s = add_symbol_char_buf(cg_ctx, buf.buf, buf.index);
-            fklPmatchHashMapAdd2(&ht,
-                    s,
-                    (FklPmatchRes){ .value = nodes[i].ast,
-                        .container = nodes_vector });
-            fklStringBufferClear(&buf);
-        }
-        fklUninitStringBuffer(&buf);
+    for (size_t i = 0; i < num; ++i) {
+        fklPmatchHashMapAdd2(&ht,
+                action_ctx->dollers[i],
+                (FklPmatchRes){
+                    .value = nodes[i].ast,
+                    .container = nodes_vector,
+                });
     }
+
     fklPmatchHashMapAdd2(&ht,
-            add_symbol_cstr(cg_ctx, "$$"),
-            // fklAddSymbolCstr("$$", action_ctx->pst),
-            (FklPmatchRes){ .value = nodes_vector, .container = nodes_vector });
+            action_ctx->doller_s,
+            (FklPmatchRes){
+                .value = nodes_vector,
+                .container = nodes_vector,
+            });
+
     fklPmatchHashMapAdd2(&ht,
-            add_symbol_cstr(cg_ctx, "line"),
-            // fklAddSymbolCstr("line", action_ctx->pst),
-            (FklPmatchRes){ .value = line_node, .container = nodes_vector });
+            action_ctx->line_s,
+            (FklPmatchRes){
+                .value = line_node,
+                .container = nodes_vector,
+            });
 
     FklVMvalue *r = NULL;
     const char *cwd = cg_ctx->cwd;
@@ -1541,23 +1537,35 @@ static void *custom_action(void *c,
     if (e)
         fklDeleteCallChain(exe);
 
-    // fklDestroyNastNode(nodes_vector);
-    // fklDestroyNastNode(line_node);
-
     fklPmatchHashMapUninit(&ht);
     fklDestroyAllVMs(exe);
     return r;
 }
 
 static inline FklVMvalue *create_custom_prod_action_ctx(FklCodegenCtx *cg_ctx,
-        uint32_t prototypeId) {
+        uint32_t prototypeId,
+        size_t actual_len) {
     FklVMvalueCustomActionCtx *v =
-            (FklVMvalueCustomActionCtx *)fklCreateVMvalueUd(&cg_ctx->gc->gcvm,
+            (FklVMvalueCustomActionCtx *)fklCreateVMvalueUd2(&cg_ctx->gc->gcvm,
                     &CustomActionCtxUdMetaTable,
+                    actual_len * sizeof(v->dollers[0]),
                     NULL);
 
     v->ctx = cg_ctx;
     v->prototype_id = prototypeId;
+    v->actual_len = actual_len;
+
+    v->doller_s = add_symbol_cstr(cg_ctx, "$$");
+    v->line_s = add_symbol_cstr(cg_ctx, "$$");
+
+    FklStringBuffer buf = { 0 };
+    fklInitStringBuffer(&buf);
+    for (size_t i = 0; i < actual_len; ++i) {
+        fklStringBufferPrintf(&buf, "$%zu", i);
+        v->dollers[i] = add_symbol_char_buf(cg_ctx, buf.buf, buf.index);
+        fklStringBufferClear(&buf);
+    }
+    fklUninitStringBuffer(&buf);
 
     return FKL_TYPE_CAST(FklVMvalue *, v);
 }
@@ -1568,7 +1576,9 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
         size_t len,
         const FklGrammerSym *syms,
         uint32_t prototypeId) {
-    FklVMvalue *action_ctx = create_custom_prod_action_ctx(cg_ctx, prototypeId);
+    FklVMvalue *action_ctx = create_custom_prod_action_ctx(cg_ctx,
+            prototypeId,
+            fklComputeProdActualLen(len, syms));
 
     FklGrammerProduction *prod = fklCreateProduction(group,
             sid,

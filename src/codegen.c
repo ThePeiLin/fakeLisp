@@ -1,3 +1,4 @@
+#include "fakeLisp/str_buf.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
@@ -8626,6 +8627,18 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
     } else if (action_type == codegen->ctx->builtInPatternVar_custom) {
         FklValueHashSet symbolSet;
         fklValueHashSetInit(&symbolSet);
+        size_t actual_len =
+                fklComputeProdActualLen(other_args.len, other_args.syms);
+        FklStringBuffer buf = { 0 };
+        fklInitStringBuffer(&buf);
+        for (size_t i = 0; i < actual_len; ++i) {
+            fklStringBufferPrintf(&buf, "$%zu", i);
+            fklValueHashSetPut2(&symbolSet,
+                    add_symbol_char_buf(args->ctx, buf.buf, buf.index));
+            fklStringBufferClear(&buf);
+        }
+        fklUninitStringBuffer(&buf);
+
         fklValueHashSetPut2(&symbolSet, add_symbol_cstr(args->ctx, "$$"));
         FklVMvalueCodegenEnv *macroEnv = NULL;
         FklVMvalueCodegenInfo *macroCodegen = macro_compile_prepare(codegen,

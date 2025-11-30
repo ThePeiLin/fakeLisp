@@ -12,6 +12,7 @@
 #include <fakeLisp/vm.h>
 
 #include "codegen.h"
+#include "fakeLisp/str_buf.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -1494,6 +1495,20 @@ static void *custom_action(void *c,
     }
 
     put_line_number(pctx->ln, nodes_vector, line);
+    {
+        FklStringBuffer buf = { 0 };
+        fklInitStringBuffer(&buf);
+        for (size_t i = 0; i < num; ++i) {
+            fklStringBufferPrintf(&buf, "$%zu", i);
+            FklVMvalue *s = add_symbol_char_buf(cg_ctx, buf.buf, buf.index);
+            fklPmatchHashMapAdd2(&ht,
+                    s,
+                    (FklPmatchRes){ .value = nodes[i].ast,
+                        .container = nodes_vector });
+            fklStringBufferClear(&buf);
+        }
+        fklUninitStringBuffer(&buf);
+    }
     fklPmatchHashMapAdd2(&ht,
             add_symbol_cstr(cg_ctx, "$$"),
             // fklAddSymbolCstr("$$", action_ctx->pst),

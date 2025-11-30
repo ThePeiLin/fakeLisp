@@ -614,6 +614,8 @@ FklGrammerProduction *fklCreateProduction(FklVMvalue *group,
         void (*destroy)(void *),
         void *(*copyer)(const void *));
 
+size_t fklComputeProdActualLen(size_t len, const FklGrammerSym *syms);
+
 void fklProdCtxDestroyFree(void *c);
 void fklProdCtxDestroyDoNothing(void *c);
 void *fklProdCtxCopyerDoNothing(const void *c);

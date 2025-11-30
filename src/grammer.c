@@ -2959,6 +2959,15 @@ static inline void init_action_with_lookahead(FklAnalysisStateAction *action,
     }
 }
 
+size_t fklComputeProdActualLen(size_t len, const FklGrammerSym *syms) {
+    size_t delim_len = 0;
+    for (size_t i = 0; i < len; ++i)
+        if (syms[i].type == FKL_TERM_IGNORE)
+            ++delim_len;
+
+    return len - delim_len;
+}
+
 static inline int add_reduce_action(FklGrammerSymType cur_type,
         FklAnalysisState *curState,
         const FklGrammerProduction *prod,
@@ -2974,13 +2983,7 @@ static inline int add_reduce_action(FklGrammerSymType cur_type,
     else {
         action->action = FKL_ANALYSIS_REDUCE;
         action->prod = prod;
-
-        size_t delim_len = 0;
-        for (size_t i = 0; i < prod->len; ++i)
-            if (is_delim_sym2(prod, i))
-                ++delim_len;
-
-        action->actual_len = prod->len - delim_len;
+        action->actual_len = fklComputeProdActualLen(prod->len, prod->syms);
     }
     FklAnalysisStateAction **pa = &curState->state.action;
 
@@ -3951,11 +3954,8 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
             break;
         case FKL_ANALYSIS_REDUCE: {
 
-            size_t delim_len = 0;
-            for (size_t i = 0; i < ac->prod->len; ++i)
-                if (is_delim_sym2(ac->prod, i))
-                    ++delim_len;
-            size_t actual_len = ac->prod->len - delim_len;
+            size_t actual_len =
+                    fklComputeProdActualLen(ac->prod->len, ac->prod->syms);
 
             if (actual_len) {
                 CB_LINE("size_t line=fklGetFirstNthLine(symbolStack,%" PRIu64

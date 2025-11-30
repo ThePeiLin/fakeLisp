@@ -2,7 +2,7 @@
   (defmacro #&custom
     #[custom-quote #["#quote'" *s-exp*]
                    custom
-                   (list 'quote (vector-ref $$ 1))]))
+                   (list 'quote $1)]))
 
 (export
   (defmacro #&comment

@@ -170,6 +170,8 @@ static inline int is_partly_covered(const FklVMvalue *pattern,
         FklVMvalue *n0 = top->car;
         FklVMvalue *n1 = top->cdr;
         if (fklIsVMvalueSlot(n0)) {
+            if (fklIsVMvalueSlot(n1))
+                continue;
             r = 1;
             break;
         } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {

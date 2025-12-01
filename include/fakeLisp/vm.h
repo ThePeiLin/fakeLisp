@@ -1236,7 +1236,10 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *,
         size_t extra_size,
         FklVMvalue *dll);
 
+FKL_DEPRECATED
 FklVMvalue *fklCreateVMvalueCodeObj(FklVM *, const FklByteCodelnt *bcl);
+
+FKL_DEPRECATED
 FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *, FklByteCodelnt *bcl);
 
 FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);

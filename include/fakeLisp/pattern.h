@@ -10,6 +10,7 @@ extern "C" {
 typedef struct {
     FklVMvalue *value;
     const FklVMvalue *container;
+    int need_expand;
 } FklPmatchRes;
 
 // FklPmatchHashMap
@@ -24,13 +25,10 @@ typedef struct {
 #define FKL_PATTERN_BE_COVER (2)
 #define FKL_PATTERN_EQUAL (3)
 
-struct FklVMslot {
-    FklVMvalue *v;
-};
-
-FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, { FklVMvalue *s; });
-
-#define FKL_VM_SLOT_SYM(V) (((FklVMvalueSlot *)(V))->s)
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, {
+    FklVMvalue *s;
+    int need_expand;
+});
 
 FklVMvalue *
 fklCreatePatternFromNast(FklVM *exe, FklVMvalue *, FklValueHashSet **);
@@ -40,8 +38,13 @@ int fklPatternMatch(const FklVMvalue *pattern,
 
 int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
 
-FklVMvalue *fklCreateVMvalueSlot(FklVM *, FklVMvalue *s);
+FklVMvalue *fklCreateVMvalueSlot(FklVM *, FklVMvalue *s, int need_expand);
 int fklIsVMvalueSlot(const FklVMvalue *s);
+
+static FKL_ALWAYS_INLINE FklVMvalueSlot *FKL_VM_SLOT(const FklVMvalue *V) {
+    FKL_ASSERT(fklIsVMvalueSlot(V));
+    return FKL_TYPE_CAST(FklVMvalueSlot *, V);
+}
 
 #ifdef __cplusplus
 }

@@ -844,16 +844,102 @@ static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
             place);
 }
 
-FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
+FklVMvalue *fklTryExpandCodegenMacroOnce(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macros,
         FklCodegenErrorState *error_state) {
     FklVMvalue *r = exp->value;
+    if (!FKL_IS_PAIR(r))
+        return r;
     FklPmatchHashMap ht = { .buckets = NULL };
     uint64_t curline = CURLINE(exp->container);
     for (FklCodegenMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
+        for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
+            FklPmatchRes *r = &cur->v;
+            if (r->need_expand) {
+                FklPmatchRes exp = *r;
+                FklVMvalue *rr = fklTryExpandCodegenMacroOnce(&exp,
+                        codegen,
+                        macros,
+                        error_state);
+                if (rr == NULL)
+                    return NULL;
+
+                r->value = rr;
+            }
+        }
+
+        fklPmatchHashMapAdd2(&ht,
+                codegen->ctx->builtInPatternVar_orig,
+                (FklPmatchRes){ .value = r, .container = exp->container });
+        FklVMvalue *retval = NULL;
+
+        FklCodegenCtx *ctx = codegen->ctx;
+        const char *cwd = ctx->cwd;
+        fklChdir(codegen->dir);
+
+        FklVM *exe = init_macro_expand_vm(ctx,
+                macro->bcl,
+                macro->prototype_id,
+                &ht,
+                ctx->lnt,
+                &retval,
+                curline,
+                error_state);
+        FklVMgc *gc = ctx->gc;
+        int e = fklRunVMidleLoop(exe);
+        fklMoveThreadObjectsToGc(exe, gc);
+
+        fklChdir(cwd);
+
+        if (e) {
+            error_state->error = make_macroexpand_error(&gc->gcvm, r);
+            error_state->line = curline;
+            fklDeleteCallChain(exe);
+            r = NULL;
+        } else if (retval) {
+            r = retval;
+        } else {
+            error_state->line = curline;
+        }
+        fklPmatchHashMapClear(&ht);
+        fklDestroyAllVMs(exe);
+        break;
+    }
+    if (ht.buckets)
+        fklPmatchHashMapUninit(&ht);
+    return r;
+}
+
+FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
+        FklVMvalueCodegenInfo *codegen,
+        FklVMvalueCodegenMacroScope *macros,
+        FklCodegenErrorState *error_state) {
+    FklVMvalue *r = exp->value;
+    if (!FKL_IS_PAIR(r))
+        return r;
+    FklPmatchHashMap ht = { .buckets = NULL };
+    uint64_t curline = CURLINE(exp->container);
+    for (FklCodegenMacro *macro = find_macro(r, macros, &ht);
+            !error_state->error && macro;
+            macro = find_macro(r, macros, &ht)) {
+
+        for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
+            FklPmatchRes *r = &cur->v;
+            if (r->need_expand) {
+                FklPmatchRes exp = *r;
+                FklVMvalue *rr = fklTryExpandCodegenMacroOnce(&exp,
+                        codegen,
+                        macros,
+                        error_state);
+                if (rr == NULL)
+                    return NULL;
+
+                r->value = rr;
+            }
+        }
         fklPmatchHashMapAdd2(&ht,
                 codegen->ctx->builtInPatternVar_orig,
                 (FklPmatchRes){ .value = r, .container = exp->container });

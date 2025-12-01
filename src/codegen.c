@@ -1995,8 +1995,7 @@ static inline int is_valid_do_bind_list(const FklVMvalue *sl,
     if (fklIsList(sl)) {
         for (; FKL_IS_PAIR(sl); sl = FKL_VM_CDR(sl)) {
             FklVMvalue *cc = FKL_VM_CAR(sl);
-            // FklVMvalue *nextExp = NULL;
-            FklPmatchRes nextExp = { NULL, NULL };
+            FklPmatchRes nextExp = { 0 };
             if (!is_valid_do_var_bind(cc, &nextExp, builtin_pattern_node))
                 return 0;
             FklVMvalue *id = FKL_VM_CAR(cc);
@@ -9649,7 +9648,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
             CgGetNextExpCb get_next_expression = expressions->t->get_next_exp;
             uint8_t must_has_retval = expressions->must_has_retval;
 
-            FklPmatchRes exp = { NULL, NULL };
+            FklPmatchRes exp = { 0 };
             while (get_next_expression(expressions->context,
                     &exp,
                     &error_state)) {
@@ -9660,14 +9659,12 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCodegenAction *initial_action,
                             cur_action->macros,
                             &error_state);
                     if (error_state.error) {
-                        // fklDestroyNastNode(orig_cur_exp);
                         break;
                     }
                     if (must_has_retval == FIRST_MUST_HAS_RETVAL) {
                         must_has_retval = DO_NOT_NEED_RETVAL;
                         expressions->must_has_retval = DO_NOT_NEED_RETVAL;
                     }
-                    // fklDestroyNastNode(orig_cur_exp);
                 } else if (FKL_IS_SYM(exp.value)) {
                     FklVMvalue *replacement = NULL;
                     ReplacementFunc f = NULL;

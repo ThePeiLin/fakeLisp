@@ -18,18 +18,14 @@ static void _slot_userdata_as_print(const FklVMvalue *ud,
         FklCodeBuilder *build,
         FklVM *exe) {
     FklVMvalueSlot *s = as_slot(ud);
-    // FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
     fklVMformat(exe, build, "#<slot %S>", NULL, 1, (FklVMvalue *[]){ s->s });
 }
 
 static void _slot_userdata_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(s, struct FklVMslot, ud);
-    // fklVMgcToGray(s->v, gc);
     fklVMgcToGray(as_slot(ud)->s, gc);
 }
 
 static FklVMudMetaTable const SlotUserDataMetaTable = {
-    // .size = sizeof(struct FklVMslot),
     .size = sizeof(FklVMvalueSlot),
     .princ = _slot_userdata_as_print,
     .prin1 = _slot_userdata_as_print,
@@ -40,12 +36,13 @@ int fklIsVMvalueSlot(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SlotUserDataMetaTable;
 }
 
-FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s) {
+FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s, int need_expand) {
     FKL_ASSERT(FKL_IS_SYM(s));
     FklVMvalueSlot *r = (FklVMvalueSlot *)fklCreateVMvalueUd(vm,
             &SlotUserDataMetaTable,
             NULL);
     r->s = s;
+    r->need_expand = need_expand;
     return (FklVMvalue *)r;
 }
 
@@ -83,13 +80,15 @@ int fklPatternMatch(const FklVMvalue *pattern,
         const FklVMvalue *pat = top->pat;
         FklVMvalue *exp = top->exp;
         if (fklIsVMvalueSlot(pat)) {
-            if (ht != NULL)
+            if (ht != NULL) {
                 fklPmatchHashMapAdd2(ht,
-                        FKL_VM_SLOT_SYM(pat),
+                        FKL_VM_SLOT(pat)->s,
                         (FklPmatchRes){
                             .value = exp,
                             .container = top->cont,
+                            .need_expand = FKL_VM_SLOT(pat)->need_expand,
                         });
+            }
         } else if (FKL_IS_PAIR(pat) && FKL_IS_PAIR(exp)) {
             paPmatchPairVectorPushBack(&s,
                     &(PmatchPair){
@@ -223,18 +222,15 @@ static inline int is_pattern_slot(const FklVMvalue *s, const FklVMvalue *p) {
 FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         FklVMvalue *node,
         FklValueHashSet **psymbolTable) {
-    FklVMvalue *r = NULL;
     if (FKL_IS_PAIR(node)                                 //
             && fklIsList(node)                            //
             && FKL_IS_SYM(FKL_VM_CAR(node))               //
             && FKL_IS_PAIR(FKL_VM_CDR(node))              //
             && FKL_VM_CDR(FKL_VM_CDR(node)) == FKL_VM_NIL //
             && is_valid_pattern_nast(FKL_VM_CAR(FKL_VM_CDR(node)))) {
-        FklValueHashSet *symbolTable = fklValueHashSetCreate();
-        // FklNastNode *exp = fklCopyNastNode(node->pair->cdr->pair->car);
-        // FklSid_t slotId = node->pair->car->sym;
-        // FklNastNode *rest = exp->pair->cdr;
 
+        FklVMvalue *r = NULL;
+        FklValueHashSet *symbolTable = fklValueHashSetCreate();
         FklVMvalue *exp = fklCopyVMlistOrAtom(FKL_VM_CAR(FKL_VM_CDR(node)), vm);
         FklVMvalue *slotId = FKL_VM_CAR(node);
 
@@ -244,26 +240,36 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         while (!fklSlotVectorIsEmpty(&stack)) {
             FklVMvalue **c = *fklSlotVectorPopBackNonNull(&stack);
             FklVMvalue *cur = *c;
-            if (FKL_IS_PAIR(cur)) {
-                if (is_pattern_slot(slotId, cur)) {
-                    FklVMvalue *sym = FKL_VM_CAR(FKL_VM_CDR(cur));
-                    if (fklValueHashSetPut2(symbolTable, sym)) {
-                        fklValueHashSetDestroy(symbolTable);
-                        fklSlotVectorUninit(&stack);
-                        *psymbolTable = NULL;
-                        // fklDestroyNastNode(exp);
-                        return NULL;
-                    }
-                    // fklDestroyNastNode(c->pair->car);
-                    // fklDestroyNastNode(c->pair->cdr);
-                    // fklZfree(c->pair);
-                    *c = fklCreateVMvalueSlot(vm, sym);
-                    // c->type = FKL_NAST_SLOT;
-                    // c->sym = sym;
-                } else {
-                    fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
-                    fklSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
+            if (!FKL_IS_PAIR(cur))
+                continue;
+
+            if (FKL_VM_CAR(cur) != slotId) {
+                fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
+                fklSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
+                continue;
+            }
+
+            FklVMvalue *rest = FKL_VM_CDR(cur);
+            if (!FKL_IS_PAIR(rest) || FKL_VM_CDR(rest) != FKL_VM_NIL)
+                goto error;
+
+            FklVMvalue *sym = FKL_VM_CAR(rest);
+
+            if (FKL_IS_SYM(sym)) {
+                if (fklValueHashSetPut2(symbolTable, sym)) {
+                    goto error;
                 }
+                *c = fklCreateVMvalueSlot(vm, sym, 0);
+                continue;
+            } else if (is_pattern_slot(slotId, sym)) {
+                sym = FKL_VM_CAR(FKL_VM_CDR(sym));
+                if (fklValueHashSetPut2(symbolTable, sym)) {
+                    goto error;
+                }
+                *c = fklCreateVMvalueSlot(vm, sym, 1);
+                continue;
+            } else {
+                goto error;
             }
         }
         r = exp;
@@ -272,6 +278,12 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
             *psymbolTable = symbolTable;
         else
             fklValueHashSetDestroy(symbolTable);
+        return r;
+    error:
+        fklValueHashSetDestroy(symbolTable);
+        fklSlotVectorUninit(&stack);
+        *psymbolTable = NULL;
+        return NULL;
     }
-    return r;
+    return NULL;
 }

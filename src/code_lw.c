@@ -24,6 +24,7 @@ enum ValueCreateOpcode {
     MAKE_SYM,
     MAKE_BYTES,
     MAKE_SLOT,
+    MAKE_HEADER_WILDCARD,
 
     CREATE_PAIR,
     CREATE_VECTOR,
@@ -98,6 +99,8 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
     } else if (FKL_IS_BYTEVECTOR(v)) {
         write_value_create_op(MAKE_BYTES, fp);
         fklWriteBytevector(FKL_VM_BVEC(v), fp);
+    } else if (v == FKL_VM_HEADER_WILDCARD) {
+        write_value_create_op(MAKE_HEADER_WILDCARD, fp);
     } else if (fklIsVMvalueSlot(v)) {
         const FklVMvalueSlot *s = FKL_TYPE_CAST(const FklVMvalueSlot *, v);
         write_value_create_op(MAKE_SLOT, fp);
@@ -131,6 +134,8 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
             write_value_id(vt, value_id, cur->k, fp);
             write_value_id(vt, value_id, cur->v, fp);
         }
+    } else {
+        FKL_UNREACHABLE();
     }
 }
 
@@ -238,6 +243,10 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
         fread(&need_expand, sizeof(need_expand), 1, fp);
         return fklCreateVMvalueSlot(vm, s, need_expand);
     } break;
+
+    case MAKE_HEADER_WILDCARD:
+        return FKL_VM_HEADER_WILDCARD;
+        break;
 
     case CREATE_PAIR: {
         // 防止循环引用找不到被引用的对象

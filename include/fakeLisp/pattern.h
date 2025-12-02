@@ -38,6 +38,9 @@ int fklPatternMatch(const FklVMvalue *pattern,
 
 int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
 
+FklVMvalue *fklVMvalueHeaderWildcard(void);
+#define FKL_VM_HEADER_WILDCARD (fklVMvalueHeaderWildcard())
+
 FklVMvalue *fklCreateVMvalueSlot(FklVM *, FklVMvalue *s, int need_expand);
 int fklIsVMvalueSlot(const FklVMvalue *s);
 

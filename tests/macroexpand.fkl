@@ -1,62 +1,55 @@
+;; (defmacro ~(macroexpand ~~~a) `(quote ~a))
+
+(import (only (.. lib utils m) assert))
+
 (defmacro ~(macroexpand-1 ~~a) `(quote ~a))
 
 (defmacro ~(macroexpand-1 ~~a 0) `(quote ~a))
+
 (defmacro ~(macroexpand-1 ~~a ~~n) 
  (if (< n 1)
    (throw 'macro-error (format "invalid macro arg: %S" n))
   `(~(car orig) ~a ~(-1+ n))))
 
-(defmacro ~(macroexpand-1 (macroexpand-1 ~a))
-  (begin (printf "%s: %s\n" *line* orig)
+(defmacro ~(macroexpand-1 (_ ~a))
   (do [(h (car orig))
        (c 1 (+ 1 c (if (eq (length a) 3) (nth 2 a) 0)))
        (a a (car (cdr a)))]
-      [(not (and (pair? a) (eq (car a) h)))
-       `(~h ~a ~c)])))
+    [(not (and (pair? a) (eq (car a) h)))
+     `(~h ~a ~c)]))
 
-;; (defmacro ~(macroexpand-1 (macroexpand-1 ~a) ~~n) `(~(car orig) ~a ~(1+ n)))
-;; (defmacro ~(macroexpand-1 (macroexpand-1 ~a ~~n)) `(~(car orig) ~a ~(1+ n)))
-
-(defmacro ~(macroexpand-1 (macroexpand-1 ~a) ~~n)
-  (begin (printf "%s: %s\n" *line* orig)
+(defmacro ~(macroexpand-1 (_ ~a) ~~n)
   (do [(h (car orig))
        (c (1+ n) (+ 1 c (if (eq (length a) 3) (nth 2 a) 0)))
        (a a (car (cdr a)))]
-      [(not (and (pair? a) (eq (car a) h)))
-       `(~h ~a ~c)])))
+    [(not (and (pair? a) (eq (car a) h)))
+     `(~h ~a ~c)]))
 
-;; (defmacro ~(macroexpand-1 (macroexpand-1 ~a ~~n1) ~~n2)
-;;   (begin (printf "%s: %s\n" *line* orig)
-;;   (do [(h (car orig))
-;;        (c (+ 1 n1 n2) (+ 1 c (if (eq (length a) 3) (nth 2 a) 0)))
-;;        (a a (car (cdr a)))]
-;;       [(not (and (pair? a) (eq (car a) h)))
-;;        `(~h ~a ~c)])))
+(defmacro ~(macroexpand-1 (_ ~a ~~n1) ~~n2) `(~(car orig) ~a ~(+ 1 n1 n2)))
 
-(defmacro ~(macroexpand-1 (macroexpand-1 ~a ~~n1) ~~n2) 
-  (begin (printf "%s: %s\n" *line* orig)
-    `(~(car orig) ~a ~(+ n1 n2))))
-
-(defmacro ~(macroexpand-1 (macroexpand-1 ~a ~~n))
-  (begin (printf "%s: %s\n" *line* orig)
-    `(~(car orig) ~a ~(1+ n))))
+(defmacro ~(macroexpand-1 (_ ~a ~~n)) `(~(car orig) ~a ~(1+ n)))
 
 (defmacro ~(alpha ~a) `(quote ~a))
 (defmacro ~(beta ~a) `(alpha ~a))
 (defmacro ~(gamma ~a) `(beta ~a))
 (defmacro ~(delta ~a) `(gamma ~a))
 
-(defmacro ~(dbg! ~a) `(printf "%-40s: %-40s\n" (quote ~a) ~a))
+(defmacro ~(dbg! ~a) `(printf "%-80s: %-40s\n" (quote ~a) ~a))
+(defmacro ~(dbg! ~a ~b)
+  `(begin
+     (assert (equal ~a ~b))
+     (printf "%-80s: %-40s\n" (quote ~a) ~a)))
 
-(dbg! (macroexpand-1 (gamma foo)))
-(dbg! (macroexpand-1 (gamma foo) 0))
-(dbg! (macroexpand-1 (macroexpand-1 (gamma foo))))
-(dbg! (macroexpand-1 (macroexpand-1 (gamma foo)) 0))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (gamma foo) 0))))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0))))
-(dbg! (macroexpand-1 (macroexpand-1 (gamma foo)) 1))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0) 0))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0) 0) 0))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0))))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0)) 0))
-(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0)))
+(dbg! (macroexpand-1 (gamma foo)) '(beta foo))
+(dbg! (macroexpand-1 (gamma foo) 0) '(beta foo))
+(dbg! (macroexpand-1 (macroexpand-1 (gamma foo))) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (gamma foo)) 0) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (gamma foo) 0))) '(quote foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0))) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (gamma foo)) 1) '(quote foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0)) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0) 0) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0)) 0) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0) 0) 0) '(alpha foo))
+(dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0))) '(quote foo))
+(dbg! (macroexpand (delta foo)) '(quote foo))

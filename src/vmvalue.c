@@ -1712,7 +1712,6 @@ _eof_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
 }
 
 static FklVMudMetaTable const EofUserDataMetaTable = {
-    // .size = 0,
     .size = sizeof(FklVMvalueUd),
     .princ = _eof_userdata_print,
     .prin1 = _eof_userdata_print,

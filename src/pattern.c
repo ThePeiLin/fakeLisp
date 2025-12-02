@@ -32,6 +32,30 @@ static FklVMudMetaTable const SlotUserDataMetaTable = {
     .atomic = _slot_userdata_atomic,
 };
 
+static void
+header_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
+    fklCodeBuilderPuts(buf, "#<header>");
+}
+
+static FklVMudMetaTable const HeaderUserDataMetaTable = {
+    .size = sizeof(FklVMvalueUd),
+    .princ = header_userdata_print,
+    .prin1 = header_userdata_print,
+};
+
+static const FklVMvalueUd HeaderSingleton = {
+    .next_ = NULL,
+    .gray_next_ = NULL,
+    .mark_ = FKL_MARK_B,
+    .type_ = FKL_TYPE_USERDATA,
+    .dll_ = NULL,
+    .mt_ = &HeaderUserDataMetaTable,
+};
+
+FklVMvalue *fklVMvalueHeaderWildcard(void) {
+    return FKL_TYPE_CAST(FklVMvalue *, &HeaderSingleton);
+}
+
 int fklIsVMvalueSlot(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SlotUserDataMetaTable;
 }
@@ -66,6 +90,7 @@ int fklPatternMatch(const FklVMvalue *pattern,
         return 0;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
+    FklVMvalue *header = FKL_VM_CAR(pattern);
     PaPmatchPairVector s;
     paPmatchPairVectorInit(&s, 8);
     paPmatchPairVectorPushBack(&s,
@@ -88,6 +113,11 @@ int fklPatternMatch(const FklVMvalue *pattern,
                             .container = top->cont,
                             .need_expand = FKL_VM_SLOT(pat)->need_expand,
                         });
+            }
+        } else if (pat == FKL_VM_HEADER_WILDCARD) {
+            if (exp != header) {
+                paPmatchPairVectorUninit(&s);
+                return 0;
             }
         } else if (FKL_IS_PAIR(pat) && FKL_IS_PAIR(exp)) {
             paPmatchPairVectorPushBack(&s,
@@ -158,6 +188,7 @@ static inline int is_partly_covered(const FklVMvalue *pattern,
         return r;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return r;
+    FklVMvalue *header = FKL_VM_CAR(pattern);
     FklPairVector s;
     fklPairVectorInit(&s, 8);
     fklPairVectorPushBack(&s,
@@ -174,6 +205,9 @@ static inline int is_partly_covered(const FklVMvalue *pattern,
                 continue;
             r = 1;
             break;
+        } else if (n0 == FKL_VM_HEADER_WILDCARD) {
+            if (n1 != FKL_VM_HEADER_WILDCARD || n1 != header)
+                break;
         } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
             fklPairVectorPushBack(&s,
                     &(FklPair){
@@ -242,6 +276,11 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         while (!fklSlotVectorIsEmpty(&stack)) {
             FklVMvalue **c = *fklSlotVectorPopBackNonNull(&stack);
             FklVMvalue *cur = *c;
+            if (cur == fklVMaddSymbolCstr(vm, "_")) {
+                *c = FKL_VM_HEADER_WILDCARD;
+                continue;
+            }
+
             if (!FKL_IS_PAIR(cur))
                 continue;
 

@@ -679,7 +679,6 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     uint32_t idx;
     uint32_t idx1;
     uint64_t size;
-    uint64_t num;
     int64_t offset;
     FklVMvalueLibs *libs = exe->libs;
 start:

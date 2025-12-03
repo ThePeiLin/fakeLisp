@@ -4463,15 +4463,10 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
         case FKL_OP_PUSH_CONST:
         case FKL_OP_PUSH_PAIR:
         case FKL_OP_PUSH_LIST_0:
-        case FKL_OP_PUSH_LIST:
         case FKL_OP_PUSH_VEC_0:
-        case FKL_OP_PUSH_VEC:
         case FKL_OP_PUSH_HASHEQ_0:
-        case FKL_OP_PUSH_HASHEQ:
         case FKL_OP_PUSH_HASHEQV_0:
-        case FKL_OP_PUSH_HASHEQV:
         case FKL_OP_PUSH_HASHEQUAL_0:
-        case FKL_OP_PUSH_HASHEQUAL:
         case FKL_OP_TRUE:
         case FKL_OP_EXTRA_ARG:
             break;

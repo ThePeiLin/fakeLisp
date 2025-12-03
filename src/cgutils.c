@@ -714,9 +714,13 @@ void fklInitCodegenScriptLib(FklCodegenLib *lib,
     lib->exports.buckets = NULL;
     if (info) {
         lib->rp = info->realpath;
-
         lib->head = info->export_macro;
         lib->replacements = info->export_replacement;
+
+        info->realpath = NULL;
+        info->export_macro = NULL;
+        info->export_replacement = NULL;
+
         if (info->export_named_prod_groups
                 && info->export_named_prod_groups->count) {
             fklGraProdGroupHashMapInit(&lib->named_prod_groups);
@@ -1202,8 +1206,8 @@ static FklVMudMetaTable const MacroScopeUserDataMetaTable = {
 
 FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
         FklVMvalueCodegenMacroScope *prev) {
-    FKL_ASSERT(
-            prev == NULL || fklIsVMvalueCodegenMacroScope((FklVMvalue *)prev));
+    FKL_ASSERT(prev == NULL //
+               || fklIsVMvalueCodegenMacroScope((FklVMvalue *)prev));
     FklVMvalueCodegenMacroScope *r =
             (FklVMvalueCodegenMacroScope *)fklCreateVMvalueUd(&c->gc->gcvm,
                     &MacroScopeUserDataMetaTable,
@@ -1363,7 +1367,6 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCodegenInfo *i = as_info(ud);
-    // FKL_DECL_UD_DATA(i, struct FklCodegenInfo, ud);
 
     fklZfree(i->dir);
     if (i->filename)
@@ -1394,7 +1397,6 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static FklVMudMetaTable const InfoUserDataMetaTable = {
-    // .size = sizeof(struct FklCodegenInfo),
     .size = sizeof(FklVMvalueCodegenInfo),
     .princ = info_print,
     .prin1 = info_print,
@@ -1451,7 +1453,6 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
         r->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
         r->realpath = rp;
         r->fid = add_symbol_cstr(ctx, r->filename);
-        // r->fid = fklVMaddSymbolCstr(st, r->filename);
     } else {
         r->dir = fklSysgetcwd();
         r->filename = NULL;
@@ -1480,7 +1481,6 @@ FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
 
     r->libraries = libs;
     r->pts = pts;
-    // r->lnt = fklCreateVMvalueCodegenLnt(&ctx->gc->gcvm);
 
     if (is_lib)
         fklCgExportSidIdxHashMapInit(&r->exports);
@@ -1546,7 +1546,6 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(custom_action_ctx_ud_as_print,
 
 static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCustomActionCtx *c = as_custom_ctx(ud);
-    // FKL_DECL_UD_DATA(c, struct FklCustomActionCtx, ud);
     if (c->bcl == NULL)
         return;
     fklVMgcToGray(c->bcl, gc);
@@ -1559,7 +1558,6 @@ static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static int custom_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCustomActionCtx *c = as_custom_ctx(ud);
-    // FKL_DECL_UD_DATA(c, struct FklCustomActionCtx, ud);
 
     c->bcl = NULL;
 
@@ -1567,7 +1565,6 @@ static int custom_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static const FklVMudMetaTable CustomActionCtxUdMetaTable = {
-    // .size = sizeof(struct FklCustomActionCtx),
     .size = sizeof(FklVMvalueCustomActionCtx),
     .atomic = custom_action_ctx_ud_atomic,
     .prin1 = custom_action_ctx_ud_as_print,
@@ -2241,7 +2238,6 @@ static void *builtin_prod_action_nil(void *action_ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    // return fklCreateNastNode(FKL_NAST_NIL, line);
 
     return FKL_VM_NIL;
 }
@@ -2253,7 +2249,6 @@ static void *builtin_prod_action_first(void *action_ctx,
         size_t line) {
     if (num < 1)
         return NULL;
-    // return fklMakeNastNodeRef(nodes[0].ast);
     return nodes[0].ast;
 }
 
@@ -2278,7 +2273,6 @@ static void *builtin_prod_action_second(void *action_ctx,
         size_t line) {
     if (num < 2)
         return NULL;
-    // return fklMakeNastNodeRef(nodes[1].ast);
 
     return nodes[1].ast;
 }
@@ -2290,7 +2284,6 @@ static void *builtin_prod_action_third(void *action_ctx,
         size_t line) {
     if (num < 3)
         return NULL;
-    // return fklMakeNastNodeRef(nodes[2].ast);
 
     return nodes[2].ast;
 }
@@ -2507,7 +2500,6 @@ static inline void init_builtin_prod_action_list(FklCodegenCtx *ctx) {
     for (size_t i = 0; i < FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM; i++)
         builtin_prod_action_id[i] =
                 add_symbol_cstr(ctx, BuiltinProdActions[i].name);
-    // fklAddSymbolCstr(CodegenProdActions[i].name, pst);
 }
 
 void fklInitProdActionList(FklCodegenCtx *ctx) {
@@ -2569,7 +2561,6 @@ static FKL_ALWAYS_INLINE FklVMvalueSimpleActionCtx *as_simple_ctx(
 }
 
 static void simple_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(c, struct FklSimpleActionCtx, ud);
     FklVMvalueSimpleActionCtx *c = as_simple_ctx(ud);
     fklVMgcToGray(c->vec, gc);
 }
@@ -2579,9 +2570,6 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(simple_action_ctx_ud_as_print,
 
 static int simple_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueSimpleActionCtx *c = as_simple_ctx(ud);
-    // FKL_DECL_UD_DATA(c, struct FklSimpleActionCtx, ud);
-    // if (c->mt == NULL)
-    //     return FKL_VM_UD_FINALIZE_NOW;
 
     c->mt = NULL;
     c->vec = NULL;
@@ -2589,7 +2577,6 @@ static int simple_action_ctx_ud_finalizer(FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static const FklVMudMetaTable SimpleActionCtxUdMetaTable = {
-    // .size = sizeof(FklSimpleActionCtx),
     .size = sizeof(FklVMvalueSimpleActionCtx),
     .atomic = simple_action_ctx_ud_atomic,
     .prin1 = simple_action_ctx_ud_as_print,

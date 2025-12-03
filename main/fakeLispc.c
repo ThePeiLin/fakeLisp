@@ -148,7 +148,6 @@ static inline int compile(const char *filename,
         fklZfree(rp);
         r = EXIT_FAILURE;
         goto compile_exit;
-        // return EXIT_FAILURE;
     }
 
     fklUpdatePrototype(&pts->p, ctx.global_env);
@@ -188,7 +187,6 @@ static inline int compile(const char *filename,
         fprintf(stderr, "%s: Can't create byte code file!\n", outputname);
         r = EXIT_FAILURE;
         goto compile_exit;
-        // return EXIT_FAILURE;
     }
 
     fklVMclearSymbol(gc);

@@ -17,7 +17,6 @@ void fklVMexecuteInstruction(FklVM *exe,
     uint32_t idx;
     uint32_t idx1;
     uint64_t size;
-    uint64_t num;
     int64_t offset;
     FklVMvalueLibs *libs = exe->libs;
     switch (op) {
@@ -77,23 +76,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
         FKL_VM_PUSH_VALUE(exe, pair);
     } break;
-    case FKL_OP_PUSH_LIST:
-        size = ins->bu;
-        FklVMvalue *pair = FKL_VM_NIL;
-        FklVMvalue *last = FKL_VM_POP_TOP_VALUE(exe);
-        --size;
-        exe->tp -= size;
-        FklVMvalue **pcur = &pair;
-        FklVMvalue **pcur_value = &exe->base[exe->tp];
-        FklVMvalue **const pcur_value_end = pcur_value + size;
-
-        for (; pcur_value < pcur_value_end; ++pcur_value) {
-            *pcur = fklCreateVMvaluePairWithCar(exe, *pcur_value);
-            pcur = &FKL_VM_CDR(*pcur);
-        }
-        *pcur = last;
-        FKL_VM_PUSH_VALUE(exe, pair);
-        break;
     case FKL_OP_PUSH_VEC_0: {
         size_t size = exe->tp - exe->bp;
         FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
@@ -103,14 +85,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
         FKL_VM_PUSH_VALUE(exe, vec);
     } break;
-    case FKL_OP_PUSH_VEC:
-        size = ins->bu;
-        FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
-        FklVMvalueVec *v = FKL_VM_VEC(vec);
-        exe->tp -= size;
-        memcpy(v->base, &exe->base[exe->tp], size * sizeof(FklVMvalue *));
-        FKL_VM_PUSH_VALUE(exe, vec);
-        break;
     case FKL_OP_PUSH_HASHEQ_0: {
         FklVMvalue *hash;
         hash = fklCreateVMvalueHashEq(exe);
@@ -120,9 +94,9 @@ void fklVMexecuteInstruction(FklVM *exe,
         goto push_hash_0;
     case FKL_OP_PUSH_HASHEQUAL_0:
         hash = fklCreateVMvalueHashEqual(exe);
+        uint32_t bp;
     push_hash_0:
-        num = ins->bu;
-        uint32_t bp = exe->bp;
+        bp = exe->bp;
         FklVMvalue **cur_value = &exe->base[bp];
         FklVMvalue **const value_end = &exe->base[exe->tp];
         FklVMvalueHash *ht = FKL_VM_HASH(hash);
@@ -133,30 +107,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         exe->tp = bp - 1;
         exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
-        FKL_VM_PUSH_VALUE(exe, hash);
-    } break;
-    case FKL_OP_PUSH_HASHEQ: {
-        FklVMvalue *hash;
-        uint64_t kvnum;
-        hash = fklCreateVMvalueHashEq(exe);
-        goto push_hash;
-    case FKL_OP_PUSH_HASHEQV:
-        hash = fklCreateVMvalueHashEqv(exe);
-        goto push_hash;
-    case FKL_OP_PUSH_HASHEQUAL:
-        hash = fklCreateVMvalueHashEqual(exe);
-    push_hash:
-        num = ins->bu;
-        kvnum = num * 2;
-        exe->tp -= kvnum;
-        FklVMvalue **cur_value = &exe->base[exe->tp];
-        FklVMvalue **const value_end = cur_value + kvnum;
-        FklVMvalueHash *ht = FKL_VM_HASH(hash);
-        for (; cur_value < value_end; cur_value += 2) {
-            FklVMvalue *key = cur_value[0];
-            FklVMvalue *value = cur_value[1];
-            fklVMhashTableSet(ht, key, value);
-        }
         FKL_VM_PUSH_VALUE(exe, hash);
     } break;
     case FKL_OP_PUSH_PROC:

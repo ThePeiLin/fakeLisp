@@ -50,15 +50,10 @@ extern "C" {
 	X(FKL_OP_PUSH_CONST,        "push-const",        FKL_OP_MODE_IuC     )\
     X(FKL_OP_PUSH_BOX,          "push-box",          FKL_OP_MODE_IsA     )\
     X(FKL_OP_PUSH_LIST_0,       "push-list-0",       FKL_OP_MODE_I       )\
-    X(FKL_OP_PUSH_LIST,         "push-list",         FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_VEC_0,        "push-vec-0",        FKL_OP_MODE_I       )\
-    X(FKL_OP_PUSH_VEC,          "push-vec",          FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_HASHEQ_0,     "push-hasheq-0",     FKL_OP_MODE_I       )\
     X(FKL_OP_PUSH_HASHEQV_0,    "push-hasheqv-0",    FKL_OP_MODE_I       )\
     X(FKL_OP_PUSH_HASHEQUAL_0,  "push-hashequal-0",  FKL_OP_MODE_I       )\
-    X(FKL_OP_PUSH_HASHEQ,       "push-hasheq",       FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_HASHEQV,      "push-hasheqv",      FKL_OP_MODE_IuB     )\
-    X(FKL_OP_PUSH_HASHEQUAL,    "push-hashequal",    FKL_OP_MODE_IuB     )\
     X(FKL_OP_PUSH_PROC,         "push-proc",         FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_PUSH_PROC_X,       "push-proc-x",       FKL_OP_MODE_IuCuC   )\
     X(FKL_OP_PUSH_PROC_XX,      "push-proc-xx",      FKL_OP_MODE_IuCAuBB )\

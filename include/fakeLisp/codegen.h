@@ -107,11 +107,6 @@ typedef struct FklCodegenMacro {
     }
 #include "cont/hash.h"
 
-// FKL_DEPRECATED
-// struct FklCodegenMacroScope {
-//     FKL_CODEGEN_MACRO_SCOPE_MEMBERS;
-// };
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope, {
     struct FklVMvalueCodegenMacroScope *prev;
     FklReplacementHashMap *replacements;

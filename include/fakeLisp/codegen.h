@@ -593,6 +593,11 @@ int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v);
 FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
         FklVMvalueCodegenMacroScope *prev);
 
+FklVMvalue *fklTryExpandCodegenMacroOnce(const FklPmatchRes *exp,
+        FklVMvalueCodegenInfo *,
+        FklVMvalueCodegenMacroScope *macros,
+        FklCodegenErrorState *);
+
 FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *,
         FklVMvalueCodegenMacroScope *macros,

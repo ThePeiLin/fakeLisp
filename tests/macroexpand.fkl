@@ -1,4 +1,4 @@
-;; (defmacro ~(macroexpand ~~~a) `(quote ~a))
+(defmacro ~(my-macroexpand ~~~a) `(quote ~a))
 
 (import (only (.. lib utils m) assert))
 
@@ -53,3 +53,4 @@
 (dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0) 0) 0) '(alpha foo))
 (dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0))) '(quote foo))
 (dbg! (macroexpand (delta foo)) '(quote foo))
+(dbg! (my-macroexpand (delta foo)) '(quote foo))

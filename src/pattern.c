@@ -60,13 +60,14 @@ int fklIsVMvalueSlot(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SlotUserDataMetaTable;
 }
 
-FklVMvalue *fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s, int need_expand) {
+FklVMvalue *
+fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s, FklPmatchExpandType expand) {
     FKL_ASSERT(FKL_IS_SYM(s));
     FklVMvalueSlot *r = (FklVMvalueSlot *)fklCreateVMvalueUd(vm,
             &SlotUserDataMetaTable,
             NULL);
     r->s = s;
-    r->need_expand = need_expand;
+    r->expand = expand;
     return (FklVMvalue *)r;
 }
 
@@ -111,7 +112,7 @@ int fklPatternMatch(const FklVMvalue *pattern,
                         (FklPmatchRes){
                             .value = exp,
                             .container = top->cont,
-                            .need_expand = FKL_VM_SLOT(pat)->need_expand,
+                            .expand = FKL_VM_SLOT(pat)->expand,
                         });
             }
         } else if (pat == FKL_VM_HEADER_WILDCARD) {
@@ -255,6 +256,22 @@ static inline int is_pattern_slot(const FklVMvalue *s, const FklVMvalue *p) {
         && FKL_IS_SYM(FKL_VM_CAR(FKL_VM_CDR(p)));
 }
 
+static inline int is_pattern_slot_expand_all(const FklVMvalue *s,
+        const FklVMvalue *p) {
+    size_t len = 0;
+    if (!fklIsList2(p, &len))
+        return 0;
+    if (len != 2)
+        return 0;
+
+    if (FKL_VM_CAR(p) != s)
+        return 0;
+
+    FklVMvalue *rest = FKL_VM_CAR(FKL_VM_CDR(p));
+
+    return is_pattern_slot(s, rest);
+}
+
 FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
         FklVMvalue *node,
         FklValueHashSet **psymbolTable) {
@@ -300,14 +317,21 @@ FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
                 if (fklValueHashSetPut2(symbolTable, sym)) {
                     goto error;
                 }
-                *c = fklCreateVMvalueSlot(vm, sym, 0);
+                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_NONE);
                 continue;
             } else if (is_pattern_slot(slotId, sym)) {
                 sym = FKL_VM_CAR(FKL_VM_CDR(sym));
                 if (fklValueHashSetPut2(symbolTable, sym)) {
                     goto error;
                 }
-                *c = fklCreateVMvalueSlot(vm, sym, 1);
+                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ONCE);
+                continue;
+            } else if (is_pattern_slot_expand_all(slotId, sym)) {
+                sym = FKL_VM_CAR(FKL_VM_CDR(FKL_VM_CAR(FKL_VM_CDR(sym))));
+                if (fklValueHashSetPut2(symbolTable, sym)) {
+                    goto error;
+                }
+                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ALL);
                 continue;
             } else {
                 goto error;

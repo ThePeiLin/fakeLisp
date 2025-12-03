@@ -106,8 +106,8 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
         write_value_create_op(MAKE_SLOT, fp);
         write_value_id(vt, value_id, s->s, fp);
 
-        int8_t need_expand = s->need_expand;
-        fwrite(&need_expand, sizeof(need_expand), 1, fp);
+        int8_t expand_type = s->expand;
+        fwrite(&expand_type, sizeof(expand_type), 1, fp);
     } else if (FKL_IS_PAIR(v)) {
         write_value_create_op(CREATE_PAIR, fp);
         write_value_id(vt, value_id, FKL_VM_CAR(v), fp);

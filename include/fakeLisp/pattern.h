@@ -7,10 +7,16 @@
 extern "C" {
 #endif
 
+typedef enum {
+    FKL_PMATCH_EXPAND_NONE = 0,
+    FKL_PMATCH_EXPAND_ONCE,
+    FKL_PMATCH_EXPAND_ALL,
+} FklPmatchExpandType;
+
 typedef struct {
     FklVMvalue *value;
     const FklVMvalue *container;
-    int need_expand;
+    FklPmatchExpandType expand;
 } FklPmatchRes;
 
 // FklPmatchHashMap
@@ -27,7 +33,7 @@ typedef struct {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, {
     FklVMvalue *s;
-    int need_expand;
+    FklPmatchExpandType expand;
 });
 
 FklVMvalue *
@@ -41,7 +47,8 @@ int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
 FklVMvalue *fklVMvalueHeaderWildcard(void);
 #define FKL_VM_HEADER_WILDCARD (fklVMvalueHeaderWildcard())
 
-FklVMvalue *fklCreateVMvalueSlot(FklVM *, FklVMvalue *s, int need_expand);
+FklVMvalue *
+fklCreateVMvalueSlot(FklVM *, FklVMvalue *s, FklPmatchExpandType expand);
 int fklIsVMvalueSlot(const FklVMvalue *s);
 
 static FKL_ALWAYS_INLINE FklVMvalueSlot *FKL_VM_SLOT(const FklVMvalue *V) {

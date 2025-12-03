@@ -844,6 +844,26 @@ static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
             place);
 }
 
+static inline FklVMvalue *expand_macro_arg(FklPmatchExpandType e,
+        const FklPmatchRes *exp,
+        FklVMvalueCodegenInfo *codegen,
+        FklVMvalueCodegenMacroScope *macros,
+        FklCodegenErrorState *error_state) {
+    switch (e) {
+    case FKL_PMATCH_EXPAND_NONE:
+        return exp->value;
+        break;
+    case FKL_PMATCH_EXPAND_ONCE:
+        return fklTryExpandCodegenMacroOnce(exp, codegen, macros, error_state);
+        break;
+    case FKL_PMATCH_EXPAND_ALL:
+        return fklTryExpandCodegenMacro(exp, codegen, macros, error_state);
+        break;
+    }
+
+    return NULL;
+}
+
 FklVMvalue *fklTryExpandCodegenMacroOnce(const FklPmatchRes *exp,
         FklVMvalueCodegenInfo *codegen,
         FklVMvalueCodegenMacroScope *macros,
@@ -858,17 +878,14 @@ FklVMvalue *fklTryExpandCodegenMacroOnce(const FklPmatchRes *exp,
             macro = find_macro(r, macros, &ht)) {
         for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
             FklPmatchRes *r = &cur->v;
-            if (r->need_expand) {
-                FklPmatchRes exp = *r;
-                FklVMvalue *rr = fklTryExpandCodegenMacroOnce(&exp,
-                        codegen,
-                        macros,
-                        error_state);
-                if (rr == NULL)
-                    return NULL;
-
-                r->value = rr;
-            }
+            FklVMvalue *rr = expand_macro_arg(r->expand,
+                    r,
+                    codegen,
+                    macros,
+                    error_state);
+            if (rr == NULL)
+                return NULL;
+            r->value = rr;
         }
 
         fklPmatchHashMapAdd2(&ht,
@@ -928,17 +945,14 @@ FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
 
         for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
             FklPmatchRes *r = &cur->v;
-            if (r->need_expand) {
-                FklPmatchRes exp = *r;
-                FklVMvalue *rr = fklTryExpandCodegenMacroOnce(&exp,
-                        codegen,
-                        macros,
-                        error_state);
-                if (rr == NULL)
-                    return NULL;
-
-                r->value = rr;
-            }
+            FklVMvalue *rr = expand_macro_arg(r->expand,
+                    r,
+                    codegen,
+                    macros,
+                    error_state);
+            if (rr == NULL)
+                return NULL;
+            r->value = rr;
         }
         fklPmatchHashMapAdd2(&ht,
                 codegen->ctx->builtInPatternVar_orig,

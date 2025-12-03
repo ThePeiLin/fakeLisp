@@ -1,33 +1,4 @@
-(defmacro ~(my-macroexpand ~~~a) `(quote ~a))
-
-(import (only (.. lib utils m) assert))
-
-(defmacro ~(macroexpand-1 ~~a) `(quote ~a))
-
-(defmacro ~(macroexpand-1 ~~a 0) `(quote ~a))
-
-(defmacro ~(macroexpand-1 ~~a ~~n) 
- (if (< n 1)
-   (throw 'macro-error (format "invalid macro arg: %S" n))
-  `(~(car orig) ~a ~(-1+ n))))
-
-(defmacro ~(macroexpand-1 (_ ~a))
-  (do [(h (car orig))
-       (c 1 (+ 1 c (if (eq (length a) 3) (nth 2 a) 0)))
-       (a a (car (cdr a)))]
-    [(not (and (pair? a) (eq (car a) h)))
-     `(~h ~a ~c)]))
-
-(defmacro ~(macroexpand-1 (_ ~a) ~~n)
-  (do [(h (car orig))
-       (c (1+ n) (+ 1 c (if (eq (length a) 3) (nth 2 a) 0)))
-       (a a (car (cdr a)))]
-    [(not (and (pair? a) (eq (car a) h)))
-     `(~h ~a ~c)]))
-
-(defmacro ~(macroexpand-1 (_ ~a ~~n1) ~~n2) `(~(car orig) ~a ~(+ 1 n1 n2)))
-
-(defmacro ~(macroexpand-1 (_ ~a ~~n)) `(~(car orig) ~a ~(1+ n)))
+(import (only (.. lib utils m) assert macroexpand macroexpand-1))
 
 (defmacro ~(alpha ~a) `(quote ~a))
 (defmacro ~(beta ~a) `(alpha ~a))
@@ -53,4 +24,3 @@
 (dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo) 0) 0) 0) '(alpha foo))
 (dbg! (macroexpand-1 (macroexpand-1 (macroexpand-1 (macroexpand-1 (delta foo)) 0))) '(quote foo))
 (dbg! (macroexpand (delta foo)) '(quote foo))
-(dbg! (my-macroexpand (delta foo)) '(quote foo))

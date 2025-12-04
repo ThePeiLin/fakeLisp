@@ -28,7 +28,7 @@
 #endif
 
 static void print_compiler_macros(FklVMgc *gc,
-        const FklCodegenMacro *head,
+        const FklCgMacro *head,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count);
@@ -201,9 +201,9 @@ int main(int argc, char **argv) {
             FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
             FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
 
-            FklCodegenCtx ctx = { 0 };
+            FklCgCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+            fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
 
             FklLoadPreCompileArgs args = {
                 .ctx = &ctx,
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
             CB_LINE("");
             uint64_t count = ctx.libraries.size;
             for (uint64_t i = 0; i < count; ++i) {
-                const FklCodegenLib *cur = &ctx.libraries.base[i];
+                const FklCgLib *cur = &ctx.libraries.base[i];
                 CB_LINE("lib %" PRIu64 ":", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
                 CB_LINE("macro loaded libs:");
                 uint64_t count = ctx.macro_libraries.size;
                 for (uint64_t i = 0; i < count; ++i) {
-                    const FklCodegenLib *cur = &ctx.macro_libraries.base[i];
+                    const FklCgLib *cur = &ctx.macro_libraries.base[i];
                     CB_LINE("lib %" PRIu64 ":", i + 1);
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
             fklPrintObarray(gc, gc->obarray, build);
 
         precompile_exit:
-            fklUninitCodegenCtx(&ctx);
+            fklUninitCgCtx(&ctx);
             fklDestroyVMgc(gc);
             if (exitState)
                 break;
@@ -351,7 +351,7 @@ exit:
 }
 
 static void print_compiler_macros(FklVMgc *gc,
-        const FklCodegenMacro *cur,
+        const FklCgMacro *cur,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
@@ -379,7 +379,7 @@ static void print_reader_macro_action(FklVMgc *gc,
         FklCodeBuilder *build) {
     if (fklIsCustomActionProd(prod)) {
         CB_LINE_END("custom");
-        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = prod->ctx;
         fklDisassembleByteCodelnt(gc,
                 FKL_VM_CO(ctx->bcl),
                 ctx->prototype_id,

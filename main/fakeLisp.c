@@ -26,13 +26,13 @@
 #include <unistd.h>
 #endif
 
-static int runRepl(FklVMvalueCodegenInfo *,
-        FklVMvalueCodegenEnv *main_env,
+static int runRepl(FklVMvalueCgInfo *,
+        FklVMvalueCgEnv *main_env,
         const char *eval_expression,
         int8_t interactive);
 static void init_frame_to_repl_frame(FklVM *,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *,
+        FklVMvalueCgInfo *codegen,
+        FklVMvalueCgEnv *,
         const char *eval_expression,
         int8_t interactive);
 
@@ -47,19 +47,19 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
-    FklCodegenCtx ctx;
+    FklCgCtx ctx;
     char *rp = fklRealpath(filename);
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
 
     FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
 
     fklChdir(ctx.main_file_real_path_dir);
-    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
+    FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
             NULL,
             rp,
-            &(FklCodegenInfoArgs){
+            &(FklCgInfoArgs){
                 .is_lib = 1,
                 .is_global = 1,
             });
@@ -70,7 +70,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     fklVMclearExtraMarkFunc(gc);
 
     if (mainByteCode == NULL) {
-        fklUninitCodegenCtx(&ctx);
+        fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
         return FKL_EXIT_FAILURE;
     }
@@ -85,13 +85,13 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             pts,
             fklCreateVMvalueLibs(&gc->gcvm));
 
-    fklUpdateVMlibsWithCodegenLibVector(anotherVM,
+    fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
             codegen->libraries,
             anotherVM->pts);
 
     fklChdir(ctx.cwd);
-    fklUninitCodegenCtx(&ctx);
+    fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
     fklCheckAndGC(anotherVM, 1);
@@ -198,9 +198,9 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
 
-    FklCodegenCtx ctx = { 0 };
+    FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
-    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
@@ -219,7 +219,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     fclose(fp);
 
     if (load_result) {
-        fklUninitCodegenCtx(&ctx);
+        fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
         if (args.error) {
             fprintf(stderr, "%s\n", args.error);
@@ -230,9 +230,9 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         return 1;
     }
 
-    FklCodegenLib *main_lib = fklCodegenLibVectorPopBackNonNull(&ctx.libraries);
+    FklCgLib *main_lib = fklCgLibVectorPopBackNonNull(&ctx.libraries);
     FklVMvalue *main_byte_code = main_lib->bcl;
-    fklUninitCodegenLib(main_lib);
+    fklUninitCgLib(main_lib);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
             gc,
@@ -241,13 +241,13 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
             pts,
             fklCreateVMvalueLibs(&gc->gcvm));
 
-    fklUpdateVMlibsWithCodegenLibVector(anotherVM,
+    fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
             &ctx.libraries,
             anotherVM->pts);
 
     fklChdir(ctx.cwd);
-    fklUninitCodegenCtx(&ctx);
+    fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
     fklCheckAndGC(anotherVM, 1);
@@ -482,11 +482,11 @@ int main(int argc, char *argv[]) {
             goto error;
         goto interactive;
     } else if (rest->count == 0) {
-        FklCodegenCtx ctx;
+        FklCgCtx ctx;
     interactive:
         FKL_TODO();
         // fklInitCodegenCtx(&ctx, NULL, NULL, NULL);
-        // FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
+        // FklVMvalueCgInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
         //         NULL,
         //         NULL,
         //         &(FklCodegenInfoArgs){
@@ -495,15 +495,15 @@ int main(int argc, char *argv[]) {
         //             .st = &ctx.public_st,
         //             .kt = &ctx.public_kt,
         //         });
-        // FklVMvalueCodegenEnv *main_env = ctx.global_env;
+        // FklVMvalueCgEnv *main_env = ctx.global_env;
         // exitState = runRepl(codegen,
         //         main_env,
         //         eval->count > 0 ? eval->sval[0] : NULL,
         //         interactive->count > 0);
         // FklCodegenLibVector *loadedLibStack = codegen->libraries;
-        // while (!fklCodegenLibVectorIsEmpty(loadedLibStack)) {
+        // while (!fklCgLibVectorIsEmpty(loadedLibStack)) {
         //     FklCodegenLib *lib =
-        //             fklCodegenLibVectorPopBackNonNull(loadedLibStack);
+        //             fklCgLibVectorPopBackNonNull(loadedLibStack);
         //     fklUninitCodegenLib(lib);
         // }
         // fklUninitCodegenCtx(&ctx);
@@ -625,8 +625,8 @@ exit:
     return exitState;
 }
 
-static int runRepl(FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *main_env,
+static int runRepl(FklVMvalueCgInfo *codegen,
+        FklVMvalueCgEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {
     FKL_TODO();
@@ -676,8 +676,8 @@ struct ReplFrameCtx {
 };
 
 typedef struct {
-    FklVMvalueCodegenInfo *codegen;
-    FklVMvalueCodegenEnv *main_env;
+    FklVMvalueCgInfo *codegen;
+    FklVMvalueCgEnv *main_env;
     NastCreatCtx *cc;
     FklVM *exe;
     enum {
@@ -866,8 +866,8 @@ static void resolve_ref_to_def_cb(const FklSymDefHashMapMutElm *ref,
 }
 
 static inline void resolve_ref_and_update_const_array_for_repl(
-        FklVMvalueCodegenEnv *env,
-        FklVMvalueCodegenEnv *top_env,
+        FklVMvalueCgEnv *env,
+        FklVMvalueCgEnv *top_env,
         FklFuncPrototypes *cp,
         FklVM *exe,
         FklVMframe *mainframe,
@@ -911,7 +911,7 @@ static inline void resolve_ref_and_update_const_array_for_repl(
 }
 
 static inline void update_prototype_lcount(FklFuncPrototypes *cp,
-        FklVMvalueCodegenEnv *env) {
+        FklVMvalueCgEnv *env) {
     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
     pts->lcount = env->lcount;
 }
@@ -983,7 +983,7 @@ typedef struct {
     size_t offset;
     FklVMgc *gc;
     NastCreatCtx *cc;
-    FklVMvalueCodegenInfo *codegen;
+    FklVMvalueCgInfo *codegen;
     size_t errline;
 } ReadExpressionEndArgs;
 
@@ -1000,7 +1000,7 @@ static int read_expression_end_cb(const char *str,
     // ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *,
     // vargs);
     //
-    // FklVMvalueCodegenInfo *codegen = args->codegen;
+    // FklVMvalueCgInfo *codegen = args->codegen;
     // FklGrammer *g = *(codegen->g);
     //
     // FklVMgc *gc = args->gc;
@@ -1161,8 +1161,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
     //     break;
     // }
     //
-    // FklVMvalueCodegenInfo *codegen = ctx->codegen;
-    // FklVMvalueCodegenEnv *main_env = ctx->main_env;
+    // FklVMvalueCgInfo *codegen = ctx->codegen;
+    // FklVMvalueCgEnv *main_env = ctx->main_env;
     // FklSymbolTable *pst = &codegen->ctx->public_st;
     // FklStringBuffer *s = &fctx->buf;
     // int is_eof = ctx->eof;
@@ -1428,8 +1428,8 @@ static int eval_frame_step(void *data, FklVM *exe) {
     //
     // FklNastNodeQueue *queue = fklNastNodeQueueCreate();
     //
-    // FklVMvalueCodegenInfo *codegen = ctx->codegen;
-    // FklVMvalueCodegenEnv *main_env = ctx->main_env;
+    // FklVMvalueCgInfo *codegen = ctx->codegen;
+    // FklVMvalueCgEnv *main_env = ctx->main_env;
     // FklSymbolTable *pst = &codegen->ctx->public_st;
     // FklNastNode *ast = NULL;
     // FklGrammerMatchCtx gctx = FKL_NAST_PARSE_CTX_INIT(exe->gc->st);
@@ -1612,8 +1612,8 @@ static inline NastCreatCtx *createNastCreatCtx(void) {
 }
 
 static inline void init_frame_to_repl_frame(FklVM *exe,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *main_env,
+        FklVMvalueCgInfo *codegen,
+        FklVMvalueCgEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {
     FklVMframe *replFrame =

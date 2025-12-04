@@ -30,20 +30,20 @@ static inline int pre_compile(const char *main_file_name,
     }
 
     char *rp = fklRealpath(main_file_name);
-    FklCodegenCtx ctx;
+    FklCgCtx ctx;
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
 
     FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
 
     const char *main_dir = ctx.main_file_real_path_dir;
     fklChdir(main_dir);
 
-    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
+    FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
             NULL,
             rp,
-            &(FklCodegenInfoArgs){
+            &(FklCgInfoArgs){
                 .is_global = 1,
                 .is_lib = 1,
             });
@@ -90,7 +90,7 @@ static inline int pre_compile(const char *main_file_name,
         goto pre_compile_exit;
     }
 
-    fklClearCodegenLibMacros2(&ctx);
+    fklClearCgLibMacros2(&ctx);
     fklWritePreCompile(outfp,
             output_dir,
             &(FklWritePreCompileArgs){
@@ -104,7 +104,7 @@ static inline int pre_compile(const char *main_file_name,
 pre_compile_exit:
     fklVMclearExtraMarkFunc(gc);
     fklDestroyVMgc(gc);
-    fklUninitCodegenCtx(&ctx);
+    fklUninitCgCtx(&ctx);
 
     fklZfree(outputname);
     return r;
@@ -123,18 +123,18 @@ static inline int compile(const char *filename,
     }
 
     char *rp = fklRealpath(filename);
-    FklCodegenCtx ctx;
+    FklCgCtx ctx;
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
 
     FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCodegenCtx(&ctx, fklGetDir(rp), pts, gc);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
 
     fklChdir(ctx.main_file_real_path_dir);
-    FklVMvalueCodegenInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
+    FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
             NULL,
             rp,
-            &(FklCodegenInfoArgs){
+            &(FklCgInfoArgs){
                 .is_lib = 1,
                 .is_global = 1,
             });
@@ -177,7 +177,7 @@ static inline int compile(const char *filename,
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
     co = FKL_VM_PROC(anotherVM->top_frame->c.proc)->codeObj;
 
-    fklUpdateVMlibsWithCodegenLibVector(anotherVM,
+    fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
             codegen->libraries,
             anotherVM->pts);
@@ -202,7 +202,7 @@ static inline int compile(const char *filename,
 
     fclose(outfp);
 compile_exit:
-    fklUninitCodegenCtx(&ctx);
+    fklUninitCgCtx(&ctx);
 
     fklDestroyAllVMs(anotherVM);
     fklDestroyVMgc(gc);

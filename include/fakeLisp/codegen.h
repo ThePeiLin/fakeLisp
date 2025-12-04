@@ -13,13 +13,13 @@
 extern "C" {
 #endif
 
-typedef struct FklCodegenEnvScope {
+typedef struct FklCgEnvScope {
     uint32_t p;
     uint32_t start;
     uint32_t empty;
     uint32_t end;
     FklSymDefHashMap defs;
-} FklCodegenEnvScope;
+} FklCgEnvScope;
 
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
@@ -45,21 +45,16 @@ typedef struct {
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
-// FKL_DEPRECATED
-// struct FklCodegenEnv {
-//     FKL_CODEGEN_ENV_MEMBERS;
-// };
-
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, {
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnReSymbolRefVector uref;
     uint8_t *slotFlags;
-    FklCodegenEnvScope *scopes;
+    FklCgEnvScope *scopes;
     uint32_t lcount;
     uint32_t sc;
     uint32_t pscope;
     uint32_t prototypeId;
-    struct FklVMvalueCodegenEnv *prev;
-    struct FklVMvalueCodegenMacroScope *macros;
+    struct FklVMvalueCgEnv *prev;
+    struct FklVMvalueCgMacroScope *macros;
     FklSymDefHashMap refs;
     FklPredefHashMap pdef;
     FklValueTable konsts;
@@ -68,7 +63,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenEnv, {
 });
 
 typedef struct {
-    FklVMvalueCodegenEnv *top_env;
+    FklVMvalueCgEnv *top_env;
     int no_refs_to_builtins;
     void (*resolve_ref_to_def_cb)(const FklSymDefHashMapMutElm *ref,
             const FklSymDefHashMapElm *def,
@@ -78,23 +73,21 @@ typedef struct {
     void *resolve_ref_to_def_cb_args;
 } FklResolveRefArgs;
 
-void fklResolveRef(FklVMvalueCodegenEnv *env,
+void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,
         FklFuncPrototypes *cp,
         const FklResolveRefArgs *args);
 
-void fklUpdatePrototype(FklFuncPrototypes *cp, FklVMvalueCodegenEnv *env);
-void fklUpdatePrototypeRef(FklFuncPrototypes *cp,
-        const FklVMvalueCodegenEnv *env);
-void fklUpdatePrototypeConst(FklFuncPrototypes *cp,
-        const FklVMvalueCodegenEnv *env);
+void fklUpdatePrototype(FklFuncPrototypes *cp, FklVMvalueCgEnv *env);
+void fklUpdatePrototypeRef(FklFuncPrototypes *cp, const FklVMvalueCgEnv *env);
+void fklUpdatePrototypeConst(FklFuncPrototypes *cp, const FklVMvalueCgEnv *env);
 
-typedef struct FklCodegenMacro {
+typedef struct FklCgMacro {
     FklVMvalue *pattern;
     uint32_t prototype_id;
     FklVMvalue *bcl;
-    struct FklCodegenMacro *next;
-} FklCodegenMacro;
+    struct FklCgMacro *next;
+} FklCgMacro;
 
 // FklReplacementHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
@@ -107,26 +100,26 @@ typedef struct FklCodegenMacro {
     }
 #include "cont/hash.h"
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenMacroScope, {
-    struct FklVMvalueCodegenMacroScope *prev;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
+    struct FklVMvalueCgMacroScope *prev;
     FklReplacementHashMap *replacements;
-    FklCodegenMacro *head;
+    FklCgMacro *head;
 });
 
-typedef enum FklCodegenLibType {
+typedef enum {
     FKL_CODEGEN_LIB_SCRIPT = 0,
     FKL_CODEGEN_LIB_DLL = 1,
     FKL_CODEGEN_LIB_UNINIT = 2,
-} FklCodegenLibType;
+} FklCgLibType;
 
 typedef struct {
     uint32_t idx;
     uint32_t oidx;
-} FklCodegenExportIdx;
+} FklCgExportIdx;
 
 // FklCgExportSidIdxHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
-#define FKL_HASH_VAL_TYPE FklCodegenExportIdx
+#define FKL_HASH_VAL_TYPE FklCgExportIdx
 #define FKL_HASH_ELM_NAME CgExportSidIdx
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
@@ -142,7 +135,7 @@ typedef enum {
     FKL_CODEGEN_PROD_SIMPLE,
     FKL_CODEGEN_PROD_CUSTOM,
     FKL_CODEGEN_PROD_REPLACE,
-} FklCodegenProdActionType;
+} FklCgProdActionType;
 
 #define FKL_GRAMMER_GROUP_INITED (0x1)
 #define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
@@ -165,13 +158,13 @@ typedef struct {
 #include "cont/hash.h"
 
 typedef struct {
-    FklCodegenLibType type;
+    FklCgLibType type;
     union {
         struct {
             FklVMvalue *bcl;
             uint64_t epc;
             uint32_t prototypeId;
-            FklCodegenMacro *head;
+            FklCgMacro *head;
             FklReplacementHashMap *replacements;
             FklGraProdGroupHashMap named_prod_groups;
         };
@@ -180,11 +173,11 @@ typedef struct {
     char *rp;
     FklCgExportSidIdxHashMap exports;
 
-} FklCodegenLib;
+} FklCgLib;
 
-// FklCodegenLibVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenLib
-#define FKL_VECTOR_ELM_TYPE_NAME CodegenLib
+// FklCgLibVector
+#define FKL_VECTOR_ELM_TYPE FklCgLib
+#define FKL_VECTOR_ELM_TYPE_NAME CgLib
 #include "cont/vector.h"
 
 typedef enum {
@@ -241,7 +234,7 @@ typedef enum {
     FKL_CODEGEN_PATTERN_DEF_READER_MACROS,
     FKL_CODEGEN_PATTERN_COND_COMPILE,
     FKL_CODEGEN_PATTERN_NUM,
-} FklCodegenPatternEnum;
+} FklCgPatternEnum;
 
 typedef enum {
     FKL_CODEGEN_SUB_PATTERN_UNQUOTE = 0,
@@ -255,7 +248,7 @@ typedef enum {
     FKL_CODEGEN_SUB_PATTERN_EQ,
     FKL_CODEGEN_SUB_PATTERN_MATCH,
     FKL_CODEGEN_SUB_PATTERN_NUM,
-} FklCodegenSubPatternEnum;
+} FklCgSubPatternEnum;
 
 #define FKL_BUILTIN_REPLACEMENT_NUM (7)
 #define FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM (17)
@@ -275,20 +268,20 @@ typedef enum {
     XX(simple)                                                                 \
     XX(replace)
 
-typedef struct FklCodegenCtx {
-    struct FklCodegenActionVector *action_vector;
+typedef struct FklCgCtx {
+    struct FklCgActVector *action_vector;
     FklValueVector *bcl_vector;
-    struct FklVMvalueCodegenEnv *global_env;
-    struct FklVMvalueCodegenInfo *global_info;
-    struct FklCodegenErrorState *error_state;
+    struct FklVMvalueCgEnv *global_env;
+    struct FklVMvalueCgInfo *global_info;
+    struct FklCgErrorState *error_state;
 
     char *cwd;
     char *main_file_real_path_dir;
     const char *cur_file_dir;
 
-    FklCodegenLibVector libraries;
+    FklCgLibVector libraries;
 
-    FklCodegenLibVector macro_libraries;
+    FklCgLibVector macro_libraries;
 
     FklVMvalueLibs *macro_vm_libs;
 
@@ -299,7 +292,7 @@ typedef struct FklCodegenCtx {
 
     FklGrammer builtin_g;
 
-#define XX(A) FklVMvalue *builtInPatternVar_##A;
+#define XX(A) FklVMvalue *builtin_sym_##A;
     FKL_CODEGEN_SYMBOL_MAP
 #undef XX
 
@@ -313,17 +306,16 @@ typedef struct FklCodegenCtx {
     FklVMvalue *builtin_prod_action_id[FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM];
     FklVMvalue *simple_prod_action_id[FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM];
 
-} FklCodegenCtx;
+} FklCgCtx;
 
-typedef void (
-        *FklCodegenInfoWorkCb)(struct FklVMvalueCodegenInfo *self, void *);
-typedef void (*FklCodegenInfoEnvWorkCb)(struct FklVMvalueCodegenInfo *self,
-        FklVMvalueCodegenEnv *,
+typedef void (*FklCgInfoWorkCb)(struct FklVMvalueCgInfo *self, void *);
+typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgInfo *self,
+        FklVMvalueCgEnv *,
         void *);
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, {
-    FklCodegenCtx *ctx;
-    struct FklVMvalueCodegenInfo *prev;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
+    FklCgCtx *ctx;
+    struct FklVMvalueCgInfo *prev;
     char *filename;
     char *realpath;
     char *dir;
@@ -337,20 +329,21 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCodegenInfo, {
     FklGrammer **g;
     FklGrammer *unnamed_g;
     FklGraProdGroupHashMap *named_prod_groups;
-    FklVMvalueCodegenEnv *global_env;
+    FklVMvalueCgEnv *global_env;
     uint64_t epc;
     FklCgExportSidIdxHashMap exports;
-    FklCodegenMacro *export_macro;
+    FklCgMacro *export_macro;
     FklReplacementHashMap *export_replacement;
     FklValueHashSet *export_named_prod_groups;
-    FklCodegenLibVector *libraries;
+
+    FklCgLibVector *libraries;
     FklVMvalueProtos *pts;
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
     struct {
         void *work_ctx;
-        FklCodegenInfoWorkCb work_cb;
-        FklCodegenInfoEnvWorkCb env_work_cb;
+        FklCgInfoWorkCb work_cb;
+        FklCgInfoEnvWorkCb env_work_cb;
     };
 });
 
@@ -358,33 +351,37 @@ typedef struct {
     size_t size;
     void (*finalize)(void *);
     void (*atomic)(FklVMgc *, void *);
-} FklCodegenActionContextMethodTable;
+} FklCgActCtxMethodTable;
 
-typedef struct FklCodegenActionContext {
-    const FklCodegenActionContextMethodTable *t;
+typedef struct FklCgActCtx {
+    const FklCgActCtxMethodTable *t;
     alignas(void *) uint8_t d[];
-} FklCodegenActionContext;
+} FklCgActCtx;
 
-typedef struct FklCodegenErrorState {
+typedef struct FklCgErrorState {
     FklVMvalue *error;
     size_t line;
     FklVMvalue *fid;
-} FklCodegenErrorState;
+} FklCgErrorState;
 
-typedef FklVMvalue *(*FklCodegenActionCb)(FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *env,
-        uint32_t scope,
-        FklVMvalueCodegenMacroScope *cms,
-        void *data,
-        FklValueVector *bcl_vec,
-        FklVMvalue *fid,
-        uint64_t line,
-        FklCodegenErrorState *error_state,
-        FklCodegenCtx *ctx);
+typedef struct {
+    void *data;
+    FklCgCtx *ctx;
+    FklVMvalueCgInfo *info;
+    FklVMvalueCgEnv *env;
+    uint32_t scope;
+    FklVMvalueCgMacroScope *cms;
+    FklValueVector *bcl_vec;
+    FklVMvalue *fid;
+    uint64_t line;
+    FklCgErrorState *error_state;
+} FklCgActCbArgs;
+
+typedef FklVMvalue *(*FklCgActCb)(const FklCgActCbArgs *args);
 
 typedef int (*CgGetNextExpCb)(void *, //
         FklPmatchRes *res,            //
-        FklCodegenErrorState *);
+        FklCgErrorState *);
 
 typedef struct {
     CgGetNextExpCb get_next_exp;
@@ -396,66 +393,62 @@ typedef struct {
     const FklNextExpressionMethodTable *t;
     void *context;
     uint8_t must_has_retval;
-} FklCodegenNextExpression;
+} FklCgNextExp;
 
-typedef struct FklCodegenAction {
-    struct FklCodegenAction *prev;
-    FklCodegenActionCb processer;
-    FklCodegenActionContext *context;
-    FklVMvalueCodegenEnv *env;
-    FklVMvalueCodegenMacroScope *macros;
-    FklVMvalueCodegenInfo *codegen;
-    FklCodegenNextExpression *expressions;
+typedef struct FklCgAct {
+    struct FklCgAct *prev;
+    FklCgActCb cb;
+    FklCgActCtx *ctx;
+    FklVMvalueCgEnv *env;
+    FklVMvalueCgMacroScope *macros;
+    FklVMvalueCgInfo *info;
+    FklCgNextExp *exps;
 
     uint32_t scope;
     uint64_t curline;
 
     FklValueVector bcl_vector;
-} FklCodegenAction;
+} FklCgAct;
 
-// FklCodegenActionVector
-#define FKL_VECTOR_ELM_TYPE FklCodegenAction *
-#define FKL_VECTOR_ELM_TYPE_NAME CodegenAction
+// FklCgActVector
+#define FKL_VECTOR_ELM_TYPE FklCgAct *
+#define FKL_VECTOR_ELM_TYPE_NAME CgAct
 #include "cont/vector.h"
 
-void fklInitProdActionList(FklCodegenCtx *ctx);
+void fklInitProdActionList(FklCgCtx *ctx);
 
-void fklInitCodegenCtx(FklCodegenCtx *ctx,
+void fklInitCgCtx(FklCgCtx *ctx,
         char *main_file_real_path_dir,
         FklVMvalueProtos *pts,
         FklVMgc *gc);
-void fklInitCodegenCtxExceptPattern(FklCodegenCtx *ctx,
+void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
         FklVMvalueProtos *pts,
         FklVMgc *gc);
 
-FKL_DEPRECATED
-void fklSetCodegenCtxMainFileRealPathDir(FklCodegenCtx *ctx,
-        char *main_file_real_path_dir);
-
-void fklUninitCodegenCtx(FklCodegenCtx *ctx);
+void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {
     FklVMvalueProtos *pts;
-    FklCodegenLibVector *libraries;
-    FklVMvalueCodegenMacroScope *macro_scope;
+    FklCgLibVector *libraries;
+    FklVMvalueCgMacroScope *macro_scope;
 
     void *work_ctx;
-    FklCodegenInfoWorkCb work_cb;
-    FklCodegenInfoEnvWorkCb env_work_cb;
+    FklCgInfoWorkCb work_cb;
+    FklCgInfoEnvWorkCb env_work_cb;
 
     int8_t is_lib;
     int8_t is_macro;
     int8_t is_global;
     int8_t inherit_grammer;
-} FklCodegenInfoArgs;
+} FklCgInfoArgs;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActionCtx, {
+FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActCtx, {
     const FklSimpleProdAction *mt;
     FklVMvalue *vec;
 });
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx, {
-    FklCodegenCtx *ctx;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
+    FklCgCtx *ctx;
     FklVMvalue *bcl;
     uint32_t prototype_id;
 
@@ -465,149 +458,145 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActionCtx, {
     FklVMvalue *dollers[];
 });
 
-int fklIsVMvalueCodegenInfo(const FklVMvalue *v);
-FklVMvalueCodegenInfo *fklCreateVMvalueCodegenInfo(FklCodegenCtx *ctx,
-        FklVMvalueCodegenInfo *prev,
+int fklIsVMvalueCgInfo(const FklVMvalue *v);
+FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
+        FklVMvalueCgInfo *prev,
         const char *filename,
-        const FklCodegenInfoArgs *args);
+        const FklCgInfoArgs *args);
 
 FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
-        FklVMvalueCodegenEnv *cur_env,
-        FklVMvalueCodegenInfo *codegen);
-FklVMvalue *fklGenExpressionCodeWithAction(FklCodegenAction *,
-        FklVMvalueCodegenInfo *codegen);
+        FklVMvalueCgEnv *cur_env,
+        FklVMvalueCgInfo *codegen);
+FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *,
+        FklVMvalueCgInfo *codegen);
 FklVMvalue *fklGenExpressionCodeWithFp(FILE *,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *cur_env);
+        FklVMvalueCgInfo *codegen,
+        FklVMvalueCgEnv *cur_env);
 
 FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
-        FklVMvalueCodegenInfo *codegen,
-        FklVMvalueCodegenEnv *cur_env);
+        FklVMvalueCgInfo *codegen,
+        FklVMvalueCgEnv *cur_env);
 
 FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklVMvalue *id,
         uint32_t scope,
-        const FklCodegenEnvScope *scopes);
-FklSymDefHashMapElm *fklGetCodegenDefByIdInScope(FklVMvalue *id,
+        const FklCgEnvScope *scopes);
+FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
-        const FklCodegenEnvScope *scopes);
+        const FklCgEnvScope *scopes);
 
-void fklPrintCodegenError(FklCodegenErrorState *error_state,
-        const FklVMvalueCodegenInfo *info,
+void fklPrintCgError(FklCgErrorState *error_state,
+        const FklVMvalueCgInfo *info,
         FklCodeBuilder *cb);
 
-void fklPrintUndefinedRef(const FklVMvalueCodegenEnv *env, FklCodeBuilder *cb);
+void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb);
 
-FklSymDefHashMapElm *fklAddCodegenBuiltinRefBySid(FklVMvalue *id,
-        FklVMvalueCodegenEnv *env);
-uint32_t fklAddCodegenRefBySidRetIndex(FklVMvalue *id,
-        FklVMvalueCodegenEnv *env,
+FklSymDefHashMapElm *fklAddCgBuiltinRefBySid(FklVMvalue *id,
+        FklVMvalueCgEnv *env);
+uint32_t fklAddCgRefBySidRetIndex(FklVMvalue *id,
+        FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint64_t line,
         uint32_t assign);
-FklSymDefHashMapElm *fklAddCodegenRefBySid(FklVMvalue *id,
-        FklVMvalueCodegenEnv *env,
+FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
+        FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint64_t line,
         uint32_t assign);
-FklSymDef *fklGetCodegenRefBySid(FklVMvalue *id, FklVMvalueCodegenEnv *env);
+FklSymDef *fklGetCgRefBySid(FklVMvalue *id, FklVMvalueCgEnv *env);
 
-FklSymDef *fklAddCodegenDefBySid(FklVMvalue *id,
-        uint32_t scope,
-        FklVMvalueCodegenEnv *env);
+FklSymDef *
+fklAddCgDefBySid(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env);
 
-void fklAddCodegenPreDefBySid(FklVMvalue *id,
+void fklAddCgPreDefBySid(FklVMvalue *id,
         uint32_t scope,
         uint8_t isConst,
-        FklVMvalueCodegenEnv *env);
+        FklVMvalueCgEnv *env);
 
-uint8_t *fklGetCodegenPreDefBySid(FklVMvalue *id,
-        uint32_t scope,
-        FklVMvalueCodegenEnv *env);
-void fklAddCodegenRefToPreDef(FklVMvalue *id,
+uint8_t *
+fklGetCgPreDefBySid(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env);
+void fklAddCgRefToPreDef(FklVMvalue *id,
         uint32_t scope,
         uint32_t prototypeId,
         uint32_t idx,
-        FklVMvalueCodegenEnv *env);
-void fklResolveCodegenPreDef(FklVMvalue *,
+        FklVMvalueCgEnv *env);
+void fklResolveCgPreDef(FklVMvalue *,
         uint32_t scope,
-        FklVMvalueCodegenEnv *env,
+        FklVMvalueCgEnv *env,
         FklFuncPrototypes *pts);
-void fklClearCodegenPreDef(FklVMvalueCodegenEnv *env);
+void fklClearCgPreDef(FklVMvalueCgEnv *env);
 
-int fklIsSymbolDefined(FklVMvalue *sid, uint32_t scope, FklVMvalueCodegenEnv *);
+int fklIsSymbolDefined(FklVMvalue *sid, uint32_t scope, FklVMvalueCgEnv *);
 
-int fklIsReplacementDefined(FklVMvalue *sid, FklVMvalueCodegenEnv *);
+int fklIsReplacementDefined(FklVMvalue *sid, FklVMvalueCgEnv *);
 
 FklVMvalue *fklGetReplacement(FklVMvalue *sid, const FklReplacementHashMap *);
 
-int fklIsVMvalueCodegenEnv(const FklVMvalue *);
-FklVMvalueCodegenEnv *fklCreateVMvalueCodegenEnv(FklCodegenCtx *ctx,
-        FklVMvalueCodegenEnv *prev,
+int fklIsVMvalueCgEnv(const FklVMvalue *);
+FklVMvalueCgEnv *fklCreateVMvalueCgEnv(FklCgCtx *ctx,
+        FklVMvalueCgEnv *prev,
         uint32_t pscope,
-        FklVMvalueCodegenMacroScope *);
+        FklVMvalueCgMacroScope *);
 
-void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCodegenInfo *info,
+void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCgInfo *info,
         uint32_t p,
-        FklVMvalueCodegenEnv *env,
+        FklVMvalueCgEnv *env,
         FklVMvalue *sid,
         uint32_t line);
 void fklInitFuncPrototypeWithEnv(FklFuncPrototype *cpt,
-        FklVMvalueCodegenInfo *info,
-        FklVMvalueCodegenEnv *env,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgEnv *env,
         FklVMvalue *sid,
         uint32_t line);
 
-void fklInitCodegenScriptLib(FklCodegenLib *lib,
-        FklVMvalueCodegenInfo *codegen,
+void fklInitCgScriptLib(FklCgLib *lib,
+        FklVMvalueCgInfo *codegen,
         FklVMvalue *bcl,
         uint64_t epc,
-        FklVMvalueCodegenEnv *env);
+        FklVMvalueCgEnv *env);
 
-FklCgDllLibInitExportCb fklGetCodegenInitExportFunc(uv_lib_t *dll);
+FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 
-void fklInitCodegenDllLib(FklCodegenCtx *ctx,
-        FklCodegenLib *lib,
+void fklInitCgDllLib(FklCgCtx *ctx,
+        FklCgLib *lib,
         char *rp,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init);
 
-void fklClearCodegenLibMacros(FklCodegenLib *lib);
-void fklClearCodegenLibMacros2(FklCodegenCtx *ctx);
+void fklClearCgLibMacros(FklCgLib *lib);
+void fklClearCgLibMacros2(FklCgCtx *ctx);
 
-void fklUninitCodegenLib(FklCodegenLib *);
+void fklUninitCgLib(FklCgLib *);
 
-void fklUninitCodegenLib(FklCodegenLib *);
-
-FklCodegenMacro *fklCreateCodegenMacro(FklVMvalue *pattern,
+FklCgMacro *fklCreateCgMacro(FklVMvalue *pattern,
         FklVMvalue *bcl,
-        FklCodegenMacro *next,
+        FklCgMacro *next,
         uint32_t prototype_id);
 
-int fklIsVMvalueCodegenMacroScope(const FklVMvalue *v);
-FklVMvalueCodegenMacroScope *fklCreateVMvalueCodegenMacroScope(FklCodegenCtx *c,
-        FklVMvalueCodegenMacroScope *prev);
+int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
+FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(FklCgCtx *c,
+        FklVMvalueCgMacroScope *prev);
 
-FklVMvalue *fklTryExpandCodegenMacroOnce(const FklPmatchRes *exp,
-        FklVMvalueCodegenInfo *,
-        FklVMvalueCodegenMacroScope *macros,
-        FklCodegenErrorState *);
+FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
+        FklVMvalueCgInfo *,
+        FklVMvalueCgMacroScope *macros,
+        FklCgErrorState *);
 
-FklVMvalue *fklTryExpandCodegenMacro(const FklPmatchRes *exp,
-        FklVMvalueCodegenInfo *,
-        FklVMvalueCodegenMacroScope *macros,
-        FklCodegenErrorState *);
+FklVMvalue *fklTryExpandCgMacro(const FklPmatchRes *exp,
+        FklVMvalueCgInfo *,
+        FklVMvalueCgMacroScope *macros,
+        FklCgErrorState *);
 
-void fklInitVMlibWithCodegenLib(const FklCodegenLib *clib,
+void fklInitVMlibWithCgLib(const FklCgLib *clib,
         FklVMlib *vlib,
         FklVM *exe,
         const FklVMvalueProtos *);
 
-void fklUpdateVMlibsWithCodegenLibVector(FklVM *vm,
+void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
         FklVMvalueLibs *libs,
-        const FklCodegenLibVector *clibs,
+        const FklCgLibVector *clibs,
         const FklVMvalueProtos *pts);
 
-FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
+FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
@@ -615,7 +604,7 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCodegenCtx *cg_ctx,
         uint32_t prototypeId);
 int fklIsCustomActionProd(const FklGrammerProduction *p);
 
-FklGrammerProduction *fklCreateSimpleActionProd(FklCodegenCtx *cg_ctx,
+FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
@@ -630,14 +619,14 @@ FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
         FklVMvalue *ast);
 int fklIsReplaceActionProd(const FklGrammerProduction *p);
 
-FklGrammerProduction *fklCreateBuiltinActionProd(FklCodegenCtx *ctx,
+FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms,
         FklVMvalue *id);
 
-FklGrammerProduction *fklCreateExtraStartProduction(FklCodegenCtx *ctx,
+FklGrammerProduction *fklCreateExtraStartProduction(FklCgCtx *ctx,
         FklVMvalue *group,
         FklVMvalue *sid);
 

@@ -17,7 +17,7 @@ typedef FklVMvalue *(*FklBuiltinInlineFunc)(FklVM *exe,
         uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 
-void fklInitGlobCodegenEnv(FklVMvalueCodegenEnv *, FklVM *gc);
+void fklInitGlobCgEnv(FklVMvalueCgEnv *, FklVM *gc);
 void fklInitGlobalVMclosureForGC(FklVMgc *);
 
 #define FKL_VM_STDIN_IDX (0)

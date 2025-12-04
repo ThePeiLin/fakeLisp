@@ -745,7 +745,7 @@ void fklLoadVMlibs(FILE *fp,
         memset(lib, 0, sizeof(*lib));
         uint8_t type_byte = 0;
         fread(&type_byte, sizeof(type_byte), 1, fp);
-        switch ((FklCodegenLibType)type_byte) {
+        switch ((FklCgLibType)type_byte) {
         case FKL_CODEGEN_LIB_SCRIPT: {
             fread(&lib->epc, sizeof(lib->epc), 1, fp);
             uint32_t proto_id = 0;
@@ -833,13 +833,13 @@ static inline void write_production_rule_action_pass_1(
         const FklGrammerProduction *prod,
         FklValueTable *vt) {
     if (fklIsCustomActionProd(prod)) {
-        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = prod->ctx;
         fklWriteByteCodelnt(FKL_VM_CO(ctx->bcl),
                 vt,
                 FKL_WRITE_CODE_PASS_FIRST,
                 NULL);
     } else if (fklIsSimpleActionProd(prod)) {
-        FklVMvalueSimpleActionCtx *ctx = prod->ctx;
+        FklVMvalueSimpleActCtx *ctx = prod->ctx;
         fklTraverseSerializableValue(vt, ctx->vec);
     } else {
         // is replace or builtin prod
@@ -856,7 +856,7 @@ static inline void write_production_rule_action_pass_2(
     if (fklIsCustomActionProd(prod)) {
         type = FKL_CODEGEN_PROD_CUSTOM;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = prod->ctx;
         fwrite(&ctx->prototype_id, sizeof(ctx->prototype_id), 1, fp);
         fklWriteByteCodelnt(FKL_VM_CO(ctx->bcl),
                 vt,
@@ -865,7 +865,7 @@ static inline void write_production_rule_action_pass_2(
     } else if (fklIsSimpleActionProd(prod)) {
         type = FKL_CODEGEN_PROD_SIMPLE;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueSimpleActionCtx *ctx = prod->ctx;
+        FklVMvalueSimpleActCtx *ctx = prod->ctx;
         write_value_id(vt, 0, ctx->vec, fp);
     } else {
         type = fklIsReplaceActionProd(prod) ? FKL_CODEGEN_PROD_REPLACE
@@ -1106,7 +1106,7 @@ static inline void load_nonterm(FILE *fp,
 
 static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
         uint64_t prod_len,
-        FklCodegenCtx *ctx,
+        FklCgCtx *ctx,
         const FklGrammerNonterm *nt,
         const FklGrammerSym *syms,
         const FklLoadValueArgs *const values) {
@@ -1114,7 +1114,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
     fread(&type, sizeof(type), 1, fp);
     FKL_ASSERT(type != 255);
     FklGrammerProduction *prod = NULL;
-    switch ((FklCodegenProdActionType)type) {
+    switch ((FklCgProdActionType)type) {
     default:
         FKL_UNREACHABLE();
         break;
@@ -1136,7 +1136,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 prod_len,
                 syms,
                 0);
-        FklVMvalueCustomActionCtx *actx = prod->ctx;
+        FklVMvalueCustomActCtx *actx = prod->ctx;
         fread(&actx->prototype_id, sizeof(actx->prototype_id), 1, fp);
         actx->bcl = fklCreateVMvalueCodeObj1(&ctx->gc->gcvm);
         fklLoadByteCodelnt(fp, values, FKL_VM_CO(actx->bcl));
@@ -1168,7 +1168,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
 }
 
 static inline void load_grammer_in_binary(FILE *fp,
-        FklCodegenCtx *ctx,
+        FklCgCtx *ctx,
         const FklLoadValueArgs *const values,
         FklGrammer *g) {
     FklVMgc *gc = ctx->gc;
@@ -1327,7 +1327,7 @@ static inline void load_grammer_in_binary(FILE *fp,
 
 static inline void load_named_prods(FILE *fp,
         FklGraProdGroupHashMap *ht,
-        FklCodegenCtx *ctx,
+        FklCgCtx *ctx,
         const FklLoadValueArgs *const values) {
     FklVMgc *gc = ctx->gc;
     uint8_t has_named_prod = 0;
@@ -1377,7 +1377,7 @@ static inline void load_export_sid_idx_table(FILE *fp,
     uint32_t num = t->count;
     t->count = 0;
     for (uint32_t i = 0; i < num; i++) {
-        FklCodegenExportIdx idxs = { 0 };
+        FklCgExportIdx idxs = { 0 };
         FklVMvalue *sid = load_value_id(fp, values);
         fread(&idxs.idx, sizeof(idxs.idx), 1, fp);
         fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
@@ -1385,13 +1385,13 @@ static inline void load_export_sid_idx_table(FILE *fp,
     }
 }
 
-static inline FklCodegenMacro *load_compiler_macros(FklVM *exe,
+static inline FklCgMacro *load_compiler_macros(FklVM *exe,
         FILE *fp,
         const FklLoadValueArgs *const values) {
     uint64_t count = 0;
     fread(&count, sizeof(count), 1, fp);
-    FklCodegenMacro *r = NULL;
-    FklCodegenMacro **pr = &r;
+    FklCgMacro *r = NULL;
+    FklCgMacro **pr = &r;
     for (uint64_t i = 0; i < count; i++) {
         FklVMvalue *pattern = load_value_id(fp, values);
         uint32_t prototype_id = 0;
@@ -1399,9 +1399,9 @@ static inline FklCodegenMacro *load_compiler_macros(FklVM *exe,
         FklVMvalue *bcl = fklCreateVMvalueCodeObj1(exe);
         fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
 
-        FklCodegenMacro *cur = fklCreateCodegenMacro(pattern, //
-                bcl,                                          //
-                NULL,                                         //
+        FklCgMacro *cur = fklCreateCgMacro(pattern, //
+                bcl,                                //
+                NULL,                               //
                 prototype_id);
 
         *pr = cur;
@@ -1427,7 +1427,7 @@ static inline FklReplacementHashMap *load_replacements(FILE *fp,
 static inline void load_script_lib_from_pre_compile(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCodegenLib *lib,
+        FklCgLib *lib,
         FklLoadPreCompileArgs *const args) {
     memset(lib, 0, sizeof(*lib));
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
@@ -1471,7 +1471,7 @@ static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
 static inline int load_dll_lib_from_pre_compile(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCodegenLib *lib,
+        FklCgLib *lib,
         FklLoadPreCompileArgs *const args) {
     memset(lib, 0, sizeof(*lib));
     lib->type = FKL_CODEGEN_LIB_DLL;
@@ -1494,7 +1494,7 @@ static inline int load_dll_lib_from_pre_compile(FILE *fp,
 static inline int load_lib_from_pre_compile(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCodegenLib *lib,
+        FklCgLib *lib,
         FklLoadPreCompileArgs *const args) {
     uint8_t type = 0;
     fread(&type, sizeof(type), 1, fp);
@@ -1517,16 +1517,16 @@ static inline int load_lib_from_pre_compile(FILE *fp,
 static inline int load_lib_vector(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCodegenLibVector *libraries,
+        FklCgLibVector *libraries,
         FklLoadPreCompileArgs *const args) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklCodegenLibVectorInit(libraries, num);
+    fklCgLibVectorInit(libraries, num);
     for (size_t i = 0; i < num; i++) {
-        FklCodegenLib lib = { 0 };
+        FklCgLib lib = { 0 };
         if (load_lib_from_pre_compile(fp, main_dir, values, &lib, args))
             return 1;
-        fklCodegenLibVectorPushBack(libraries, &lib);
+        fklCgLibVectorPushBack(libraries, &lib);
     }
     return 0;
 }
@@ -1534,12 +1534,12 @@ static inline int load_lib_vector(FILE *fp,
 static inline int load_lib_vector_and_main(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCodegenLibVector *libraries,
+        FklCgLibVector *libraries,
         FklLoadPreCompileArgs *const args) {
     load_lib_vector(fp, main_dir, values, libraries, args);
-    FklCodegenLib main_lib = { 0 };
+    FklCgLib main_lib = { 0 };
     load_script_lib_from_pre_compile(fp, main_dir, values, &main_lib, args);
-    fklCodegenLibVectorPushBack(libraries, &main_lib);
+    fklCgLibVectorPushBack(libraries, &main_lib);
     return 0;
 }
 
@@ -1601,8 +1601,7 @@ static inline void increase_bcl_lib_prototype_id(FklByteCodelnt *bcl,
             increase_bcl_lib_prototype_id_func);
 }
 
-static inline void increase_compiler_macros_lib_prototype_id(
-        FklCodegenMacro *head,
+static inline void increase_compiler_macros_lib_prototype_id(FklCgMacro *head,
         uint32_t macro_lib_count,
         uint32_t macro_pts_count) {
     for (; head; head = head->next) {
@@ -1615,11 +1614,11 @@ static inline void increase_compiler_macros_lib_prototype_id(
 
 static inline void increase_prototype_and_lib_id(uint32_t pts_count,
         uint32_t lib_count,
-        FklCodegenLibVector *libraries) {
+        FklCgLibVector *libraries) {
     uint32_t top = libraries->size;
-    FklCodegenLib *base = libraries->base;
+    FklCgLib *base = libraries->base;
     for (uint32_t i = 0; i < top; i++) {
-        FklCodegenLib *lib = &base[i];
+        FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
             lib->prototypeId += pts_count;
             increase_bcl_lib_prototype_id(FKL_VM_CO(lib->bcl),
@@ -1643,7 +1642,7 @@ static inline void increase_reader_macro_lib_prototype_id(
                 for (const FklGrammerProduction *prod = cur->v; prod;
                         prod = prod->next) {
                     if (fklIsCustomActionProd(prod)) {
-                        FklVMvalueCustomActionCtx *ctx = prod->ctx;
+                        FklVMvalueCustomActCtx *ctx = prod->ctx;
                         ctx->prototype_id += count;
                         increase_bcl_lib_prototype_id(FKL_VM_CO(ctx->bcl),
                                 lib_count,
@@ -1657,11 +1656,11 @@ static inline void increase_reader_macro_lib_prototype_id(
 
 static inline void increase_macro_prototype_and_lib_id(uint32_t pts_count,
         uint32_t lib_count,
-        FklCodegenLibVector *libraries) {
+        FklCgLibVector *libraries) {
     uint32_t top = libraries->size;
-    FklCodegenLib *base = libraries->base;
+    FklCgLib *base = libraries->base;
     for (uint32_t i = 0; i < top; i++) {
-        FklCodegenLib *lib = &base[i];
+        FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
             increase_compiler_macros_lib_prototype_id(lib->head,
                     lib_count,
@@ -1688,10 +1687,10 @@ static inline void merge_prototypes(FklVMvalueProtos *a,
     memset(&in->pa[1], 0, in->count * sizeof(FklFuncPrototype));
 }
 
-static inline void merge_libraries(FklCodegenLibVector *out,
-        const FklCodegenLibVector *in) {
+static inline void merge_libraries(FklCgLibVector *out,
+        const FklCgLibVector *in) {
     for (uint32_t i = 0; i < in->size; i++)
-        fklCodegenLibVectorPushBack(out, &in->base[i]);
+        fklCgLibVectorPushBack(out, &in->base[i]);
 }
 
 static inline void write_export_sid_idx_table_pass_2(
@@ -1716,9 +1715,9 @@ static inline void write_export_sid_idx_table_pass_1(
     }
 }
 
-static inline void write_compiler_macros_pass_1(const FklCodegenMacro *head,
+static inline void write_compiler_macros_pass_1(const FklCgMacro *head,
         FklValueTable *vt) {
-    for (const FklCodegenMacro *c = head; c; c = c->next) {
+    for (const FklCgMacro *c = head; c; c = c->next) {
         fklTraverseSerializableValue(vt, c->pattern);
         fklWriteByteCodelnt(FKL_VM_CO(c->bcl),
                 vt,
@@ -1727,14 +1726,14 @@ static inline void write_compiler_macros_pass_1(const FklCodegenMacro *head,
     }
 }
 
-static inline void write_compiler_macros_pass_2(const FklCodegenMacro *head,
+static inline void write_compiler_macros_pass_2(const FklCgMacro *head,
         FklValueTable *vt,
         FILE *fp) {
     uint64_t count = 0;
-    for (const FklCodegenMacro *c = head; c; c = c->next)
+    for (const FklCgMacro *c = head; c; c = c->next)
         count++;
     fwrite(&count, sizeof(count), 1, fp);
-    for (const FklCodegenMacro *c = head; c; c = c->next) {
+    for (const FklCgMacro *c = head; c; c = c->next) {
         write_value_id(vt, 0, c->pattern, fp);
         fwrite(&c->prototype_id, sizeof(c->prototype_id), 1, fp);
         fklWriteByteCodelnt(FKL_VM_CO(c->bcl),
@@ -1787,7 +1786,7 @@ static inline void write_codegen_script_lib_path(const char *rp,
     fklZfree(slices);
 }
 
-static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
+static inline void write_codegen_dll_lib_path(const FklCgLib *lib,
         const char *main_dir,
         FILE *outfp) {
     char *relpath = fklRelpath(main_dir, lib->rp);
@@ -1807,7 +1806,7 @@ static inline void write_codegen_dll_lib_path(const FklCodegenLib *lib,
     fklZfree(slices);
 }
 
-static inline void write_codegen_script_lib_pass_1(const FklCodegenLib *lib,
+static inline void write_codegen_script_lib_pass_1(const FklCgLib *lib,
         FklValueTable *vt) {
     fklWriteByteCodelnt(FKL_VM_CO(lib->bcl),
             vt,
@@ -1819,12 +1818,12 @@ static inline void write_codegen_script_lib_pass_1(const FklCodegenLib *lib,
     write_named_prods_pass_1(&lib->named_prod_groups, vt);
 }
 
-static inline void write_codegen_dll_lib_pass_1(const FklCodegenLib *lib,
+static inline void write_codegen_dll_lib_pass_1(const FklCgLib *lib,
         FklValueTable *vt) {
     write_export_sid_idx_table_pass_1(&lib->exports, vt);
 }
 
-static inline void write_codegen_dll_lib_pass_2(const FklCodegenLib *lib,
+static inline void write_codegen_dll_lib_pass_2(const FklCgLib *lib,
         const char *main_dir,
         const char *target_dir,
         const FklValueTable *vt,
@@ -1833,7 +1832,7 @@ static inline void write_codegen_dll_lib_pass_2(const FklCodegenLib *lib,
     write_export_sid_idx_table_pass_2(&lib->exports, vt, outfp);
 }
 
-static inline void write_codegen_lib_pass_1(const FklCodegenLib *lib,
+static inline void write_codegen_lib_pass_1(const FklCgLib *lib,
         FklValueTable *vt) {
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
@@ -1848,7 +1847,7 @@ static inline void write_codegen_lib_pass_1(const FklCodegenLib *lib,
     }
 }
 
-static inline void write_codegen_script_lib_pass_2(const FklCodegenLib *lib,
+static inline void write_codegen_script_lib_pass_2(const FklCgLib *lib,
         const char *main_dir,
         FklValueTable *vt,
         FILE *outfp) {
@@ -1865,7 +1864,7 @@ static inline void write_codegen_script_lib_pass_2(const FklCodegenLib *lib,
     write_named_prods_pass_2(&lib->named_prod_groups, vt, outfp);
 }
 
-static inline void write_codegen_lib_pass_2(const FklCodegenLib *lib,
+static inline void write_codegen_lib_pass_2(const FklCgLib *lib,
         const char *main_dir,
         const char *target_dir,
         FklValueTable *vt,
@@ -1890,11 +1889,11 @@ static inline void write_lib_vector_passes(FILE *outfp,
         const char *main_dir,
         const char *target_dir,
         FklWriteCodePass pass,
-        const FklCodegenLibVector *const libraries) {
+        const FklCgLibVector *const libraries) {
     switch (pass) {
     case FKL_WRITE_CODE_PASS_FIRST: {
         for (size_t i = 0; i < libraries->size; i++) {
-            const FklCodegenLib *lib = &libraries->base[i];
+            const FklCgLib *lib = &libraries->base[i];
             write_codegen_lib_pass_1(lib, value_table);
         }
     } break;
@@ -1902,7 +1901,7 @@ static inline void write_lib_vector_passes(FILE *outfp,
         uint64_t num = libraries->size;
         fwrite(&num, sizeof(uint64_t), 1, outfp);
         for (size_t i = 0; i < num; i++) {
-            const FklCodegenLib *lib = &libraries->base[i];
+            const FklCgLib *lib = &libraries->base[i];
             write_codegen_lib_pass_2(lib,
                     main_dir,
                     target_dir,
@@ -1917,7 +1916,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         FklValueTable *value_table,
         const char *main_dir,
         FklWriteCodePass pass,
-        const FklVMvalueCodegenInfo *codegen,
+        const FklVMvalueCgInfo *codegen,
         const FklByteCodelnt *bcl) {
     switch (pass) {
     case FKL_WRITE_CODE_PASS_FIRST:
@@ -1958,7 +1957,7 @@ static inline void write_pre_compile_passes(FILE *fp,
         const char *target_dir,
         FklWriteCodePass pass,
         const FklWritePreCompileArgs *const args) {
-    const FklCodegenCtx *const ctx = args->ctx;
+    const FklCgCtx *const ctx = args->ctx;
     const char *main_dir = ctx->main_file_real_path_dir;
 
     fklWriteFuncPrototypes(ctx->pts, value_table, pass, fp);
@@ -2015,7 +2014,7 @@ int fklLoadPreCompile(FILE *fp,
         FklLoadPreCompileArgs *const args) {
     int err = 0;
 
-    FklCodegenCtx *ctx = args->ctx;
+    FklCgCtx *ctx = args->ctx;
     FklVMgc *gc = ctx->gc;
     char *main_dir = fklGetDir(rp);
     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
@@ -2028,7 +2027,7 @@ int fklLoadPreCompile(FILE *fp,
 
     fklLoadFuncPrototypes(fp, &load_values, pts);
 
-    FklCodegenLibVector libraries = { 0 };
+    FklCgLibVector libraries = { 0 };
 
     if (load_lib_vector_and_main(fp, main_dir, &load_values, &libraries, args))
         goto error;
@@ -2037,15 +2036,15 @@ int fklLoadPreCompile(FILE *fp,
 
     fklLoadFuncPrototypes(fp, &load_values, macro_pts);
 
-    FklCodegenLibVector macro_libraries = { 0 };
+    FklCgLibVector macro_libraries = { 0 };
 
     if (load_lib_vector(fp, main_dir, &load_values, &macro_libraries, args)) {
-        while (!fklCodegenLibVectorIsEmpty(&macro_libraries))
-            fklUninitCodegenLib(fklCodegenLibVectorPopBack(&macro_libraries));
-        fklCodegenLibVectorUninit(&macro_libraries);
+        while (!fklCgLibVectorIsEmpty(&macro_libraries))
+            fklUninitCgLib(fklCgLibVectorPopBack(&macro_libraries));
+        fklCgLibVectorUninit(&macro_libraries);
     error:
-        while (!fklCodegenLibVectorIsEmpty(&libraries))
-            fklUninitCodegenLib(fklCodegenLibVectorPopBack(&libraries));
+        while (!fklCgLibVectorIsEmpty(&libraries))
+            fklUninitCgLib(fklCgLibVectorPopBack(&libraries));
         err = 1;
         goto exit;
     }
@@ -2078,12 +2077,12 @@ int fklLoadPreCompile(FILE *fp,
 
     macro_libraries.size = 0;
 
-    fklCodegenLibVectorUninit(&macro_libraries);
+    fklCgLibVectorUninit(&macro_libraries);
 exit:
     load_values.count = 0;
     fklZfree(load_values.values);
 
     fklZfree(main_dir);
-    fklCodegenLibVectorUninit(&libraries);
+    fklCgLibVectorUninit(&libraries);
     return err;
 }

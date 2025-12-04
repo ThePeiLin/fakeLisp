@@ -6,13 +6,13 @@
 #include <fakeLisp/vm.h>
 #include <stdint.h>
 
-static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCodegenEnv *env) {
+static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
     uint32_t r = ++env->sc;
-    FklCodegenEnvScope *scopes = (FklCodegenEnvScope *)fklZrealloc(env->scopes,
-            r * sizeof(FklCodegenEnvScope));
+    FklCgEnvScope *scopes = (FklCgEnvScope *)fklZrealloc(env->scopes,
+            r * sizeof(FklCgEnvScope));
     FKL_ASSERT(scopes);
     env->scopes = scopes;
-    FklCodegenEnvScope *newScope = &scopes[r - 1];
+    FklCgEnvScope *newScope = &scopes[r - 1];
     newScope->p = p;
     fklSymDefHashMapInit(&newScope->defs);
     newScope->start = 0;
@@ -46,14 +46,14 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
     fklMergeGrammer(&group->g, &other->g, args);
 }
 
-static inline void uninit_codegen_macro(FklCodegenMacro *macro) {
+static inline void uninit_codegen_macro(FklCgMacro *macro) {
     macro->pattern = NULL;
     macro->bcl = NULL;
 }
 
-static inline void create_and_insert_to_pool(FklVMvalueCodegenInfo *info,
+static inline void create_and_insert_to_pool(FklVMvalueCgInfo *info,
         uint32_t p,
-        FklVMvalueCodegenEnv *env,
+        FklVMvalueCgEnv *env,
         FklVMvalue *sid,
         uint32_t line) {
     FklVMvalue *fid = info->fid;
@@ -85,16 +85,16 @@ put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
         fklVMvalueLntPut(ln, v, line);
 }
 
-static inline FklVMvalue *add_symbol_cstr(FklCodegenCtx *c, const char *s) {
+static inline FklVMvalue *add_symbol_cstr(FklCgCtx *c, const char *s) {
     return fklVMaddSymbolCstr(&c->gc->gcvm, s);
 }
 
 static inline FklVMvalue *
-add_symbol_char_buf(FklCodegenCtx *c, const char *s, size_t l) {
+add_symbol_char_buf(FklCgCtx *c, const char *s, size_t l) {
     return fklVMaddSymbolCharBuf(&c->gc->gcvm, s, l);
 }
 
-static inline FklVMvalue *add_symbol(FklCodegenCtx *c, const FklString *s) {
+static inline FklVMvalue *add_symbol(FklCgCtx *c, const FklString *s) {
     return fklVMaddSymbol(&c->gc->gcvm, s);
 }
 
@@ -164,23 +164,12 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
         (*cur) = fklCreateVMvaluePairWithCar(vm, a[i].v);
         put_line_number(ln, *cur, a[i].line);
         cur = &FKL_VM_CDR(*cur);
-        // (*cur) = fklCreateNastNode(FKL_NAST_PAIR, a[i]->curline);
-        // (*cur)->pair = fklCreateNastPair();
-        // (*cur)->pair->car = a[i];
-        // cur = &(*cur)->pair->cdr;
     }
-    // (*cur) = fklCreateNastNode(FKL_NAST_NIL, line);
     return r;
 }
 
-static inline uint64_t get_curline(const FklVMvalueCodegenInfo *info,
+static inline uint64_t get_curline(const FklVMvalueCgInfo *info,
         const FklVMvalue *v) {
-    // for (const FklVMvalueCodegenInfo *cur = info; cur; cur = cur->prev) {
-    //     uint64_t *r = fklVMvalueCodegenLntGet(cur->lnt, v);
-    //     if (r != NULL)
-    //         return *r;
-    // }
-
     uint64_t *r = fklVMvalueLntGet(info->ctx->lnt, v);
     if (r != NULL)
         return *r;

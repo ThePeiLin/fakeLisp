@@ -96,15 +96,14 @@ typedef struct {
 void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args);
 int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args);
 
-struct FklCodegenCtx;
-struct FklVMvalueCodegenInfo;
+struct FklCgCtx;
 struct FklVMvalueProtos;
-struct FklCodegenLibVector;
+struct FklCgLibVector;
 struct FklGraProdGroupHashMap;
 
 typedef struct {
-    const struct FklCodegenCtx *const ctx;
-    const struct FklVMvalueCodegenInfo *const main_info;
+    const struct FklCgCtx *const ctx;
+    const struct FklVMvalueCgInfo *const main_info;
     const FklByteCodelnt *const main_bcl;
 } FklWritePreCompileArgs;
 
@@ -114,9 +113,9 @@ void fklWritePreCompile(FILE *fp,
 
 typedef struct {
     // in
-    struct FklCodegenCtx *const ctx;
-    struct FklCodegenLibVector *const libraries;
-    struct FklCodegenLibVector *const macro_libraries;
+    struct FklCgCtx *const ctx;
+    struct FklCgLibVector *const libraries;
+    struct FklCgLibVector *const macro_libraries;
     struct FklVMvalueProtos *const pts;
     struct FklVMvalueProtos *const macro_pts;
 

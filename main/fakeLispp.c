@@ -252,21 +252,21 @@ int main(int argc, char **argv) {
                     if (stats->count > 0)
                         do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
                     CB_LINE("");
-                    if (cur->head)
+                    if (cur->macros)
                         print_compiler_macros(gc,
-                                cur->head,
+                                cur->macros,
                                 ctx.macro_pts,
                                 build,
                                 opcode_count);
-                    if (cur->named_prod_groups.buckets)
+                    if (cur->named_prod_groups)
                         print_reader_macros(gc,
-                                &cur->named_prod_groups,
+                                cur->named_prod_groups,
                                 ctx.macro_pts,
                                 build,
                                 opcode_count);
                     if (cur->replacements->buckets)
                         print_replacements(gc, cur->replacements, build);
-                    if (!cur->head && !cur->named_prod_groups.buckets)
+                    if (!cur->macros && !cur->named_prod_groups)
                         CB_LINE("");
                     break;
                 case FKL_CODEGEN_LIB_DLL:
@@ -299,21 +299,21 @@ int main(int argc, char **argv) {
                             do_gather_statistics(FKL_VM_CO(cur->bcl),
                                     opcode_count);
                         CB_LINE("");
-                        if (cur->head)
+                        if (cur->macros)
                             print_compiler_macros(gc,
-                                    cur->head,
+                                    cur->macros,
                                     ctx.macro_pts,
                                     build,
                                     opcode_count);
-                        if (cur->named_prod_groups.buckets)
+                        if (cur->named_prod_groups)
                             print_reader_macros(gc,
-                                    &cur->named_prod_groups,
+                                    cur->named_prod_groups,
                                     ctx.macro_pts,
                                     build,
                                     opcode_count);
                         if (cur->replacements->buckets)
                             print_replacements(gc, cur->replacements, build);
-                        if (!cur->head && !cur->named_prod_groups.buckets)
+                        if (!cur->macros && !cur->named_prod_groups)
                             CB_LINE("");
                         break;
                     case FKL_CODEGEN_LIB_DLL:

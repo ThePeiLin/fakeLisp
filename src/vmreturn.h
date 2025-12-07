@@ -39,7 +39,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 "[%s: %d] %s: the return value count should be 1, but is %u\n",
                 __FILE__,
                 __LINE__,
-                __FUNCTION__,
+                __func__,
                 value_count);
         fklPrintBacktrace(VM, &builder);
         abort();
@@ -70,7 +70,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 "[%s: %d] %s: unreachable!\n",
                 __FILE__,
                 __LINE__,
-                __FUNCTION__);
+                __func__);
         fklPrintBacktrace(VM, &builder);
         abort();
     } break;

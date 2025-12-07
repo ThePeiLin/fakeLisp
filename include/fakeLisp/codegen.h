@@ -140,7 +140,6 @@ typedef enum {
 #define FKL_GRAMMER_GROUP_INITED (0x1)
 #define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
 typedef struct {
-    FklStringTable delimiters;
     FklGrammer g;
     int flags;
 } FklGrammerProdGroupItem;
@@ -152,7 +151,6 @@ typedef struct {
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
-        fklUninitStringTable(&(V)->delimiters);                                \
         fklUninitGrammer(&(V)->g);                                             \
     }
 #include "cont/hash.h"
@@ -164,9 +162,9 @@ typedef struct {
             FklVMvalue *bcl;
             uint64_t epc;
             uint32_t prototypeId;
-            FklCgMacro *head;
+            FklCgMacro *macros;
             FklReplacementHashMap *replacements;
-            FklGraProdGroupHashMap named_prod_groups;
+            FklGraProdGroupHashMap *named_prod_groups;
         };
         uv_lib_t dll;
     };
@@ -226,11 +224,11 @@ typedef enum {
     FKL_CODEGEN_PATTERN_IMPORT_EXCEPT,
     FKL_CODEGEN_PATTERN_IMPORT_COMMON,
     FKL_CODEGEN_PATTERN_IMPORT,
-    FKL_CODEGEN_PATTERN_DEFMACRO,
     FKL_CODEGEN_PATTERN_IMPORT_NONE,
     FKL_CODEGEN_PATTERN_EXPORT_SINGLE,
     FKL_CODEGEN_PATTERN_EXPORT_NONE,
     FKL_CODEGEN_PATTERN_EXPORT,
+    FKL_CODEGEN_PATTERN_DEFMACRO,
     FKL_CODEGEN_PATTERN_DEF_READER_MACROS,
     FKL_CODEGEN_PATTERN_COND_COMPILE,
     FKL_CODEGEN_PATTERN_NUM,
@@ -323,18 +321,17 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalue *fid;
     struct {
         FklGrammer *self_g;
-        FklGrammer self_unnamed_g;
-        FklGraProdGroupHashMap self_named_prod_groups;
+        FklGraProdGroupHashMap self_prod_groups;
     };
     FklGrammer **g;
-    FklGrammer *unnamed_g;
-    FklGraProdGroupHashMap *named_prod_groups;
+    FklGraProdGroupHashMap *prod_groups;
     FklVMvalueCgEnv *global_env;
     uint64_t epc;
     FklCgExportSidIdxHashMap exports;
-    FklCgMacro *export_macro;
+
+    FklCgMacro *export_macros;
     FklReplacementHashMap *export_replacement;
-    FklValueHashSet *export_named_prod_groups;
+    FklGraProdGroupHashMap *export_prod_groups;
 
     FklCgLibVector *libraries;
     FklVMvalueProtos *pts;

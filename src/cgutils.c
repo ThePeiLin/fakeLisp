@@ -674,10 +674,6 @@ void fklInitCgDllLib(FklCgCtx *ctx,
     lib->rp = rp;
     lib->type = FKL_CODEGEN_LIB_DLL;
     lib->dll = dll;
-    lib->head = NULL;
-    lib->replacements = NULL;
-    lib->exports.buckets = NULL;
-    lib->named_prod_groups.buckets = NULL;
 
     uint32_t num = 0;
     FklVMvalue **exports = init(ctx->gc, &num);
@@ -703,41 +699,42 @@ void fklInitCgScriptLib(FklCgLib *lib,
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->bcl = bcl;
     lib->epc = epc;
-    lib->named_prod_groups.buckets = NULL;
-    lib->exports.buckets = NULL;
     if (info) {
         lib->rp = info->realpath;
-        lib->head = info->export_macro;
+        lib->macros = info->export_macros;
         lib->replacements = info->export_replacement;
+        lib->named_prod_groups = info->export_prod_groups;
 
         info->realpath = NULL;
-        info->export_macro = NULL;
+        info->export_macros = NULL;
         info->export_replacement = NULL;
+        info->export_prod_groups = NULL;
 
-        if (info->export_named_prod_groups
-                && info->export_named_prod_groups->count) {
-            fklGraProdGroupHashMapInit(&lib->named_prod_groups);
-            for (FklValueHashSetNode *sid_list =
-                            info->export_named_prod_groups->first;
-                    sid_list;
-                    sid_list = sid_list->next) {
-                FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, sid_list->k);
-                FklGrammerProdGroupItem *group =
-                        fklGraProdGroupHashMapGet2(info->named_prod_groups, id);
-                FKL_ASSERT(group);
-                FklGrammerProdGroupItem *target_group =
-                        add_production_group(&lib->named_prod_groups,
-                                info->ctx->gc,
-                                id);
-                merge_group(target_group, group, NULL);
-
-                for (const FklStrHashSetNode *cur = group->delimiters.first;
-                        cur;
-                        cur = cur->next) {
-                    fklAddString(&target_group->delimiters, cur->k);
-                }
-            }
-        }
+        // if (info->export_named_prod_groups
+        //         && info->export_named_prod_groups->count) {
+        //     fklGraProdGroupHashMapInit(&lib->named_prod_groups);
+        //     for (FklValueHashSetNode *sid_list =
+        //                     info->export_named_prod_groups->first;
+        //             sid_list;
+        //             sid_list = sid_list->next) {
+        //         FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, sid_list->k);
+        //         FklGrammerProdGroupItem *group =
+        //                 fklGraProdGroupHashMapGet2(info->named_prod_groups,
+        //                 id);
+        //         FKL_ASSERT(group);
+        //         FklGrammerProdGroupItem *target_group =
+        //                 add_production_group(&lib->named_prod_groups,
+        //                         info->ctx->gc,
+        //                         id);
+        //         merge_group(target_group, group, NULL);
+        //
+        //         for (const FklStrHashSetNode *cur = group->delimiters.first;
+        //                 cur;
+        //                 cur = cur->next) {
+        //             fklAddString(&target_group->delimiters, cur->k);
+        //         }
+        //     }
+        // }
 
         if (env) {
             FklCgExportSidIdxHashMap *exports_index = &lib->exports;
@@ -756,7 +753,7 @@ void fklInitCgScriptLib(FklCgLib *lib,
             lib->prototypeId = 0;
     } else {
         lib->rp = NULL;
-        lib->head = NULL;
+        lib->macros = NULL;
         lib->replacements = NULL;
     }
 }
@@ -790,16 +787,17 @@ static void fklDestroyCgMacroList(FklCgMacro *cur) {
 }
 
 void fklClearCgLibMacros(FklCgLib *lib) {
-    if (lib->head) {
-        fklDestroyCgMacroList(lib->head);
-        lib->head = NULL;
+    if (lib->macros) {
+        fklDestroyCgMacroList(lib->macros);
+        lib->macros = NULL;
     }
     if (lib->replacements) {
         fklReplacementHashMapDestroy(lib->replacements);
         lib->replacements = NULL;
     }
-    if (lib->named_prod_groups.buckets) {
-        fklGraProdGroupHashMapUninit(&lib->named_prod_groups);
+    if (lib->named_prod_groups) {
+        fklGraProdGroupHashMapDestroy(lib->named_prod_groups);
+        lib->named_prod_groups = NULL;
     }
 }
 
@@ -1163,6 +1161,7 @@ static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(cur->pattern, gc);
         fklVMgcToGray(cur->bcl, gc);
     }
+
     for (const FklReplacementHashMapNode *cur = ms->replacements->first; cur;
             cur = cur->next) {
         fklVMgcToGray(cur->k, gc);
@@ -1336,15 +1335,36 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
     fklVMgcToGray(e->fid, gc);
 
-    if (e->named_prod_groups == &e->self_named_prod_groups) {
-        for (FklGraProdGroupHashMapNode *cur = e->named_prod_groups->first; cur;
+    if (e->export_replacement) {
+        for (const FklReplacementHashMapNode *cur =
+                        e->export_replacement->first;
+                cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            fklVMgcToGray(cur->v, gc);
+        }
+    }
+
+    for (const FklCgMacro *cur = e->export_macros; cur; cur = cur->next) {
+        fklVMgcToGray(cur->pattern, gc);
+        fklVMgcToGray(cur->bcl, gc);
+    }
+
+    if (e->export_prod_groups) {
+        for (FklGraProdGroupHashMapNode *cur = e->export_prod_groups->first;
+                cur;
                 cur = cur->next) {
             fklVMgcToGray(cur->k, gc);
             fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
         }
     }
-    if (e->unnamed_g == &e->self_unnamed_g) {
-        fklVMgcMarkGrammer(gc, e->unnamed_g, NULL);
+
+    if (e->prod_groups == &e->self_prod_groups) {
+        for (FklGraProdGroupHashMapNode *cur = e->prod_groups->first; cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
+        }
     }
 }
 
@@ -1358,20 +1378,21 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
         fklZfree(i->realpath);
 
     fklCgExportSidIdxHashMapUninit(&i->exports);
-    for (FklCgMacro *cur = i->export_macro; cur;) {
+    for (FklCgMacro *cur = i->export_macros; cur;) {
         FklCgMacro *t = cur;
         cur = cur->next;
         fklDestroyCgMacro(t);
     }
-    if (i->export_named_prod_groups)
-        fklValueHashSetDestroy(i->export_named_prod_groups);
+    if (i->export_prod_groups)
+        fklGraProdGroupHashMapDestroy(i->export_prod_groups);
+
     if (i->export_replacement)
         fklReplacementHashMapDestroy(i->export_replacement);
+
     if (i->g == &i->self_g && *i->g) {
         FklGrammer *g = *i->g;
         fklUninitGrammer(g);
-        fklUninitGrammer(i->unnamed_g);
-        fklGraProdGroupHashMapUninit(i->named_prod_groups);
+        fklGraProdGroupHashMapUninit(i->prod_groups);
         fklZfree(g);
     }
 
@@ -1452,9 +1473,11 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     r->is_lib = is_lib;
     r->is_macro = is_macro;
 
-    r->export_macro = NULL;
+    r->export_macros = NULL;
     r->export_replacement = is_lib ? fklReplacementHashMapCreate() : NULL;
-    r->export_named_prod_groups = is_lib ? fklValueHashSetCreate() : NULL;
+    r->export_prod_groups = is_lib ? //
+                                    fklGraProdGroupHashMapCreate()
+                                   : NULL;
     r->exports.buckets = NULL;
 
     r->work_cb = work_cb;
@@ -1469,12 +1492,10 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
     if (args->inherit_grammer && prev) {
         r->g = &prev->self_g;
-        r->named_prod_groups = &prev->self_named_prod_groups;
-        r->unnamed_g = &prev->self_unnamed_g;
+        r->prod_groups = &prev->self_prod_groups;
     } else {
         r->g = &r->self_g;
-        r->named_prod_groups = &r->self_named_prod_groups;
-        r->unnamed_g = &r->self_unnamed_g;
+        r->prod_groups = &r->self_prod_groups;
     }
 
     if (prev && !is_macro) {

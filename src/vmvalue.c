@@ -214,7 +214,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
                     "[%s: %d] %s: unknown value type!\n",
                     __FILE__,
                     __LINE__,
-                    __FUNCTION__);
+                    __func__);
             abort();
             break;
         }
@@ -330,7 +330,7 @@ nested_equal:
                             "[%s: %d] %s: unknown value type!\n",
                             __FILE__,
                             __LINE__,
-                            __FUNCTION__);
+                            __func__);
                     abort();
                     break;
                 }

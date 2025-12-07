@@ -31,7 +31,6 @@ static inline FklGrammerProdGroupItem *add_production_group(
             fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
     if ((group->flags & FKL_GRAMMER_GROUP_INITED) == 0) {
         fklInitEmptyGrammer(&group->g, &gc->gcvm);
-        fklInitStringTable(&group->delimiters);
         group->flags |= FKL_GRAMMER_GROUP_INITED;
     }
     return group;
@@ -40,9 +39,6 @@ static inline FklGrammerProdGroupItem *add_production_group(
 static inline void merge_group(FklGrammerProdGroupItem *group,
         const FklGrammerProdGroupItem *other,
         const FklRecomputeGroupIdArgs *args) {
-    for (const FklStrHashSetNode *cur = other->delimiters.first; cur;
-            cur = cur->next)
-        fklAddString(&group->delimiters, cur->k);
     fklMergeGrammer(&group->g, &other->g, args);
 }
 

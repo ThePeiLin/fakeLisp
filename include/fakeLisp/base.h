@@ -113,7 +113,7 @@ static inline void fklPrintStrLiteralExt(const char *str,
         FklCodeBuilder *build);
 
 static inline void fklPrintString2(const FklString *str, FklCodeBuilder *b) {
-    fklCodeBuilderFmt(b, str->str);
+    fklCodeBuilderPuts(b, str->str);
 }
 
 static inline void fklPrintStrLiteralExt(const char *str,

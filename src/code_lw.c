@@ -1,8 +1,10 @@
+#include <fakeLisp/base.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code_lw.h>
 #include <fakeLisp/codegen.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/string_table.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
@@ -11,7 +13,6 @@
 #include <string.h>
 
 #include "codegen.h"
-#include "fakeLisp/base.h"
 
 enum ValueCreateOpcode {
     NOP = 0,
@@ -916,6 +917,7 @@ static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
         FklValueTable *vt,
         FILE *fp) {
     FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
+    fklWriteStringTable(&g->delimiters, fp);
     uint64_t left_count = g->productions.count;
     fwrite(&left_count, sizeof(left_count), 1, fp);
     for (const FklProdHashMapNode *cur = g->productions.first; cur;
@@ -1031,48 +1033,12 @@ static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
     }
 }
 
-static inline void write_export_named_prods_pass_1(
-        const FklValueHashSet *export_named_prod_groups,
-        const FklGraProdGroupHashMap *named_prod_groups,
-        FklValueTable *vt) {
-    for (FklValueHashSetNode *list = export_named_prod_groups->first; list;
-            list = list->next) {
-        FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
-        FklGrammerProdGroupItem *group =
-                fklGraProdGroupHashMapGet2(named_prod_groups, id);
-        FKL_ASSERT(group);
-        write_grammer_in_binary_pass_1(&group->g, vt);
-    }
-}
-
-static inline void write_export_named_prods_pass_2(
-        const FklValueHashSet *export_named_prod_groups,
-        const FklGraProdGroupHashMap *named_prod_groups,
-        FklValueTable *vt,
-        FILE *fp) {
-    uint8_t has_named_prod = export_named_prod_groups->count > 0;
-    fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    if (!has_named_prod)
-        return;
-    fwrite(&export_named_prod_groups->count,
-            sizeof(export_named_prod_groups->count),
-            1,
-            fp);
-    for (FklValueHashSetNode *list = export_named_prod_groups->first; list;
-            list = list->next) {
-        FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
-        FklGrammerProdGroupItem *group =
-                fklGraProdGroupHashMapGet2(named_prod_groups, id);
-        FKL_ASSERT(group);
-        write_value_id(vt, 0, id, fp);
-        fklWriteStringTable(&group->delimiters, fp);
-        write_grammer_in_binary_pass_2(&group->g, vt, fp);
-    }
-}
-
 static inline void write_named_prods_pass_1(
         const FklGraProdGroupHashMap *named_prod_groups,
         FklValueTable *vt) {
+    if (named_prod_groups == NULL)
+        return;
+
     for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
             list = list->next) {
         fklTraverseSerializableValue(vt, list->k);
@@ -1084,7 +1050,8 @@ static inline void write_named_prods_pass_2(
         const FklGraProdGroupHashMap *named_prod_groups,
         FklValueTable *vt,
         FILE *fp) {
-    uint8_t has_named_prod = named_prod_groups->buckets != NULL;
+    uint8_t has_named_prod = named_prod_groups != NULL //
+                          && named_prod_groups->buckets != NULL;
     fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
     if (!has_named_prod)
         return;
@@ -1092,7 +1059,6 @@ static inline void write_named_prods_pass_2(
     for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
             list = list->next) {
         write_value_id(vt, 0, list->k, fp);
-        fklWriteStringTable(&list->v.delimiters, fp);
         write_grammer_in_binary_pass_2(&list->v.g, vt, fp);
     }
 }
@@ -1171,6 +1137,7 @@ static inline void load_grammer_in_binary(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values,
         FklGrammer *g) {
+    fklLoadStringTable(fp, &g->delimiters);
     FklVMgc *gc = ctx->gc;
     uint64_t left_count = 0;
     fread(&left_count, sizeof(left_count), 1, fp);
@@ -1325,25 +1292,25 @@ static inline void load_grammer_in_binary(FILE *fp,
     }
 }
 
-static inline void load_named_prods(FILE *fp,
-        FklGraProdGroupHashMap *ht,
+static inline FklGraProdGroupHashMap *load_named_prods(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values) {
     FklVMgc *gc = ctx->gc;
     uint8_t has_named_prod = 0;
     fread(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    if (has_named_prod) {
-        fklGraProdGroupHashMapInit(ht);
-        uint32_t num = 0;
-        fread(&num, sizeof(num), 1, fp);
-        for (; num > 0; num--) {
-            FklVMvalue *group_id = load_value_id(fp, values);
-            FklGrammerProdGroupItem *group =
-                    add_production_group(ht, gc, group_id);
-            fklLoadStringTable(fp, &group->delimiters);
-            load_grammer_in_binary(fp, ctx, values, &group->g);
-        }
+    FklGraProdGroupHashMap *ht = fklGraProdGroupHashMapCreate();
+    if (!has_named_prod)
+        return ht;
+
+    uint32_t num = 0;
+    fread(&num, sizeof(num), 1, fp);
+    for (; num > 0; num--) {
+        FklVMvalue *group_id = load_value_id(fp, values);
+        FklGrammerProdGroupItem *group = add_production_group(ht, gc, group_id);
+        load_grammer_in_binary(fp, ctx, values, &group->g);
     }
+
+    return ht;
 }
 
 static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
@@ -1438,9 +1405,9 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     lib->bcl = bcl;
     fread(&lib->epc, sizeof(lib->epc), 1, fp);
     load_export_sid_idx_table(fp, values, &lib->exports);
-    lib->head = load_compiler_macros(&args->ctx->gc->gcvm, fp, values);
+    lib->macros = load_compiler_macros(&args->ctx->gc->gcvm, fp, values);
     lib->replacements = load_replacements(fp, values);
-    load_named_prods(fp, &lib->named_prod_groups, args->ctx, values);
+    lib->named_prod_groups = load_named_prods(fp, args->ctx, values);
 }
 
 static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
@@ -1552,10 +1519,10 @@ static inline int load_lib_vector_and_main(FILE *fp,
 #define IS_EXPORT_TO_OP(OP)                                                    \
     ((OP) >= FKL_OP_EXPORT_TO && (OP) <= FKL_OP_EXPORT_TO_XX)
 
-struct IncreaseBclLibPrototypeCtx {
+typedef struct {
     uint32_t lib_count;
     uint32_t pts_count;
-};
+} IncCtx;
 
 static int increase_bcl_lib_prototype_id_predicate(FklOpcode op) {
     return IS_LOAD_LIB_OP(op) || IS_LOAD_DLL_OP(op) || IS_PUSH_PROC_OP(op)
@@ -1566,7 +1533,7 @@ static int increase_bcl_lib_prototype_id_func(void *cctx,
         FklOpcode *popcode,
         FklOpcodeMode *pmode,
         FklInstructionArg *ins_arg) {
-    struct IncreaseBclLibPrototypeCtx *ctx = cctx;
+    IncCtx *ctx = cctx;
     FklOpcode op = *popcode;
     if (IS_LOAD_DLL_OP(op)) {
         ins_arg->ux += ctx->lib_count;
@@ -1589,85 +1556,67 @@ static int increase_bcl_lib_prototype_id_func(void *cctx,
 }
 
 static inline void increase_bcl_lib_prototype_id(FklByteCodelnt *bcl,
-        uint32_t lib_count,
-        uint32_t pts_count) {
-    struct IncreaseBclLibPrototypeCtx ctx = {
-        .lib_count = lib_count,
-        .pts_count = pts_count,
-    };
+        const IncCtx *args) {
     fklRecomputeInsImm(bcl,
-            &ctx,
+            FKL_TYPE_CAST(void *, args),
             increase_bcl_lib_prototype_id_predicate,
             increase_bcl_lib_prototype_id_func);
 }
 
 static inline void increase_compiler_macros_lib_prototype_id(FklCgMacro *head,
-        uint32_t macro_lib_count,
-        uint32_t macro_pts_count) {
+        const IncCtx *args) {
     for (; head; head = head->next) {
-        head->prototype_id += macro_pts_count;
-        increase_bcl_lib_prototype_id(FKL_VM_CO(head->bcl),
-                macro_lib_count,
-                macro_pts_count);
+        head->prototype_id += args->pts_count;
+        increase_bcl_lib_prototype_id(FKL_VM_CO(head->bcl), args);
     }
 }
 
-static inline void increase_prototype_and_lib_id(uint32_t pts_count,
-        uint32_t lib_count,
-        FklCgLibVector *libraries) {
+static inline void increase_prototype_and_lib_id(FklCgLibVector *libraries,
+        const IncCtx *args) {
     uint32_t top = libraries->size;
     FklCgLib *base = libraries->base;
     for (uint32_t i = 0; i < top; i++) {
         FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
-            lib->prototypeId += pts_count;
-            increase_bcl_lib_prototype_id(FKL_VM_CO(lib->bcl),
-                    pts_count,
-                    lib_count);
+            lib->prototypeId += args->pts_count;
+            increase_bcl_lib_prototype_id(FKL_VM_CO(lib->bcl), args);
         }
     }
 }
 
 static inline void increase_reader_macro_lib_prototype_id(
         FklGraProdGroupHashMap *named_prod_groups,
-        uint32_t lib_count,
-        uint32_t count) {
-    if (named_prod_groups->buckets) {
-        for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-                list = list->next) {
+        const IncCtx *args) {
+    if (named_prod_groups == NULL || named_prod_groups->buckets == NULL)
+        return;
+    for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
+            list = list->next) {
 
-            for (const FklProdHashMapNode *cur = list->v.g.productions.first;
-                    cur;
-                    cur = cur->next) {
-                for (const FklGrammerProduction *prod = cur->v; prod;
-                        prod = prod->next) {
-                    if (fklIsCustomActionProd(prod)) {
-                        FklVMvalueCustomActCtx *ctx = prod->ctx;
-                        ctx->prototype_id += count;
-                        increase_bcl_lib_prototype_id(FKL_VM_CO(ctx->bcl),
-                                lib_count,
-                                count);
-                    }
+        for (const FklProdHashMapNode *cur = list->v.g.productions.first; cur;
+                cur = cur->next) {
+            for (const FklGrammerProduction *prod = cur->v; prod;
+                    prod = prod->next) {
+                if (fklIsCustomActionProd(prod)) {
+                    FklVMvalueCustomActCtx *ctx = prod->ctx;
+                    ctx->prototype_id += args->pts_count;
+                    increase_bcl_lib_prototype_id(FKL_VM_CO(ctx->bcl), args);
                 }
             }
         }
     }
 }
 
-static inline void increase_macro_prototype_and_lib_id(uint32_t pts_count,
-        uint32_t lib_count,
-        FklCgLibVector *libraries) {
+static inline void increase_macro_prototype_and_lib_id(
+        FklCgLibVector *libraries,
+        const IncCtx *args) {
     uint32_t top = libraries->size;
     FklCgLib *base = libraries->base;
     for (uint32_t i = 0; i < top; i++) {
         FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
-            increase_compiler_macros_lib_prototype_id(lib->head,
-                    lib_count,
-                    pts_count);
-            increase_reader_macro_lib_prototype_id(&lib->named_prod_groups,
-                    lib_count,
-                    pts_count);
+            increase_compiler_macros_lib_prototype_id(lib->macros, args);
+            increase_reader_macro_lib_prototype_id(lib->named_prod_groups,
+                    args);
         }
     }
 }
@@ -1813,9 +1762,9 @@ static inline void write_codegen_script_lib_pass_1(const FklCgLib *lib,
             FKL_WRITE_CODE_PASS_FIRST,
             NULL);
     write_export_sid_idx_table_pass_1(&lib->exports, vt);
-    write_compiler_macros_pass_1(lib->head, vt);
+    write_compiler_macros_pass_1(lib->macros, vt);
     write_replacements_pass_1(lib->replacements, vt);
-    write_named_prods_pass_1(&lib->named_prod_groups, vt);
+    write_named_prods_pass_1(lib->named_prod_groups, vt);
 }
 
 static inline void write_codegen_dll_lib_pass_1(const FklCgLib *lib,
@@ -1859,9 +1808,9 @@ static inline void write_codegen_script_lib_pass_2(const FklCgLib *lib,
             outfp);
     fwrite(&lib->epc, sizeof(lib->epc), 1, outfp);
     write_export_sid_idx_table_pass_2(&lib->exports, vt, outfp);
-    write_compiler_macros_pass_2(lib->head, vt, outfp);
+    write_compiler_macros_pass_2(lib->macros, vt, outfp);
     write_replacements_pass_2(lib->replacements, vt, outfp);
-    write_named_prods_pass_2(&lib->named_prod_groups, vt, outfp);
+    write_named_prods_pass_2(lib->named_prod_groups, vt, outfp);
 }
 
 static inline void write_codegen_lib_pass_2(const FklCgLib *lib,
@@ -1922,11 +1871,12 @@ static inline void write_lib_main_file_passes(FILE *outfp,
     case FKL_WRITE_CODE_PASS_FIRST:
         fklWriteByteCodelnt(bcl, value_table, FKL_WRITE_CODE_PASS_FIRST, NULL);
         write_export_sid_idx_table_pass_1(&codegen->exports, value_table);
-        write_compiler_macros_pass_1(codegen->export_macro, value_table);
+        write_compiler_macros_pass_1(codegen->export_macros, value_table);
         write_replacements_pass_1(codegen->export_replacement, value_table);
-        write_export_named_prods_pass_1(codegen->export_named_prod_groups,
-                codegen->named_prod_groups,
-                value_table);
+        write_named_prods_pass_1(codegen->export_prod_groups, value_table);
+        // write_export_named_prods_pass_1(codegen->export_named_prod_groups,
+        //         codegen->named_prod_groups,
+        //         value_table);
         break;
     case FKL_WRITE_CODE_PASS_SECOND:
         write_codegen_script_lib_path(codegen->realpath, main_dir, outfp);
@@ -1940,14 +1890,19 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         write_export_sid_idx_table_pass_2(&codegen->exports,
                 value_table,
                 outfp);
-        write_compiler_macros_pass_2(codegen->export_macro, value_table, outfp);
+        write_compiler_macros_pass_2(codegen->export_macros,
+                value_table,
+                outfp);
         write_replacements_pass_2(codegen->export_replacement,
                 value_table,
                 outfp);
-        write_export_named_prods_pass_2(codegen->export_named_prod_groups,
-                codegen->named_prod_groups,
+        write_named_prods_pass_2(codegen->export_prod_groups,
                 value_table,
                 outfp);
+        // write_export_named_prods_pass_2(codegen->export_named_prod_groups,
+        //         codegen->named_prod_groups,
+        //         value_table,
+        //         outfp);
         break;
     }
 }
@@ -2049,27 +2004,35 @@ int fklLoadPreCompile(FILE *fp,
         goto exit;
     }
 
-    increase_prototype_and_lib_id(args->pts->p.count,
-            args->libraries->size,
-            &libraries);
+    increase_prototype_and_lib_id(&libraries,
+            &(IncCtx){
+                .lib_count = args->libraries->size,
+                .pts_count = args->pts->p.count,
+            });
 
     merge_prototypes(args->pts, pts);
 
     merge_libraries(args->libraries, &libraries);
 
-    increase_macro_prototype_and_lib_id(args->macro_pts->p.count,
-            args->macro_libraries->size,
-            &libraries);
+    increase_macro_prototype_and_lib_id(&libraries,
+            &(IncCtx){
+                .pts_count = args->macro_pts->p.count,
+                .lib_count = args->macro_libraries->size,
+            });
 
     libraries.size = 0;
 
-    increase_prototype_and_lib_id(args->macro_pts->p.count,
-            args->macro_libraries->size,
-            &macro_libraries);
+    increase_prototype_and_lib_id(&macro_libraries,
+            &(IncCtx){
+                .pts_count = args->macro_pts->p.count,
+                .lib_count = args->macro_libraries->size,
+            });
 
-    increase_macro_prototype_and_lib_id(args->macro_pts->p.count,
-            args->macro_libraries->size,
-            &macro_libraries);
+    increase_macro_prototype_and_lib_id(&macro_libraries,
+            &(IncCtx){
+                .pts_count = args->macro_pts->p.count,
+                .lib_count = args->macro_libraries->size,
+            });
 
     merge_prototypes(args->macro_pts, macro_pts);
 

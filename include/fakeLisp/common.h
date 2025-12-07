@@ -46,6 +46,7 @@ typedef intptr_t ssize_t;
 #define FKL_DEPRECATED __attribute__((deprecated))
 #define FKL_ALWAYS_INLINE inline __attribute__((always_inline))
 #define FKL_UNREACHABLE_() __builtin_unreachable()
+#define FKL_NODISCARD __attribute__((warn_unused_result))
 
 #elif defined(_MSC_VER)
 
@@ -53,6 +54,7 @@ typedef intptr_t ssize_t;
 #define FKL_DEPRECATED __declspec(deprecated)
 #define FKL_ALWAYS_INLINE __forceinline
 #define FKL_UNREACHABLE_() __assume(0)
+#define FKL_NODISCARD
 
 #else
 
@@ -60,6 +62,7 @@ typedef intptr_t ssize_t;
 #define FKL_UNREACHABLE_()
 #define FKL_DEPRECATED
 #define FKL_ALWAYS_INLINE
+#define FKL_NODISCARD
 
 #endif
 
@@ -104,7 +107,7 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
                 "[%s: %d] %s is incomplete!\n",                                \
                 __REL_FILE__,                                                  \
                 __LINE__,                                                      \
-                __FUNCTION__);                                                 \
+                __func__);                                                     \
         abort();                                                               \
     } while (0)
 

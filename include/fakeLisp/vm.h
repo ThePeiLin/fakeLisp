@@ -129,7 +129,7 @@ typedef struct {
                 "[%s: %d] calling %s is not allowed!\n",                       \
                 __FILE__,                                                      \
                 __LINE__,                                                      \
-                __FUNCTION__);                                                 \
+                __func__);                                                     \
         abort();                                                               \
     }
 #define FKL_HASH_KEY_EQUAL(A, B)                                               \
@@ -137,7 +137,7 @@ typedef struct {
             "[%s: %d] calling %s is not allowed!\n",                           \
             __FILE__,                                                          \
             __LINE__,                                                          \
-            __FUNCTION__),                                                     \
+            __func__),                                                         \
             abort(), 1
 #include "cont/hash.h"
 
@@ -580,7 +580,7 @@ typedef enum {
     X(FKL_ERR_UNSERIALIZABLE, "value-error")                                   \
     X(FKL_ERR_UNSUPPORTED_OP, "operation-error")                               \
     X(FKL_ERR_IMPORT_MISSING, "import-error")                                  \
-    X(FKL_ERR_EXPORT_OUTER_REF_PROD_GROUP, "export-error")                     \
+    X(FKL_ERR_EXPORT_ERROR, "export-error")                                    \
     X(FKL_ERR_IMPORT_READER_MACRO_ERROR, "import-error")                       \
     X(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, "grammer-error")                 \
     X(FKL_ERR_REGEX_COMPILE_FAILED, "grammer-error")                           \
@@ -1684,7 +1684,7 @@ HASH_P(EQUAL);
     static void NAME(const FklVMvalue *ud,                                     \
             FklCodeBuilder *build,                                             \
             FklVM *exe) {                                                      \
-        fklCodeBuilderFmt(build, "#<" DATA_TYPE_NAME " %p>", ud);              \
+        fklCodeBuilderFmt(build, "#<%s %p>", DATA_TYPE_NAME, ud);              \
     }
 
 // inlines

@@ -502,6 +502,8 @@ typedef struct FklStateActionMatchArgs {
 int fklCheckAndInitGrammerSymbols(FklGrammer *g,
         FklGrammerNonterm *unresolved_nonterm);
 
+int fklCheckUndefinedNonterm(FklGrammer *g, FklGrammerNonterm *nt);
+
 int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod);
 int fklAddProdToProdTable(FklGrammer *g, FklGrammerProduction *prod);
 
@@ -625,7 +627,7 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len);
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
         FklVMvalue *id);
 
-int fklIsNonterminalExist(FklProdHashMap *prods,
+int fklIsNonterminalExist(const FklProdHashMap *prods,
         FklVMvalue *group,
         FklVMvalue *id);
 
@@ -688,6 +690,15 @@ FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g, FklVMgc *gc);
 void fklInitBuiltinGrammerSymTable(FklGraSidBuiltinHashMap *s, FklVM *st);
 
 const char *fklBuiltinTerminalInitErrorToCstr(FklBuiltinTerminalInitError err);
+
+void fklMergeGrammerIgnore(FklGrammer *to,
+        const FklGrammerIgnore *ig,
+        const FklGrammer *from);
+
+void fklMergeGrammerProd(FklGrammer *to,
+        const FklGrammerProduction *prod,
+        const FklGrammer *from,
+        const FklRecomputeGroupIdArgs *args);
 
 int fklMergeGrammer(FklGrammer *g,
         const FklGrammer *other,

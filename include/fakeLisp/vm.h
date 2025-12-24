@@ -6,7 +6,7 @@
 #include "common.h"
 #include "grammer.h"
 #include "parser.h"
-#include "vm_decl.h"
+#include "vm_fwd.h"
 
 #include <setjmp.h>
 #include <stdalign.h>

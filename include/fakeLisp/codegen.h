@@ -100,10 +100,33 @@ typedef struct FklCgMacro {
     }
 #include "cont/hash.h"
 
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklCgMacro *
+#define FKL_HASH_ELM_NAME Macro
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
+#define FKL_HASH_VAL_INIT(V, X)                                                \
+    {                                                                          \
+        *(V) = *(X);                                                           \
+    }
+#define FKL_HASH_VAL_UNINIT(V)                                                 \
+    {                                                                          \
+        FklCgMacro *head = *(V);                                               \
+        *(V) = NULL;                                                           \
+        while (head) {                                                         \
+            head->pattern = NULL;                                              \
+            head->bcl = NULL;                                                  \
+            head->prototype_id = 0;                                            \
+            FklCgMacro *next = head->next;                                     \
+            fklZfree(head);                                                    \
+            head = next;                                                       \
+        }                                                                      \
+    }
+#include "cont/hash.h"
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
     struct FklVMvalueCgMacroScope *prev;
     FklReplacementHashMap *replacements;
-    FklCgMacro *head;
+    FklMacroHashMap *macros;
 });
 
 typedef enum {
@@ -162,7 +185,7 @@ typedef struct {
             FklVMvalue *bcl;
             uint64_t epc;
             uint32_t prototypeId;
-            FklCgMacro *macros;
+            FklMacroHashMap *macros;
             FklReplacementHashMap *replacements;
             FklGraProdGroupHashMap *named_prod_groups;
         };
@@ -329,7 +352,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     uint64_t epc;
     FklCgExportSidIdxHashMap exports;
 
-    FklCgMacro *export_macros;
+    FklMacroHashMap *export_macros;
     FklReplacementHashMap *export_replacement;
     FklGraProdGroupHashMap *export_prod_groups;
 

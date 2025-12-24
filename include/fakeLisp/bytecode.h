@@ -4,7 +4,7 @@
 #include "common.h"
 #include "opcode.h"
 #include "symbol.h"
-#include "vm_decl.h"
+#include "vm_fwd.h"
 
 #include <stdint.h>
 #include <stdio.h>

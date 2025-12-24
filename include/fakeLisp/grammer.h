@@ -6,7 +6,7 @@
 #include "common.h"
 #include "regex.h"
 #include "string_table.h"
-#include "vm_decl.h"
+#include "vm_fwd.h"
 
 #include <stddef.h>
 #include <stdio.h>

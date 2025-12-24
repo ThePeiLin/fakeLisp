@@ -1,5 +1,5 @@
-#ifndef FKL_VM_DECL_H
-#define FKL_VM_DECL_H
+#ifndef FKL_VM_FWD_H
+#define FKL_VM_FWD_H
 
 #ifdef __cplusplus
 extern "C" {

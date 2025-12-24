@@ -2,7 +2,7 @@
 #define FKL_BUILTIN_H
 
 #include "codegen.h"
-#include "vm_decl.h"
+#include "vm_fwd.h"
 
 #ifdef __cplusplus
 extern "C" {

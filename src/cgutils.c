@@ -33,11 +33,6 @@ static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
     return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
-static void fklDestroyCgMacro(FklCgMacro *macro) {
-    uninit_codegen_macro(macro);
-    fklZfree(macro);
-}
-
 FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklVMvalue *id,
         uint32_t scope,
         const FklCgEnvScope *scopes) {
@@ -758,37 +753,36 @@ void fklInitCgScriptLib(FklCgLib *lib,
     }
 }
 
-static FklCgMacro *find_macro(FklVMvalue *exp,
-        FklVMvalueCgMacroScope *macros,
+static const FklCgMacro *find_macro(FklVMvalue *exp,
+        FklVMvalueCgMacroScope *macro_scope,
         FklPmatchHashMap *pht) {
-    if (!exp)
+    if (exp == NULL || !FKL_IS_PAIR(exp))
         return NULL;
-    FklCgMacro *r = NULL;
-    for (; !r && macros; macros = macros->prev) {
-        for (FklCgMacro *cur = macros->head; cur; cur = cur->next) {
+
+    for (; macro_scope; macro_scope = macro_scope->prev) {
+        FklMacroHashMap *macros = macro_scope->macros;
+
+        FklVMvalue *header = FKL_VM_CAR(exp);
+        FklCgMacro *const *const pm = fklMacroHashMapGet2(macros, header);
+
+        if (pm == NULL)
+            continue;
+
+        for (const FklCgMacro *cur = *pm; cur; cur = cur->next) {
             if (pht->buckets == NULL)
                 fklPmatchHashMapInit(pht);
-            if (fklPatternMatch(cur->pattern, exp, pht)) {
-                r = cur;
-                break;
-            }
+            if (fklPatternMatch(cur->pattern, exp, pht))
+                return cur;
+
             fklPmatchHashMapClear(pht);
         }
     }
-    return r;
-}
-
-static void fklDestroyCgMacroList(FklCgMacro *cur) {
-    while (cur) {
-        FklCgMacro *t = cur;
-        cur = cur->next;
-        fklDestroyCgMacro(t);
-    }
+    return NULL;
 }
 
 void fklClearCgLibMacros(FklCgLib *lib) {
     if (lib->macros) {
-        fklDestroyCgMacroList(lib->macros);
+        fklMacroHashMapDestroy(lib->macros);
         lib->macros = NULL;
     }
     if (lib->replacements) {
@@ -868,7 +862,7 @@ FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
         return r;
     FklPmatchHashMap ht = { .buckets = NULL };
     uint64_t curline = CURLINE(exp->container);
-    for (FklCgMacro *macro = find_macro(r, macros, &ht);
+    for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
         for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
@@ -883,9 +877,12 @@ FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
             r->value = rr;
         }
 
-        fklPmatchHashMapAdd2(&ht,
+        fklPmatchHashMapAdd2(&ht, //
                 codegen->ctx->builtin_sym_orig,
-                (FklPmatchRes){ .value = r, .container = exp->container });
+                (FklPmatchRes){
+                    .value = r,
+                    .container = exp->container,
+                });
         FklVMvalue *retval = NULL;
 
         FklCgCtx *ctx = codegen->ctx;
@@ -934,7 +931,7 @@ FklVMvalue *fklTryExpandCgMacro(const FklPmatchRes *exp,
         return r;
     FklPmatchHashMap ht = { .buckets = NULL };
     uint64_t curline = CURLINE(exp->container);
-    for (FklCgMacro *macro = find_macro(r, macros, &ht);
+    for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
 
@@ -1157,9 +1154,13 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(macro_scope_print, "macro-scope")
 static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ms->prev), gc);
-    for (const FklCgMacro *cur = ms->head; cur; cur = cur->next) {
-        fklVMgcToGray(cur->pattern, gc);
-        fklVMgcToGray(cur->bcl, gc);
+    for (const FklMacroHashMapNode *cur = ms->macros->first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+        for (const FklCgMacro *m = cur->v; m; m = m->next) {
+            fklVMgcToGray(m->pattern, gc);
+            fklVMgcToGray(m->bcl, gc);
+        }
     }
 
     for (const FklReplacementHashMapNode *cur = ms->replacements->first; cur;
@@ -1171,13 +1172,11 @@ static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static int macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
-    for (FklCgMacro *cur = ms->head; cur;) {
-        FklCgMacro *t = cur;
-        cur = cur->next;
-        fklDestroyCgMacro(t);
+    if (ms->macros) {
+        fklMacroHashMapDestroy(ms->macros);
+        ms->macros = NULL;
     }
 
-    ms->head = NULL;
     if (ms->replacements) {
         fklReplacementHashMapDestroy(ms->replacements);
         ms->replacements = NULL;
@@ -1202,7 +1201,7 @@ FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(FklCgCtx *c,
                     &MacroScopeUserDataMetaTable,
                     NULL);
 
-    r->head = NULL;
+    r->macros = fklMacroHashMapCreate();
     r->replacements = fklReplacementHashMapCreate();
     r->prev = prev;
     return r;
@@ -1345,9 +1344,15 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         }
     }
 
-    for (const FklCgMacro *cur = e->export_macros; cur; cur = cur->next) {
-        fklVMgcToGray(cur->pattern, gc);
-        fklVMgcToGray(cur->bcl, gc);
+    if (e->export_macros) {
+        for (const FklMacroHashMapNode *cur = e->export_macros->first; cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            for (const FklCgMacro *m = cur->v; m; m = m->next) {
+                fklVMgcToGray(m->pattern, gc);
+                fklVMgcToGray(m->bcl, gc);
+            }
+        }
     }
 
     if (e->export_prod_groups) {
@@ -1378,11 +1383,8 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
         fklZfree(i->realpath);
 
     fklCgExportSidIdxHashMapUninit(&i->exports);
-    for (FklCgMacro *cur = i->export_macros; cur;) {
-        FklCgMacro *t = cur;
-        cur = cur->next;
-        fklDestroyCgMacro(t);
-    }
+    if (i->export_macros)
+        fklMacroHashMapDestroy(i->export_macros);
     if (i->export_prod_groups)
         fklGraProdGroupHashMapDestroy(i->export_prod_groups);
 
@@ -1473,11 +1475,9 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     r->is_lib = is_lib;
     r->is_macro = is_macro;
 
-    r->export_macros = NULL;
+    r->export_macros = is_lib ? fklMacroHashMapCreate() : NULL;
     r->export_replacement = is_lib ? fklReplacementHashMapCreate() : NULL;
-    r->export_prod_groups = is_lib ? //
-                                    fklGraProdGroupHashMapCreate()
-                                   : NULL;
+    r->export_prod_groups = is_lib ? fklGraProdGroupHashMapCreate() : NULL;
     r->exports.buckets = NULL;
 
     r->work_cb = work_cb;

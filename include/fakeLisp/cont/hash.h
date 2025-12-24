@@ -429,6 +429,7 @@ static inline FKL_HASH_VAL_TYPE *METHOD(Add)(NAME *self,
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k)) {
             if (v) {
+				FKL_HASH_VAL_UNINIT(&pn->v);
                 FKL_HASH_VAL_INIT(&pn->v, v);
             }
             return &pn->v;

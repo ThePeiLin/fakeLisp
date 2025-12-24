@@ -28,7 +28,7 @@
 #endif
 
 static void print_compiler_macros(FklVMgc *gc,
-        const FklCgMacro *head,
+        const FklMacroHashMap *macros,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count);
@@ -350,26 +350,34 @@ exit:
     return exitState;
 }
 
-static void print_compiler_macros(FklVMgc *gc,
+static inline void print_compiler_macro_list(FklVMgc *gc,
         const FklCgMacro *cur,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
-    CB_LINE("\ncompiler macros:");
-    for (; cur; cur = cur->next) {
-        CB_LINE("pattern:");
-        CB_LINE_START("");
-        fklPrin1VMvalue2(cur->pattern, build, &gc->gcvm);
-        CB_LINE_END("");
+    CB_LINE("pattern:");
+    CB_LINE_START("");
+    fklPrin1VMvalue2(cur->pattern, build, &gc->gcvm);
+    CB_LINE_END("");
 
-        fklDisassembleByteCodelnt(gc,
-                FKL_VM_CO(cur->bcl),
-                cur->prototype_id,
-                macro_pts,
-                build);
-        if (stats->count > 0)
-            do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
-        CB_LINE("");
+    fklDisassembleByteCodelnt(gc,
+            FKL_VM_CO(cur->bcl),
+            cur->prototype_id,
+            macro_pts,
+            build);
+    if (stats->count > 0)
+        do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
+    CB_LINE("");
+}
+
+static void print_compiler_macros(FklVMgc *gc,
+        const FklMacroHashMap *macros,
+        const FklVMvalueProtos *macro_pts,
+        FklCodeBuilder *build,
+        uint64_t *opcode_count) {
+    CB_LINE("\ncompiler macros:");
+    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
+        print_compiler_macro_list(gc, cur->v, macro_pts, build, opcode_count);
     }
 }
 

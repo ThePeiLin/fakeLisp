@@ -2,7 +2,7 @@
 #define FKL_PARSER_H
 
 #include "grammer.h"
-#include "vm_decl.h"
+#include "vm_fwd.h"
 
 #ifdef __cplusplus
 extern "C" {

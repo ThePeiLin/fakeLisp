@@ -20,7 +20,7 @@
 (test-m2)
 (test-m2)
 
-(defmacro #&()
+(defmacro #&internal
   #[inc-test-macro-var #["#INC#"] custom
                        (begin
                          (import (macro-context-lib))

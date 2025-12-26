@@ -1695,7 +1695,7 @@ static void codegen_let81(const CgCbArgs *args) {
         { .v = first_name, .line = CURLINE(first_name) },
         { .v = orig->value, .line = CURLINE(orig->container) },
     };
-    letHead = create_nast_list(a, 3, CURLINE(orig->value), GCVM, NULL);
+    letHead = create_nast_list(a, 3, CURLINE(orig->value), GCVM, ctx->lnt);
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush2(queue,
             (FklPmatchRes){
@@ -5536,17 +5536,28 @@ static inline void export_symbol(FklVM *exe,
         uint32_t line,
         uint32_t scope,
         FklVMvalueCgInfo *lib_info) {
+    uint32_t target_idx = fklAddCgDefBySid(k, scope, env)->idx;
     append_import_ins(exe,
             INS_APPEND_BACK,
             bcl,
-            fklAddCgDefBySid(k, scope, env)->idx,
+            target_idx,
             v->idx,
             fid,
             line,
             scope);
     if (lib_info == NULL)
         return;
-    fklCgExportSidIdxHashMapPut2(&lib_info->exports, k, *v);
+    FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, //
+            k);
+    if (item == NULL) {
+        uint32_t idx = lib_info->exports.count;
+        item = fklCgExportSidIdxHashMapAdd(&lib_info->exports,
+                &k,
+                &(FklCgExportIdx){
+                    .idx = idx,
+                    .oidx = target_idx,
+                });
+    }
 }
 
 static void add_symbol_to_local_env_in_array(FklVM *exe,
@@ -7080,9 +7091,22 @@ static inline void codegen_import_helper(const CgCbArgs *args,
 
         FklVMvalue *head = FKL_VM_CAR(orig);
 
+        FklVMvalue *export_head = add_symbol_cstr(info->ctx, "export");
         for (; FKL_IS_PAIR(rest); rest = FKL_VM_CDR(rest)) {
             FklVMvalue *new_rest = fklCreateVMvaluePair(IGCVM, head, rest);
             put_line_number(info->ctx->lnt, new_rest, CURLINE(rest));
+            if (lib_info) {
+                ListElm a[2] = {
+                    { .v = export_head, .line = CURLINE(rest) },
+                    { .v = new_rest, .line = CURLINE(rest) },
+                };
+
+                new_rest = create_nast_list(a,
+                        2,
+                        CURLINE(rest),
+                        IGCVM,
+                        info->ctx->lnt);
+            }
             cgExpQueuePush2(queue,
                     (FklPmatchRes){
                         .value = new_rest,
@@ -7091,6 +7115,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
             FKL_VM_CDR(prev) = FKL_VM_NIL;
             prev = rest;
         }
+
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(_begin_exp_bc_process,
                 createDefaultStackContext(),
                 createDefaultQueueNextExpression(queue),

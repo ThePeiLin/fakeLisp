@@ -1,6 +1,6 @@
 (import (only (test-lib) custom))
 
-(defmacro #&()
+(defmacro #&internal
   #(test #["#ya-quote'" (custom,custom-quote)] builtin second))
 
 (import (only (.. lib utils m) assert))

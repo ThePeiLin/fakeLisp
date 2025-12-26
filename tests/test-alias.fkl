@@ -2,7 +2,7 @@
                (comment comment)
                (custom foobar)))
 
-(defmacro #&()
+(defmacro #&internal
   #(test #["#ya-quote'" (foobar,custom-quote)] builtin second))
 
 /*comment*/

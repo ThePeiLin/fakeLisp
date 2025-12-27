@@ -10,7 +10,8 @@
 
 int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklGrammer *g = fklCreateBuiltinGrammer(&gc->gcvm);
+    FklVM *vm = &gc->gcvm;
+    FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
@@ -23,7 +24,7 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(gc, g, stdout);
+    fklPrintGrammer(vm, g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     // fputs("item sets:\n",stdout);
@@ -32,7 +33,7 @@ int main() {
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
@@ -73,7 +74,7 @@ int main() {
     };
 
     FklParseError retval = 0;
-    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, NULL);
 
     for (const char **exp = &exps[0]; *exp; exp++) {
 
@@ -82,7 +83,7 @@ int main() {
         if (retval)
             break;
 
-        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
+        fklPrin1VMvalue(ast, stdout, vm);
         fputc('\n', stdout);
     }
     fklDestroyGrammer(g);

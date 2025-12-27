@@ -33,9 +33,10 @@ static inline int pre_compile(const char *main_file_name,
     FklCgCtx ctx;
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
 
     const char *main_dir = ctx.main_file_real_path_dir;
     fklChdir(main_dir);
@@ -48,7 +49,8 @@ static inline int pre_compile(const char *main_file_name,
                 .is_lib = 1,
             });
 
-    FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(fp,
+    FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(&ctx,
+            fp,
             codegen,
             ctx.global_env);
 
@@ -126,9 +128,10 @@ static inline int compile(const char *filename,
     FklCgCtx ctx;
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
@@ -141,7 +144,10 @@ static inline int compile(const char *filename,
 
     char *outputname = NULL;
     FklVM *anotherVM = NULL;
-    FklVMvalue *co = fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
+    FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, //
+            fp,
+            codegen,
+            ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
     if (co == NULL) {
@@ -172,7 +178,7 @@ static inline int compile(const char *filename,
             1,
             0,
             pts,
-            fklCreateVMvalueLibs(&gc->gcvm));
+            fklCreateVMvalueLibs(vm));
 
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
     co = FKL_VM_PROC(anotherVM->top_frame->c.proc)->codeObj;

@@ -25,12 +25,12 @@ static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
 
 static inline FklGrammerProdGroupItem *add_production_group(
         FklGraProdGroupHashMap *named_prod_groups,
-        FklVMgc *gc,
+        FklVM *vm,
         FklVMvalue *group_id) {
     FklGrammerProdGroupItem *group =
             fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
     if ((group->flags & FKL_GRAMMER_GROUP_INITED) == 0) {
-        fklInitEmptyGrammer(&group->g, &gc->gcvm);
+        fklInitEmptyGrammer(&group->g, vm);
         group->flags |= FKL_GRAMMER_GROUP_INITED;
     }
     return group;
@@ -82,16 +82,16 @@ put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
 }
 
 static inline FklVMvalue *add_symbol_cstr(FklCgCtx *c, const char *s) {
-    return fklVMaddSymbolCstr(&c->gc->gcvm, s);
+    return fklVMaddSymbolCstr(c->vm, s);
 }
 
 static inline FklVMvalue *
 add_symbol_char_buf(FklCgCtx *c, const char *s, size_t l) {
-    return fklVMaddSymbolCharBuf(&c->gc->gcvm, s, l);
+    return fklVMaddSymbolCharBuf(c->vm, s, l);
 }
 
 static inline FklVMvalue *add_symbol(FklCgCtx *c, const FklString *s) {
-    return fklVMaddSymbol(&c->gc->gcvm, s);
+    return fklVMaddSymbol(c->vm, s);
 }
 
 static inline int is_symbol_list(const FklVMvalue *v) {

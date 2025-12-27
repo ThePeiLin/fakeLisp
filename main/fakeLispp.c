@@ -27,19 +27,19 @@
 #include <unistd.h>
 #endif
 
-static void print_compiler_macros(FklVMgc *gc,
+static void print_compiler_macros(FklVM *vm,
         const FklMacroHashMap *macros,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count);
 
-static void print_reader_macros(FklVMgc *gc,
+static void print_reader_macros(FklVM *vm,
         const FklGraProdGroupHashMap *named_prod_groups,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count);
 
-static void print_replacements(FklVMgc *gc,
+static void print_replacements(FklVM *vm,
         const FklReplacementHashMap *replacements,
         FklCodeBuilder *build);
 
@@ -137,11 +137,12 @@ int main(int argc, char **argv) {
                 goto exit;
             }
             FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-            FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-            FklVMvalueLibs *libs = fklCreateVMvalueLibs(&gc->gcvm);
+            FklVM *vm = &gc->gcvm;
+            FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
+            FklVMvalueLibs *libs = fklCreateVMvalueLibs(vm);
 
             FklLoadCodeFileArgs args = {
-                .gc = gc,
+                .vm = vm,
                 .pts = pts,
                 .libs = libs,
 
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
             CB_LINE("");
 
             CB_LINE("main func:");
-            fklDisassembleProc(gc, args.main_func, build);
+            fklDisassembleProc(vm, args.main_func, build);
             if (stats->count > 0)
                 do_gather_statistics(
                         FKL_VM_CO(FKL_VM_PROC(args.main_func)->codeObj),
@@ -174,7 +175,7 @@ int main(int argc, char **argv) {
                 CB_LINE("lib %" PRIu64 ":", i);
                 if (FKL_IS_PROC(cur->proc)) {
                     CB_LINE("epc %" PRIu64 "", cur->epc);
-                    fklDisassembleProc(gc, cur->proc, build);
+                    fklDisassembleProc(vm, cur->proc, build);
                     if (stats->count > 0)
                         do_gather_statistics(
                                 FKL_VM_CO(FKL_VM_PROC(cur->proc)->codeObj),
@@ -188,7 +189,7 @@ int main(int argc, char **argv) {
 
             CB_LINE("\nobarray:");
 
-            fklPrintObarray(gc, gc->obarray, build);
+            fklPrintObarray(vm, gc->obarray, build);
             fklDestroyVMgc(gc);
         } else if (!strcmp(extension, FKL_PRE_COMPILE_FILE_EXTENSION)) {
             FILE *fp = fopen(filename, "rb");
@@ -199,11 +200,12 @@ int main(int argc, char **argv) {
             }
 
             FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-            FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+            FklVM *vm = &gc->gcvm;
+            FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
 
             FklCgCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
+            fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
 
             FklLoadPreCompileArgs args = {
                 .ctx = &ctx,
@@ -244,7 +246,7 @@ int main(int argc, char **argv) {
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
                     CB_LINE("epc %" PRIu64 "", cur->epc);
-                    fklDisassembleByteCodelnt(gc,
+                    fklDisassembleByteCodelnt(vm,
                             FKL_VM_CO(cur->bcl),
                             cur->prototypeId,
                             ctx.pts,
@@ -253,19 +255,19 @@ int main(int argc, char **argv) {
                         do_gather_statistics(FKL_VM_CO(cur->bcl), opcode_count);
                     CB_LINE("");
                     if (cur->macros)
-                        print_compiler_macros(gc,
+                        print_compiler_macros(vm,
                                 cur->macros,
                                 ctx.macro_pts,
                                 build,
                                 opcode_count);
                     if (cur->named_prod_groups)
-                        print_reader_macros(gc,
+                        print_reader_macros(vm,
                                 cur->named_prod_groups,
                                 ctx.macro_pts,
                                 build,
                                 opcode_count);
                     if (cur->replacements->buckets)
-                        print_replacements(gc, cur->replacements, build);
+                        print_replacements(vm, cur->replacements, build);
                     if (!cur->macros && !cur->named_prod_groups)
                         CB_LINE("");
                     break;
@@ -290,7 +292,7 @@ int main(int argc, char **argv) {
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:
                         CB_LINE("epc %" PRIu64 "", cur->epc);
-                        fklDisassembleByteCodelnt(gc,
+                        fklDisassembleByteCodelnt(vm,
                                 FKL_VM_CO(cur->bcl),
                                 cur->prototypeId,
                                 ctx.macro_pts,
@@ -300,19 +302,19 @@ int main(int argc, char **argv) {
                                     opcode_count);
                         CB_LINE("");
                         if (cur->macros)
-                            print_compiler_macros(gc,
+                            print_compiler_macros(vm,
                                     cur->macros,
                                     ctx.macro_pts,
                                     build,
                                     opcode_count);
                         if (cur->named_prod_groups)
-                            print_reader_macros(gc,
+                            print_reader_macros(vm,
                                     cur->named_prod_groups,
                                     ctx.macro_pts,
                                     build,
                                     opcode_count);
                         if (cur->replacements->buckets)
-                            print_replacements(gc, cur->replacements, build);
+                            print_replacements(vm, cur->replacements, build);
                         if (!cur->macros && !cur->named_prod_groups)
                             CB_LINE("");
                         break;
@@ -329,7 +331,7 @@ int main(int argc, char **argv) {
             }
 
             CB_LINE("\nobarray:");
-            fklPrintObarray(gc, gc->obarray, build);
+            fklPrintObarray(vm, gc->obarray, build);
 
         precompile_exit:
             fklUninitCgCtx(&ctx);
@@ -350,17 +352,17 @@ exit:
     return exitState;
 }
 
-static inline void print_compiler_macro_list(FklVMgc *gc,
+static inline void print_compiler_macro_list(FklVM *vm,
         const FklCgMacro *cur,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
     CB_LINE("pattern:");
     CB_LINE_START("");
-    fklPrin1VMvalue2(cur->pattern, build, &gc->gcvm);
+    fklPrin1VMvalue2(cur->pattern, build, vm);
     CB_LINE_END("");
 
-    fklDisassembleByteCodelnt(gc,
+    fklDisassembleByteCodelnt(vm,
             FKL_VM_CO(cur->bcl),
             cur->prototype_id,
             macro_pts,
@@ -370,25 +372,25 @@ static inline void print_compiler_macro_list(FklVMgc *gc,
     CB_LINE("");
 }
 
-static void print_compiler_macros(FklVMgc *gc,
+static void print_compiler_macros(FklVM *vm,
         const FklMacroHashMap *macros,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
         uint64_t *opcode_count) {
     CB_LINE("\ncompiler macros:");
     for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
-        print_compiler_macro_list(gc, cur->v, macro_pts, build, opcode_count);
+        print_compiler_macro_list(vm, cur->v, macro_pts, build, opcode_count);
     }
 }
 
-static void print_reader_macro_action(FklVMgc *gc,
+static void print_reader_macro_action(FklVM *vm,
         const FklGrammerProduction *prod,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build) {
     if (fklIsCustomActionProd(prod)) {
         CB_LINE_END("custom");
         FklVMvalueCustomActCtx *ctx = prod->ctx;
-        fklDisassembleByteCodelnt(gc,
+        fklDisassembleByteCodelnt(vm,
                 FKL_VM_CO(ctx->bcl),
                 ctx->prototype_id,
                 macro_pts,
@@ -397,13 +399,13 @@ static void print_reader_macro_action(FklVMgc *gc,
         if (prod->ctx == NULL) {
             CB_FMT("|first|");
         } else {
-            fklPrin1VMvalue2(prod->ctx, build, &gc->gcvm);
+            fklPrin1VMvalue2(prod->ctx, build, vm);
         }
         CB_LINE_END("");
     }
 }
 
-static void print_reader_macros(FklVMgc *gc,
+static void print_reader_macros(FklVM *vm,
         const FklGraProdGroupHashMap *ht,
         const FklVMvalueProtos *macro_pts,
         FklCodeBuilder *build,
@@ -411,7 +413,7 @@ static void print_reader_macros(FklVMgc *gc,
     CB_LINE("\nreader macros:");
     for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
         CB_LINE_START("group name: ");
-        fklPrin1VMvalue2(l->k, build, &gc->gcvm);
+        fklPrin1VMvalue2(l->k, build, vm);
         CB_LINE_END("");
 
         if (l->v.g.ignores) {
@@ -426,9 +428,9 @@ static void print_reader_macros(FklVMgc *gc,
                 for (const FklGrammerProduction *prod = cur->v; prod;
                         prod = prod->next) {
                     CB_LINE_START("");
-                    fklPrintGrammerProduction(gc, prod, &l->v.g.regexes, build);
+                    fklPrintGrammerProduction(vm, prod, &l->v.g.regexes, build);
                     CB_FMT(" => ");
-                    print_reader_macro_action(gc, prod, macro_pts, build);
+                    print_reader_macro_action(vm, prod, macro_pts, build);
                 }
                 CB_LINE("");
             }
@@ -438,7 +440,7 @@ static void print_reader_macros(FklVMgc *gc,
     }
 }
 
-static void print_replacements(FklVMgc *gc,
+static void print_replacements(FklVM *vm,
         const FklReplacementHashMap *replacements,
         FklCodeBuilder *build) {
     if (replacements->count == 0)
@@ -447,9 +449,9 @@ static void print_replacements(FklVMgc *gc,
     for (const FklReplacementHashMapNode *cur = replacements->first; cur;
             cur = cur->next) {
         CB_LINE_START("");
-        fklPrin1VMvalue2(cur->k, build, &gc->gcvm);
+        fklPrin1VMvalue2(cur->k, build, vm);
         CB_FMT(" => ");
-        fklPrin1VMvalue2(cur->v, build, &gc->gcvm);
+        fklPrin1VMvalue2(cur->v, build, vm);
         CB_LINE_END("");
     }
 }

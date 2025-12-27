@@ -51,9 +51,10 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     char *rp = fklRealpath(filename);
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
@@ -65,8 +66,10 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             });
 
     fklZfree(rp);
-    FklVMvalue *mainByteCode =
-            fklGenExpressionCodeWithFp(fp, codegen, ctx.global_env);
+    FklVMvalue *mainByteCode = fklGenExpressionCodeWithFp(&ctx, //
+            fp,
+            codegen,
+            ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
     if (mainByteCode == NULL) {
@@ -83,7 +86,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             1,
             0,
             pts,
-            fklCreateVMvalueLibs(&gc->gcvm));
+            fklCreateVMvalueLibs(vm));
 
     fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
@@ -165,11 +168,12 @@ runCode(const char *filename, int argc, const char *const *argv) {
         return FKL_EXIT_FAILURE;
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
-    FklVMvalueLibs *libs = fklCreateVMvalueLibs(&gc->gcvm);
+    FklVM *vm = &gc->gcvm;
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
+    FklVMvalueLibs *libs = fklCreateVMvalueLibs(vm);
 
     FklLoadCodeFileArgs args = {
-        .gc = gc,
+        .vm = vm,
         .pts = pts,
         .libs = libs,
 
@@ -178,7 +182,7 @@ runCode(const char *filename, int argc, const char *const *argv) {
     int r = fklLoadCodeFile(fp, &args);
     FKL_ASSERT(r == 0);
     fclose(fp);
-    FklVM *vm = fklCreateVM(args.main_func, gc, pts, libs);
+    vm = fklCreateVM(args.main_func, gc, pts, libs);
 
     fklInitVMargs(vm->gc, argc, argv);
     r = fklRunVMidleLoop(vm);
@@ -196,11 +200,12 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         return FKL_EXIT_FAILURE;
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+    FklVM *vm = &gc->gcvm;
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
 
     FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, gc);
+    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
@@ -239,7 +244,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
             1,
             0,
             pts,
-            fklCreateVMvalueLibs(&gc->gcvm));
+            fklCreateVMvalueLibs(vm));
 
     fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,

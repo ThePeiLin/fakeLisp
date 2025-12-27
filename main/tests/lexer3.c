@@ -101,7 +101,7 @@ static inline FklGrammer *create_grammer_with_cstr(FklVM *vm,
 
     fklInitParserGrammerParseArg(&args,
             g,
-            vm->gc,
+            vm,
             1,
             test_prod_action_resolver,
             NULL);
@@ -143,17 +143,18 @@ int main(int argc, const char *argv[]) {
     const char *state_0_push_name = "fklVMvaluePushState0ToStack";
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
     FklGrammer *g;
     if (!strcmp(grammer_select, "op")) {
-        g = create_grammer_with_cstr(&gc->gcvm, test_op_grammer_rules);
+        g = create_grammer_with_cstr(vm, test_op_grammer_rules);
     } else if (!strcmp(grammer_select, "json"))
-        g = create_grammer_with_cstr(&gc->gcvm, test_json_grammer_rules);
+        g = create_grammer_with_cstr(vm, test_json_grammer_rules);
     else if (!strcmp(grammer_select, "builtin"))
-        g = fklCreateBuiltinGrammer(&gc->gcvm);
+        g = fklCreateBuiltinGrammer(vm);
     else if (!strcmp(grammer_select, "ignore"))
-        g = create_grammer_with_cstr(&gc->gcvm, test_ignore_grammer_rules);
+        g = create_grammer_with_cstr(vm, test_ignore_grammer_rules);
     else if (!strcmp(grammer_select, "ignore1"))
-        g = create_grammer_with_cstr(&gc->gcvm, test_ignore_grammer_rules1);
+        g = create_grammer_with_cstr(vm, test_ignore_grammer_rules1);
     else {
         fklDestroyVMgc(gc);
         fprintf(stderr, "invalid selection\n");
@@ -166,20 +167,20 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 
-    fklPrintGrammer(gc, g, stdout);
+    fklPrintGrammer(vm, g, stdout);
     fputs("\n===\n\n", stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     printf("lr0 item set:\n");
-    fklPrintItemStateSet(gc, itemSet, g, stdout);
+    fklPrintItemStateSet(vm, itemSet, g, stdout);
     fputc('\n', stdout);
 
     fklLr0ToLalrItems(itemSet, g);
     fprintf(stdout, "lalr item set:\n");
-    fklPrintItemStateSet(gc, itemSet, g, stdout);
+    fklPrintItemStateSet(vm, itemSet, g, stdout);
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);

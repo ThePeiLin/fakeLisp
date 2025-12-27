@@ -306,7 +306,7 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
 }
 
 int fklLoadValueTable(FILE *fp, FklLoadValueArgs *args) {
-    FklVMgc *gc = args->gc;
+    FklVM *vm = args->vm;
     fread(&args->count, sizeof(args->count), 1, fp);
 
     FklVMvalue **values =
@@ -315,7 +315,7 @@ int fklLoadValueTable(FILE *fp, FklLoadValueArgs *args) {
     args->values = values;
 
     for (uint32_t i = 0; i < args->count; ++i) {
-        values[i] = load_and_make_values(fp, &gc->gcvm, i + 1, args);
+        values[i] = load_and_make_values(fp, vm, i + 1, args);
     }
 
     return 0;
@@ -793,19 +793,19 @@ void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args) {
 }
 
 int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
-    FklVMgc *gc = args->gc;
-    FklLoadValueArgs load_values = { .gc = gc };
+    FklVM *vm = args->vm;
+    FklLoadValueArgs load_values = { .vm = vm };
 
     fklLoadValueTable(fp, &load_values);
 
     fklLoadFuncPrototypes(fp, &load_values, args->pts);
-    FklVMvalue *main_code = fklCreateVMvalueCodeObj1(&gc->gcvm);
+    FklVMvalue *main_code = fklCreateVMvalueCodeObj1(vm);
     fklLoadByteCodelnt(fp, &load_values, FKL_VM_CO(main_code));
 
-    args->main_func = fklCreateVMvalueProc(&gc->gcvm, main_code, 1, args->pts);
-    fklInitMainProcRefs(&gc->gcvm, args->main_func);
+    args->main_func = fklCreateVMvalueProc(vm, main_code, 1, args->pts);
+    fklInitMainProcRefs(vm, args->main_func);
 
-    fklLoadVMlibs(fp, &gc->gcvm, args->pts, &load_values, args->libs);
+    fklLoadVMlibs(fp, vm, args->pts, &load_values, args->libs);
 
     load_values.count = 0;
     fklZfree(load_values.values);
@@ -1104,7 +1104,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 0);
         FklVMvalueCustomActCtx *actx = prod->ctx;
         fread(&actx->prototype_id, sizeof(actx->prototype_id), 1, fp);
-        actx->bcl = fklCreateVMvalueCodeObj1(&ctx->gc->gcvm);
+        actx->bcl = fklCreateVMvalueCodeObj1(ctx->vm);
         fklLoadByteCodelnt(fp, values, FKL_VM_CO(actx->bcl));
     } break;
 
@@ -1138,7 +1138,6 @@ static inline void load_grammer_in_binary(FILE *fp,
         const FklLoadValueArgs *const values,
         FklGrammer *g) {
     fklLoadStringTable(fp, &g->delimiters);
-    FklVMgc *gc = ctx->gc;
     uint64_t left_count = 0;
     fread(&left_count, sizeof(left_count), 1, fp);
     for (uint64_t i = 0; i < left_count; ++i) {
@@ -1178,7 +1177,7 @@ static inline void load_grammer_in_binary(FILE *fp,
 
                 case FKL_TERM_BUILTIN: {
                     FklString *str = fklLoadString(fp);
-                    FklVMvalue *id = fklVMaddSymbol(&gc->gcvm, str);
+                    FklVMvalue *id = fklVMaddSymbol(ctx->vm, str);
                     fklZfree(str);
                     const FklLalrBuiltinMatch *t =
                             fklGetBuiltinMatch(&g->builtins, id);
@@ -1256,7 +1255,7 @@ static inline void load_grammer_in_binary(FILE *fp,
 
             case FKL_TERM_BUILTIN: {
                 FklString *str = fklLoadString(fp);
-                FklVMvalue *id = fklVMaddSymbol(&gc->gcvm, str);
+                FklVMvalue *id = fklVMaddSymbol(ctx->vm, str);
                 fklZfree(str);
                 const FklLalrBuiltinMatch *t =
                         fklGetBuiltinMatch(&g->builtins, id);
@@ -1295,7 +1294,6 @@ static inline void load_grammer_in_binary(FILE *fp,
 static inline FklGraProdGroupHashMap *load_named_prods(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values) {
-    FklVMgc *gc = ctx->gc;
     uint8_t has_named_prod = 0;
     fread(&has_named_prod, sizeof(has_named_prod), 1, fp);
     FklGraProdGroupHashMap *ht = fklGraProdGroupHashMapCreate();
@@ -1306,7 +1304,9 @@ static inline FklGraProdGroupHashMap *load_named_prods(FILE *fp,
     fread(&num, sizeof(num), 1, fp);
     for (; num > 0; num--) {
         FklVMvalue *group_id = load_value_id(fp, values);
-        FklGrammerProdGroupItem *group = add_production_group(ht, gc, group_id);
+        FklGrammerProdGroupItem *group = add_production_group(ht, //
+                ctx->vm,
+                group_id);
         load_grammer_in_binary(fp, ctx, values, &group->g);
     }
 
@@ -1406,12 +1406,12 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
     lib->rp = load_script_lib_path(main_dir, fp);
     fread(&lib->prototypeId, sizeof(lib->prototypeId), 1, fp);
-    FklVMvalue *bcl = fklCreateVMvalueCodeObj1(&args->ctx->gc->gcvm);
+    FklVMvalue *bcl = fklCreateVMvalueCodeObj1(args->ctx->vm);
     fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
     lib->bcl = bcl;
     fread(&lib->epc, sizeof(lib->epc), 1, fp);
     load_export_sid_idx_table(fp, values, &lib->exports);
-    lib->macros = load_compiler_macros(&args->ctx->gc->gcvm, fp, values);
+    lib->macros = load_compiler_macros(args->ctx->vm, fp, values);
     lib->replacements = load_replacements(fp, values);
     lib->named_prod_groups = load_named_prods(fp, args->ctx, values);
 }
@@ -1996,15 +1996,14 @@ int fklLoadPreCompile(FILE *fp,
     int err = 0;
 
     FklCgCtx *ctx = args->ctx;
-    FklVMgc *gc = ctx->gc;
     char *main_dir = fklGetDir(rp);
     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
 
-    FklLoadValueArgs load_values = { .gc = gc };
+    FklLoadValueArgs load_values = { .vm = ctx->vm };
 
     fklLoadValueTable(fp, &load_values);
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+    FklVMvalueProtos *pts = fklCreateVMvalueProtos(ctx->vm, 0);
 
     fklLoadFuncPrototypes(fp, &load_values, pts);
 
@@ -2013,7 +2012,7 @@ int fklLoadPreCompile(FILE *fp,
     if (load_lib_vector_and_main(fp, main_dir, &load_values, &libraries, args))
         goto error;
 
-    FklVMvalueProtos *macro_pts = fklCreateVMvalueProtos(&gc->gcvm, 0);
+    FklVMvalueProtos *macro_pts = fklCreateVMvalueProtos(ctx->vm, 0);
 
     fklLoadFuncPrototypes(fp, &load_values, macro_pts);
 

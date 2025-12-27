@@ -8,13 +8,9 @@
 extern "C" {
 #endif
 
-void fklPrintObarray(FklVMgc *gc,
-        const FklVMobarray *array,
-        FklCodeBuilder *fp);
-void fklDisassembleProc(FklVMgc *gc,
-        const FklVMvalue *proc,
-        FklCodeBuilder *fp);
-void fklDisassembleByteCodelnt(FklVMgc *gc,
+void fklPrintObarray(FklVM *vm, const FklVMobarray *array, FklCodeBuilder *fp);
+void fklDisassembleProc(FklVM *vm, const FklVMvalue *proc, FklCodeBuilder *fp);
+void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         uint32_t proto_id,
         const FklVMvalueProtos *protos,

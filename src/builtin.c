@@ -2454,7 +2454,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(exe->gc, grammer, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(exe, grammer, itemSet, &err_msg)) {
         FklVMvalue *err_str =
                 fklCreateVMvalueStr2(exe, err_msg.index, err_msg.buf);
         fklUninitStrBuf(&err_msg);

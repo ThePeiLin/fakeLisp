@@ -19,7 +19,7 @@ typedef enum FklWriteCodePass {
 
 typedef struct {
     // in
-    FklVMgc *const gc;
+    FklVM *const vm;
 
     // out
     uint32_t count;
@@ -84,7 +84,7 @@ typedef struct {
 
 typedef struct {
     // in
-    FklVMgc *const gc;
+    FklVM *const vm;
     FklVMvalueProtos *const pts;
     FklVMvalueLibs *const libs;
 

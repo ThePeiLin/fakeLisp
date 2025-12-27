@@ -31,8 +31,7 @@
 
 #include "codegen.h"
 
-#define GCVM (&ctx->gc->gcvm)
-#define IGCVM (&info->ctx->gc->gcvm)
+#define GCVM (ctx->vm)
 
 static FklVMvalue *gen_push_literal_code(FklVM *exe,
         const FklPmatchRes *node,
@@ -165,7 +164,8 @@ static FklCgNextExp *createCgNextExp(const FklNextExpressionMethodTable *t,
     return r;
 }
 
-static int _default_codegen_get_next_expression(void *context,
+static int _default_codegen_get_next_expression(FklCgCtx *ctx,
+        void *context,
         FklPmatchRes *out,
         FklCgErrorState *error_state) {
     FklPmatchRes *head = cgExpQueuePop(FKL_TYPE_CAST(CgExpQueue *, context));
@@ -3378,14 +3378,15 @@ static void add_compiler_macro(FklMacroHashMap *macros,
     }
 }
 
-static inline void add_export_symbol(FklVMvalueCgInfo *info,
+static inline void add_export_symbol(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FklVMvalue *orig,
         FklVMvalue *rest,
         CgExpQueue *exportQueue) {
     FklVMvalue *prev = orig;
     FklVMvalue *head = FKL_VM_CAR(orig);
     for (; FKL_IS_PAIR(rest); rest = FKL_VM_CDR(rest)) {
-        FklVMvalue *new_rest = fklCreateVMvaluePair(IGCVM, head, rest);
+        FklVMvalue *new_rest = fklCreateVMvaluePair(GCVM, head, rest);
         put_line_number(info->ctx->lnt, new_rest, CURLINE(rest));
         cgExpQueuePush2(exportQueue,
                 (FklPmatchRes){ .value = new_rest, .container = new_rest });
@@ -3415,7 +3416,8 @@ static inline void push_single_bcl_codegen_quest(FklVMvalue *bcl,
     fklCgActVectorPushBack2(actions, quest);
 }
 
-typedef FklVMvalue *(*ReplacementFunc)(const FklPmatchRes *orig,
+typedef FklVMvalue *(*ReplacementFunc)(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info);
 
@@ -3456,7 +3458,7 @@ static inline int is_replacement_true(const FklPmatchRes *value,
         return r;
     } else if ((f = findBuiltInReplacementWithId(value->value,
                         ctx->builtin_replacement_id))) {
-        FklVMvalue *t = f(value, env, info);
+        FklVMvalue *t = f(ctx, value, env, info);
         int r = t != FKL_VM_NIL;
         return r;
     } else
@@ -3477,7 +3479,7 @@ static inline FklVMvalue *get_replacement(const FklPmatchRes *value,
         return replacement;
     else if ((f = findBuiltInReplacementWithId(value->value,
                       ctx->builtin_replacement_id)))
-        return f(value, env, info);
+        return f(ctx, value, env, info);
     else
         return NULL;
 }
@@ -5299,7 +5301,8 @@ static void _codegen_load_atomic(FklVMgc *gc, void *ctx) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, c->info), gc);
 }
 
-static inline FklVMvalue *getExpressionFromFile(FklVMvalueCgInfo *info,
+static inline FklVMvalue *getExpressionFromFile(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FILE *fp,
         int *unexpectEOF,
         size_t *output_line,
@@ -5320,7 +5323,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCgInfo *info,
                 &size,
                 info->curline,
                 &info->curline,
-                IGCVM,
+                GCVM,
                 unexpectEOF,
                 output_line,
                 &begin,
@@ -5333,7 +5336,7 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCgInfo *info,
                 &size,
                 info->curline,
                 &info->curline,
-                IGCVM,
+                GCVM,
                 unexpectEOF,
                 output_line,
                 &begin,
@@ -5350,7 +5353,8 @@ static inline FklVMvalue *getExpressionFromFile(FklVMvalueCgInfo *info,
 
 #include <fakeLisp/grammer.h>
 
-static int _codegen_load_get_next_expression(void *pcontext,
+static int _codegen_load_get_next_expression(FklCgCtx *ctx,
+        void *pcontext,
         FklPmatchRes *out,
         FklCgErrorState *error_state) {
     CgLoadCtx *context = pcontext;
@@ -5360,7 +5364,8 @@ static int _codegen_load_get_next_expression(void *pcontext,
     FILE *fp = context->fp;
     int unexpectEOF = 0;
     size_t output_line = 0;
-    FklVMvalue *begin = getExpressionFromFile(info,
+    FklVMvalue *begin = getExpressionFromFile(ctx,
+            info,
             fp,
             &unexpectEOF,
             &output_line,
@@ -5369,14 +5374,14 @@ static int _codegen_load_get_next_expression(void *pcontext,
             stateStack);
     if (unexpectEOF) {
         if (error_state->error == NULL)
-            error_state->error = make_parse_error(IGCVM, unexpectEOF);
+            error_state->error = make_parse_error(GCVM, unexpectEOF);
         error_state->line = output_line;
         return 0;
     }
     if (begin == NULL)
         return 0;
 
-    FklVMvalue *contianer = fklCreateVMvalueBox(IGCVM, begin);
+    FklVMvalue *contianer = fklCreateVMvalueBox(GCVM, begin);
     put_line_number(info->ctx->lnt, contianer, output_line);
     *out = (FklPmatchRes){ .value = begin, .container = contianer };
     return 1;
@@ -5636,7 +5641,8 @@ static inline void export_replacement_with_prefix(FklCgCtx *ctx,
     }
 }
 
-typedef FklVMvalue *(*ImportLibCb)(uint32_t libId,
+typedef FklVMvalue *(*ImportLibCb)(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -5647,7 +5653,8 @@ typedef FklVMvalue *(*ImportLibCb)(uint32_t libId,
         FklCgErrorState *error_state,
         FklVMvalueCgInfo *lib_info);
 
-typedef FklVMvalue *(*ImportDllCb)(FklVMvalue *orig,
+typedef FklVMvalue *(*ImportDllCb)(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *args,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -5704,7 +5711,8 @@ static inline int merge_all_grammer(FklVMvalueCgInfo *info) {
 
     return 0;
 }
-static inline int add_all_group_to_grammer(uint64_t line,
+static inline int add_all_group_to_grammer(FklCgCtx *ctx,
+        uint64_t line,
         FklVMvalueCgInfo *info,
         FklCgErrorState *errors) {
     if (info->g == NULL)
@@ -5724,13 +5732,13 @@ static inline int add_all_group_to_grammer(uint64_t line,
         FklVMvalue *place = NULL;
         if (nonterm.group) {
             FklVMvalue *n =
-                    fklCreateVMvaluePair(IGCVM, nonterm.group, nonterm.sid);
+                    fklCreateVMvaluePair(GCVM, nonterm.group, nonterm.sid);
             place = n;
         } else {
             place = nonterm.sid;
         }
 
-        errors->error = make_import_reader_macro_error(IGCVM,
+        errors->error = make_import_reader_macro_error(GCVM,
                 "Undefined non-terminal",
                 place);
         errors->fid = info->fid;
@@ -5742,9 +5750,9 @@ static inline int add_all_group_to_grammer(uint64_t line,
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
 
-    int r = fklGenerateLalrAnalyzeTable(info->ctx->gc, g, itemSet, &err_msg);
+    int r = fklGenerateLalrAnalyzeTable(GCVM, g, itemSet, &err_msg);
     if (r) {
-        errors->error = make_import_reader_macro_error(IGCVM, //
+        errors->error = make_import_reader_macro_error(GCVM, //
                 err_msg.buf,
                 NULL);
     }
@@ -5755,16 +5763,14 @@ static inline int add_all_group_to_grammer(uint64_t line,
     return r;
 }
 
-static inline int import_reader_macro(FklVMvalueCgInfo *info,
+static inline int import_reader_macro(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FklCgErrorState *error_state,
         const FklGrammerProdGroupItem *group,
         FklVMvalue *origin_group_id,
         FklVMvalue *new_group_id) {
-
-    FklVMgc *gc = info->ctx->gc;
-
     FklGrammerProdGroupItem *target_group =
-            add_production_group(info->prod_groups, gc, new_group_id);
+            add_production_group(info->prod_groups, GCVM, new_group_id);
 
     merge_group(target_group,
             group,
@@ -5773,11 +5779,11 @@ static inline int import_reader_macro(FklVMvalueCgInfo *info,
     return 0;
 }
 
-static inline FklGrammer *init_builtin_grammer_and_prod_group(
+static inline FklGrammer *init_builtin_grammer_and_prod_group(FklCgCtx *ctx,
         FklVMvalueCgInfo *info) {
     FklGrammer *g = *info->g;
     if (!g) {
-        *info->g = fklCreateEmptyGrammer(IGCVM);
+        *info->g = fklCreateEmptyGrammer(GCVM);
         fklGraProdGroupHashMapInit(info->prod_groups);
         g = *info->g;
         if (fklMergeGrammer(g, &info->ctx->builtin_g, NULL))
@@ -5788,15 +5794,21 @@ static inline FklGrammer *init_builtin_grammer_and_prod_group(
 }
 
 FKL_NODISCARD
-static inline int export_reader_macro(FklVMvalueCgInfo *info,
+static inline int export_reader_macro(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         const FklGrammerProdGroupItem *item,
         FklVMvalue *old_group_id,
         FklVMvalue *new_group_id,
         FklCgErrorState *errors,
         FklVMvalueCgInfo *lib_info) {
-    init_builtin_grammer_and_prod_group(info);
+    init_builtin_grammer_and_prod_group(ctx, info);
 
-    if (import_reader_macro(info, errors, item, old_group_id, new_group_id))
+    if (import_reader_macro(ctx,
+                info,
+                errors,
+                item,
+                old_group_id,
+                new_group_id))
         return -1;
 
     if (lib_info == NULL)
@@ -5804,7 +5816,7 @@ static inline int export_reader_macro(FklVMvalueCgInfo *info,
 
     FklGrammerProdGroupItem *target_group =
             add_production_group(lib_info->export_prod_groups,
-                    info->ctx->gc,
+                    GCVM,
                     new_group_id);
 
     merge_group(target_group,
@@ -5817,7 +5829,8 @@ static inline int export_reader_macro(FklVMvalueCgInfo *info,
     return 0;
 }
 
-static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -5852,7 +5865,8 @@ static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
     for (FklGraProdGroupHashMapNode *prod_group_item = named_prod_groups->first;
             prod_group_item;
             prod_group_item = prod_group_item->next) {
-        int r = export_reader_macro(info,
+        int r = export_reader_macro(ctx,
+                info,
                 &prod_group_item->v,
                 prod_group_item->k,
                 prod_group_item->k,
@@ -5865,12 +5879,12 @@ static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
     if (errors->error != NULL)
         return NULL;
 
-    if (add_all_group_to_grammer(curline, info, errors)) {
+    if (add_all_group_to_grammer(ctx, curline, info, errors)) {
         errors->line = curline;
         return NULL;
     }
 
-    FklVMvalue *load_lib = append_load_lib_ins(IGCVM,
+    FklVMvalue *load_lib = append_load_lib_ins(GCVM,
             INS_APPEND_BACK,
             NULL,
             libId,
@@ -5878,7 +5892,7 @@ static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
             curline,
             scope);
 
-    add_symbol_to_local_env_in_array(IGCVM,
+    add_symbol_to_local_env_in_array(GCVM,
             env,
             &lib->exports,
             load_lib,
@@ -5889,7 +5903,8 @@ static inline FklVMvalue *process_import_imported_lib_common(uint32_t libId,
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -5906,7 +5921,6 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
     FKL_ASSERT(replacements);
     FKL_ASSERT(named_prod_groups);
 
-    FklCgCtx *ctx = info->ctx;
     const FklString *prefix = FKL_VM_SYM(prefix_v);
 
     for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
@@ -5941,7 +5955,8 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
 
         fklStrBufClear(&buffer);
 
-        int r = export_reader_macro(info,
+        int r = export_reader_macro(ctx,
+                info,
                 &prod_group_item->v,
                 prod_group_item->k,
                 group_id_with_prefix,
@@ -5952,8 +5967,10 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
     }
     fklUninitStrBuf(&buffer);
 
-    if (!error_state->error
-            && add_all_group_to_grammer(curline, info, error_state)) {
+    if (error_state->error)
+        return NULL;
+
+    if (add_all_group_to_grammer(ctx, curline, info, error_state)) {
         error_state->line = curline;
         return NULL;
     }
@@ -5980,7 +5997,8 @@ static inline FklVMvalue *process_import_imported_lib_prefix(uint32_t libId,
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -5990,7 +6008,7 @@ static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
         FklVMvalue *only,
         FklCgErrorState *error_state,
         FklVMvalueCgInfo *lib_info) {
-    FklVMvalue *load_lib = append_load_lib_ins(IGCVM,
+    FklVMvalue *load_lib = append_load_lib_ins(GCVM,
             INS_APPEND_BACK,
             NULL,
             libId,
@@ -6035,7 +6053,8 @@ static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
 
         if (group) {
             r = 1;
-            int e = export_reader_macro(info,
+            int e = export_reader_macro(ctx,
+                    info,
                     group,
                     cur,
                     cur,
@@ -6047,7 +6066,7 @@ static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
 
         FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
         if (item) {
-            export_symbol(IGCVM,
+            export_symbol(GCVM,
                     cur,
                     item,
                     env,
@@ -6057,7 +6076,7 @@ static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
                     scope,
                     lib_info);
         } else if (!r) {
-            error_state->error = make_import_missing_error(IGCVM, cur);
+            error_state->error = make_import_missing_error(GCVM, cur);
             error_state->line = CURLINE(only);
             error_state->fid = add_symbol_cstr(info->ctx, info->filename);
             break;
@@ -6067,13 +6086,14 @@ static inline FklVMvalue *process_import_imported_lib_only(uint32_t libId,
     if (error_state->error)
         return NULL;
 
-    if (add_all_group_to_grammer(curline, info, error_state)) {
+    if (add_all_group_to_grammer(ctx, curline, info, error_state)) {
         error_state->line = curline;
     }
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_except(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_except(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -6124,7 +6144,8 @@ static inline FklVMvalue *process_import_imported_lib_except(uint32_t libId,
             prod_group_item;
             prod_group_item = prod_group_item->next) {
         if (!fklValueHashSetHas2(&excepts, prod_group_item->k)) {
-            int r = export_reader_macro(info,
+            int r = export_reader_macro(ctx,
+                    info,
                     &prod_group_item->v,
                     prod_group_item->k,
                     prod_group_item->k,
@@ -6140,13 +6161,13 @@ static inline FklVMvalue *process_import_imported_lib_except(uint32_t libId,
         goto exit;
     }
 
-    if (add_all_group_to_grammer(curline, info, error_state)) {
+    if (add_all_group_to_grammer(ctx, curline, info, error_state)) {
         error_state->line = curline;
         load_lib = NULL;
         goto exit;
     }
 
-    load_lib = append_load_lib_ins(IGCVM,
+    load_lib = append_load_lib_ins(GCVM,
             INS_APPEND_BACK,
             NULL,
             libId,
@@ -6157,7 +6178,7 @@ static inline FklVMvalue *process_import_imported_lib_except(uint32_t libId,
     for (const FklCgExportSidIdxHashMapNode *l = exports->first; l;
             l = l->next) {
         if (!fklValueHashSetHas2(&excepts, l->k)) {
-            export_symbol(IGCVM,
+            export_symbol(GCVM,
                     l->k,
                     &l->v,
                     env,
@@ -6174,7 +6195,8 @@ exit:
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
+static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
+        uint32_t libId,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
         FklVMvalueCgEnv *env,
@@ -6184,7 +6206,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
         FklVMvalue *alias,
         FklCgErrorState *error_state,
         FklVMvalueCgInfo *lib_info) {
-    FklVMvalue *load_lib = append_load_lib_ins(IGCVM,
+    FklVMvalue *load_lib = append_load_lib_ins(GCVM,
             INS_APPEND_BACK,
             NULL,
             libId,
@@ -6235,7 +6257,8 @@ static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
 
         if (group != NULL) {
             r = 1;
-            int e = export_reader_macro(info,
+            int e = export_reader_macro(ctx,
+                    info,
                     group,
                     cur_head,
                     cur_alias_sym,
@@ -6247,7 +6270,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
 
         FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur_head);
         if (item) {
-            export_symbol(IGCVM,
+            export_symbol(GCVM,
                     cur_alias_sym,
                     item,
                     env,
@@ -6257,7 +6280,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
                     scope,
                     lib_info);
         } else if (!r) {
-            error_state->error = make_import_missing_error(IGCVM, cur_head);
+            error_state->error = make_import_missing_error(GCVM, cur_head);
             error_state->line = CURLINE(alias);
             error_state->fid = add_symbol_cstr(info->ctx, info->filename);
             break;
@@ -6267,7 +6290,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(uint32_t libId,
     if (error_state->error)
         return NULL;
 
-    if (add_all_group_to_grammer(curline, info, error_state)) {
+    if (add_all_group_to_grammer(ctx, curline, info, error_state)) {
         error_state->line = curline;
     }
     return load_lib;
@@ -6292,14 +6315,15 @@ static inline int has_undefined_non_terminal(FklVMvalueCgInfo *info,
     return 0;
 }
 
-static inline void process_export_bc(FklVMvalueCgInfo *info,
+static inline void process_export_bc(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FklVMvalue *libBc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     info->epc = FKL_VM_CO(libBc)->bc.len;
 
-    append_export_to_ins(IGCVM,
+    append_export_to_ins(GCVM,
             INS_APPEND_BACK,
             libBc,
             info->libraries->size + 1,
@@ -6309,7 +6333,7 @@ static inline void process_export_bc(FklVMvalueCgInfo *info,
             scope);
     for (const FklCgExportSidIdxHashMapNode *l = info->exports.first; l;
             l = l->next) {
-        append_export_ins(IGCVM,
+        append_export_ins(GCVM,
                 INS_APPEND_BACK,
                 libBc,
                 l->v.oidx,
@@ -6347,13 +6371,13 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
 
         FklVMvalue *place = NULL;
         if (nt.group) {
-            FklVMvalue *n = fklCreateVMvaluePair(IGCVM, nt.group, nt.sid);
+            FklVMvalue *n = fklCreateVMvaluePair(GCVM, nt.group, nt.sid);
             place = n;
         } else {
             place = nt.sid;
         }
 
-        errors->error = make_export_error(IGCVM, //
+        errors->error = make_export_error(GCVM, //
                 "Undefined non-terminal",
                 place);
         errors->fid = info->fid;
@@ -6362,7 +6386,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     }
 
     fklUpdatePrototype(&info->pts->p, env);
-    fklPrintUndefinedRef(env, &info->ctx->gc->err_out);
+    fklPrintUndefinedRef(env, &info->ctx->vm->gc->err_out);
 
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
     FklVMvalue *co = sequnce_exp_bc_process(GCVM, bcl_vec, fid, line, scope);
@@ -6374,7 +6398,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     if (!env->is_debugging)
         fklPeepholeOptimize(FKL_VM_CO(co));
 
-    process_export_bc(info, co, fid, line, scope);
+    process_export_bc(ctx, info, co, fid, line, scope);
 
     FklCgLib *lib = fklCgLibVectorPushBack(info->libraries, NULL);
     fklInitCgScriptLib(lib, info, co, info->epc, env);
@@ -6383,7 +6407,8 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
 
     info->export_macros = NULL;
     info->export_replacement = NULL;
-    return d->import_cb(info->libraries->size,
+    return d->import_cb(ctx,
+            info->libraries->size,
             d->info,
             lib,
             d->env,
@@ -6556,7 +6581,7 @@ static void codegen_export(const CgCbArgs *args) {
         CgExpQueue *exportQueue = cgExpQueueCreate();
         const FklPmatchRes *rest =
                 fklPmatchHashMapGet2(ht, ctx->builtin_sym_rest);
-        add_export_symbol(lib_info, orig->value, rest->value, exportQueue);
+        add_export_symbol(ctx, lib_info, orig->value, rest->value, exportQueue);
 
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(exports_bc_process,
                 create_export_sequnce_context(orig, must_has_retval),
@@ -6634,6 +6659,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
         const char *filename,
         FklVMvalueCgInfo *lib_info) {
 
+    FklCgCtx *ctx = args->ctx;
     FklVMvalue *orig = args->orig->value;
     FklVMvalueCgInfo *info = args->info;
     FklCgErrorState *errors = args->err_state;
@@ -6652,7 +6678,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
             });
 
     if (hasLoadSameFile(next_info->realpath, info)) {
-        errors->error = make_circular_load_error(IGCVM, name);
+        errors->error = make_circular_load_error(GCVM, name);
         errors->line = CURLINE(orig);
         return;
     }
@@ -6660,7 +6686,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
     if (!libId) {
         FILE *fp = fopen(filename, "r");
         if (!fp) {
-            errors->error = make_file_failure_error(IGCVM, name);
+            errors->error = make_file_failure_error(GCVM, name);
             errors->line = CURLINE(orig);
             return;
         }
@@ -6690,7 +6716,8 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
         next_info->export_replacement = NULL;
         const FklCgLib *lib = &info->libraries->base[libId - 1];
 
-        FklVMvalue *importBc = import_args->import_cb(libId,
+        FklVMvalue *importBc = import_args->import_cb(ctx,
+                libId,
                 info,
                 lib,
                 env,
@@ -6721,6 +6748,7 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         const char *filename,
         FklVMvalueCgInfo *lib_info) {
+    FklCgCtx *ctx = args->ctx;
     FklVMvalue *orig = args->orig->value;
     FklVMvalueCgInfo *info = args->info;
     FklCgErrorState *errors = args->err_state;
@@ -6735,12 +6763,10 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     if (!libId) {
         FILE *fp = fopen(filename, "rb");
         if (fp == NULL) {
-            errors->error = make_import_failed_error(IGCVM, name);
+            errors->error = make_import_failed_error(GCVM, name);
             errors->line = CURLINE(orig);
             return -1;
         }
-
-        FklCgCtx *ctx = info->ctx;
 
         FklLoadPreCompileArgs args = {
             .ctx = ctx,
@@ -6753,11 +6779,11 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
         if (fklLoadPreCompile(fp, filename, &args)) {
             if (args.error) {
                 errors->error =
-                        make_import_failed_error2(IGCVM, args.error, name);
+                        make_import_failed_error2(GCVM, args.error, name);
                 fklZfree(args.error);
                 args.error = NULL;
             } else {
-                errors->error = make_import_failed_error(IGCVM, name);
+                errors->error = make_import_failed_error(GCVM, name);
             }
 
             errors->line = CURLINE(orig);
@@ -6768,7 +6794,8 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     }
     const FklCgLib *lib = &info->libraries->base[libId - 1];
 
-    FklVMvalue *importBc = import_args->import_cb(libId,
+    FklVMvalue *importBc = import_args->import_cb(ctx,
+            libId,
             info,
             lib,
             env,
@@ -6793,7 +6820,8 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     return 0;
 }
 
-static inline size_t load_dll(FklVMvalue *orig,
+static inline size_t load_dll(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *name,
         const char *filename,
         FklVMvalueCgInfo *info,
@@ -6808,7 +6836,7 @@ static inline size_t load_dll(FklVMvalue *orig,
     uv_lib_t dll = { 0 };
     if (uv_dlopen(realpath, &dll)) {
         const char *msg = uv_dlerror(&dll);
-        errors->error = make_file_failure_error2(IGCVM, msg, name);
+        errors->error = make_file_failure_error2(GCVM, msg, name);
         errors->line = CURLINE(orig);
         fklZfree(realpath);
         uv_dlclose(&dll);
@@ -6817,7 +6845,7 @@ static inline size_t load_dll(FklVMvalue *orig,
     FklCgDllLibInitExportCb initExport = fklGetCgInitExportFunc(&dll);
     if (!initExport) {
         uv_dlclose(&dll);
-        errors->error = make_import_failed_error(IGCVM, name);
+        errors->error = make_import_failed_error(GCVM, name);
         errors->line = CURLINE(orig);
         fklZfree(realpath);
         return 0;
@@ -6834,6 +6862,7 @@ static inline int import_dll_impl(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         const char *filename,
         FklVMvalueCgInfo *lib_info) {
+    FklCgCtx *ctx = args->ctx;
     FklVMvalue *orig = args->orig->value;
     FklVMvalueCgInfo *info = args->info;
     FklCgErrorState *errors = args->err_state;
@@ -6843,12 +6872,12 @@ static inline int import_dll_impl(const CgCbArgs *args,
 
     FklVMvalue *name = import_args->name;
 
-    size_t lib_id = load_dll(orig, name, filename, info, errors);
+    size_t lib_id = load_dll(ctx, orig, name, filename, info, errors);
 
     if (lib_id == 0)
         return -1;
 
-    FklVMvalue *load_dll_bc = append_load_dll_ins(IGCVM,
+    FklVMvalue *load_dll_bc = append_load_dll_ins(GCVM,
             INS_APPEND_BACK,
             NULL,
             lib_id,
@@ -6856,7 +6885,8 @@ static inline int import_dll_impl(const CgCbArgs *args,
             CURLINE(orig),
             scope);
 
-    FklVMvalue *bc = import_args->import_dll_cb(orig,
+    FklVMvalue *bc = import_args->import_dll_cb(ctx,
+            orig,
             import_args->import_cb_args,
             load_dll_bc,
             &info->libraries->base[lib_id - 1],
@@ -6887,7 +6917,8 @@ FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll) {
     return (FklCgDllLibInitExportCb)fklGetAddress("_fklExportSymbolInit", dll);
 }
 
-static inline FklVMvalue *process_import_from_dll_only(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_only(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *only,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -6902,7 +6933,7 @@ static inline FklVMvalue *process_import_from_dll_only(FklVMvalue *orig,
         FklVMvalue *cur = FKL_VM_CAR(only);
         FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
         if (item) {
-            export_symbol(IGCVM,
+            export_symbol(GCVM,
                     cur,
                     item,
                     env,
@@ -6912,7 +6943,7 @@ static inline FklVMvalue *process_import_from_dll_only(FklVMvalue *orig,
                     scope,
                     lib_info);
         } else {
-            error_state->error = make_import_missing_error(IGCVM, cur);
+            error_state->error = make_import_missing_error(GCVM, cur);
             error_state->line = CURLINE(only);
             error_state->fid = add_symbol_cstr(info->ctx, info->filename);
             break;
@@ -6922,7 +6953,8 @@ static inline FklVMvalue *process_import_from_dll_only(FklVMvalue *orig,
     return load_dll_bc;
 }
 
-static inline FklVMvalue *process_import_from_dll_except(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_except(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *except,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -6942,7 +6974,7 @@ static inline FklVMvalue *process_import_from_dll_except(FklVMvalue *orig,
             l = l->next) {
         if (fklValueHashSetHas2(&excepts, l->k))
             continue;
-        export_symbol(IGCVM,
+        export_symbol(GCVM,
                 l->k,
                 &l->v,
                 env,
@@ -6957,7 +6989,8 @@ static inline FklVMvalue *process_import_from_dll_except(FklVMvalue *orig,
     return load_dll_bc;
 }
 
-static inline FklVMvalue *process_import_from_dll_common(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_common(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *args,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -6966,7 +6999,7 @@ static inline FklVMvalue *process_import_from_dll_common(FklVMvalue *orig,
         FklVMvalueCgInfo *info,
         FklCgErrorState *error_state,
         FklVMvalueCgInfo *lib_info) {
-    add_symbol_to_local_env_in_array(IGCVM,
+    add_symbol_to_local_env_in_array(GCVM,
             env,
             &lib->exports,
             load_dll_bc,
@@ -6978,7 +7011,8 @@ static inline FklVMvalue *process_import_from_dll_common(FklVMvalue *orig,
     return load_dll_bc;
 }
 
-static inline FklVMvalue *process_import_from_dll_prefix(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_prefix(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *prefix_v,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -6989,7 +7023,7 @@ static inline FklVMvalue *process_import_from_dll_prefix(FklVMvalue *orig,
         FklVMvalueCgInfo *lib_info) {
     const FklString *prefix = FKL_VM_SYM(prefix_v);
 
-    add_symbol_with_prefix_to_local_env_in_array(IGCVM,
+    add_symbol_with_prefix_to_local_env_in_array(GCVM,
             env,
             prefix,
             &lib->exports,
@@ -7003,7 +7037,8 @@ static inline FklVMvalue *process_import_from_dll_prefix(FklVMvalue *orig,
     return load_dll_bc;
 }
 
-static inline FklVMvalue *process_import_from_dll_alias(FklVMvalue *orig,
+static inline FklVMvalue *process_import_from_dll_alias(FklCgCtx *ctx,
+        FklVMvalue *orig,
         FklVMvalue *alias,
         FklVMvalue *load_dll_bc,
         FklCgLib *lib,
@@ -7021,7 +7056,7 @@ static inline FklVMvalue *process_import_from_dll_alias(FklVMvalue *orig,
 
         if (item) {
             FklVMvalue *cur0 = FKL_VM_CAR(FKL_VM_CDR(cur_alias));
-            export_symbol(IGCVM,
+            export_symbol(GCVM,
                     cur0,
                     item,
                     env,
@@ -7031,7 +7066,7 @@ static inline FklVMvalue *process_import_from_dll_alias(FklVMvalue *orig,
                     scope,
                     lib_info);
         } else {
-            error_state->error = make_import_missing_error(IGCVM, cur);
+            error_state->error = make_import_missing_error(GCVM, cur);
             error_state->line = CURLINE(alias);
             error_state->fid = add_symbol_cstr(info->ctx, info->filename);
             break;
@@ -7060,6 +7095,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
         FklVMvalueCgInfo *lib_info) {
     FKL_ASSERT(import_args);
 
+    FklCgCtx *ctx = args->ctx;
     FklVMvalue *orig = args->orig->value;
     FklVMvalueCgInfo *info = args->info;
     FklCgErrorState *errors = args->err_state;
@@ -7072,14 +7108,14 @@ static inline void codegen_import_helper(const CgCbArgs *args,
     FklVMvalue *rest = import_args->rest;
 
     if (name == FKL_VM_NIL || !is_symbol_list(name)) {
-        errors->error = make_syntax_error(IGCVM, orig);
+        errors->error = make_syntax_error(GCVM, orig);
         errors->line = CURLINE(orig);
         return;
     }
 
     if (import_args->import_check_cb != NULL
             && !import_args->import_check_cb(import_args->import_cb_args)) {
-        errors->error = make_syntax_error(IGCVM, import_args->import_cb_args);
+        errors->error = make_syntax_error(GCVM, import_args->import_cb_args);
         errors->line = CURLINE(orig);
         return;
     }
@@ -7093,7 +7129,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
 
         FklVMvalue *export_head = add_symbol_cstr(info->ctx, "export");
         for (; FKL_IS_PAIR(rest); rest = FKL_VM_CDR(rest)) {
-            FklVMvalue *new_rest = fklCreateVMvaluePair(IGCVM, head, rest);
+            FklVMvalue *new_rest = fklCreateVMvaluePair(GCVM, head, rest);
             put_line_number(info->ctx->lnt, new_rest, CURLINE(rest));
             if (lib_info) {
                 ListElm a[2] = {
@@ -7104,7 +7140,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
                 new_rest = create_nast_list(a,
                         2,
                         CURLINE(rest),
-                        IGCVM,
+                        GCVM,
                         info->ctx->lnt);
             }
             cgExpQueuePush2(queue,
@@ -7130,7 +7166,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
     char *filename = combineFileNameFromListAndCheckPrivate(name);
 
     if (filename == NULL) {
-        errors->error = make_import_failed_error(IGCVM, name);
+        errors->error = make_import_failed_error(GCVM, name);
         errors->line = CURLINE(orig);
         return;
     }
@@ -7169,7 +7205,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
         if (r != 0)
             goto exit;
     } else {
-        errors->error = make_import_failed_error(IGCVM, name);
+        errors->error = make_import_failed_error(GCVM, name);
         errors->line = CURLINE(orig);
     }
 exit:
@@ -7380,7 +7416,7 @@ static FklVMvalue *compiler_macro_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     fklUpdatePrototype(&info->pts->p, env);
-    fklPrintUndefinedRef(env->prev, &info->ctx->gc->err_out);
+    fklPrintUndefinedRef(env->prev, &info->ctx->vm->gc->err_out);
 
     MacroContext *d = FKL_TYPE_CAST(MacroContext *, data);
     FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
@@ -7452,7 +7488,7 @@ static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
     d->action_ctx = NULL;
 
     fklUpdatePrototype(&info->pts->p, env);
-    fklPrintUndefinedRef(env->prev, &info->ctx->gc->err_out);
+    fklPrintUndefinedRef(env->prev, &info->ctx->vm->gc->err_out);
 
     FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
@@ -7483,13 +7519,15 @@ static inline FklCgActCtx *createReaderMacroActionContext(
     return r;
 }
 
-static FklVMvalue *_nil_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_nil_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     return FKL_VM_NIL;
 }
 
-static FklVMvalue *_is_main_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_is_main_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     if (env->prototypeId == 1)
@@ -7498,7 +7536,8 @@ static FklVMvalue *_is_main_replacement(const FklPmatchRes *orig,
         return FKL_VM_NIL;
 }
 
-static FklVMvalue *_platform_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_platform_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
 
@@ -7511,10 +7550,11 @@ static FklVMvalue *_platform_replacement(const FklPmatchRes *orig,
 #elif __APPLE__
     static const char *platform = "apple";
 #endif
-    return fklCreateVMvalueStrFromCstr(IGCVM, platform);
+    return fklCreateVMvalueStrFromCstr(GCVM, platform);
 }
 
-static FklVMvalue *_file_dir_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_file_dir_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     const char *d = info->filename == NULL //
@@ -7524,69 +7564,51 @@ static FklVMvalue *_file_dir_replacement(const FklPmatchRes *orig,
     const size_t d_len = strlen(d);
     const size_t s_len = strlen(FKL_PATH_SEPARATOR_STR);
 
-    FklVMvalue *r = fklCreateVMvalueStr2(IGCVM, s_len + d_len, NULL);
+    FklVMvalue *r = fklCreateVMvalueStr2(GCVM, s_len + d_len, NULL);
     memcpy(FKL_VM_STR(r)->str, d, d_len);
     strcat(FKL_VM_STR(r)->str, FKL_PATH_SEPARATOR_STR);
 
     return r;
 }
 
-static FklVMvalue *_file_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_file_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     return info->filename == NULL
                  ? FKL_VM_NIL
-                 : fklCreateVMvalueStrFromCstr(IGCVM, info->filename);
+                 : fklCreateVMvalueStrFromCstr(GCVM, info->filename);
 }
 
-static FklVMvalue *_file_rp_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_file_rp_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     return info->realpath == NULL
                  ? FKL_VM_NIL
-                 : fklCreateVMvalueStrFromCstr(IGCVM, info->realpath);
+                 : fklCreateVMvalueStrFromCstr(GCVM, info->realpath);
 }
 
-static FklVMvalue *_line_replacement(const FklPmatchRes *orig,
+static FklVMvalue *_line_replacement(const FklCgCtx *ctx,
+        const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     uint64_t line = CURLINE(orig->container);
     return line <= FKL_FIX_INT_MAX ? FKL_MAKE_VM_FIX(line)
-                                   : fklCreateVMvalueBigIntWithU64(IGCVM, line);
+                                   : fklCreateVMvalueBigIntWithU64(GCVM, line);
 }
 
 static struct SymbolReplacement {
     const char *s;
     ReplacementFunc func;
 } builtInSymbolReplacement[FKL_BUILTIN_REPLACEMENT_NUM] = {
-    {
-        "nil",
-        _nil_replacement,
-    },
-    {
-        "*line*",
-        _line_replacement,
-    },
-    {
-        "*file*",
-        _file_replacement,
-    },
-    {
-        "*file-rp*",
-        _file_rp_replacement,
-    },
-    {
-        "*file-dir*",
-        _file_dir_replacement,
-    },
-    {
-        "*main?*",
-        _is_main_replacement,
-    },
-    {
-        "*platform*",
-        _platform_replacement,
-    },
+    { "nil", _nil_replacement },
+    { "*line*", _line_replacement },
+    { "*file*", _file_replacement },
+    { "*file-rp*", _file_rp_replacement },
+    { "*file-dir*", _file_dir_replacement },
+    { "*main?*", _is_main_replacement },
+    { "*platform*", _platform_replacement },
 };
 
 static inline ReplacementFunc findBuiltInReplacementWithId(FklVMvalue *id,
@@ -8021,7 +8043,7 @@ static FklVMvalue *process_adding_production(const FklCgActCbArgs *args) {
 
     FklVMvalue *sid = prod_ctx->sid;
     FklGrammerProdGroupItem *item =
-            add_production_group(info->prod_groups, info->ctx->gc, group_id);
+            add_production_group(info->prod_groups, GCVM, group_id);
     if (fklAddProdToProdTableNoRepeat(&item->g, prod)) {
         fklDestroyGrammerProduction(prod);
         goto reader_macro_error;
@@ -8056,9 +8078,7 @@ static FklVMvalue *process_adding_production(const FklCgActCbArgs *args) {
         return NULL;
 
     FklGrammerProdGroupItem *item2 =
-            add_production_group(lib_info->export_prod_groups,
-                    info->ctx->gc,
-                    group_id);
+            add_production_group(lib_info->export_prod_groups, GCVM, group_id);
 
     fklMergeGrammerProd(&item2->g, prod, &item->g, NULL);
     if (extra_prod)
@@ -8290,7 +8310,8 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
     return NAST_TO_GRAMMER_SYM_ERR_DUMMY;
 }
 
-static inline int add_ignore(FklVMvalueCgInfo *info,
+static inline int add_ignore(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FklVMvalue *vector_node,
         FklGrammer *g,
         FklCgErrorState *errors) {
@@ -8302,7 +8323,7 @@ static inline int add_ignore(FklVMvalueCgInfo *info,
     FklGrammerIgnore *ignore = nast_vector_to_ignore(ignore_obj, &args, &err);
     if (err) {
         const char *msg = get_nast_to_grammer_sym_err_msg(err);
-        errors->error = make_grammer_create_error2(IGCVM, msg, args.err_node);
+        errors->error = make_grammer_create_error2(GCVM, msg, args.err_node);
         errors->line = CURLINE(vector_node);
         return 1;
     }
@@ -8314,7 +8335,8 @@ static inline int add_ignore(FklVMvalueCgInfo *info,
     return 0;
 }
 
-static int add_delimiters(FklVMvalueCgInfo *info,
+static int add_delimiters(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
         FklVMvalue *vector_node,
         FklGrammerProdGroupItem *item,
         FklCgErrorState *errors) {
@@ -8335,7 +8357,7 @@ static int add_delimiters(FklVMvalueCgInfo *info,
         }
 
         if (cur != FKL_VM_NIL) {
-            errors->error = make_syntax_error(IGCVM, vector_node);
+            errors->error = make_syntax_error(GCVM, vector_node);
             errors->line = CURLINE(vector_node);
             return 1;
         }
@@ -8344,18 +8366,19 @@ static int add_delimiters(FklVMvalueCgInfo *info,
     }
 
     if (FKL_IS_BOX(vector_node)) {
-        if (add_ignore(info, vector_node, &item->g, errors))
+        if (add_ignore(ctx, info, vector_node, &item->g, errors))
             return 1;
         return 0;
     }
 
-    errors->error = make_syntax_error(IGCVM, vector_node);
+    errors->error = make_syntax_error(GCVM, vector_node);
     errors->line = CURLINE(vector_node);
 
     return 1;
 }
 
-static inline int process_add_production(FklVMvalue *group_id,
+static inline int process_add_production(FklCgCtx *ctx,
+        FklVMvalue *group_id,
         FklVMvalueCgInfo *info,
         FklVMvalue *vector_node,
         FklCgErrorState *errors,
@@ -8366,20 +8389,20 @@ static inline int process_add_production(FklVMvalue *group_id,
     FKL_ASSERT(group_id);
 
     FklGrammerProdGroupItem *item =
-            add_production_group(info->prod_groups, info->ctx->gc, group_id);
+            add_production_group(info->prod_groups, GCVM, group_id);
 
     if (!FKL_IS_VECTOR(vector_node)) {
-        if (add_delimiters(info, vector_node, item, errors))
+        if (add_delimiters(ctx, info, vector_node, item, errors))
             return 1;
 
         if (lib_info == NULL)
             return 0;
 
         item = add_production_group(lib_info->export_prod_groups,
-                info->ctx->gc,
+                GCVM,
                 group_id);
 
-        if (add_delimiters(lib_info, vector_node, item, errors))
+        if (add_delimiters(ctx, lib_info, vector_node, item, errors))
             return 1;
 
         return 0;
@@ -8391,7 +8414,7 @@ static inline int process_add_production(FklVMvalue *group_id,
     if (FKL_VM_VEC(vec)->size != 4) {
         error_node = vector_node;
     reader_macro_syntax_error:
-        errors->error = make_syntax_error(IGCVM, error_node);
+        errors->error = make_syntax_error(GCVM, error_node);
         errors->line = CURLINE(vec);
         return 1;
     }
@@ -8448,7 +8471,7 @@ static inline int process_add_production(FklVMvalue *group_id,
 
     FklVMvalue *err_val = args.err_node == NULL ? base[2] : args.err_node;
     const char *msg = get_nast_to_grammer_sym_err_msg(err);
-    errors->error = make_grammer_create_error2(IGCVM, msg, err_val);
+    errors->error = make_grammer_create_error2(GCVM, msg, err_val);
     errors->line = CURLINE(vect);
     return 1;
 
@@ -8461,7 +8484,7 @@ static FklVMvalue *update_grammer(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
     FklCgErrorState *error_state = args->error_state;
 
-    if (add_all_group_to_grammer(line, info, error_state)) {
+    if (add_all_group_to_grammer(ctx, line, info, error_state)) {
         error_state->error = make_grammer_create_error(GCVM);
         error_state->line = line;
         return NULL;
@@ -8509,14 +8532,14 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
     } else if (FKL_IS_PAIR(name->value)) {
         FklValueHashSet *symbolSet = NULL;
         FklVMvalue *pattern =
-                fklCreatePatternFromNast(IGCVM, name->value, &symbolSet);
+                fklCreatePatternFromNast(GCVM, name->value, &symbolSet);
         if (!pattern) {
-            errors->error = make_macro_pattern_error(IGCVM, name->value);
+            errors->error = make_macro_pattern_error(GCVM, name->value);
             errors->line = CURLINE(name->container);
             return;
         }
         if (fklValueHashSetPut2(symbolSet, ctx->builtin_sym_orig)) {
-            errors->error = make_macro_pattern_error(IGCVM, name->value);
+            errors->error = make_macro_pattern_error(GCVM, name->value);
             errors->line = CURLINE(name->container);
             return;
         }
@@ -8549,13 +8572,13 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
     } else if (FKL_IS_BOX(name->value)) {
         FklVMvalue *group_id = FKL_VM_BOX(name->value);
         if (!is_valid_production_rule_node(value->value)) {
-            errors->error = make_syntax_error(IGCVM, value->value);
+            errors->error = make_syntax_error(GCVM, value->value);
             errors->line = CURLINE(value->container);
             return;
         }
 
         if (!FKL_IS_SYM(group_id)) {
-            errors->error = make_syntax_error(IGCVM, name->value);
+            errors->error = make_syntax_error(GCVM, name->value);
             errors->line = CURLINE(name->container);
             return;
         }
@@ -8568,9 +8591,10 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
                 CURLINE(orig->container),
                 info,
                 actions);
-        init_builtin_grammer_and_prod_group(info);
+        init_builtin_grammer_and_prod_group(ctx, info);
 
-        if (process_add_production(group_id,
+        if (process_add_production(ctx,
+                    group_id,
                     info,
                     value->value,
                     errors,
@@ -8634,7 +8658,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
         err_node = *name;
     reader_macro_error:
         fklValueQueueUninit(&prod_vector_queue);
-        error_state->error = make_syntax_error(IGCVM, err_node.value);
+        error_state->error = make_syntax_error(GCVM, err_node.value);
         error_state->line = CURLINE(err_node.container);
         return;
     }
@@ -8648,11 +8672,12 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
             info,
             actions);
 
-    init_builtin_grammer_and_prod_group(info);
+    init_builtin_grammer_and_prod_group(ctx, info);
 
     for (FklValueQueueNode *first = prod_vector_queue.head; first;
             first = first->next)
-        if (process_add_production(group_id,
+        if (process_add_production(ctx,
+                    group_id,
                     info,
                     first->data,
                     error_state,
@@ -9118,19 +9143,19 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
 
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
         FklVMvalueProtos *pts,
-        FklVMgc *gc) {
+        FklVM *vm) {
     memset(ctx, 0, sizeof(FklCgCtx));
     fklCgLibVectorInit(&ctx->libraries, 8);
     fklCgLibVectorInit(&ctx->macro_libraries, 8);
 
-    ctx->pts = pts == NULL ? fklCreateVMvalueProtos(&gc->gcvm, 0) : pts;
+    ctx->pts = pts == NULL ? fklCreateVMvalueProtos(vm, 0) : pts;
     ctx->macro_pts = pts == NULL //
                            ? ctx->pts
-                           : fklCreateVMvalueProtos(&gc->gcvm, 0);
+                           : fklCreateVMvalueProtos(vm, 0);
 
-    ctx->gc = gc;
+    ctx->vm = vm;
 
-    fklVMpushExtraMarkFunc(ctx->gc, codegen_ctx_extra_mark_func, NULL, ctx);
+    fklVMpushExtraMarkFunc(vm->gc, codegen_ctx_extra_mark_func, NULL, ctx);
 
     fklInitBuiltinGrammer(&ctx->builtin_g, GCVM);
 
@@ -9169,7 +9194,7 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
 void fklInitCgCtx(FklCgCtx *ctx,
         char *main_file_real_path_dir,
         FklVMvalueProtos *pts,
-        FklVMgc *gc) {
+        FklVM *gc) {
     fklInitCgCtxExceptPattern(ctx, pts, gc);
     ctx->cwd = fklSysgetcwd();
     ctx->main_file_real_path_dir = main_file_real_path_dir
@@ -9189,7 +9214,7 @@ void fklInitCgCtx(FklCgCtx *ctx,
 
 void fklUninitCgCtx(FklCgCtx *ctx) {
     fklUninitGrammer(&ctx->builtin_g);
-    ctx->gc = NULL;
+    ctx->vm = NULL;
     ctx->pts = NULL;
     ctx->macro_pts = NULL;
     ctx->lnt = NULL;
@@ -9294,9 +9319,9 @@ static inline FklVMvalue *append_get_var_ref_ins(FklVM *exe,
 #define FORCE_GC (1)
 #endif
 
-FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *initial_action,
+FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
+        FklCgAct *initial_action,
         FklVMvalueCgInfo *info) {
-    FklCgCtx *ctx = info->ctx;
     FklValueVector results;
     fklValueVectorInit(&results, 1);
     FklCgErrorState error_state = { 0 };
@@ -9332,7 +9357,8 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *initial_action,
             uint8_t must_has_retval = expressions->must_has_retval;
 
             FklPmatchRes exp = { 0 };
-            while (get_next_expression(expressions->context,
+            while (get_next_expression(ctx,
+                    expressions->context,
                     &exp,
                     &error_state)) {
             skip:
@@ -9361,7 +9387,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *initial_action,
                         goto skip;
                     } else if ((f = findBuiltInReplacementWithId(exp.value,
                                         ctx->builtin_replacement_id))) {
-                        FklVMvalue *t = f(&exp, env, info);
+                        FklVMvalue *t = f(ctx, &exp, env, info);
                         FKL_ASSERT(t);
                         exp.value = t;
                         goto skip;
@@ -9426,7 +9452,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *initial_action,
         print_error:
             ctx->action_vector = NULL;
             ctx->error_state = NULL;
-            fklPrintCgError(&error_state, info, &info->ctx->gc->err_out);
+            fklPrintCgError(&error_state, info, &info->ctx->vm->gc->err_out);
             while (!fklCgActVectorIsEmpty(&act_vec)) {
                 destroy_cg_action(*fklCgActVectorPopBackNonNull(&act_vec));
             }
@@ -9484,7 +9510,8 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *initial_action,
     return retval;
 }
 
-FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
+        FILE *fp,
         FklVMvalueCgInfo *info,
         FklVMvalueCgEnv *env) {
     static const uint32_t scope = 1;
@@ -9500,16 +9527,17 @@ FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
             NULL,
             info);
 
-    FklVMvalue *bcl = fklGenExpressionCodeWithAction(initialAction, info);
+    FklVMvalue *bcl = fklGenExpressionCodeWithAction(ctx, initialAction, info);
     if (bcl == NULL)
         return NULL;
 
-    process_export_bc(info, bcl, info->fid, line, scope);
+    process_export_bc(ctx, info, bcl, info->fid, line, scope);
 
     return bcl;
 }
 
-FklVMvalue *fklGenExpressionCodeWithFp(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFp(FklCgCtx *ctx,
+        FILE *fp,
         FklVMvalueCgInfo *info,
         FklVMvalueCgEnv *env) {
     FklCgAct *initialAction = create_cg_action(_begin_exp_bc_process,
@@ -9521,13 +9549,14 @@ FklVMvalue *fklGenExpressionCodeWithFp(FILE *fp,
             1,
             NULL,
             info);
-    return fklGenExpressionCodeWithAction(initialAction, info);
+    return fklGenExpressionCodeWithAction(ctx, initialAction, info);
 }
 
-FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
+FklVMvalue *fklGenExpressionCode(FklCgCtx *ctx,
+        FklVMvalue *exp,
         FklVMvalueCgEnv *env,
         FklVMvalueCgInfo *info) {
-    FklVMvalue *cont = fklCreateVMvalueBox(IGCVM, exp);
+    FklVMvalue *cont = fklCreateVMvalueBox(GCVM, exp);
     put_line_number(info->ctx->lnt, cont, info->curline);
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush2(queue, (FklPmatchRes){ .value = exp, .container = cont });
@@ -9540,5 +9569,5 @@ FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
             CURLINE(exp),
             NULL,
             info);
-    return fklGenExpressionCodeWithAction(initialAction, info);
+    return fklGenExpressionCodeWithAction(ctx, initialAction, info);
 }

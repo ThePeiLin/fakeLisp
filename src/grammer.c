@@ -1711,7 +1711,7 @@ static inline void print_as_regex(const FklString *str, FklCodeBuilder *build) {
     CB_FMT("/");
 }
 
-static inline void print_prod_sym(FklVMgc *gc,
+static inline void print_prod_sym(FklVM *vm,
         const FklGrammerSym *u,
         const FklRegexTable *rt,
         FklCodeBuilder *build) {
@@ -1741,12 +1741,12 @@ static inline void print_prod_sym(FklVMgc *gc,
     case FKL_TERM_NONTERM:
         if (u->nt.group) {
             CB_FMT("(");
-            fklPrin1VMvalue2(u->nt.group, build, &gc->gcvm);
+            fklPrin1VMvalue2(u->nt.group, build, vm);
             CB_FMT(" , ");
-            fklPrin1VMvalue2(u->nt.sid, build, &gc->gcvm);
+            fklPrin1VMvalue2(u->nt.sid, build, vm);
             CB_FMT(")");
         } else {
-            fklPrin1VMvalue2(u->nt.sid, build, &gc->gcvm);
+            fklPrin1VMvalue2(u->nt.sid, build, vm);
         }
         break;
     case FKL_TERM_IGNORE:
@@ -2073,7 +2073,7 @@ static inline void print_lookahead(const FklLalrItemLookAhead *la,
     }
 }
 
-static inline void print_item(FklVMgc *gc,
+static inline void print_item(FklVM *vm,
         const FklLalrItem *item,
         const FklRegexTable *rt,
         FklCodeBuilder *build) {
@@ -2089,18 +2089,18 @@ static inline void print_item(FklVMgc *gc,
     fklCodeBuilderPuts(build, " ->");
     for (; i < idx; i++) {
         fklCodeBuilderPutc(build, ' ');
-        print_prod_sym(gc, &syms[i], rt, build);
+        print_prod_sym(vm, &syms[i], rt, build);
     }
     fklCodeBuilderPuts(build, " *");
     for (; i < len; i++) {
         fklCodeBuilderPutc(build, ' ');
-        print_prod_sym(gc, &syms[i], rt, build);
+        print_prod_sym(vm, &syms[i], rt, build);
     }
     fklCodeBuilderPuts(build, " ## ");
     print_lookahead(&item->la, rt, build);
 }
 
-void fklPrintItemSet(FklVMgc *gc,
+void fklPrintItemSet(FklVM *vm,
         const FklLalrItemHashSet *itemSet,
         const FklGrammer *g,
         FklCodeBuilder *build) {
@@ -2112,7 +2112,7 @@ void fklPrintItemSet(FklVMgc *gc,
             if (curItem)
                 fklCodeBuilderPutc(build, '\n');
             curItem = &list->k;
-            print_item(gc, curItem, &g->regexes, build);
+            print_item(vm, curItem, &g->regexes, build);
         } else {
             fklCodeBuilderPuts(build, " , ");
             print_lookahead(&list->k.la, &g->regexes, build);
@@ -2749,7 +2749,7 @@ static inline void print_item_set_as_dot(const FklLalrItemHashSet *itemSet,
     fklCodeBuilderPuts(fp, "\\l\\\n");
 }
 
-static inline void print_lalr_item(FklVMgc *gc,
+static inline void print_lalr_item(FklVM *vm,
         const FklLalrItem *item,
         const FklStringTable *tt,
         const FklRegexTable *rt,
@@ -2780,25 +2780,25 @@ static inline void print_lalr_item(FklVMgc *gc,
     fklCodeBuilderPuts(build, " ->");
     for (; i < idx; i++) {
         fklCodeBuilderPutc(build, ' ');
-        print_prod_sym(gc, &syms[i], rt, build);
+        print_prod_sym(vm, &syms[i], rt, build);
     }
     fklCodeBuilderPuts(build, " *");
     for (; i < len; i++) {
         fklCodeBuilderPutc(build, ' ');
-        print_prod_sym(gc, &syms[i], rt, build);
+        print_prod_sym(vm, &syms[i], rt, build);
     }
 }
 
-void fklPrintItemStateSetAsDot(FklVMgc *gc,
+void fklPrintItemStateSetAsDot(FklVM *vm,
         const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FILE *fp) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderFp(&builder, fp, NULL);
-    fklPrintItemStateSet2(gc, i, g, &builder);
+    fklPrintItemStateSet2(vm, i, g, &builder);
 }
 
-void fklPrintItemStateSetAsDot2(FklVMgc *gc,
+void fklPrintItemStateSetAsDot2(FklVM *vm,
         const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FklCodeBuilder *fp) {
@@ -3181,7 +3181,7 @@ static inline int is_only_single_way_to_reduce(
     return num == 1 && hasEof;
 }
 
-int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
+int fklGenerateLalrAnalyzeTable(FklVM *vm,
         FklGrammer *grammer,
         FklLalrItemSetHashMap *states,
         FklStrBuf *error_msg) {
@@ -3270,7 +3270,7 @@ int fklGenerateLalrAnalyzeTable(FklVMgc *gc,
                         fklCodeBuilderFmt(&err,
                                 "conflict at state %lu with [[  ",
                                 idx);
-                        print_lalr_item(gc,
+                        print_lalr_item(vm,
                                 &il->k,
                                 &grammer->terminals,
                                 &grammer->regexes,
@@ -4436,16 +4436,16 @@ void fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     CB_LINE("}");
 }
 
-void fklPrintItemStateSet(FklVMgc *gc,
+void fklPrintItemStateSet(FklVM *vm,
         const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FILE *fp) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderFp(&builder, fp, NULL);
-    fklPrintItemStateSet2(gc, i, g, &builder);
+    fklPrintItemStateSet2(vm, i, g, &builder);
 }
 
-void fklPrintItemStateSet2(FklVMgc *gc,
+void fklPrintItemStateSet2(FklVM *vm,
         const FklLalrItemSetHashMap *i,
         const FklGrammer *g,
         FklCodeBuilder *fp) {
@@ -4459,7 +4459,7 @@ void fklPrintItemStateSet2(FklVMgc *gc,
         const FklLalrItemHashSet *i = &l->k;
         idx = *graItemStateIdxHashMapGet2NonNull(&idxTable, &l->elm);
         fklCodeBuilderFmt(fp, "===\nI%" PRIu64 ": \n", idx);
-        fklPrintItemSet(gc, i, g, fp);
+        fklPrintItemSet(vm, i, g, fp);
         fklCodeBuilderPutc(fp, '\n');
         for (FklLalrItemSetLink *ll = l->v.links; ll; ll = ll->next) {
             FklLalrItemSetHashMapElm *dst = ll->dst;
@@ -4467,7 +4467,7 @@ void fklPrintItemStateSet2(FklVMgc *gc,
             fklCodeBuilderFmt(fp, "I%" PRIu64 "--{ ", idx);
             if (ll->allow_ignore)
                 fklCodeBuilderPuts(fp, "?e ");
-            print_prod_sym(gc, &ll->sym, &g->regexes, fp);
+            print_prod_sym(vm, &ll->sym, &g->regexes, fp);
             fklCodeBuilderFmt(fp, " }-->I%" PRIu64 "\n", *c);
         }
         fklCodeBuilderPutc(fp, '\n');
@@ -4544,19 +4544,19 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
     }
 }
 
-void fklPrintGrammerProduction(FklVMgc *gc,
+void fklPrintGrammerProduction(FklVM *vm,
         const FklGrammerProduction *prod,
         const FklRegexTable *rt,
         FklCodeBuilder *build) {
     if (!is_Sq_nt(&prod->left)) {
         if (prod->left.group) {
             CB_FMT("(");
-            fklPrin1VMvalue2(prod->left.group, build, &gc->gcvm);
+            fklPrin1VMvalue2(prod->left.group, build, vm);
             CB_FMT(" , ");
-            fklPrin1VMvalue2(prod->left.sid, build, &gc->gcvm);
+            fklPrin1VMvalue2(prod->left.sid, build, vm);
             CB_FMT(")");
         } else {
-            fklPrin1VMvalue2(prod->left.sid, build, &gc->gcvm);
+            fklPrin1VMvalue2(prod->left.sid, build, vm);
         }
     } else
         CB_FMT("S'");
@@ -4565,7 +4565,7 @@ void fklPrintGrammerProduction(FklVMgc *gc,
     const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
         CB_FMT(" ");
-        print_prod_sym(gc, &syms[i], rt, build);
+        print_prod_sym(vm, &syms[i], rt, build);
         ++i;
         if (i < len && syms[i].type != FKL_TERM_IGNORE)
             CB_FMT(" .. ");
@@ -4574,13 +4574,13 @@ void fklPrintGrammerProduction(FklVMgc *gc,
     }
 }
 
-void fklPrintGrammer(FklVMgc *gc, const FklGrammer *grammer, FILE *fp) {
+void fklPrintGrammer(FklVM *vm, const FklGrammer *grammer, FILE *fp) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderFp(&builder, fp, NULL);
-    fklPrintGrammer2(gc, grammer, &builder);
+    fklPrintGrammer2(vm, grammer, &builder);
 }
 
-void fklPrintGrammer2(FklVMgc *gc,
+void fklPrintGrammer2(FklVM *vm,
         const FklGrammer *grammer,
         FklCodeBuilder *fp) {
     const FklRegexTable *rt = &grammer->regexes;
@@ -4589,7 +4589,7 @@ void fklPrintGrammer2(FklVMgc *gc,
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
             fklCodeBuilderFmt(fp, "(%" PRIu64 ") ", prods->idx);
-            fklPrintGrammerProduction(gc, prods, rt, fp);
+            fklPrintGrammerProduction(vm, prods, rt, fp);
             fklCodeBuilderPutc(fp, '\n');
         }
     }
@@ -4757,7 +4757,7 @@ void fklInitBuiltinGrammer(FklGrammer *g, FklVM *vm) {
 
     fklInitParserGrammerParseArg(&args,
             g,
-            vm->gc,
+            vm,
             1,
             builtin_prod_action_resolver,
             NULL);
@@ -4784,17 +4784,17 @@ FklGrammer *fklCreateBuiltinGrammer(FklVM *vm) {
     return g;
 }
 
-FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g, FklVMgc *gc) {
+FklGrammerIgnore *fklInitBuiltinProductionSet(FklGrammer *g, FklVM *vm) {
     FklParserGrammerParseArg args;
     fklInitParserGrammerParseArg(&args,
             g,
-            gc,
+            vm,
             1,
             builtin_prod_action_resolver,
             NULL);
     int err = fklParseProductionRuleWithCstr(&args, builtin_grammer_rules);
     if (err) {
-        fklPrintParserGrammerParseError(err, &args, &gc->err_out);
+        fklPrintParserGrammerParseError(err, &args, &vm->gc->err_out);
         fklDestroyGrammer(g);
         FKL_UNREACHABLE();
         return NULL;

@@ -573,14 +573,13 @@ struct SymFunc {
 static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
-FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
+FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     *num = EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
-    // fklAddSymbolCstr(exports_and_func[i].sym, st);
+        symbols[i] = fklVMaddSymbolCstr(vm, exports_and_func[i].sym);
     return symbols;
 }
 

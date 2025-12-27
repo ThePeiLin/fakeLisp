@@ -34,16 +34,17 @@ static const char *expressions[] = {
 
 int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
     fputs("parse with builtin parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
-        FklVMvalue *node = fklCreateNastNodeFromCstr(&gc->gcvm, *pexp, NULL);
+        FklVMvalue *node = fklCreateNastNodeFromCstr(vm, *pexp, NULL);
         FKL_ASSERT(node);
-        fklPrin1VMvalue(node, stderr, &gc->gcvm);
+        fklPrin1VMvalue(node, stderr, vm);
         fputc('\n', stderr);
     }
 
-    FklGrammer *g = fklCreateBuiltinGrammer(&gc->gcvm);
+    FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
@@ -55,7 +56,7 @@ int main() {
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);
@@ -69,10 +70,10 @@ int main() {
     fputs("\nparse with custom parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
         FklParseError err = 0;
-        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
+        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, NULL);
         FklVMvalue *node = fklParseWithTableForCstr(g, *pexp, &ctx, &err);
         FKL_ASSERT(node && err == 0);
-        fklPrin1VMvalue(node, stderr, &gc->gcvm);
+        fklPrin1VMvalue(node, stderr, vm);
         fputc('\n', stderr);
     }
     fklLalrItemSetHashMapDestroy(itemSet);

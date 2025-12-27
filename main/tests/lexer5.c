@@ -77,13 +77,14 @@ static char example_grammer_rules[] = //
 
 int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
     FklParserGrammerParseArg args;
-    FklGrammer *g = fklCreateEmptyGrammer(&gc->gcvm);
+    FklGrammer *g = fklCreateEmptyGrammer(vm);
 
     fklInitParserGrammerParseArg(&args,
             g,
-            gc,
+            vm,
             1,
             builtin_prod_action_resolver,
             NULL);
@@ -118,23 +119,23 @@ int main() {
         fputc('\n', stdout);
     }
     fputs("grammer:\n", stdout);
-    fklPrintGrammer(gc, g, stdout);
+    fklPrintGrammer(vm, g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
     fputs("lr0 item sets:\n", stdout);
-    fklPrintItemStateSet(gc, itemSet, g, stdout);
+    fklPrintItemStateSet(vm, itemSet, g, stdout);
 
     FILE *gzf = fopen("items.gz.txt", "w");
     FILE *lalrgzf = fopen("items-lalr.gz.txt", "w");
-    fklPrintItemStateSetAsDot(gc, itemSet, g, gzf);
+    fklPrintItemStateSetAsDot(vm, itemSet, g, gzf);
     fklLr0ToLalrItems(itemSet, g);
     fputs("lalr item set:\n", stdout);
-    fklPrintItemStateSet(gc, itemSet, g, stdout);
-    fklPrintItemStateSetAsDot(gc, itemSet, g, lalrgzf);
+    fklPrintItemStateSet(vm, itemSet, g, stdout);
+    fklPrintItemStateSetAsDot(vm, itemSet, g, lalrgzf);
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg)) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "not lalr garmmer\n");
         fprintf(stderr, "%s\n", err_msg.buf);
@@ -179,7 +180,7 @@ int main() {
     };
 
     FklParseError retval = 0;
-    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
+    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, NULL);
 
     for (const char **exp = &exps[0]; *exp; exp++) {
         FklVMvalue *ast = fklParseWithTableForCstr(g, *exp, &ctx, &retval);
@@ -189,7 +190,7 @@ int main() {
             break;
         }
 
-        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
+        fklPrin1VMvalue(ast, stdout, vm);
         fputc('\n', stdout);
     }
     fklDestroyGrammer(g);

@@ -522,14 +522,13 @@ static inline void init_sync_public_data(FklVMvalueSyncPd *pd, FklVM *vm) {
 #undef XX
 }
 
-FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVMgc *gc, uint32_t *num) {
+FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     *num = EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
-        symbols[i] = fklVMaddSymbolCstr(&gc->gcvm, exports_and_func[i].sym);
-    // fklAddSymbolCstr(exports_and_func[i].sym, st);
+        symbols[i] = fklVMaddSymbolCstr(vm, exports_and_func[i].sym);
     return symbols;
 }
 
@@ -539,7 +538,6 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
             (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
     FKL_ASSERT(loc);
     FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
-    // FKL_DECL_VM_UD_DATA(pd, SyncPublicData, spd);
 
     init_sync_public_data(as_sync_pd(spd), exe);
 

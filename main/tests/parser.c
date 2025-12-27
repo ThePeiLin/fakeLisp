@@ -9,6 +9,7 @@
 
 int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVM *vm = &gc->gcvm;
 
     fputc('\n', stdout);
 
@@ -44,7 +45,7 @@ int main() {
 
     FklParseError retval = 0;
     for (const char **exp = &exps[0]; *exp; exp++) {
-        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(&gc->gcvm, NULL);
+        FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, NULL);
 
         FklParseStateVector stateStack;
         FklAnalysisSymbolVector symbolStack;
@@ -66,7 +67,7 @@ int main() {
         if (retval)
             break;
 
-        fklPrin1VMvalue(ast, stdout, &gc->gcvm);
+        fklPrin1VMvalue(ast, stdout, vm);
 
         fputc('\n', stdout);
     }

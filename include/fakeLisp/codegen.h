@@ -309,7 +309,7 @@ typedef struct FklCgCtx {
     FklVMvalueProtos *pts;
     FklVMvalueProtos *macro_pts;
 
-    FklVMgc *gc;
+    FklVM *vm;
 
     FklGrammer builtin_g;
 
@@ -399,8 +399,9 @@ typedef struct {
 
 typedef FklVMvalue *(*FklCgActCb)(const FklCgActCbArgs *args);
 
-typedef int (*CgGetNextExpCb)(void *, //
-        FklPmatchRes *res,            //
+typedef int (*CgGetNextExpCb)(FklCgCtx *ctx,
+        void *,
+        FklPmatchRes *res,
         FklCgErrorState *);
 
 typedef struct {
@@ -440,10 +441,8 @@ void fklInitProdActionList(FklCgCtx *ctx);
 void fklInitCgCtx(FklCgCtx *ctx,
         char *main_file_real_path_dir,
         FklVMvalueProtos *pts,
-        FklVMgc *gc);
-void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
-        FklVMvalueProtos *pts,
-        FklVMgc *gc);
+        FklVM *vm);
+void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVMvalueProtos *pts, FklVM *vm);
 
 void fklUninitCgCtx(FklCgCtx *ctx);
 
@@ -484,16 +483,20 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         const char *filename,
         const FklCgInfoArgs *args);
 
-FklVMvalue *fklGenExpressionCode(FklVMvalue *exp,
+FklVMvalue *fklGenExpressionCode(FklCgCtx *ctx,
+        FklVMvalue *exp,
         FklVMvalueCgEnv *cur_env,
         FklVMvalueCgInfo *codegen);
-FklVMvalue *fklGenExpressionCodeWithAction(FklCgAct *,
+FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
+        FklCgAct *,
         FklVMvalueCgInfo *codegen);
-FklVMvalue *fklGenExpressionCodeWithFp(FILE *,
+FklVMvalue *fklGenExpressionCodeWithFp(FklCgCtx *ctx,
+        FILE *,
         FklVMvalueCgInfo *codegen,
         FklVMvalueCgEnv *cur_env);
 
-FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FILE *fp,
+FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
+        FILE *fp,
         FklVMvalueCgInfo *codegen,
         FklVMvalueCgEnv *cur_env);
 

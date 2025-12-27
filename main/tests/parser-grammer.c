@@ -40,9 +40,10 @@ static const char prod_rule[] = {
 
 int main() {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklGrammer *g = fklCreateEmptyGrammer(&gc->gcvm);
+    FklVM *vm = &gc->gcvm;
+    FklGrammer *g = fklCreateEmptyGrammer(vm);
     FklParserGrammerParseArg args;
-    fklInitParserGrammerParseArg(&args, g, gc, 1, resolver, NULL);
+    fklInitParserGrammerParseArg(&args, g, vm, 1, resolver, NULL);
 
     int err = fklParseProductionRuleWithCstr(&args, prod_rule);
     if (err) {
@@ -60,7 +61,7 @@ int main() {
         exit(1);
     }
 
-    fklPrintGrammer(gc, g, stdout);
+    fklPrintGrammer(vm, g, stdout);
     fklUninitParserGrammerParseArg(&args);
 
     fklDestroyVMgc(gc);

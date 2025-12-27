@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-static inline int print_single_ins(FklVMgc *gc,
+static inline int print_single_ins(FklVM *vm,
         int digits_count,
         const FklInstruction *ins,
         uint64_t i,
@@ -31,12 +31,12 @@ static inline int print_single_ins(FklVMgc *gc,
     switch (ins->op) {
     case FKL_OP_PUSH_CONST: {
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrin1VMvalue2(pt->konsts[ins_arg.ux], build, &gc->gcvm);
+        fklPrin1VMvalue2(pt->konsts[ins_arg.ux], build, vm);
     } break;
 
     case FKL_OP_PUSH_CHAR: {
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrin1VMvalue2(FKL_MAKE_VM_CHR(ins_arg.ux), build, &gc->gcvm);
+        fklPrin1VMvalue2(FKL_MAKE_VM_CHR(ins_arg.ux), build, vm);
     } break;
 
     case FKL_OP_PUSH_PROC:
@@ -94,7 +94,7 @@ end:
     return len;
 }
 
-static inline void disassemble_byte_code_lnt(FklVMgc *gc,
+static inline void disassemble_byte_code_lnt(FklVM *vm,
         int digits_count,
         const FklByteCodelnt *bcl,
         const FklInstruction *pc,
@@ -105,7 +105,7 @@ static inline void disassemble_byte_code_lnt(FklVMgc *gc,
         FklCodeBuilder *build) {
     const FklFuncPrototype *pt = &pts->p.pa[prototype_id];
     while (pc < end) {
-        print_single_ins(gc, digits_count, pc, i, pt, build);
+        print_single_ins(vm, digits_count, pc, i, pt, build);
         if (fklIsPushProcIns(pc)) {
             FklInstructionArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
@@ -113,11 +113,11 @@ static inline void disassemble_byte_code_lnt(FklVMgc *gc,
             ++pc;
             ++i;
             for (int j = 1; j < len; ++j) {
-                print_single_ins(gc, digits_count, pc++, i++, pt, build);
+                print_single_ins(vm, digits_count, pc++, i++, pt, build);
             }
 
             CB_INDENT(flag) {
-                disassemble_byte_code_lnt(gc,
+                disassemble_byte_code_lnt(vm,
                         digits_count,
                         bcl,
                         pc,
@@ -149,7 +149,7 @@ static inline int compute_digits_count(uint64_t len) {
     return sum;
 }
 
-void fklDisassembleByteCodelnt(FklVMgc *gc,
+void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         uint32_t proto_id,
         const FklVMvalueProtos *protos,
@@ -157,7 +157,7 @@ void fklDisassembleByteCodelnt(FklVMgc *gc,
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
     CB_INDENT(flag) {
-        disassemble_byte_code_lnt(gc,
+        disassemble_byte_code_lnt(vm,
                 digits_count,
                 bcl,
                 bcl->bc.code,
@@ -169,7 +169,7 @@ void fklDisassembleByteCodelnt(FklVMgc *gc,
     }
 }
 
-void fklDisassembleProc(FklVMgc *gc,
+void fklDisassembleProc(FklVM *vm,
         const FklVMvalue *proc,
         FklCodeBuilder *build) {
     const FklVMvalueProc *p = FKL_VM_PROC(proc);
@@ -179,7 +179,7 @@ void fklDisassembleProc(FklVMgc *gc,
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
     CB_INDENT(flag) {
-        disassemble_byte_code_lnt(gc,
+        disassemble_byte_code_lnt(vm,
                 digits_count,
                 bcl,
                 p->spc,
@@ -191,9 +191,7 @@ void fklDisassembleProc(FklVMgc *gc,
     }
 }
 
-void fklPrintObarray(FklVMgc *gc,
-        const FklVMobarray *a,
-        FklCodeBuilder *build) {
+void fklPrintObarray(FklVM *vm, const FklVMobarray *a, FklCodeBuilder *build) {
 
     int digits_count = compute_digits_count(a->map.count);
 
@@ -204,7 +202,7 @@ void fklPrintObarray(FklVMgc *gc,
             cur = cur->next) {
 
         CB_LINE_START("%-*zu:\t", digits_count, i + 1);
-        fklPrin1VMvalue2(cur->v, build, &gc->gcvm);
+        fklPrin1VMvalue2(cur->v, build, vm);
         CB_LINE_END("");
 
         ++i;

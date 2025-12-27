@@ -15,7 +15,8 @@ int main(int argc, char *argv[]) {
     const char *state_0_push_name = argv[5];
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklGrammer *g = fklCreateBuiltinGrammer(&gc->gcvm);
+    FklVM *vm = &gc->gcvm;
+    FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {
         fklDestroyVMgc(gc);
         fprintf(stderr, "garmmer create fail\n");
@@ -27,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);
-    if (fklGenerateLalrAnalyzeTable(gc, g, itemSet, &err_msg)) {
+    if (fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg)) {
         fklLalrItemSetHashMapDestroy(itemSet);
         fklDestroyVMgc(gc);
         fklDestroyGrammer(g);

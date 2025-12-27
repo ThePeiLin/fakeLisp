@@ -1481,7 +1481,7 @@ int fklVMfpEof(FklVMvalueFp *);
 int fklVMfpFileno(FklVMvalueFp *);
 int fklVMfpClose(FklVMvalueFp *);
 
-typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVMgc *gc, uint32_t *num);
+typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVM *vm, uint32_t *num);
 
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
     FklVM *exe, FklVMvalue *dll, uint32_t *count

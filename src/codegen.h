@@ -166,7 +166,7 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
 
 static inline uint64_t get_curline(const FklVMvalueCgInfo *info,
         const FklVMvalue *v) {
-    uint64_t *r = fklVMvalueLntGet(info->ctx->lnt, v);
+    uint64_t *r = fklVMvalueLntGet(info->lnt, v);
     if (r != NULL)
         return *r;
 

@@ -61,7 +61,7 @@ typedef intptr_t ssize_t;
 #define FKL_FMT_ATTR(A, B)
 #define FKL_UNREACHABLE_()
 #define FKL_DEPRECATED
-#define FKL_ALWAYS_INLINE
+#define FKL_ALWAYS_INLINE inline
 #define FKL_NODISCARD
 
 #endif

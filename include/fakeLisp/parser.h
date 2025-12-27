@@ -9,20 +9,35 @@ extern "C" {
 #endif
 
 typedef struct FklVMvalueLnt FklVMvalueLnt;
+
 typedef struct {
     FklVM *exe;
     FklVMvalueLnt *ln;
+    void *opaque;
 } FklVMparseCtx;
 
 #define FKL_VMVALUE_PARSE_CTX_INIT(EXE, LN)                                    \
-    {                                                                          \
-        .maxNonterminalLen = 0,                                                \
-        .line = 1,                                                             \
-        .start = NULL,                                                         \
-        .cur = NULL,                                                           \
+    (FklGrammerMatchCtx) {                                                     \
+        .maxNonterminalLen = 0, .line = 1, .start = NULL, .cur = NULL,         \
         .create = fklVMvalueTerminalCreate,                                    \
         .destroy = fklVMvalueTerminalDestroy,                                  \
-        .ctx = (void *)&(FklVMparseCtx){ .exe = (EXE), .ln = (LN) },           \
+        .ctx = (void *)&(FklVMparseCtx){                                       \
+            .exe = (EXE),                                                      \
+            .ln = (LN),                                                        \
+            .opaque = NULL,                                                    \
+        },                                                                     \
+    }
+
+#define FKL_VMVALUE_PARSE_CTX_INIT1(EXE, LN, OPA)                              \
+    (FklGrammerMatchCtx) {                                                     \
+        .maxNonterminalLen = 0, .line = 1, .start = NULL, .cur = NULL,         \
+        .create = fklVMvalueTerminalCreate,                                    \
+        .destroy = fklVMvalueTerminalDestroy,                                  \
+        .ctx = (void *)&(FklVMparseCtx){                                       \
+            .exe = (EXE),                                                      \
+            .ln = (LN),                                                        \
+            .opaque = (OPA),                                                   \
+        },                                                                     \
     }
 
 FklVMvalue *fklCreateNastNodeFromCstr(FklVM *, const char *, FklVMvalueLnt *ln);
@@ -32,30 +47,28 @@ FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *v);
 void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line);
 uint64_t *fklVMvalueLntGet(FklVMvalueLnt *ht, const FklVMvalue *v);
 
-char *fklReadWithBuiltinParser(FILE *fp,
-        size_t *psize,
-        size_t line,
-        size_t *pline,
-        FklVM *st,
-        int *unexpectEOF,
-        size_t *output_line,
-        FklVMvalue **output,
-        FklAnalysisSymbolVector *symbolStack,
-        FklParseStateVector *stateStack,
-        FklVMvalueLnt *ln);
+typedef struct {
+    // in
+    size_t const line;
+    FklAnalysisSymbolVector *const symbols;
+    FklParseStateVector *const states;
 
-char *fklReadWithAnalysisTable(const FklGrammer *g,
+    FklVM *const vm;
+    FklVMvalueLnt *const ln;
+    void *const opa;
+
+    // out
+    size_t output_size;
+    int unexpect_eof;
+    size_t output_line;
+    FklVMvalue *output;
+} FklReadArgs;
+
+char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args);
+
+char *fklReadWithAnalysisTable(const FklGrammer *g, //
         FILE *fp,
-        size_t *psize,
-        size_t line,
-        size_t *pline,
-        FklVM *st,
-        int *unexpectEOF,
-        size_t *output_line,
-        FklVMvalue **output,
-        FklAnalysisSymbolVector *symbolStack,
-        FklParseStateVector *stateStack,
-        FklVMvalueLnt *ln);
+        FklReadArgs *args);
 
 void *fklParseWithTableForCstr(const FklGrammer *,
         const char *str,

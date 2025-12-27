@@ -23,8 +23,7 @@ static FklVM *init_macro_expand_vm(FklCgCtx *ctx,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
         FklVMvalue **pr,
-        uint64_t curline,
-        FklCgErrorState *error_state);
+        uint64_t curline);
 
 static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
         uint32_t scopeId,
@@ -51,13 +50,14 @@ FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
     return get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
 }
 
-void fklPrintCgError(FklCgErrorState *error_state,
+void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
         FklCodeBuilder *cb) {
+    FklCgErrorState *error_state = ctx->error_state;
     size_t line = error_state->line;
     FklVMvalue *fid = error_state->fid;
 
-    fklPrintErrBacktrace(error_state->error, info->ctx->vm, NULL);
+    fklPrintErrBacktrace(error_state->error, ctx->vm, NULL);
 
     memset(error_state, 0, sizeof(*error_state));
 
@@ -660,7 +660,7 @@ void fklUninitCgLib(FklCgLib *lib) {
     fklClearCgLibMacros(lib);
 }
 
-void fklInitCgDllLib(FklCgCtx *ctx,
+void fklInitCgDllLib(const FklCgCtx *ctx,
         FklCgLib *lib,
         char *rp,
         uv_lib_t dll,
@@ -769,8 +769,7 @@ void fklClearCgLibMacros(FklCgLib *lib) {
     }
 }
 
-void fklClearCgLibMacros2(FklCgCtx *ctx) {
-
+void fklClearCgLibMacros2(const FklCgCtx *ctx) {
     FklCgLib *cur = ctx->libraries.base;
     FklCgLib *end = &cur[ctx->libraries.size];
     for (; cur < end; ++cur) {
@@ -807,30 +806,31 @@ static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
             place);
 }
 
-static inline FklVMvalue *expand_macro_arg(FklPmatchExpandType e,
+static inline FklVMvalue *expand_macro_arg(FklCgCtx *ctx,
+        FklPmatchExpandType e,
         const FklPmatchRes *exp,
         FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros,
-        FklCgErrorState *error_state) {
+        FklVMvalueCgMacroScope *macros) {
     switch (e) {
     case FKL_PMATCH_EXPAND_NONE:
         return exp->value;
         break;
     case FKL_PMATCH_EXPAND_ONCE:
-        return fklTryExpandCgMacroOnce(exp, codegen, macros, error_state);
+        return fklTryExpandCgMacroOnce(ctx, exp, codegen, macros);
         break;
     case FKL_PMATCH_EXPAND_ALL:
-        return fklTryExpandCgMacro(exp, codegen, macros, error_state);
+        return fklTryExpandCgMacro(ctx, exp, codegen, macros);
         break;
     }
 
     return NULL;
 }
 
-FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
+FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
+        const FklPmatchRes *exp,
         FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros,
-        FklCgErrorState *error_state) {
+        FklVMvalueCgMacroScope *macros) {
+    FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
         return r;
@@ -841,25 +841,24 @@ FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
             macro = find_macro(r, macros, &ht)) {
         for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
             FklPmatchRes *r = &cur->v;
-            FklVMvalue *rr = expand_macro_arg(r->expand,
+            FklVMvalue *rr = expand_macro_arg(ctx, //
+                    r->expand,
                     r,
                     codegen,
-                    macros,
-                    error_state);
+                    macros);
             if (rr == NULL)
                 return NULL;
             r->value = rr;
         }
 
-        fklPmatchHashMapAdd2(&ht, //
-                codegen->ctx->builtin_sym_orig,
+        fklPmatchHashMapAdd2(&ht,
+                ctx->builtin_sym_orig,
                 (FklPmatchRes){
                     .value = r,
                     .container = exp->container,
                 });
         FklVMvalue *retval = NULL;
 
-        FklCgCtx *ctx = codegen->ctx;
         const char *cwd = ctx->cwd;
         fklChdir(codegen->dir);
 
@@ -869,8 +868,7 @@ FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
                 &ht,
                 ctx->lnt,
                 &retval,
-                curline,
-                error_state);
+                curline);
         FklVMgc *gc = exe->gc;
         int e = fklRunVMidleLoop(exe);
         fklMoveThreadObjectsToGc(exe, gc);
@@ -896,10 +894,11 @@ FklVMvalue *fklTryExpandCgMacroOnce(const FklPmatchRes *exp,
     return r;
 }
 
-FklVMvalue *fklTryExpandCgMacro(const FklPmatchRes *exp,
+FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
+        const FklPmatchRes *exp,
         FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros,
-        FklCgErrorState *error_state) {
+        FklVMvalueCgMacroScope *macros) {
+    FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
         return r;
@@ -911,21 +910,23 @@ FklVMvalue *fklTryExpandCgMacro(const FklPmatchRes *exp,
 
         for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
             FklPmatchRes *r = &cur->v;
-            FklVMvalue *rr = expand_macro_arg(r->expand,
+            FklVMvalue *rr = expand_macro_arg(ctx, //
+                    r->expand,
                     r,
                     codegen,
-                    macros,
-                    error_state);
+                    macros);
             if (rr == NULL)
                 return NULL;
             r->value = rr;
         }
         fklPmatchHashMapAdd2(&ht,
-                codegen->ctx->builtin_sym_orig,
-                (FklPmatchRes){ .value = r, .container = exp->container });
+                ctx->builtin_sym_orig,
+                (FklPmatchRes){
+                    .value = r,
+                    .container = exp->container,
+                });
         FklVMvalue *retval = NULL;
 
-        FklCgCtx *ctx = codegen->ctx;
         const char *cwd = ctx->cwd;
         fklChdir(codegen->dir);
 
@@ -935,8 +936,7 @@ FklVMvalue *fklTryExpandCgMacro(const FklPmatchRes *exp,
                 &ht,
                 ctx->lnt,
                 &retval,
-                curline,
-                error_state);
+                curline);
         FklVMgc *gc = exe->gc;
         int e = fklRunVMidleLoop(exe);
         fklMoveThreadObjectsToGc(exe, gc);
@@ -1080,8 +1080,8 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
         FklVMvalue **pr,
-        uint64_t curline,
-        FklCgErrorState *error_state) {
+        uint64_t curline) {
+    FklCgErrorState *error_state = ctx->error_state;
     FklVMvalueProtos *pts = ctx->macro_pts;
 
     FklVMvalueLibs *libs = ctx->macro_vm_libs;
@@ -1165,7 +1165,7 @@ static FklVMudMetaTable const MacroScopeUserDataMetaTable = {
     .finalize = macro_scope_finalize,
 };
 
-FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(FklCgCtx *c,
+FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
         FklVMvalueCgMacroScope *prev) {
     FKL_ASSERT(prev == NULL //
                || fklIsVMvalueCgMacroScope((FklVMvalue *)prev));
@@ -1239,7 +1239,7 @@ static FklVMudMetaTable const EnvUserDataMetaTable = {
     .finalize = env_finalizer,
 };
 
-FklVMvalueCgEnv *fklCreateVMvalueCgEnv(FklCgCtx *c,
+FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
         FklVMvalueCgEnv *prev,
         uint32_t pscope,
         FklVMvalueCgMacroScope *prev_ms) {
@@ -1301,6 +1301,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCgInfo *as_info(const FklVMvalue *r) {
 
 static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgInfo *e = as_info(ud);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->pts), gc);
@@ -1442,7 +1443,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
     r->curline = filename == NULL && prev ? prev->curline : 1;
 
-    r->ctx = ctx;
+    r->lnt = ctx->lnt;
 
     r->exports.buckets = NULL;
     r->is_lib = is_lib;
@@ -1487,7 +1488,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     FklVMvalueCgEnv *main_env = NULL;
     if (is_global) {
         FklVMvalueCgMacroScope *macros = r->global_env->macros;
-        main_env = fklCreateVMvalueCgEnv(r->ctx, r->global_env, 1, macros);
+        main_env = fklCreateVMvalueCgEnv(ctx, r->global_env, 1, macros);
         create_and_insert_to_pool(r, 0, main_env, 0, 1);
         ctx->global_env = main_env;
         ctx->global_info = r;
@@ -1554,8 +1555,9 @@ static void *custom_action(void *c,
         size_t num,
         size_t line) {
     FklVMparseCtx *pctx = FKL_TYPE_CAST(FklVMparseCtx *, ctx);
+    FklCgCtx *cg_ctx = pctx->opaque;
+    FKL_ASSERT(cg_ctx);
     FklVMvalueCustomActCtx *action_ctx = c;
-    FklCgCtx *cg_ctx = action_ctx->ctx;
     FklVMvalue *nodes_vector = fklCreateVMvalueVec(cg_ctx->vm, line);
     for (size_t i = 0; i < num; i++)
         FKL_VM_VEC(nodes_vector)->base[i] = nodes[i].ast;
@@ -1598,8 +1600,7 @@ static void *custom_action(void *c,
             &ht,
             pctx->ln,
             &r,
-            line,
-            cg_ctx->error_state);
+            line);
     FklVMgc *gc = exe->gc;
 
     int e = fklRunVMidleLoop(exe);
@@ -1624,7 +1625,6 @@ static inline FklVMvalue *create_custom_prod_action_ctx(FklCgCtx *cg_ctx,
                     actual_len * sizeof(v->dollers[0]),
                     NULL);
 
-    v->ctx = cg_ctx;
     v->prototype_id = prototypeId;
     v->actual_len = actual_len;
 
@@ -2610,7 +2610,7 @@ int fklIsSimpleActionProd(const FklGrammerProduction *p) {
     return p->func == simple_action;
 }
 
-FklGrammerProduction *fklCreateExtraStartProduction(FklCgCtx *ctx,
+FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
         FklVMvalue *group,
         FklVMvalue *sid) {
     FklGrammerProduction *prod =

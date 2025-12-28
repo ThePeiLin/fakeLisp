@@ -196,10 +196,7 @@ typedef struct {
 
 } FklCgLib;
 
-// FklCgLibVector
-#define FKL_VECTOR_ELM_TYPE FklCgLib
-#define FKL_VECTOR_ELM_TYPE_NAME CgLib
-#include "cont/vector.h"
+typedef struct FklVMvalueCgLibs FklVMvalueCgLibs;
 
 typedef enum {
     FKL_CODEGEN_PATTERN_BEGIN = 0,
@@ -300,9 +297,9 @@ typedef struct FklCgCtx {
     char *main_file_real_path_dir;
     const char *cur_file_dir;
 
-    FklCgLibVector libraries;
+    FklVMvalueCgLibs *libraries;
 
-    FklCgLibVector macro_libraries;
+    FklVMvalueCgLibs *macro_libraries;
 
     FklVMvalueLibs *macro_vm_libs;
 
@@ -356,7 +353,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklReplacementHashMap *export_replacement;
     FklGraProdGroupHashMap *export_prod_groups;
 
-    FklCgLibVector *libraries;
+    FklVMvalueCgLibs *libraries;
     FklVMvalueProtos *pts;
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
@@ -444,7 +441,7 @@ void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {
     FklVMvalueProtos *pts;
-    FklCgLibVector *libraries;
+    FklVMvalueCgLibs *libraries;
     FklVMvalueCgMacroScope *macro_scope;
 
     void *work_ctx;
@@ -471,6 +468,22 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     size_t actual_len;
     FklVMvalue *dollers[];
 });
+
+int fklIsVMvalueCgLibs(const FklVMvalue *v);
+FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
+FklVMvalueCgLibs *fklCreateVMvalueCgLibs1(FklVM *vm, size_t num);
+FklCgLib *fklVMvalueCgLibsLast(const FklVMvalueCgLibs *v);
+size_t fklVMvalueCgLibsLastId(const FklVMvalueCgLibs *v);
+size_t fklVMvalueCgLibsNextId(const FklVMvalueCgLibs *v);
+size_t fklVMvalueCgLibsFind(const FklVMvalueCgLibs *v, const char *realpath);
+FklCgLib *fklVMvalueCgLibsPushBack(FklVMvalueCgLibs *v);
+FklCgLib *fklVMvalueCgLibsEmplaceBack(FklVMvalueCgLibs *v, FklCgLib *libs);
+FklCgLib *fklVMvalueCgLibsGet(FklVMvalueCgLibs *v, size_t id);
+
+FklCgLib *fklVMvalueCgLibs(FklVMvalueCgLibs *v);
+size_t fklVMvalueCgLibsCount(FklVMvalueCgLibs *v);
+
+void fklVMvalueCgLibsMerge(FklVMvalueCgLibs *out, FklVMvalueCgLibs *in);
 
 int fklIsVMvalueCgInfo(const FklVMvalue *v);
 FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
@@ -583,8 +596,6 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 void fklClearCgLibMacros(FklCgLib *lib);
 void fklClearCgLibMacros2(const FklCgCtx *ctx);
 
-void fklUninitCgLib(FklCgLib *);
-
 FklCgMacro *fklCreateCgMacro(FklVMvalue *pattern,
         FklVMvalue *bcl,
         FklCgMacro *next,
@@ -611,7 +622,7 @@ void fklInitVMlibWithCgLib(const FklCgLib *clib,
 
 void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
         FklVMvalueLibs *libs,
-        const FklCgLibVector *clibs,
+        const FklVMvalueCgLibs *clibs,
         const FklVMvalueProtos *pts);
 
 FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,

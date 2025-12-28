@@ -209,8 +209,8 @@ int main(int argc, char **argv) {
 
             FklLoadPreCompileArgs args = {
                 .ctx = &ctx,
-                .libraries = &ctx.libraries,
-                .macro_libraries = &ctx.macro_libraries,
+                .libraries = ctx.libraries,
+                .macro_libraries = ctx.macro_libraries,
                 .pts = pts,
                 .macro_pts = ctx.macro_pts,
             };
@@ -239,9 +239,10 @@ int main(int argc, char **argv) {
 
             CB_LINE("file: %s", filename);
             CB_LINE("");
-            uint64_t count = ctx.libraries.size;
+            uint64_t count = fklVMvalueCgLibsCount(ctx.libraries);
+            const FklCgLib *base = fklVMvalueCgLibs(ctx.libraries);
             for (uint64_t i = 0; i < count; ++i) {
-                const FklCgLib *cur = &ctx.libraries.base[i];
+                const FklCgLib *cur = &base[i];
                 CB_LINE("lib %" PRIu64 ":", i + 1);
                 switch (cur->type) {
                 case FKL_CODEGEN_LIB_SCRIPT:
@@ -282,12 +283,13 @@ int main(int argc, char **argv) {
                 CB_LINE("");
             }
 
-            if (ctx.macro_libraries.size > 0) {
+            if (fklVMvalueCgLibsCount(ctx.macro_libraries) > 0) {
                 CB_LINE("");
                 CB_LINE("macro loaded libs:");
-                uint64_t count = ctx.macro_libraries.size;
+                uint64_t count = fklVMvalueCgLibsCount(ctx.macro_libraries);
+                const FklCgLib *base = fklVMvalueCgLibs(ctx.macro_libraries);
                 for (uint64_t i = 0; i < count; ++i) {
-                    const FklCgLib *cur = &ctx.macro_libraries.base[i];
+                    const FklCgLib *cur = &base[i];
                     CB_LINE("lib %" PRIu64 ":", i + 1);
                     switch (cur->type) {
                     case FKL_CODEGEN_LIB_SCRIPT:

@@ -209,8 +209,8 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
-        .libraries = &ctx.libraries,
-        .macro_libraries = &ctx.macro_libraries,
+        .libraries = ctx.libraries,
+        .macro_libraries = ctx.macro_libraries,
         .pts = pts,
         .macro_pts = ctx.macro_pts,
     };
@@ -235,9 +235,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         return 1;
     }
 
-    FklCgLib *main_lib = fklCgLibVectorPopBackNonNull(&ctx.libraries);
-    FklVMvalue *main_byte_code = main_lib->bcl;
-    fklUninitCgLib(main_lib);
+    FklVMvalue *main_byte_code = fklVMvalueCgLibsLast(ctx.libraries)->bcl;
 
     FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
             gc,
@@ -248,7 +246,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
 
     fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
-            &ctx.libraries,
+            ctx.libraries,
             anotherVM->pts);
 
     fklChdir(ctx.cwd);

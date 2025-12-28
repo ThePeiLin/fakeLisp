@@ -98,7 +98,6 @@ int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args);
 
 struct FklCgCtx;
 struct FklVMvalueProtos;
-struct FklCgLibVector;
 struct FklGraProdGroupHashMap;
 
 typedef struct {
@@ -114,8 +113,8 @@ void fklWritePreCompile(FILE *fp,
 typedef struct {
     // in
     struct FklCgCtx *const ctx;
-    struct FklCgLibVector *const libraries;
-    struct FklCgLibVector *const macro_libraries;
+    struct FklVMvalueCgLibs *const libraries;
+    struct FklVMvalueCgLibs *const macro_libraries;
     struct FklVMvalueProtos *const pts;
     struct FklVMvalueProtos *const macro_pts;
 

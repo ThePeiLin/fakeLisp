@@ -1487,33 +1487,33 @@ static inline int load_lib_from_pre_compile(FILE *fp,
     return 0;
 }
 
-static inline int load_lib_vector(FILE *fp,
+static inline FklVMvalueCgLibs *load_lib_vector(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCgLibVector *libraries,
         FklLoadPreCompileArgs *const args) {
     uint64_t num = 0;
     fread(&num, sizeof(num), 1, fp);
-    fklCgLibVectorInit(libraries, num);
+    FklVMvalueCgLibs *libs = fklCreateVMvalueCgLibs1(args->ctx->vm, num);
     for (size_t i = 0; i < num; i++) {
         FklCgLib lib = { 0 };
         if (load_lib_from_pre_compile(fp, main_dir, values, &lib, args))
-            return 1;
-        fklCgLibVectorPushBack(libraries, &lib);
+            return NULL;
+        fklVMvalueCgLibsEmplaceBack(libs, &lib);
     }
-    return 0;
+    return libs;
 }
 
-static inline int load_lib_vector_and_main(FILE *fp,
+static inline FklVMvalueCgLibs *load_lib_vector_and_main(FILE *fp,
         const char *main_dir,
         const FklLoadValueArgs *const values,
-        FklCgLibVector *libraries,
         FklLoadPreCompileArgs *const args) {
-    load_lib_vector(fp, main_dir, values, libraries, args);
+    FklVMvalueCgLibs *l = load_lib_vector(fp, main_dir, values, args);
+    if (l == NULL)
+        return NULL;
     FklCgLib main_lib = { 0 };
     load_script_lib_from_pre_compile(fp, main_dir, values, &main_lib, args);
-    fklCgLibVectorPushBack(libraries, &main_lib);
-    return 0;
+    fklVMvalueCgLibsEmplaceBack(l, &main_lib);
+    return l;
 }
 
 #define IS_LOAD_DLL_OP(OP)                                                     \
@@ -1580,10 +1580,10 @@ increase_compiler_macros_lib_prototype_id(FklMacroHashMap *macros,
     }
 }
 
-static inline void increase_prototype_and_lib_id(FklCgLibVector *libraries,
+static inline void increase_prototype_and_lib_id(FklVMvalueCgLibs *libraries,
         const IncCtx *args) {
-    uint32_t top = libraries->size;
-    FklCgLib *base = libraries->base;
+    uint32_t top = fklVMvalueCgLibsCount(libraries);
+    FklCgLib *base = fklVMvalueCgLibs(libraries);
     for (uint32_t i = 0; i < top; i++) {
         FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
@@ -1616,10 +1616,10 @@ static inline void increase_reader_macro_lib_prototype_id(
 }
 
 static inline void increase_macro_prototype_and_lib_id(
-        FklCgLibVector *libraries,
+        FklVMvalueCgLibs *libraries,
         const IncCtx *args) {
-    uint32_t top = libraries->size;
-    FklCgLib *base = libraries->base;
+    uint32_t top = fklVMvalueCgLibsCount(libraries);
+    FklCgLib *base = fklVMvalueCgLibs(libraries);
     for (uint32_t i = 0; i < top; i++) {
         FklCgLib *lib = &base[i];
         if (lib->type == FKL_CODEGEN_LIB_SCRIPT) {
@@ -1643,12 +1643,6 @@ static inline void merge_prototypes(FklVMvalueProtos *a,
     uint32_t i = o_count + 1;
     memcpy(&pa[i], &in->pa[1], in->count * sizeof(FklFuncPrototype));
     memset(&in->pa[1], 0, in->count * sizeof(FklFuncPrototype));
-}
-
-static inline void merge_libraries(FklCgLibVector *out,
-        const FklCgLibVector *in) {
-    for (uint32_t i = 0; i < in->size; i++)
-        fklCgLibVectorPushBack(out, &in->base[i]);
 }
 
 static inline void write_export_sid_idx_table_pass_2(
@@ -1864,19 +1858,23 @@ static inline void write_lib_vector_passes(FILE *outfp,
         const char *main_dir,
         const char *target_dir,
         FklWriteCodePass pass,
-        const FklCgLibVector *const libraries) {
+        FklVMvalueCgLibs *const libraries) {
     switch (pass) {
     case FKL_WRITE_CODE_PASS_FIRST: {
-        for (size_t i = 0; i < libraries->size; i++) {
-            const FklCgLib *lib = &libraries->base[i];
+        const FklCgLib *base = fklVMvalueCgLibs(libraries);
+        size_t count = fklVMvalueCgLibsCount(libraries);
+
+        for (size_t i = 0; i < count; i++) {
+            const FklCgLib *lib = &base[i];
             write_codegen_lib_pass_1(lib, value_table);
         }
     } break;
     case FKL_WRITE_CODE_PASS_SECOND: {
-        uint64_t num = libraries->size;
+        const FklCgLib *base = fklVMvalueCgLibs(libraries);
+        uint64_t num = fklVMvalueCgLibsCount(libraries);
         fwrite(&num, sizeof(uint64_t), 1, outfp);
         for (size_t i = 0; i < num; i++) {
-            const FklCgLib *lib = &libraries->base[i];
+            const FklCgLib *lib = &base[i];
             write_codegen_lib_pass_2(lib,
                     main_dir,
                     target_dir,
@@ -1948,7 +1946,7 @@ static inline void write_pre_compile_passes(FILE *fp,
             main_dir,
             target_dir,
             pass,
-            &ctx->libraries);
+            ctx->libraries);
 
     write_lib_main_file_passes(fp,
             value_table,
@@ -1964,7 +1962,7 @@ static inline void write_pre_compile_passes(FILE *fp,
             main_dir,
             target_dir,
             pass,
-            &ctx->macro_libraries);
+            ctx->macro_libraries);
 }
 
 void fklWritePreCompile(FILE *fp,
@@ -2007,70 +2005,64 @@ int fklLoadPreCompile(FILE *fp,
 
     fklLoadFuncPrototypes(fp, &load_values, pts);
 
-    FklCgLibVector libraries = { 0 };
-
-    if (load_lib_vector_and_main(fp, main_dir, &load_values, &libraries, args))
+    FklVMvalueCgLibs *libraries = load_lib_vector_and_main(fp, //
+            main_dir,
+            &load_values,
+            args);
+    if (libraries == NULL)
         goto error;
 
     FklVMvalueProtos *macro_pts = fklCreateVMvalueProtos(ctx->vm, 0);
 
     fklLoadFuncPrototypes(fp, &load_values, macro_pts);
 
-    FklCgLibVector macro_libraries = { 0 };
+    FklVMvalueCgLibs *macro_libraries = load_lib_vector(fp, //
+            main_dir,
+            &load_values,
+            args);
 
-    if (load_lib_vector(fp, main_dir, &load_values, &macro_libraries, args)) {
-        while (!fklCgLibVectorIsEmpty(&macro_libraries))
-            fklUninitCgLib(fklCgLibVectorPopBack(&macro_libraries));
-        fklCgLibVectorUninit(&macro_libraries);
+    if (macro_libraries == NULL) {
     error:
-        while (!fklCgLibVectorIsEmpty(&libraries))
-            fklUninitCgLib(fklCgLibVectorPopBack(&libraries));
         err = 1;
         goto exit;
     }
 
-    increase_prototype_and_lib_id(&libraries,
+    increase_prototype_and_lib_id(libraries,
             &(IncCtx){
-                .lib_count = args->libraries->size,
                 .pts_count = args->pts->p.count,
+                .lib_count = fklVMvalueCgLibsCount(args->libraries),
             });
 
     merge_prototypes(args->pts, pts);
 
-    merge_libraries(args->libraries, &libraries);
-
-    increase_macro_prototype_and_lib_id(&libraries,
+    increase_macro_prototype_and_lib_id(libraries,
             &(IncCtx){
                 .pts_count = args->macro_pts->p.count,
-                .lib_count = args->macro_libraries->size,
+                .lib_count = fklVMvalueCgLibsCount(args->macro_libraries),
             });
 
-    libraries.size = 0;
+    fklVMvalueCgLibsMerge(args->libraries, libraries);
 
-    increase_prototype_and_lib_id(&macro_libraries,
+    increase_prototype_and_lib_id(macro_libraries,
             &(IncCtx){
                 .pts_count = args->macro_pts->p.count,
-                .lib_count = args->macro_libraries->size,
+                .lib_count =fklVMvalueCgLibsCount( args->macro_libraries),
             });
 
-    increase_macro_prototype_and_lib_id(&macro_libraries,
+    increase_macro_prototype_and_lib_id(macro_libraries,
             &(IncCtx){
                 .pts_count = args->macro_pts->p.count,
-                .lib_count = args->macro_libraries->size,
+                .lib_count = fklVMvalueCgLibsCount(args->macro_libraries),
             });
 
     merge_prototypes(args->macro_pts, macro_pts);
 
-    merge_libraries(args->macro_libraries, &macro_libraries);
+    fklVMvalueCgLibsMerge(args->macro_libraries, macro_libraries);
 
-    macro_libraries.size = 0;
-
-    fklCgLibVectorUninit(&macro_libraries);
 exit:
     load_values.count = 0;
     fklZfree(load_values.values);
 
     fklZfree(main_dir);
-    fklCgLibVectorUninit(&libraries);
     return err;
 }

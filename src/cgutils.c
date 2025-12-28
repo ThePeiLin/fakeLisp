@@ -7,15 +7,22 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/regex.h>
+#include <fakeLisp/str_buf.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
 #include "codegen.h"
-#include "fakeLisp/str_buf.h"
 
 #include <inttypes.h>
 #include <stdio.h>
+
+// FklCgLibVector
+#define FKL_VECTOR_ELM_TYPE FklCgLib
+#define FKL_VECTOR_ELM_TYPE_NAME CgLib
+#include <fakeLisp/cont/vector.h>
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibVector libs; });
 
 static FklVM *init_macro_expand_vm(FklCgCtx *ctx,
         FklVMvalue *bcl,
@@ -640,7 +647,7 @@ static inline void uninit_codegen_lib_info(FklCgLib *lib) {
     fklZfree(lib->rp);
 }
 
-void fklUninitCgLib(FklCgLib *lib) {
+static void fklUninitCgLib(FklCgLib *lib) {
     if (lib == NULL)
         return;
     switch (lib->type) {
@@ -770,14 +777,14 @@ void fklClearCgLibMacros(FklCgLib *lib) {
 }
 
 void fklClearCgLibMacros2(const FklCgCtx *ctx) {
-    FklCgLib *cur = ctx->libraries.base;
-    FklCgLib *end = &cur[ctx->libraries.size];
+    FklCgLib *cur = ctx->libraries->libs.base;
+    FklCgLib *end = &cur[ctx->libraries->libs.size];
     for (; cur < end; ++cur) {
         fklClearCgLibMacros(cur);
     }
 
-    cur = ctx->macro_libraries.base;
-    end = &cur[ctx->macro_libraries.size];
+    cur = ctx->macro_libraries->libs.base;
+    end = &cur[ctx->macro_libraries->libs.size];
     for (; cur < end; ++cur) {
         fklClearCgLibMacros(cur);
     }
@@ -1069,9 +1076,9 @@ static inline void update_new_codegen_to_new_vm_lib(FklVM *vm,
 
 void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
         FklVMvalueLibs *libs,
-        const FklCgLibVector *clibs,
+        const FklVMvalueCgLibs *clibs,
         const FklVMvalueProtos *pts) {
-    update_new_codegen_to_new_vm_lib(vm, clibs, pts, libs);
+    update_new_codegen_to_new_vm_lib(vm, &clibs->libs, pts, libs);
 }
 
 static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
@@ -1106,7 +1113,10 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
             &pts->p,
             prototype_id);
 
-    update_new_codegen_to_new_vm_lib(exe, &ctx->macro_libraries, pts, libs);
+    update_new_codegen_to_new_vm_lib(exe,
+            &ctx->macro_libraries->libs,
+            pts,
+            libs);
     return exe;
 }
 
@@ -1122,7 +1132,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCgMacroScope *as_macro_scope(
     return FKL_TYPE_CAST(FklVMvalueCgMacroScope *, r);
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(macro_scope_print, "macro-scope")
+FKL_VM_USER_DATA_DEFAULT_PRINT(macro_scope_print, "macro-scope");
 
 static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
@@ -1409,10 +1419,10 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
             &InfoUserDataMetaTable,
             NULL);
 
-    FklCgLibVector *libs = args && args->libraries ? args->libraries
-                         : is_macro                ? &ctx->macro_libraries
-                         : prev                    ? prev->libraries
-                                                   : &ctx->libraries;
+    FklVMvalueCgLibs *libs = args && args->libraries ? args->libraries
+                           : is_macro                ? ctx->macro_libraries
+                           : prev                    ? prev->libraries
+                                                     : ctx->libraries;
 
     FklVMvalueProtos *pts = args && args->pts ? args->pts
                           : is_macro          ? ctx->macro_pts
@@ -2630,4 +2640,174 @@ FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
     u->nt.group = group;
     u->nt.sid = sid;
     return prod;
+}
+
+static FklVMudMetaTable const CgLibsUserDataMetaTable;
+
+int fklIsVMvalueCgLibs(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CgLibsUserDataMetaTable;
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
+
+static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
+    for (const FklCgExportSidIdxHashMapNode *cur = lib->exports.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
+    switch (lib->type) {
+    case FKL_CODEGEN_LIB_SCRIPT:
+        fklVMgcToGray(lib->bcl, gc);
+
+        for (const FklMacroHashMapNode *cur = lib->macros->first; cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            for (const FklCgMacro *m = cur->v; m; m = m->next) {
+                fklVMgcToGray(m->pattern, gc);
+                fklVMgcToGray(m->bcl, gc);
+            }
+        }
+
+        for (const FklReplacementHashMapNode *cur = lib->replacements->first;
+                cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            fklVMgcToGray(cur->v, gc);
+        }
+
+        for (const FklGraProdGroupHashMapNode *cur =
+                        lib->named_prod_groups->first;
+                cur;
+                cur = cur->next) {
+            fklVMgcToGray(cur->k, gc);
+            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
+        }
+
+        break;
+    case FKL_CODEGEN_LIB_DLL:
+        break;
+    case FKL_CODEGEN_LIB_UNINIT:
+        FKL_UNREACHABLE();
+        break;
+    }
+}
+
+static inline void mark_codegen_lib_vector(FklVMgc *gc,
+        const FklCgLibVector *libs) {
+    for (size_t i = 0; i < libs->size; ++i) {
+        mark_codegen_lib(gc, &libs->base[i]);
+    }
+}
+
+static FklVMvalueCgLibs *as_cg_libs(const FklVMvalue *ud) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(ud));
+    return FKL_TYPE_CAST(FklVMvalueCgLibs *, ud);
+}
+
+static void cg_libs_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgLibs *libs = as_cg_libs(ud);
+    mark_codegen_lib_vector(gc, &libs->libs);
+}
+
+static int cg_libs_finalize(FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgLibs *libs = as_cg_libs(ud);
+    FklCgLibVector *l = &libs->libs;
+    while (!fklCgLibVectorIsEmpty(l))
+        fklUninitCgLib(fklCgLibVectorPopBackNonNull(l));
+
+    fklCgLibVectorUninit(l);
+
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable const CgLibsUserDataMetaTable = {
+    .size = sizeof(FklVMvalueCgLibs),
+    .princ = cg_libs_print,
+    .prin1 = cg_libs_print,
+    .atomic = cg_libs_atomic,
+    .finalize = cg_libs_finalize,
+};
+
+FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm) {
+    FklVMvalueCgLibs *r = (FklVMvalueCgLibs *)fklCreateVMvalueUd(vm,
+            &CgLibsUserDataMetaTable,
+            NULL);
+
+    fklCgLibVectorInit(&r->libs, 8);
+    return r;
+}
+
+FklVMvalueCgLibs *fklCreateVMvalueCgLibs1(FklVM *vm, size_t num) {
+    FklVMvalueCgLibs *r = (FklVMvalueCgLibs *)fklCreateVMvalueUd(vm,
+            &CgLibsUserDataMetaTable,
+            NULL);
+
+    fklCgLibVectorInit(&r->libs, num);
+    return r;
+}
+
+size_t fklVMvalueCgLibsFind(const FklVMvalueCgLibs *libs,
+        const char *realpath) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    const FklCgLibVector *l = &libs->libs;
+    for (size_t i = 0; i < l->size; i++) {
+        const FklCgLib *cur = &l->base[i];
+        if (!strcmp(realpath, cur->rp))
+            return i + 1;
+    }
+    return 0;
+}
+
+size_t fklVMvalueCgLibsLastId(const FklVMvalueCgLibs *libs) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    return libs->libs.size;
+}
+
+size_t fklVMvalueCgLibsNextId(const FklVMvalueCgLibs *libs) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    return libs->libs.size + 1;
+}
+
+FklCgLib *fklVMvalueCgLibsLast(const FklVMvalueCgLibs *libs) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    return &libs->libs.base[libs->libs.size - 1];
+}
+
+FklCgLib *fklVMvalueCgLibsPushBack(FklVMvalueCgLibs *v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return fklCgLibVectorPushBack(&v->libs, NULL);
+}
+
+FklCgLib *fklVMvalueCgLibsEmplaceBack(FklVMvalueCgLibs *v, FklCgLib *l) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return fklCgLibVectorPushBack(&v->libs, l);
+}
+
+FklCgLib *fklVMvalueCgLibsGet(FklVMvalueCgLibs *v, size_t id) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    FKL_ASSERT(id > 0 && id <= v->libs.size);
+    return &v->libs.base[id - 1];
+}
+
+FklCgLib *fklVMvalueCgLibs(FklVMvalueCgLibs *v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return v->libs.base;
+}
+
+size_t fklVMvalueCgLibsCount(FklVMvalueCgLibs *v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return v->libs.size;
+}
+
+void fklVMvalueCgLibsMerge(FklVMvalueCgLibs *out_v, FklVMvalueCgLibs *in_v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, out_v)));
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, in_v)));
+
+    FklCgLibVector *in = &in_v->libs;
+    FklCgLibVector *out = &out_v->libs;
+
+    for (uint32_t i = 0; i < in->size; i++)
+        fklCgLibVectorPushBack(out, &in->base[i]);
+
+    in->size = 0;
 }

@@ -6273,17 +6273,17 @@ static inline int has_undefined_non_terminal(FklVMvalueCgInfo *info,
 
 static inline void process_export_bc(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
-        FklVMvalue *libBc,
+        FklVMvalue *lib_bc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
     FklVM *vm = ctx->vm;
-    info->epc = FKL_VM_CO(libBc)->bc.len;
+    info->epc = FKL_VM_CO(lib_bc)->bc.len;
 
     append_export_to_ins(vm,
             INS_APPEND_BACK,
-            libBc,
-            info->libraries->size + 1,
+            lib_bc,
+            fklVMvalueCgLibsNextId(info->libraries),
             info->exports.count,
             fid,
             line,
@@ -6292,7 +6292,7 @@ static inline void process_export_bc(FklCgCtx *ctx,
             l = l->next) {
         append_export_ins(vm,
                 INS_APPEND_BACK,
-                libBc,
+                lib_bc,
                 l->v.oidx,
                 fid,
                 line,
@@ -6300,7 +6300,7 @@ static inline void process_export_bc(FklCgCtx *ctx,
     }
 
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(FKL_VM_CO(libBc), &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(lib_bc), &ret, fid, line, scope);
 }
 
 static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
@@ -6358,7 +6358,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
 
     process_export_bc(ctx, info, co, fid, line, scope);
 
-    FklCgLib *lib = fklCgLibVectorPushBack(info->libraries, NULL);
+    FklCgLib *lib = fklVMvalueCgLibsPushBack(info->libraries);
     fklInitCgScriptLib(lib, info, co, info->epc, env);
 
     info->realpath = NULL;
@@ -6366,7 +6366,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     info->export_macros = NULL;
     info->export_replacement = NULL;
     return d->import_cb(ctx,
-            info->libraries->size,
+            fklVMvalueCgLibsLastId(info->libraries),
             d->info,
             lib,
             d->env,
@@ -6592,16 +6592,6 @@ static FklVMvalue *_export_define_bc_process(const FklCgActCbArgs *args) {
     return sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
 }
 
-static size_t check_loaded_lib(const char *realpath,
-        FklCgLibVector *loaded_libraries) {
-    for (size_t i = 0; i < loaded_libraries->size; i++) {
-        const FklCgLib *cur = &loaded_libraries->base[i];
-        if (!strcmp(realpath, cur->rp))
-            return i + 1;
-    }
-    return 0;
-}
-
 typedef int (*ImportLibCbCheck)(const FklVMvalue *args);
 
 typedef struct {
@@ -6643,8 +6633,8 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
         errors->line = CURLINE(orig);
         return;
     }
-    size_t libId = check_loaded_lib(next_info->realpath, info->libraries);
-    if (!libId) {
+    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, next_info->realpath);
+    if (!lib_id) {
         FILE *fp = fopen(filename, "r");
         if (!fp) {
             errors->error = make_file_failure_error(vm, name);
@@ -6675,10 +6665,10 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
     } else {
         fklReplacementHashMapDestroy(next_info->export_replacement);
         next_info->export_replacement = NULL;
-        const FklCgLib *lib = &info->libraries->base[libId - 1];
+        const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, lib_id);
 
         FklVMvalue *importBc = import_args->import_cb(ctx,
-                libId,
+                lib_id,
                 info,
                 lib,
                 env,
@@ -6720,8 +6710,8 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
 
     FklVMvalue *name = import_args->name;
 
-    size_t libId = check_loaded_lib(filename, info->libraries);
-    if (!libId) {
+    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, filename);
+    if (!lib_id) {
         FILE *fp = fopen(filename, "rb");
         if (fp == NULL) {
             errors->error = make_import_failed_error(vm, name);
@@ -6732,7 +6722,7 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
         FklLoadPreCompileArgs args = {
             .ctx = ctx,
             .libraries = info->libraries,
-            .macro_libraries = &ctx->macro_libraries,
+            .macro_libraries = ctx->macro_libraries,
             .pts = info->pts,
             .macro_pts = ctx->macro_pts,
         };
@@ -6750,12 +6740,13 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
             return -1;
         }
 
-        libId = info->libraries->size;
+        lib_id = fklVMvalueCgLibsLastId(info->libraries);
     }
-    const FklCgLib *lib = &info->libraries->base[libId - 1];
+
+    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, lib_id);
 
     FklVMvalue *importBc = import_args->import_cb(ctx,
-            libId,
+            lib_id,
             info,
             lib,
             env,
@@ -6787,7 +6778,7 @@ static inline size_t load_dll(FklCgCtx *ctx,
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
     char *realpath = fklRealpath(filename);
-    size_t lib_id = check_loaded_lib(realpath, info->libraries);
+    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, realpath);
     if (lib_id != 0) {
         fklZfree(realpath);
         return lib_id;
@@ -6810,9 +6801,9 @@ static inline size_t load_dll(FklCgCtx *ctx,
         fklZfree(realpath);
         return 0;
     }
-    FklCgLib *lib = fklCgLibVectorPushBack(info->libraries, NULL);
+    FklCgLib *lib = fklVMvalueCgLibsPushBack(info->libraries);
     fklInitCgDllLib(ctx, lib, realpath, dll, initExport);
-    lib_id = info->libraries->size;
+    lib_id = fklVMvalueCgLibsLastId(info->libraries);
 
     return lib_id;
 }
@@ -6849,7 +6840,7 @@ static inline int import_dll_impl(const CgCbArgs *args,
             orig,
             import_args->import_cb_args,
             load_dll_bc,
-            &info->libraries->base[lib_id - 1],
+            fklVMvalueCgLibsGet(info->libraries, lib_id),
             env,
             scope,
             info,
@@ -9008,55 +8999,6 @@ static inline void mark_action_vector(FklVMgc *gc, FklCgActVector *v) {
     }
 }
 
-static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
-    for (const FklCgExportSidIdxHashMapNode *cur = lib->exports.first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-    }
-    switch (lib->type) {
-    case FKL_CODEGEN_LIB_SCRIPT:
-        fklVMgcToGray(lib->bcl, gc);
-
-        for (const FklMacroHashMapNode *cur = lib->macros->first; cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            for (const FklCgMacro *m = cur->v; m; m = m->next) {
-                fklVMgcToGray(m->pattern, gc);
-                fklVMgcToGray(m->bcl, gc);
-            }
-        }
-
-        for (const FklReplacementHashMapNode *cur = lib->replacements->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcToGray(cur->v, gc);
-        }
-
-        for (const FklGraProdGroupHashMapNode *cur =
-                        lib->named_prod_groups->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
-        }
-
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        break;
-    case FKL_CODEGEN_LIB_UNINIT:
-        FKL_UNREACHABLE();
-        break;
-    }
-}
-
-static inline void mark_codegen_lib_vector(FklVMgc *gc,
-        const FklCgLibVector *libs) {
-    for (size_t i = 0; i < libs->size; ++i) {
-        mark_codegen_lib(gc, &libs->base[i]);
-    }
-}
-
 static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     FklCgCtx *ctx = FKL_TYPE_CAST(FklCgCtx *, c);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_env), gc);
@@ -9106,21 +9048,19 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
         fklVMgcToGray(ctx->simple_prod_action_id[i], gc);
     }
 
-    mark_codegen_lib_vector(gc, &ctx->libraries);
-    mark_codegen_lib_vector(gc, &ctx->macro_libraries);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->libraries), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_libraries), gc);
 }
 
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
         FklVMvalueProtos *pts,
         FklVM *vm) {
     memset(ctx, 0, sizeof(FklCgCtx));
-    fklCgLibVectorInit(&ctx->libraries, 8);
-    fklCgLibVectorInit(&ctx->macro_libraries, 8);
+    ctx->libraries = fklCreateVMvalueCgLibs(vm);
+    ctx->macro_libraries = fklCreateVMvalueCgLibs(vm);
 
     ctx->pts = pts == NULL ? fklCreateVMvalueProtos(vm, 0) : pts;
-    ctx->macro_pts = pts == NULL //
-                           ? ctx->pts
-                           : fklCreateVMvalueProtos(vm, 0);
+    ctx->macro_pts = pts == NULL ? ctx->pts : fklCreateVMvalueProtos(vm, 0);
 
     ctx->vm = vm;
 
@@ -9200,15 +9140,8 @@ void fklUninitCgCtx(FklCgCtx *ctx) {
     fklZfree(ctx->cwd);
     fklZfree(ctx->main_file_real_path_dir);
 
-    while (!fklCgLibVectorIsEmpty(&ctx->libraries))
-        fklUninitCgLib(fklCgLibVectorPopBackNonNull(&ctx->libraries));
-
-    fklCgLibVectorUninit(&ctx->libraries);
-
-    while (!fklCgLibVectorIsEmpty(&ctx->macro_libraries))
-        fklUninitCgLib(fklCgLibVectorPopBackNonNull(&ctx->macro_libraries));
-
-    fklCgLibVectorUninit(&ctx->macro_libraries);
+    ctx->libraries = NULL;
+    ctx->macro_libraries = NULL;
 }
 
 static inline int mapAllBuiltInPattern(FklCgCtx *ctx,

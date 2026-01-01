@@ -2,9 +2,11 @@
 #define FKL_SYMBOL_H
 
 #include "base.h"
+#include "vm_fwd.h"
 
+#include <assert.h>
+#include <stdalign.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,29 +55,54 @@ static inline uintptr_t fklSymDefHashv(const FklSidScope *k) {
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
-typedef struct FklFuncPrototype {
-    FklSymDefHashMapMutElm *refs;
-    uint32_t rcount;
-    uint32_t lcount;
-    struct FklVMvalue *name;
-    struct FklVMvalue *file;
-    uint64_t line;
-    struct FklVMvalue **konsts;
-	uint32_t konsts_count;
-} FklFuncPrototype;
-
 typedef struct {
-    FklFuncPrototype *pa;
-    uint32_t count;
-} FklFuncPrototypes;
+    FklVMvalue *sid;
+    FklVMvalue *cidx;
+    FklVMvalue *is_local;
+} FklVarRefDef;
 
-void fklInitFuncPrototypes(FklFuncPrototypes *pts, uint32_t count);
-void fklUninitFuncPrototypes(FklFuncPrototypes *pts);
+#define FKL_VAR_REF_DEF_MEMBER_COUNT (3)
 
-uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts);
+static_assert(alignof(FklVarRefDef) == alignof(FklVMvalue *), "What the f**k?");
 
-void fklUninitFuncPrototype(FklFuncPrototype *p);
-void fklDestroyFuncPrototypes(FklFuncPrototypes *p);
+static_assert((sizeof(FklVarRefDef) / sizeof(FklVMvalue *))
+                      == FKL_VAR_REF_DEF_MEMBER_COUNT,
+        "What the f**k?");
+
+static_assert(sizeof(FklVarRefDef) < sizeof(FklSymDefHashMapMutElm),
+        "What the f**k?");
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueProto, {
+    FklVMvalue *name;
+    FklVMvalue *file;
+    uint64_t line;
+
+    uint32_t local_count;
+    uint32_t total_val_count;
+
+    uint32_t ref_count;
+    uint32_t ref_offset;
+
+    uint32_t konsts_count;
+    uint32_t konsts_offset;
+
+    uint32_t child_proto_count;
+    uint32_t child_proto_offset;
+
+    FklVMvalue *vals[];
+});
+
+int fklIsVMvalueProto(const FklVMvalue *v);
+static inline FklVMvalueProto *fklVMvalueProto(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueProto(v));
+    return FKL_TYPE_CAST(FklVMvalueProto *, v);
+}
+
+FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count);
+
+FklVarRefDef *fklVMvalueProtoVarRefs(const FklVMvalueProto *v);
+FklVMvalueProto *const *fklVMvalueProtoChildren(const FklVMvalueProto *v);
+FklVMvalue *const *fklVMvalueProtoConsts(const FklVMvalueProto *v);
 
 #ifdef __cplusplus
 }

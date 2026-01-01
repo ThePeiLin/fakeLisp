@@ -1086,7 +1086,6 @@ static void _chanl_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
 }
 
 static FklVMudMetaTable const ChanlUserDataMetaTable = {
-    // .size = sizeof(FklVMchanl),
     .size = sizeof(FklVMvalueChanl),
     .princ = _chanl_userdata_print,
     .prin1 = _chanl_userdata_print,
@@ -1110,31 +1109,14 @@ int fklIsVMvalueChanl(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ChanlUserDataMetaTable;
 }
 
-// static FKL_ALWAYS_INLINE FklVMvalueFp *as_vm_fp(const FklVMvalue *v) {
-//     FKL_ASSERT(fklIsVMvalueFp(v));
-//     return FKL_TYPE_CAST(FklVMvalueFp *, v);
-// }
-
 static int _fp_userdata_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(fp, FklVMfp, ud);
-    // FklVMfp *fp = &as_vm_fp(ud)->fp;
-    // fklUninitVMfp(fp);
     fklVMfpClose(FKL_VM_FP(ud));
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-// static void
-// _fp_userdata_as_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe)
-// {
-//     // FKL_DECL_UD_DATA(vfp, FklVMfp, ud);
-//     FklVMfp *vfp = &as_vm_fp(ud)->fp;
-//     fklCodeBuilderFmt(buf, "#<fp %p>", vfp);
-// }
-
 FKL_VM_USER_DATA_DEFAULT_PRINT(_fp_userdata_print, "fp");
 
 static FklVMudMetaTable const FpUserDataMetaTable = {
-    // .size = sizeof(FklVMfp),
     .size = sizeof(FklVMvalueFp),
     .princ = _fp_userdata_print,
     .prin1 = _fp_userdata_print,
@@ -1347,35 +1329,29 @@ FklVMvalue *fklVMbigIntSubI(FklVM *exe, const FklVMvalueBigInt *a, int64_t b) {
 FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
         const FklInstruction *spc,
         uint64_t cpc,
-        FklVMvalue *codeObj,
-        uint32_t pid,
-        const FklVMvalueProtos *pts) {
+        FklVMvalue *bcl,
+        FklVMvalueProto *pt) {
     FklVMvalue *r = NEW_OBJ(FklVMvalueProc);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_PROC;
     FklVMvalueProc *proc = FKL_VM_PROC(r);
 
-    FklFuncPrototype *pt = &pts->p.pa[pid];
-
-    proc->pts = FKL_TYPE_CAST(FklVMvalueProtos *, pts);
+    proc->proto = pt;
     proc->spc = spc;
     proc->end = spc + cpc;
     proc->name = pt->name;
-    proc->protoId = pid;
-    proc->lcount = pt->lcount;
-    proc->codeObj = codeObj;
-    proc->konsts = pt->konsts;
+    proc->lcount = pt->local_count;
+    proc->bcl = bcl;
+    proc->konsts = fklVMvalueProtoConsts(pt);
 
     fklAddToGC(r, exe);
     return r;
 }
 
-FklVMvalue *fklCreateVMvalueProc(FklVM *exe,
-        FklVMvalue *codeObj,
-        uint32_t pid,
-        const FklVMvalueProtos *pts) {
+FklVMvalue *
+fklCreateVMvalueProc(FklVM *exe, FklVMvalue *codeObj, FklVMvalueProto *pt) {
     FklByteCode *bc = &FKL_VM_CO(codeObj)->bc;
-    return fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, pid, pts);
+    return fklCreateVMvalueProc2(exe, bc->code, bc->len, codeObj, pt);
 }
 
 FklVMvalue *fklCreateVMvalueHash(FklVM *exe, FklHashTableEqType type) {
@@ -1426,20 +1402,17 @@ static FKL_ALWAYS_INLINE FklVMvalueCodeObj *as_co(const FklVMvalue *v) {
 FKL_VM_USER_DATA_DEFAULT_PRINT(_code_obj_userdata_print, "code-obj");
 
 static int _code_obj_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     FklByteCodelnt *t = &as_co(v)->bcl;
     fklUninitByteCodelnt(t);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void code_obj_atomic(const FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, FklByteCodelnt, v);
     FklByteCodelnt *t = &as_co(v)->bcl;
     fklVMgcMarkCodeObject(gc, t);
 }
 
 static FklVMudMetaTable const CodeObjUserDataMetaTable = {
-    // .size = sizeof(FklByteCodelnt),
     .size = sizeof(FklVMvalueCodeObj),
     .princ = _code_obj_userdata_print,
     .prin1 = _code_obj_userdata_print,
@@ -1461,18 +1434,6 @@ FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
     FklVMvalue *r = fklCreateVMvalueCodeObj1(exe);
     fklInitByteCodelnt(FKL_VM_CO(r), 1);
     fklInitSingleInsBcl(FKL_VM_CO(r), ins, fid, line, scope);
-    return r;
-}
-
-FklVMvalue *fklCreateVMvalueCodeObjMove(FklVM *exe, FklByteCodelnt *bcl) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
-    fklMoveByteCodelnt(FKL_VM_CO(r), bcl);
-    return r;
-}
-
-FklVMvalue *fklCreateVMvalueCodeObj(FklVM *exe, const FklByteCodelnt *bcl) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &CodeObjUserDataMetaTable, NULL);
-    fklSetByteCodelnt(FKL_VM_CO(r), bcl);
     return r;
 }
 
@@ -1611,47 +1572,6 @@ void fklVMvalueLibsReserve(FklVMvalueLibs *l, uint64_t count) {
     l->count = count;
 }
 
-static FKL_ALWAYS_INLINE FklVMvalueProtos *as_protos(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueProtos(v));
-    return FKL_TYPE_CAST(FklVMvalueProtos *, v);
-}
-
-FKL_VM_USER_DATA_DEFAULT_PRINT(_protos_userdata_print, "protos");
-
-static void _protos_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, FklFuncPrototypes, v);
-    FklFuncPrototypes *t = &as_protos(v)->p;
-    fklVMgcMarkPrototypes(gc, t);
-}
-
-static int _protos_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, FklFuncPrototypes, v);
-    FklFuncPrototypes *t = &as_protos(v)->p;
-    fklUninitFuncPrototypes(t);
-    return FKL_VM_UD_FINALIZE_NOW;
-}
-
-static FklVMudMetaTable const ProtosUserDataMetaTable = {
-    // .size = sizeof(FklFuncPrototypes),
-    .size = sizeof(FklVMvalueProtos),
-    .princ = _protos_userdata_print,
-    .prin1 = _protos_userdata_print,
-    .atomic = _protos_userdata_atomic,
-    .finalize = _protos_userdata_finalize,
-};
-
-FklVMvalueProtos *fklCreateVMvalueProtos(FklVM *exe, uint32_t count) {
-    FklVMvalueProtos *r = (FklVMvalueProtos *)fklCreateVMvalueUd(exe,
-            &ProtosUserDataMetaTable,
-            NULL);
-    fklInitFuncPrototypes(&r->p, count);
-    return r;
-}
-
-int fklIsVMvalueProtos(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ProtosUserDataMetaTable;
-}
-
 void fklLockVMlibs(FklVMvalueLibs *libs) { uv_mutex_lock(&libs->lock); }
 
 void fklUnlockVMlibs(FklVMvalueLibs *libs) { uv_mutex_unlock(&libs->lock); }
@@ -1744,8 +1664,8 @@ void fklAtomicVMpair(FklVMvalue *root, FklVMgc *gc) {
 void fklAtomicVMproc(FklVMvalue *root, FklVMgc *gc) {
     FklVMvalueProc *proc = FKL_VM_PROC(root);
     fklVMgcToGray(proc->name, gc);
-    fklVMgcToGray(proc->codeObj, gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, proc->pts), gc);
+    fklVMgcToGray(proc->bcl, gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, proc->proto), gc);
     uint32_t count = proc->rcount;
     FklVMvalue **ref = proc->closure;
     for (uint32_t i = 0; i < count; i++)

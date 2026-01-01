@@ -106,7 +106,7 @@ double fklVMgetDouble(const FklVMvalue *p) {
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
-    return FKL_VM_PROC(frame->c.proc)->codeObj;
+    return FKL_VM_PROC(frame->c.proc)->bcl;
 }
 
 static inline void
@@ -126,12 +126,12 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
             fklCodeBuilderPuts(build, "at proc: ");
             fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
         } else if (cur->prev) {
-            FklFuncPrototype *pt = fklGetCompoundFrameProcPrototype(cur, exe);
+            FklVMvalueProto *pt = fklGetCompoundFrameProcPrototype(cur);
             FklVMvalue *sid = fklGetCompoundFrameSid(cur);
             if (!sid) {
-                pt = fklGetCompoundFrameProcPrototype(cur, exe);
                 sid = pt->name;
             }
+
             if (pt->name) {
                 fklCodeBuilderPuts(build, "at proc: ");
                 fklPrintSymbolLiteral2(FKL_VM_SYM(pt->name), build);
@@ -2224,19 +2224,19 @@ void fklUninitValueTable(FklValueTable *t) {
     fklValueIdHashMapUninit(&t->ht);
 }
 
-uint64_t fklValueTableAdd(FklValueTable *t, FklVMvalue *v) {
+FklValueId fklValueTableAdd(FklValueTable *t, FklVMvalue *v) {
     if (v == NULL)
         return 0;
-    uint64_t *n = fklValueIdHashMapPut2(&t->ht, v, t->next_id);
-    uint64_t r = n == NULL ? t->next_id++ : *n;
+    FklValueId *n = fklValueIdHashMapPut2(&t->ht, v, t->next_id);
+    FklValueId r = n == NULL ? t->next_id++ : *n;
     FKL_ASSERT(r);
     return r;
 }
 
-uint64_t fklValueTableGet(const FklValueTable *t, FklVMvalue *v) {
+FklValueId fklValueTableGet(const FklValueTable *t, FklVMvalue *v) {
     if (v == NULL)
         return 0;
-    uint64_t *n = fklValueIdHashMapGet2(&t->ht, v);
+    FklValueId *n = fklValueIdHashMapGet2(&t->ht, v);
     if (n == NULL)
         return 0;
     return *n;

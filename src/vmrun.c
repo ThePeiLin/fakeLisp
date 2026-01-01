@@ -1,3 +1,4 @@
+#include "fakeLisp/symbol.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
@@ -167,8 +168,9 @@ static inline void insert_to_VM_chain(FklVM *cur, FklVM *prev, FklVM *next) {
 static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     FklVMgc *gc = exe->gc;
     FklVMvalueProc *proc = FKL_VM_PROC(proc_obj);
-    FklVMvalueProtos *pts = proc->pts;
-    FklFuncPrototype *pt = &pts->p.pa[proc->protoId];
+    FklVMvalueProto *pt = proc->proto;
+    // FklVMvalueProtos *pts = proc->pts;
+    // FklFuncPrototype *pt = &pts->p.pa[proc->proto_id];
 
     if (proc->closure) {
         proc->rcount = 0;
@@ -176,7 +178,7 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
         proc->closure = NULL;
     }
 
-    proc->rcount = pt->rcount;
+    proc->rcount = pt->ref_count;
     FklVMvalue **closure;
     if (!proc->rcount)
         closure = NULL;
@@ -185,12 +187,14 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
                 (FklVMvalue **)fklZmalloc(proc->rcount * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
     }
+
+    const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
+
     for (uint32_t i = 0; i < proc->rcount; i++) {
-        FklSymDefHashMapMutElm *cur_ref = &pt->refs[i];
-        if (cur_ref->v.cidx < FKL_BUILTIN_SYMBOL_NUM)
-            closure[i] = gc->builtin_refs[cur_ref->v.cidx];
-        else
-            closure[i] = fklCreateClosedVMvalueVarRef(exe, NULL);
+        uint32_t cidx = FKL_GET_FIX(refs[i].cidx);
+        closure[i] = cidx < FKL_BUILTIN_SYMBOL_NUM
+                           ? gc->builtin_refs[cidx]
+                           : fklCreateClosedVMvalueVarRef(exe, NULL);
     }
     proc->closure = closure;
 }
@@ -205,20 +209,18 @@ static inline void vm_stack_init(FklVM *exe) {
 
 FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         FklVMgc *gc,
-        uint32_t pid,
+        FklVMvalueProto *pt,
         uint64_t spc,
-        FklVMvalueProtos *pts,
         FklVMvalueLibs *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    FKL_ASSERT(fklIsVMvalueProtos(FKL_TYPE_CAST(FklVMvalue *, pts)));
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
     exe->gc = gc;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->pts = pts;
     exe->libs = libs;
     vm_stack_init(exe);
     if (co != NULL) {
@@ -227,8 +229,7 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
                 bcl->bc.code + spc,
                 bcl->bc.len - spc,
                 co,
-                pid,
-                pts);
+                pt);
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -242,21 +243,19 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
 
 FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         FklVMgc *gc,
-        uint32_t pid,
+        FklVMvalueProto *pt,
         uint64_t spc,
-        FklVMvalueProtos *pts,
         FklVMvalueLibs *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    FKL_ASSERT(fklIsVMvalueProtos(FKL_TYPE_CAST(FklVMvalue *, pts)));
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
     exe->gc = gc;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->libs = libs;
-    exe->pts = pts;
     vm_stack_init(exe);
     if (co != NULL) {
         FklByteCodelnt *bcl = FKL_VM_CO(co);
@@ -264,8 +263,7 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
                 bcl->bc.code + spc,
                 bcl->bc.len - spc,
                 co,
-                pid,
-                pts);
+                pt);
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
@@ -611,39 +609,33 @@ int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame) {
     }                                                                          \
     FKL_VM_PUSH_VALUE(exe, fklProcessVMnumIdivResult(exe, a, r64, &bi))
 
-static inline FklVMvalue *get_var_val(FklVMframe *frame,
-        uint32_t idx,
-        FklFuncPrototypes *pts,
-        FklVMvalue **psid) {
+static inline FklVMvalue *
+get_var_val(FklVMframe *frame, uint32_t idx, FklVMvalue **psid) {
     FklVMCompoundFrameVarRef *lr = &frame->c.lr;
     FklVMvalue *v = idx < lr->rcount ? *FKL_VM_VAR_REF_GET(lr->ref[idx]) : NULL;
     if (v)
         return v;
+
     FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-    FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymDefHashMapMutElm *def = &pt->refs[idx];
-    FKL_ASSERT(def->k.id);
-    *psid = def->k.id;
+    const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(proc->proto);
+    FKL_ASSERT(refs[idx].sid);
+    *psid = refs[idx].sid;
     return NULL;
 }
 
-static inline FklVMvalue *volatile *get_var_ref(FklVMframe *frame,
-        uint32_t idx,
-        FklFuncPrototypes *pts,
-        FklVMvalue **psid) {
+static inline FklVMvalue *volatile *
+get_var_ref(FklVMframe *frame, uint32_t idx, FklVMvalue **psid) {
     FklVMCompoundFrameVarRef *lr = &frame->c.lr;
-    FklVMvalue **refs = lr->ref;
     FklVMvalue *volatile *v =
-            (idx >= lr->rcount || !(FKL_VM_VAR_REF(refs[idx])->ref))
+            (idx >= lr->rcount || !(FKL_VM_VAR_REF(lr->ref[idx])->ref))
                     ? NULL
-                    : FKL_VM_VAR_REF_GET(refs[idx]);
+                    : FKL_VM_VAR_REF_GET(lr->ref[idx]);
     if (v && *v)
         return v;
     FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
-    FklFuncPrototype *pt = &pts->pa[proc->protoId];
-    FklSymDefHashMapMutElm *def = &pt->refs[idx];
-    FKL_ASSERT(def->k.id);
-    *psid = def->k.id;
+    const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(proc->proto);
+    FKL_ASSERT(refs[idx].sid);
+    *psid = refs[idx].sid;
     return NULL;
 }
 
@@ -1229,32 +1221,33 @@ insert_local_ref(FklVMCompoundFrameVarRef *lr, FklVMvalue *ref, uint32_t cidx) {
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
-    return FKL_VM_PROC(frame->c.proc)->codeObj;
+    return FKL_VM_PROC(frame->c.proc)->bcl;
 }
 
 void fklCreateVMvalueClosureFrom(FklVM *vm,
         FklVMvalue **closure,
         FklVMframe *f,
         uint32_t i,
-        const FklFuncPrototype *pt) {
-    uint32_t count = pt->rcount;
+        const FklVMvalueProto *pt) {
+    uint32_t count = pt->ref_count;
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalue **ref = lr->ref;
+    const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
+
     for (; i < count; i++) {
-        FklSymDefHashMapMutElm *c = &pt->refs[i];
-        if (c->v.isLocal) {
+        const FklVarRefDef *c = &refs[i];
+        uint32_t cidx = FKL_GET_FIX(c->cidx);
+        if (c->is_local != FKL_VM_NIL) {
             inc_lref(lr, lr->lcount);
-            if (lr->lref[c->v.cidx])
-                closure[i] = lr->lref[c->v.cidx];
-            else
-                closure[i] = insert_local_ref(lr,
-                        fklCreateVMvalueVarRef(vm, f, c->v.cidx),
-                        c->v.cidx);
+            closure[i] = lr->lref[cidx]
+                               ? lr->lref[cidx]
+                               : insert_local_ref(lr,
+                                         fklCreateVMvalueVarRef(vm, f, cidx),
+                                         cidx);
         } else {
-            if (c->v.cidx >= lr->rcount)
-                closure[i] = fklCreateClosedVMvalueVarRef(vm, NULL);
-            else
-                closure[i] = ref[c->v.cidx];
+            closure[i] = cidx < lr->rcount
+                               ? ref[cidx]
+                               : fklCreateClosedVMvalueVarRef(vm, NULL);
         }
     }
 }
@@ -1263,38 +1256,40 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
         FklVMframe *f,
         size_t cpc,
         uint32_t pid,
-        const FklVMvalueProtos *pts) {
-    FklVMvalue *codeObj = get_compound_frame_code_obj(f);
-    FklFuncPrototype *pt = &pts->p.pa[pid];
-    FklVMvalue *r = fklCreateVMvalueProc2(exe,
+        const FklVMvalueProto *parent_proto) {
+    FklVMvalue *co = get_compound_frame_code_obj(f);
+    FklVMvalueProto *pt = fklVMvalueProtoChildren(parent_proto)[pid];
+    FklVMvalue *r = fklCreateVMvalueProc2(exe, //
             fklGetCompoundFrameCode(f),
             cpc,
-            codeObj,
-            pid,
-            pts);
-    uint32_t count = pt->rcount;
+            co,
+            pt);
+
+    uint32_t count = pt->ref_count;
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalueProc *proc = FKL_VM_PROC(r);
     if (count) {
+        const FklVarRefDef *refs = fklVMvalueProtoVarRefs(pt);
         FklVMvalue **ref = lr->ref;
         FklVMvalue **closure =
                 (FklVMvalue **)fklZmalloc(count * sizeof(FklVMvalue *));
         FKL_ASSERT(closure);
         for (uint32_t i = 0; i < count; i++) {
-            FklSymDefHashMapMutElm *c = &pt->refs[i];
-            if (c->v.isLocal) {
+            const FklVarRefDef *c = &refs[i];
+            uint32_t cidx = FKL_GET_FIX(c->cidx);
+
+            if (c->is_local != FKL_VM_NIL) {
                 inc_lref(lr, lr->lcount);
-                if (lr->lref[c->v.cidx])
-                    closure[i] = lr->lref[c->v.cidx];
-                else
-                    closure[i] = insert_local_ref(lr,
-                            fklCreateVMvalueVarRef(exe, f, c->v.cidx),
-                            c->v.cidx);
+                closure[i] =
+                        lr->lref[cidx]
+                                ? lr->lref[cidx]
+                                : insert_local_ref(lr,
+                                          fklCreateVMvalueVarRef(exe, f, cidx),
+                                          cidx);
             } else {
-                if (c->v.cidx >= lr->rcount)
-                    closure[i] = fklCreateClosedVMvalueVarRef(exe, NULL);
-                else
-                    closure[i] = ref[c->v.cidx];
+                closure[i] = cidx < lr->rcount
+                                   ? ref[cidx]
+                                   : fklCreateClosedVMvalueVarRef(exe, NULL);
             }
         }
         proc->closure = closure;
@@ -1360,14 +1355,10 @@ void fklDBG_printVMstack(FklVM *stack,
     }
 }
 
-FklVM *fklCreateVM(FklVMvalue *proc,
-        FklVMgc *gc,
-        FklVMvalueProtos *pts,
-        FklVMvalueLibs *libs) {
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueLibs *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
     FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    FKL_ASSERT(fklIsVMvalueProtos(FKL_TYPE_CAST(FklVMvalue *, pts)));
     exe->gc = gc;
     exe->prev = exe;
     exe->next = exe;
@@ -1375,7 +1366,6 @@ FklVM *fklCreateVM(FklVMvalue *proc,
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
     exe->libs = libs;
-    exe->pts = pts;
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
     if (proc != NULL) {
@@ -1401,7 +1391,6 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     vm_stack_init(exe);
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->pts = prev->pts;
     exe->libs = prev->libs;
     exe->state = FKL_VM_READY;
     memcpy(exe->rand_state, prev->rand_state, sizeof(uint64_t[4]));
@@ -1461,10 +1450,9 @@ void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t epc) {
 void fklInitVMlibWithCodeObj(FklVMlib *lib,
         FklVMvalue *codeObj,
         FklVM *exe,
-        uint32_t protoId,
-        uint64_t spc,
-        FklVMvalueProtos *pts) {
-    FklVMvalue *proc = fklCreateVMvalueProc(exe, codeObj, protoId, pts);
+        FklVMvalueProto *pt,
+        uint64_t spc) {
+    FklVMvalue *proc = fklCreateVMvalueProc(exe, codeObj, pt);
     fklInitVMlib(lib, proc, spc);
 }
 

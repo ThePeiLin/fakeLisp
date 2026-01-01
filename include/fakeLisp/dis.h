@@ -9,11 +9,12 @@ extern "C" {
 #endif
 
 void fklPrintObarray(FklVM *vm, const FklVMobarray *array, FklCodeBuilder *fp);
-void fklDisassembleProc(FklVM *vm, const FklVMvalue *proc, FklCodeBuilder *fp);
+void fklDisassembleProc(FklVM *vm,
+        const FklVMvalueProc *proc,
+        FklCodeBuilder *fp);
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
-        uint32_t proto_id,
-        const FklVMvalueProtos *protos,
+        const FklVMvalueProto *proto,
         FklCodeBuilder *build);
 
 #ifdef __cplusplus

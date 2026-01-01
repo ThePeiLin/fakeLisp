@@ -3963,7 +3963,7 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
 
             CB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
             CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu64
+            CB_LINE("func(NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu32
                     "),&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     actual_len ? "base[0].start_with_ignore" : "0",
                     fklValueTableAdd(t, ac->prod->left.sid));
@@ -3987,7 +3987,7 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
             }
             CB_LINE("}");
 
-            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,FKL_MAKE_VM_FIX(%" PRIu64
+            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbolStack,NULL),0,FKL_MAKE_VM_FIX(%" PRIu32
                     "),ast,%s,line);",
                     fklValueTableAdd(t, ac->prod->left.sid),
                     actual_len ? "base[0].start_with_ignore" : "0");
@@ -4116,12 +4116,12 @@ static inline void build_state_to_c_file(FklValueTable *t,
                 CB_LINE("if(0){}");
                 for (; gt; gt = gt->next) {
                     if (!gt->allow_ignore) {
-                        CB_LINE("else if(!start_with_ignore&&left==FKL_MAKE_VM_FIX(%" PRIu64
+                        CB_LINE("else if(!start_with_ignore&&left==FKL_MAKE_VM_FIX(%" PRIu32
                                 ")/* %s */){",
                                 fklValueTableAdd(t, gt->nt.sid),
                                 FKL_VM_SYM(gt->nt.sid)->str);
                     } else {
-                        CB_LINE("else if(left==FKL_MAKE_VM_FIX(%" PRIu64
+                        CB_LINE("else if(left==FKL_MAKE_VM_FIX(%" PRIu32
                                 ")/* %s */){",
                                 fklValueTableAdd(t, gt->nt.sid),
                                 FKL_VM_SYM(gt->nt.sid)->str);

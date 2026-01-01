@@ -1253,10 +1253,9 @@ static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
         FklCgEnvScope *sc,
         uint32_t scope,
         FklVMvalueCgEnv *env,
-        FklFuncPrototypes *cp,
         uint32_t *start,
         uint32_t *end) {
-    fklResolveRef(env, scope, cp, NULL);
+    fklResolveRef(env, scope, NULL);
     int r = 0;
     uint32_t last = sc->start + sc->end;
     uint32_t i = sc->start;
@@ -1303,17 +1302,15 @@ static inline void check_and_close_ref(FklVM *exe,
         FklVMvalue *retval,
         uint32_t scope,
         FklVMvalueCgEnv *env,
-        FklFuncPrototypes *pa,
         FklVMvalue *fid,
         uint32_t line) {
     FklCgEnvScope *cur = &env->scopes[scope - 1];
     uint32_t start = cur->start;
     uint32_t end = start + 1;
-    if (reset_flag_and_check_var_be_refed(env->slotFlags,
+    if (reset_flag_and_check_var_be_refed(env->slot_flags,
                 cur,
                 scope,
                 env,
-                pa,
                 &start,
                 &end))
         append_close_ref_ins(exe,
@@ -1328,7 +1325,6 @@ static inline void check_and_close_ref(FklVM *exe,
 
 static FklVMvalue *_local_exp_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -1336,7 +1332,7 @@ static FklVMvalue *_local_exp_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     FklVMvalue *retval = sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
-    check_and_close_ref(vm, retval, scope, env, &info->pts->p, fid, line);
+    check_and_close_ref(vm, retval, scope, env, fid, line);
     return retval;
 }
 
@@ -1539,7 +1535,6 @@ static FklVMvalue *_letrec_exp_bc_process(const FklCgActCbArgs *args) {
 static FklVMvalue *_letrec_arg_exp_bc_process(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -1557,7 +1552,7 @@ static FklVMvalue *_letrec_arg_exp_bc_process(const FklCgActCbArgs *args) {
         FklVMvalue *value_bc = *cur_bcl;
         FklVMvalue *id = *cur_sid;
         uint32_t idx = fklAddCgDefBySid(id, scope, env)->idx;
-        fklResolveCgPreDef(id, scope, env, &info->pts->p);
+        fklResolveCgPreDef(id, scope, env);
         fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(value_bc));
         append_pop_loc_ins(vm, INS_APPEND_BACK, retval, idx, fid, line, scope);
     }
@@ -2103,7 +2098,6 @@ static FklVMvalue *_do1_next_val_bc_process(const FklCgActCbArgs *args) {
 
 static FklVMvalue *_do1_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -2133,7 +2127,7 @@ static FklVMvalue *_do1_bc_process(const FklCgActCbArgs *args) {
     fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(value));
 
     fklCodeLntReverseConcat(FKL_VM_CO(init), FKL_VM_CO(value));
-    check_and_close_ref(vm, value, scope, env, &info->pts->p, fid, line);
+    check_and_close_ref(vm, value, scope, env, fid, line);
     return value;
 }
 
@@ -2311,9 +2305,16 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
                 fklGetInsOpArg(popVar_ins, &arg);
                 uint64_t idx = arg.ux;
 
-                if (!info->pts->p.pa[prototypeId].name)
-                    info->pts->p.pa[prototypeId].name =
-                            get_sid_with_idx(&env->scopes[scope - 1], idx, ctx);
+                FklVMvalue *pt_v = env->child_proc_protos.base[prototypeId];
+                FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
+
+                FklVMvalueProto *proto = fklVMvalueProto(pt_v);
+                if (proto->name == NULL) {
+                    proto->name = get_sid_with_idx(&env->scopes[scope - 1], //
+                            idx,
+                            ctx);
+                }
+
             } else if (fklIsPutVarRefIns(popVar_ins)) {
                 FklInstructionArg arg;
                 fklGetInsOpArg(cur_ins, &arg);
@@ -2321,9 +2322,15 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
 
                 fklGetInsOpArg(popVar_ins, &arg);
                 uint64_t idx = arg.ux;
-                if (!info->pts->p.pa[prototypeId].name)
-                    info->pts->p.pa[prototypeId].name =
-                            get_sid_with_ref_idx(&env->refs, idx, ctx);
+
+                FklVMvalue *pt_v = env->child_proc_protos.base[prototypeId];
+                FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
+
+                FklVMvalueProto *proto = fklVMvalueProto(pt_v);
+
+                if (proto->name == NULL) {
+                    proto->name = get_sid_with_ref_idx(&env->refs, idx, ctx);
+                }
             }
         }
         fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(popVar));
@@ -2375,7 +2382,7 @@ static FklVMvalue *_def_var_exp_bc_process(const FklCgActCbArgs *args) {
 
     DefineVarContext *var_ctx = FKL_TYPE_CAST(DefineVarContext *, data);
     uint32_t idx = fklAddCgDefBySid(var_ctx->id, var_ctx->scope, env)->idx;
-    fklResolveCgPreDef(var_ctx->id, var_ctx->scope, env, &info->pts->p);
+    fklResolveCgPreDef(var_ctx->id, var_ctx->scope, env);
     fklValueVectorInsertFront2(bcl_vec,
             append_put_loc_ins(vm,
                     INS_APPEND_BACK,
@@ -2401,7 +2408,6 @@ static FklVMvalue *_set_var_exp_bc_process(const FklCgActCbArgs *args) {
 
 static FklVMvalue *_lambda_exp_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -2438,12 +2444,14 @@ static FklVMvalue *_lambda_exp_bc_process(const FklCgActCbArgs *args) {
     fklCodeLntReverseConcat(FKL_VM_CO(bcl_vec->base[0]), FKL_VM_CO(retval));
     bcl_vec->size = 0;
     fklScanAndSetTailCall(&FKL_VM_CO(retval)->bc);
-    FklFuncPrototypes *pts = &info->pts->p;
-    fklUpdatePrototype(pts, env);
+
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(vm, env);
+    (void)proto;
+
     append_push_proc_ins(vm,
             INS_APPEND_FRONT,
             retval,
-            env->prototypeId,
+            env->proto_id,
             FKL_VM_CO(retval)->bc.len,
             fid,
             line,
@@ -2522,7 +2530,6 @@ static inline FklVMvalue *processArgsInStack(FklVM *exe,
 static FklVMvalue *_named_let_set_var_exp_bc_process(
         const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -2544,7 +2551,7 @@ static FklVMvalue *_named_let_set_var_exp_bc_process(
                 line,
                 scope);
     }
-    check_and_close_ref(vm, pop_var, scope, env, &info->pts->p, fid, line);
+    check_and_close_ref(vm, pop_var, scope, env, fid, line);
     return pop_var;
 }
 
@@ -2606,17 +2613,19 @@ static void codegen_named_let0(const CgCbArgs *args) {
                     scope));
     fklCgActVectorPushBack2(actions, action);
 
-    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx, env, cs, cms);
+    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx,
+            &(const FklCgEnvCreateArgs){
+                .prev_env = env,
+                .prev_ms = cms,
+                .parent_scope = cs,
+                .filename = info->fid,
+                .name = name->value,
+                .line = CURLINE(orig->container),
+            });
     FklVMvalue *argsNode = caddr(orig->value);
     FklVMvalue *argBc = processArgs(vm, argsNode, lambda_env, info);
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
-
-    create_and_insert_to_pool(info,
-            env->prototypeId,
-            lambda_env,
-            name->value,
-            CURLINE(orig->container));
 
     FklCgAct *action1 = create_cg_action(_lambda_exp_bc_process,
             createDefaultStackContext(),
@@ -2666,7 +2675,15 @@ static void codegen_named_let1(const CgCbArgs *args) {
     FklVMvalueCgMacroScope *cms =
             fklCreateVMvalueCgMacroScope(ctx, macro_scope);
 
-    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx, env, cs, cms);
+    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx,
+            &(const FklCgEnvCreateArgs){
+                .prev_env = env,
+                .prev_ms = cms,
+                .parent_scope = cs,
+                .filename = info->fid,
+                .name = name->value,
+                .line = CURLINE(orig->container),
+            });
     fklAddCgDefBySid(first->value, 1, lambda_env);
     fklValueVectorPushBack2(symStack, first->value);
 
@@ -2749,11 +2766,6 @@ static void codegen_named_let1(const CgCbArgs *args) {
             CURLINE(orig->container));
 
     fklValueVectorDestroy(symStack);
-    create_and_insert_to_pool(info,
-            env->prototypeId,
-            lambda_env,
-            name->value,
-            CURLINE(orig->container));
 
     FklCgAct *action1 = create_cg_action(_lambda_exp_bc_process,
             createDefaultStackContext(),
@@ -2927,8 +2939,15 @@ static void codegen_lambda(const CgCbArgs *args) {
 
     const FklPmatchRes *argl = fklPmatchHashMapGet2(ht, ctx->builtin_sym_args);
     const FklPmatchRes *rest = fklPmatchHashMapGet2(ht, ctx->builtin_sym_rest);
-    FklVMvalueCgEnv *lambda_env =
-            fklCreateVMvalueCgEnv(ctx, env, scope, macro_scope);
+    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx, //
+            &(const FklCgEnvCreateArgs){
+                .prev_env = env,
+                .prev_ms = macro_scope,
+                .parent_scope = scope,
+                .filename = info->fid,
+                .name = NULL,
+                .line = CURLINE(orig->container),
+            });
     FklVMvalue *argsBc = processArgs(vm, argl->value, lambda_env, info);
     if (!argsBc) {
         error_state->error = make_syntax_error(vm, orig->value);
@@ -2937,11 +2956,7 @@ static void codegen_lambda(const CgCbArgs *args) {
     }
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
-    create_and_insert_to_pool(info,
-            env->prototypeId,
-            lambda_env,
-            0,
-            CURLINE(orig->container));
+
     FklCgAct *action = create_cg_action(_lambda_exp_bc_process,
             createDefaultStackContext(),
             createDefaultQueueNextExpression(queue),
@@ -3045,7 +3060,7 @@ static FklVMvalue *_def_const_exp_bc_process(const FklCgActCbArgs *args) {
     FklSymDef *def = fklAddCgDefBySid(var_ctx->id, var_ctx->scope, env);
     def->isConst = 1;
     uint32_t idx = def->idx;
-    fklResolveCgPreDef(var_ctx->id, var_ctx->scope, env, &info->pts->p);
+    fklResolveCgPreDef(var_ctx->id, var_ctx->scope, env);
     fklValueVectorInsertFront2(bcl_vec,
             append_put_loc_ins(vm,
                     INS_APPEND_BACK,
@@ -3128,8 +3143,15 @@ static void codegen_defun(const CgCbArgs *args) {
         return;
     }
 
-    FklVMvalueCgEnv *lambda_env =
-            fklCreateVMvalueCgEnv(ctx, env, scope, macro_scope);
+    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx, //
+            &(const FklCgEnvCreateArgs){
+                .prev_env = env,
+                .prev_ms = macro_scope,
+                .parent_scope = scope,
+                .filename = info->fid,
+                .name = name->value,
+                .line = CURLINE(orig->container),
+            });
     FklVMvalue *argsBc = processArgs(vm, argl->value, lambda_env, info);
     if (!argsBc) {
         error_state->error = make_syntax_error(vm, orig->value);
@@ -3153,11 +3175,6 @@ static void codegen_defun(const CgCbArgs *args) {
 
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
-    create_and_insert_to_pool(info,
-            env->prototypeId,
-            lambda_env,
-            name->value,
-            CURLINE(orig->container));
 
     fklReplacementHashMapAdd2(lambda_env->macros->replacements,
             add_symbol_cstr(ctx, "*func*"),
@@ -3207,8 +3224,16 @@ static void codegen_defun_const(const CgCbArgs *args) {
         return;
     }
 
-    FklVMvalueCgEnv *lambda_env =
-            fklCreateVMvalueCgEnv(ctx, env, scope, macro_scope);
+    FklVMvalueCgEnv *lambda_env = fklCreateVMvalueCgEnv(ctx,
+            &(FklCgEnvCreateArgs){
+                .prev_env = env,
+                .prev_ms = macro_scope,
+                .parent_scope = scope,
+                .filename = info->fid,
+                .name = name->value,
+                .line = CURLINE(orig->container),
+            });
+
     FklVMvalue *argsBc = processArgs(vm, argl->value, lambda_env, info);
     if (!argsBc) {
         error_state->error = make_syntax_error(vm, orig->value);
@@ -3229,11 +3254,7 @@ static void codegen_defun_const(const CgCbArgs *args) {
 
     CgExpQueue *queue = cgExpQueueCreate();
     pushListItemToQueue(rest->value, queue, NULL);
-    create_and_insert_to_pool(info,
-            env->prototypeId,
-            lambda_env,
-            name->value,
-            CURLINE(orig->container));
+
     fklReplacementHashMapAdd2(lambda_env->macros->replacements,
             add_symbol_cstr(ctx, "*func*"),
             name->value);
@@ -3344,8 +3365,8 @@ static inline void push_default_codegen_quest(FklVM *exe,
 
 static void add_compiler_macro(FklMacroHashMap *macros,
         FklVMvalue *pattern,
-        FklVMvalue *bcl,
-        uint32_t prototype_id) {
+        FklVMvalue *proc) {
+    FKL_ASSERT(FKL_IS_PROC(proc));
     int coverState = FKL_PATTERN_NOT_EQUAL;
     FklCgMacro **pmacro = fklMacroHashMapAdd1(macros, FKL_VM_CAR(pattern));
     FklCgMacro **phead = pmacro;
@@ -3357,18 +3378,16 @@ static void add_compiler_macro(FklMacroHashMap *macros,
             break;
     }
     if (coverState == FKL_PATTERN_NOT_EQUAL) {
-        FklCgMacro *macro =
-                fklCreateCgMacro(pattern, bcl, *phead, prototype_id);
+        FklCgMacro *macro = fklCreateCgMacro(pattern, proc, *phead);
         *phead = macro;
     } else if (coverState == FKL_PATTERN_EQUAL) {
         FklCgMacro *macro = *pmacro;
         uninit_codegen_macro(macro);
-        macro->prototype_id = prototype_id;
         macro->pattern = pattern;
-        macro->bcl = bcl;
+        macro->proc = proc;
     } else {
         FklCgMacro *next = *pmacro;
-        *pmacro = fklCreateCgMacro(pattern, bcl, next, prototype_id);
+        *pmacro = fklCreateCgMacro(pattern, proc, next);
     }
 }
 
@@ -4693,7 +4712,6 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
 
 static FklVMvalue *_cond_exp_bc_process_1(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -4731,7 +4749,7 @@ static FklVMvalue *_cond_exp_bc_process_1(const FklCgActCbArgs *args) {
 
         size_t retval_len = FKL_VM_CO(retval)->bc.len;
 
-        check_and_close_ref(vm, retval, scope, env, &info->pts->p, fid, line);
+        check_and_close_ref(vm, retval, scope, env, fid, line);
 
         if (bcl_vec->size > 2) {
             append_jmp_ins(vm,
@@ -5110,7 +5128,6 @@ static void codegen_if1(const CgCbArgs *args) {
 
 static FklVMvalue *_when_exp_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -5143,7 +5160,7 @@ static FklVMvalue *_when_exp_bc_process(const FklCgActCbArgs *args) {
                     line,
                     scope);
         fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(retval));
-        check_and_close_ref(vm, retval, scope, env, &info->pts->p, fid, line);
+        check_and_close_ref(vm, retval, scope, env, fid, line);
         return retval;
     } else
         return fklCreateVMvalueCodeObjExt(vm,
@@ -5155,7 +5172,6 @@ static FklVMvalue *_when_exp_bc_process(const FklCgActCbArgs *args) {
 
 static FklVMvalue *_unless_exp_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -5188,7 +5204,7 @@ static FklVMvalue *_unless_exp_bc_process(const FklCgActCbArgs *args) {
                     line,
                     scope);
         fklCodeLntReverseConcat(FKL_VM_CO(cond), FKL_VM_CO(retval));
-        check_and_close_ref(vm, retval, scope, env, &info->pts->p, fid, line);
+        check_and_close_ref(vm, retval, scope, env, fid, line);
         return retval;
     } else
         return fklCreateVMvalueCodeObjExt(vm,
@@ -5478,13 +5494,12 @@ static inline char *combineFileNameFromListAndCheckPrivate(
 
 static inline void export_compiler_macro(FklVMvalueCgMacroScope *macro_scope,
         FklVMvalue *pattern,
-        FklVMvalue *bcl,
-        uint32_t prototype_id,
+        FklVMvalue *proc,
         FklVMvalueCgInfo *lib_info) {
-    add_compiler_macro(macro_scope->macros, pattern, bcl, prototype_id);
+    add_compiler_macro(macro_scope->macros, pattern, proc);
 
     if (lib_info) {
-        add_compiler_macro(lib_info->export_macros, pattern, bcl, prototype_id);
+        add_compiler_macro(lib_info->export_macros, pattern, proc);
     }
 }
 
@@ -5812,8 +5827,7 @@ static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
         for (const FklCgMacro *macro = cur->v; macro; macro = macro->next) {
             export_compiler_macro(macro_scope,
                     macro->pattern,
-                    macro->bcl,
-                    macro->prototype_id,
+                    macro->proc,
                     lib_info);
         }
     }
@@ -5890,11 +5904,7 @@ static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
                     macro->pattern,
                     prefix,
                     info);
-            export_compiler_macro(macro_scope,
-                    pattern,
-                    macro->bcl,
-                    macro->prototype_id,
-                    lib_info);
+            export_compiler_macro(macro_scope, pattern, macro->proc, lib_info);
         }
     }
 
@@ -5998,8 +6008,7 @@ static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
                     macro = macro->next) {
                 export_compiler_macro(macro_scope,
                         macro->pattern,
-                        macro->bcl,
-                        macro->prototype_id,
+                        macro->proc,
                         lib_info);
             }
         }
@@ -6083,8 +6092,7 @@ static inline FklVMvalue *process_import_imported_lib_except(FklCgCtx *ctx,
         for (const FklCgMacro *macro = cur->v; macro; macro = macro->next) {
             export_compiler_macro(macro_scope,
                     macro->pattern,
-                    macro->bcl,
-                    macro->prototype_id,
+                    macro->proc,
                     lib_info);
         }
     }
@@ -6197,8 +6205,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
 
                 export_compiler_macro(macro_scope,
                         pattern,
-                        macro->bcl,
-                        macro->prototype_id,
+                        macro->proc,
                         lib_info);
             }
         }
@@ -6343,7 +6350,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
         return NULL;
     }
 
-    fklUpdatePrototype(&info->pts->p, env);
+    FklVMvalueProto *pt = fklCreateVMvalueProto2(ctx->vm, env);
     fklPrintUndefinedRef(env, &ctx->vm->gc->err_out);
 
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
@@ -6358,8 +6365,11 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
 
     process_export_bc(ctx, info, co, fid, line, scope);
 
+    FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, co, pt);
+    fklInitMainProcRefs(ctx->vm, proc);
+
     FklCgLib *lib = fklVMvalueCgLibsPushBack(info->libraries);
-    fklInitCgScriptLib(lib, info, co, info->epc, env);
+    fklInitCgScriptLib(lib, info, proc, info->epc);
 
     info->realpath = NULL;
 
@@ -6641,11 +6651,16 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
             errors->line = CURLINE(orig);
             return;
         }
+
         FklVMvalueCgEnv *libEnv = fklCreateVMvalueCgEnv(ctx,
-                info->global_env,
-                0,
-                info->global_env->macros);
-        create_and_insert_to_pool(next_info, 0, libEnv, 0, 1);
+                &(const FklCgEnvCreateArgs){
+                    .prev_env = info->global_env,
+                    .prev_ms = info->global_env->macros,
+                    .parent_scope = 1,
+                    .filename = info->fid,
+                    .name = NULL,
+                    .line = 1,
+                });
 
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(_library_bc_process,
                 createExportContext(info,
@@ -6723,8 +6738,6 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
             .ctx = ctx,
             .libraries = info->libraries,
             .macro_libraries = ctx->macro_libraries,
-            .pts = info->pts,
-            .macro_pts = ctx->macro_pts,
         };
 
         if (fklLoadPreCompile(fp, filename, &args)) {
@@ -7357,33 +7370,32 @@ static inline void init_macro_context(MacroContext *r,
 static FklVMvalue *compiler_macro_bc_process(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklCgCtx *ctx = args->ctx;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
     FklVMvalue *fid = args->fid;
     uint64_t line = args->line;
 
-    fklUpdatePrototype(&info->pts->p, env);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(ctx->vm, env);
     fklPrintUndefinedRef(env->prev, &ctx->vm->gc->err_out);
 
     MacroContext *d = FKL_TYPE_CAST(MacroContext *, data);
-    FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *macro_bc = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(FKL_VM_CO(macroBcl), &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(macro_bc), &ret, fid, line, scope);
 
     FklVMvalue *pattern = d->pattern;
     FklVMvalueCgMacroScope *macros = d->macro_scope;
-    uint32_t prototype_id = d->prototype_id;
 
-    fklPeepholeOptimize(FKL_VM_CO(macroBcl));
-    add_compiler_macro(macros->macros, pattern, macroBcl, prototype_id);
+    fklPeepholeOptimize(FKL_VM_CO(macro_bc));
+
+    FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, macro_bc, proto);
+    fklInitMainProcRefs(ctx->vm, proc);
+
+    add_compiler_macro(macros->macros, pattern, proc);
 
     if (d->lib_info) {
-        add_compiler_macro(d->lib_info->export_macros,
-                pattern,
-                macroBcl,
-                prototype_id);
+        add_compiler_macro(d->lib_info->export_macros, pattern, proc);
     }
     return NULL;
 }
@@ -7426,7 +7438,6 @@ static inline void init_reader_macro_context(struct ReaderMacroCtx *r,
 static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklCgCtx *ctx = args->ctx;
-    FklVMvalueCgInfo *info = args->info;
     FklVMvalueCgEnv *env = args->env;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
@@ -7437,15 +7448,19 @@ static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
     FklVMvalueCustomActCtx *custom_ctx = d->action_ctx;
     d->action_ctx = NULL;
 
-    fklUpdatePrototype(&info->pts->p, env);
+    FklVMvalueProto *pt = fklCreateVMvalueProto2(ctx->vm, env);
     fklPrintUndefinedRef(env->prev, &ctx->vm->gc->err_out);
 
-    FklVMvalue *macroBcl = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklVMvalue *macro_bcl = *fklValueVectorPopBackNonNull(bcl_vec);
     FklInstruction ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(FKL_VM_CO(macroBcl), &ret, fid, line, scope);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(macro_bcl), &ret, fid, line, scope);
 
-    fklPeepholeOptimize(FKL_VM_CO(macroBcl));
-    custom_ctx->bcl = macroBcl;
+    fklPeepholeOptimize(FKL_VM_CO(macro_bcl));
+
+    FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, macro_bcl, pt);
+    fklInitMainProcRefs(ctx->vm, proc);
+
+    custom_ctx->proc = proc;
     return NULL;
 }
 
@@ -7480,10 +7495,11 @@ static FklVMvalue *_is_main_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
-    if (env->prototypeId == 1)
-        return FKL_VM_TRUE;
-    else
+    if (env->proto_id != 0)
         return FKL_VM_NIL;
+    if (env->prev == NULL || env->prev->proto_id == UINT32_MAX)
+        return FKL_VM_TRUE;
+    return FKL_VM_NIL;
 }
 
 static FklVMvalue *_platform_replacement(const FklCgCtx *ctx,
@@ -7853,7 +7869,8 @@ static inline FklVMvalueCgInfo *macro_compile_prepare(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalueCgMacroScope *macro_scope,
         FklValueHashSet *symbol_set,
-        FklVMvalueCgEnv **penv) {
+        FklVMvalueCgEnv **penv,
+        uint64_t line) {
     FklVMvalueCgInfo *macro_info = fklCreateVMvalueCgInfo(ctx,
             info,
             NULL,
@@ -7863,9 +7880,14 @@ static inline FklVMvalueCgInfo *macro_compile_prepare(FklCgCtx *ctx,
             });
 
     FklVMvalueCgEnv *macro_main_env = fklCreateVMvalueCgEnv(ctx, //
-            macro_info->global_env,
-            1,
-            macro_scope);
+            &(const FklCgEnvCreateArgs){
+                .prev_env = macro_info->global_env,
+                .prev_ms = macro_scope,
+                .parent_scope = 1,
+                .filename = info->fid,
+                .name = NULL,
+                .line = line,
+            });
 
     *penv = macro_main_env;
     if (symbol_set == NULL)
@@ -8169,13 +8191,9 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 info,
                 args->macro_scope,
                 NULL,
-                &macro_env);
-
-        create_and_insert_to_pool(macro_info,
-                0,
-                macro_env,
-                0,
+                &macro_env,
                 CURLINE(action_ast));
+
         CgExpQueue *queue = cgExpQueueCreate();
         int failed = 0;
         if (failed) {
@@ -8188,8 +8206,7 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 left_group,
                 left_sid,
                 other_args.len,
-                other_args.syms,
-                macro_env->prototypeId);
+                other_args.syms);
         FklVMvalueCustomActCtx *ctx = prod->ctx;
         for (size_t i = 0; i < ctx->actual_len; ++i) {
             fklAddCgDefBySid(ctx->dollers[i], 1, macro_env);
@@ -8507,14 +8524,10 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
                 info,
                 macro_scope,
                 symbolSet,
-                &macroEnv);
+                &macroEnv,
+                CURLINE(value->container));
         fklValueHashSetDestroy(symbolSet);
 
-        create_and_insert_to_pool(macro_info,
-                0,
-                macroEnv,
-                0,
-                CURLINE(value->container));
         CgExpQueue *queue = cgExpQueueCreate();
         cgExpQueuePush(queue, value);
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(compiler_macro_bc_process,
@@ -8522,7 +8535,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
                         pattern,
                         macro_scope,
                         lib_info,
-                        macroEnv->prototypeId),
+                        macroEnv->proto_id),
                 createMustHasRetvalQueueNextExpression(queue),
                 1,
                 macroEnv->macros,
@@ -9005,8 +9018,6 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_info), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_vm_libs), gc);
 
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_pts), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->pts), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
 
     mark_action_vector(gc, ctx->action_vector);
@@ -9052,15 +9063,10 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_libraries), gc);
 }
 
-void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
-        FklVMvalueProtos *pts,
-        FklVM *vm) {
+void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     memset(ctx, 0, sizeof(FklCgCtx));
     ctx->libraries = fklCreateVMvalueCgLibs(vm);
     ctx->macro_libraries = fklCreateVMvalueCgLibs(vm);
-
-    ctx->pts = pts == NULL ? fklCreateVMvalueProtos(vm, 0) : pts;
-    ctx->macro_pts = pts == NULL ? ctx->pts : fklCreateVMvalueProtos(vm, 0);
 
     ctx->vm = vm;
 
@@ -9101,11 +9107,8 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     }
 }
 
-void fklInitCgCtx(FklCgCtx *ctx,
-        char *main_file_real_path_dir,
-        FklVMvalueProtos *pts,
-        FklVM *gc) {
-    fklInitCgCtxExceptPattern(ctx, pts, gc);
+void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *gc) {
+    fklInitCgCtxExceptPattern(ctx, gc);
     ctx->cwd = fklSysgetcwd();
     ctx->main_file_real_path_dir = main_file_real_path_dir
                                          ? main_file_real_path_dir
@@ -9125,8 +9128,6 @@ void fklInitCgCtx(FklCgCtx *ctx,
 void fklUninitCgCtx(FklCgCtx *ctx) {
     fklUninitGrammer(&ctx->builtin_g);
     ctx->vm = NULL;
-    ctx->pts = NULL;
-    ctx->macro_pts = NULL;
     ctx->lnt = NULL;
 
     FklVMvalue **nodes = ctx->builtin_pattern_node;
@@ -9345,9 +9346,9 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
         }
         if (error_state.error) {
         print_error:
+            fklPrintCgError(ctx, info, &ctx->vm->gc->err_out);
             ctx->action_vector = NULL;
             ctx->error_state = NULL;
-            fklPrintCgError(ctx, info, &ctx->vm->gc->err_out);
             while (!fklCgActVectorIsEmpty(&act_vec)) {
                 destroy_cg_action(*fklCgActVectorPopBackNonNull(&act_vec));
             }

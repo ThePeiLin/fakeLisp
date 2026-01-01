@@ -45,48 +45,59 @@ typedef struct {
 #define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
+struct FklVMvalueCgEnv;
+typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgEnv *, void *);
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnReSymbolRefVector uref;
-    uint8_t *slotFlags;
+    uint8_t *slot_flags;
     FklCgEnvScope *scopes;
     uint32_t lcount;
-    uint32_t sc;
-    uint32_t pscope;
-    uint32_t prototypeId;
+    uint32_t scope;
+    uint32_t parent_scope;
+    uint32_t proto_id;
+
+    FklVMvalue *filename;
+    FklVMvalue *name;
+    uint64_t line;
+
     struct FklVMvalueCgEnv *prev;
     struct FklVMvalueCgMacroScope *macros;
     FklSymDefHashMap refs;
     FklPredefHashMap pdef;
     FklValueTable konsts;
     struct FklPreDefRefVector ref_pdef;
+    FklValueVector child_proc_protos;
     int is_debugging;
+
+    void *work_ctx;
+    FklCgInfoEnvWorkCb env_work_cb;
 });
+
+typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
+        const FklSymDefHashMapElm *def,
+        const FklUnReSymbolRef *uref,
+        FklVMvalueProto *,
+        void *args);
 
 typedef struct {
     FklVMvalueCgEnv *top_env;
     int no_refs_to_builtins;
-    void (*resolve_ref_to_def_cb)(const FklSymDefHashMapMutElm *ref,
-            const FklSymDefHashMapElm *def,
-            const FklUnReSymbolRef *uref,
-            FklFuncPrototype *,
-            void *args);
+    FklResolveRefToDefCb resolve_ref_to_def_cb;
     void *resolve_ref_to_def_cb_args;
 } FklResolveRefArgs;
 
+FKL_NODISCARD
+FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env);
+
 void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,
-        FklFuncPrototypes *cp,
         const FklResolveRefArgs *args);
 
-void fklUpdatePrototype(FklFuncPrototypes *cp, FklVMvalueCgEnv *env);
-void fklUpdatePrototypeRef(FklFuncPrototypes *cp, const FklVMvalueCgEnv *env);
-void fklUpdatePrototypeConst(FklFuncPrototypes *cp, const FklVMvalueCgEnv *env);
-
 typedef struct FklCgMacro {
-    FklVMvalue *pattern;
-    uint32_t prototype_id;
-    FklVMvalue *bcl;
     struct FklCgMacro *next;
+    FklVMvalue *pattern;
+    FklVMvalue *proc;
 } FklCgMacro;
 
 // FklReplacementHashMap
@@ -114,8 +125,7 @@ typedef struct FklCgMacro {
         *(V) = NULL;                                                           \
         while (head) {                                                         \
             head->pattern = NULL;                                              \
-            head->bcl = NULL;                                                  \
-            head->prototype_id = 0;                                            \
+            head->proc = NULL;                                                 \
             FklCgMacro *next = head->next;                                     \
             fklZfree(head);                                                    \
             head = next;                                                       \
@@ -182,12 +192,12 @@ typedef struct {
     FklCgLibType type;
     union {
         struct {
-            FklVMvalue *bcl;
-            uint64_t epc;
-            uint32_t prototypeId;
+            FklVMvalue *proc;
             FklMacroHashMap *macros;
             FklReplacementHashMap *replacements;
             FklGraProdGroupHashMap *named_prod_groups;
+
+            uint64_t epc;
         };
         uv_lib_t dll;
     };
@@ -303,9 +313,6 @@ typedef struct FklCgCtx {
 
     FklVMvalueLibs *macro_vm_libs;
 
-    FklVMvalueProtos *pts;
-    FklVMvalueProtos *macro_pts;
-
     FklVM *vm;
 
     FklGrammer builtin_g;
@@ -327,9 +334,6 @@ typedef struct FklCgCtx {
 } FklCgCtx;
 
 typedef void (*FklCgInfoWorkCb)(struct FklVMvalueCgInfo *self, void *);
-typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgInfo *self,
-        FklVMvalueCgEnv *,
-        void *);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueLnt *lnt;
@@ -354,13 +358,11 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklGraProdGroupHashMap *export_prod_groups;
 
     FklVMvalueCgLibs *libraries;
-    FklVMvalueProtos *pts;
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
     struct {
         void *work_ctx;
         FklCgInfoWorkCb work_cb;
-        FklCgInfoEnvWorkCb env_work_cb;
     };
 });
 
@@ -431,16 +433,12 @@ typedef struct FklCgAct {
 
 void fklInitProdActionList(FklCgCtx *ctx);
 
-void fklInitCgCtx(FklCgCtx *ctx,
-        char *main_file_real_path_dir,
-        FklVMvalueProtos *pts,
-        FklVM *vm);
-void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVMvalueProtos *pts, FklVM *vm);
+void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
+void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
 
 void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {
-    FklVMvalueProtos *pts;
     FklVMvalueCgLibs *libraries;
     FklVMvalueCgMacroScope *macro_scope;
 
@@ -460,8 +458,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActCtx, {
 });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
-    FklVMvalue *bcl;
-    uint32_t prototype_id;
+    FklVMvalue *proc;
 
     FklVMvalue *doller_s;
     FklVMvalue *line_s;
@@ -550,10 +547,7 @@ void fklAddCgRefToPreDef(FklVMvalue *id,
         uint32_t prototypeId,
         uint32_t idx,
         FklVMvalueCgEnv *env);
-void fklResolveCgPreDef(FklVMvalue *,
-        uint32_t scope,
-        FklVMvalueCgEnv *env,
-        FklFuncPrototypes *pts);
+void fklResolveCgPreDef(FklVMvalue *, uint32_t scope, FklVMvalueCgEnv *env);
 void fklClearCgPreDef(FklVMvalueCgEnv *env);
 
 int fklIsSymbolDefined(FklVMvalue *sid, uint32_t scope, FklVMvalueCgEnv *);
@@ -563,27 +557,23 @@ int fklIsReplacementDefined(FklVMvalue *sid, FklVMvalueCgEnv *);
 FklVMvalue *fklGetReplacement(FklVMvalue *sid, const FklReplacementHashMap *);
 
 int fklIsVMvalueCgEnv(const FklVMvalue *);
-FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
-        FklVMvalueCgEnv *prev,
-        uint32_t pscope,
-        FklVMvalueCgMacroScope *);
 
-void fklCreateFuncPrototypeAndInsertToPool(FklVMvalueCgInfo *info,
-        uint32_t p,
-        FklVMvalueCgEnv *env,
-        FklVMvalue *sid,
-        uint32_t line);
-void fklInitFuncPrototypeWithEnv(FklFuncPrototype *cpt,
-        FklVMvalueCgInfo *info,
-        FklVMvalueCgEnv *env,
-        FklVMvalue *sid,
-        uint32_t line);
+typedef struct {
+    FklVMvalueCgEnv *prev_env;
+    FklVMvalueCgMacroScope *prev_ms;
+    uint32_t parent_scope;
+    FklVMvalue *filename;
+    FklVMvalue *name;
+    uint64_t line;
+} FklCgEnvCreateArgs;
+
+FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
+        const FklCgEnvCreateArgs *args);
 
 void fklInitCgScriptLib(FklCgLib *lib,
         FklVMvalueCgInfo *codegen,
-        FklVMvalue *bcl,
-        uint64_t epc,
-        FklVMvalueCgEnv *env);
+        FklVMvalue *proc,
+        uint64_t epc);
 
 FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 
@@ -596,10 +586,8 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 void fklClearCgLibMacros(FklCgLib *lib);
 void fklClearCgLibMacros2(const FklCgCtx *ctx);
 
-FklCgMacro *fklCreateCgMacro(FklVMvalue *pattern,
-        FklVMvalue *bcl,
-        FklCgMacro *next,
-        uint32_t prototype_id);
+FklCgMacro *
+fklCreateCgMacro(FklVMvalue *pattern, FklVMvalue *proc, FklCgMacro *next);
 
 int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
@@ -615,22 +603,17 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         FklVMvalueCgInfo *,
         FklVMvalueCgMacroScope *macros);
 
-void fklInitVMlibWithCgLib(const FklCgLib *clib,
-        FklVMlib *vlib,
-        FklVM *exe,
-        const FklVMvalueProtos *);
+void fklInitVMlibWithCgLib(const FklCgLib *clib, FklVMlib *vlib, FklVM *exe);
 
 void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
         FklVMvalueLibs *libs,
-        const FklVMvalueCgLibs *clibs,
-        const FklVMvalueProtos *pts);
+        const FklVMvalueCgLibs *clibs);
 
 FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
-        const FklGrammerSym *syms,
-        uint32_t prototypeId);
+        const FklGrammerSym *syms);
 int fklIsCustomActionProd(const FklGrammerProduction *p);
 
 FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,

@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
-    uint32_t r = ++env->sc;
+    uint32_t r = ++env->scope;
     FklCgEnvScope *scopes = (FklCgEnvScope *)fklZrealloc(env->scopes,
             r * sizeof(FklCgEnvScope));
     FKL_ASSERT(scopes);
@@ -44,35 +44,7 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
 
 static inline void uninit_codegen_macro(FklCgMacro *macro) {
     macro->pattern = NULL;
-    macro->bcl = NULL;
-}
-
-static inline void create_and_insert_to_pool(FklVMvalueCgInfo *info,
-        uint32_t p,
-        FklVMvalueCgEnv *env,
-        FklVMvalue *sid,
-        uint32_t line) {
-    FklVMvalue *fid = info->fid;
-    FklFuncPrototypes *cp = &info->pts->p;
-    cp->count += 1;
-    FklFuncPrototype *pts = (FklFuncPrototype *)fklZrealloc(cp->pa,
-            (cp->count + 1) * sizeof(FklFuncPrototype));
-    FKL_ASSERT(pts);
-    cp->pa = pts;
-    FklFuncPrototype *cpt = &pts[cp->count];
-    memset(cpt, 0, sizeof(FklFuncPrototype));
-    env->prototypeId = cp->count;
-    cpt->lcount = env->lcount;
-
-    FKL_ASSERT(cpt == &cp->pa[env->prototypeId]);
-    fklUpdatePrototypeRef(cp, env);
-
-    cpt->name = sid;
-    cpt->file = fid;
-    cpt->line = line;
-
-    if (info->env_work_cb)
-        info->env_work_cb(info, env, info->work_ctx);
+    macro->proc = NULL;
 }
 
 static inline void
@@ -171,7 +143,6 @@ static inline uint64_t get_curline(const FklVMvalueCgInfo *info,
         return *r;
 
     return info->curline;
-    FKL_TODO();
 }
 
 #endif

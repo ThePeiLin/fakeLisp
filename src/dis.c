@@ -13,7 +13,7 @@ static inline int print_single_ins(FklVM *vm,
         int digits_count,
         const FklInstruction *ins,
         uint64_t i,
-        const FklFuncPrototype *pt,
+        const FklVMvalueProto *pt,
         FklCodeBuilder *build) {
     FklOpcode op = ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
@@ -26,12 +26,13 @@ static inline int print_single_ins(FklVM *vm,
     FklInstructionArg ins_arg = { 0 };
     int len = fklGetInsOpArg(ins, &ins_arg);
 
+    FklVMvalue *const *konsts = fklVMvalueProtoConsts(pt);
     if (mode == FKL_OP_MODE_I)
         goto end;
     switch (ins->op) {
     case FKL_OP_PUSH_CONST: {
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
-        fklPrin1VMvalue2(pt->konsts[ins_arg.ux], build, vm);
+        fklPrin1VMvalue2(konsts[ins_arg.ux], build, vm);
     } break;
 
     case FKL_OP_PUSH_CHAR: {
@@ -99,11 +100,9 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklInstruction *pc,
         const FklInstruction *end,
-        uint32_t prototype_id,
-        const FklVMvalueProtos *pts,
+        const FklVMvalueProto *pt,
         uint64_t i,
         FklCodeBuilder *build) {
-    const FklFuncPrototype *pt = &pts->p.pa[prototype_id];
     while (pc < end) {
         print_single_ins(vm, digits_count, pc, i, pt, build);
         if (fklIsPushProcIns(pc)) {
@@ -122,8 +121,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         bcl,
                         pc,
                         pc + ins_arg.uy,
-                        ins_arg.ux,
-                        pts,
+                        fklVMvalueProtoChildren(pt)[ins_arg.ux],
                         i,
                         build);
             }
@@ -151,8 +149,7 @@ static inline int compute_digits_count(uint64_t len) {
 
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
-        uint32_t proto_id,
-        const FklVMvalueProtos *protos,
+        const FklVMvalueProto *pt,
         FklCodeBuilder *build) {
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
@@ -162,18 +159,16 @@ void fklDisassembleByteCodelnt(FklVM *vm,
                 bcl,
                 bcl->bc.code,
                 bcl->bc.code + bcl->bc.len,
-                proto_id,
-                protos,
+                pt,
                 i,
                 build);
     }
 }
 
 void fklDisassembleProc(FklVM *vm,
-        const FklVMvalue *proc,
+        const FklVMvalueProc *p,
         FklCodeBuilder *build) {
-    const FklVMvalueProc *p = FKL_VM_PROC(proc);
-    const FklVMvalue *co = p->codeObj;
+    const FklVMvalue *co = p->bcl;
     const FklByteCodelnt *bcl = FKL_VM_CO(co);
 
     int digits_count = compute_digits_count(bcl->bc.len);
@@ -184,8 +179,7 @@ void fklDisassembleProc(FklVM *vm,
                 bcl,
                 p->spc,
                 p->end,
-                p->protoId,
-                p->pts,
+                p->proto,
                 i,
                 build);
     }

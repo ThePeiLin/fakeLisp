@@ -133,7 +133,11 @@ void fklVMexecuteInstruction(FklVM *exe,
         frame->c.pc += 3;
     push_proc: {
         FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueProcWithFrame(exe, frame, size, idx, exe->pts));
+                fklCreateVMvalueProcWithFrame(exe,
+                        frame,
+                        size,
+                        idx,
+                        FKL_VM_PROC(frame->c.proc)->proto));
         frame->c.pc += size;
     } break;
     case FKL_OP_DUP: {
@@ -325,7 +329,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx = GET_INS_UX(ins, frame);
     get_var_ref: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *v = get_var_val(frame, idx, &exe->pts->p, &name);
+        FklVMvalue *v = get_var_val(frame, idx, &name);
         if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
@@ -343,7 +347,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx = GET_INS_UX(ins, frame);
     put_var_ref: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *volatile *pv = get_var_ref(frame, idx, &exe->pts->p, &name);
+        FklVMvalue *volatile *pv = get_var_ref(frame, idx, &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
@@ -1205,15 +1209,14 @@ void fklVMexecuteInstruction(FklVM *exe,
         break;
     case FKL_OP_MOV_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *v = get_var_val(frame, ins->au, &exe->pts->p, &name);
+        FklVMvalue *v = get_var_val(frame, ins->au, &name);
         if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
                     name);
         FKL_VM_PUSH_VALUE(exe, v);
-        FklVMvalue *volatile *pv =
-                get_var_ref(frame, ins->bu, &exe->pts->p, &name);
+        FklVMvalue *volatile *pv = get_var_ref(frame, ins->bu, &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,

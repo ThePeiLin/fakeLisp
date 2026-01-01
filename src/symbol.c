@@ -2,59 +2,67 @@
 #include <fakeLisp/common.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/vm.h>
 
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static inline void init_as_empty_pt(FklFuncPrototype *pt) {
-    pt->refs = NULL;
-    pt->lcount = 0;
-    pt->rcount = 0;
-    pt->konsts = NULL;
-    pt->konsts_count = 0;
+FKL_VM_USER_DATA_DEFAULT_PRINT(proto_print, "proto");
+
+static inline FklVMvalueProto *as_proto(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueProto(v));
+    return FKL_TYPE_CAST(FklVMvalueProto *, v);
 }
 
-void fklInitFuncPrototypes(FklFuncPrototypes *r, uint32_t count) {
-    r->count = count;
-    r->pa = (FklFuncPrototype *)fklZcalloc((count + 1),
-            sizeof(FklFuncPrototype));
-    FKL_ASSERT(r->pa);
-    init_as_empty_pt(r->pa);
+static void proto_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    const FklVMvalueProto *proto = as_proto(ud);
+    FklVMvalue *const *cur = proto->vals;
+    FklVMvalue *const *const end = &cur[proto->total_val_count];
+
+    fklVMgcToGray(proto->name, gc);
+    fklVMgcToGray(proto->file, gc);
+
+    for (; cur < end; ++cur)
+        fklVMgcToGray(*cur, gc);
 }
 
-uint32_t fklInsertEmptyFuncPrototype(FklFuncPrototypes *pts) {
-    pts->count++;
-    FklFuncPrototype *pa = (FklFuncPrototype *)fklZrealloc(pts->pa,
-            (pts->count + 1) * sizeof(FklFuncPrototype));
-    FKL_ASSERT(pts);
-    pts->pa = pa;
-    FklFuncPrototype *cpt = &pa[pts->count];
-    memset(cpt, 0, sizeof(FklFuncPrototype));
-    return pts->count;
+static FklVMudMetaTable const ProtoUserDataMetaTable = {
+    .size = sizeof(FklVMvalueProto),
+    .princ = proto_print,
+    .prin1 = proto_print,
+    .atomic = proto_atomic,
+};
+
+int fklIsVMvalueProto(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ProtoUserDataMetaTable;
 }
 
-void fklUninitFuncPrototype(FklFuncPrototype *p) {
-    p->rcount = 0;
-    p->konsts_count = 0;
-    fklZfree(p->refs);
-    fklZfree(p->konsts);
+FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count) {
+    size_t extra_size = val_count * sizeof(FklVMvalue *);
+
+    FklVMvalueProto *proto = (FklVMvalueProto *)fklCreateVMvalueUd2(exe, //
+            &ProtoUserDataMetaTable,
+            extra_size,
+            NULL);
+
+    proto->total_val_count = val_count;
+
+    return proto;
 }
 
-void fklDestroyFuncPrototypes(FklFuncPrototypes *p) {
-    if (p) {
-        fklUninitFuncPrototypes(p);
-        fklZfree(p);
-    }
+FklVarRefDef *fklVMvalueProtoVarRefs(const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return (FklVarRefDef *)&v->vals[v->ref_offset];
 }
 
-void fklUninitFuncPrototypes(FklFuncPrototypes *p) {
-    FklFuncPrototype *pts = p->pa;
-    uint32_t end = p->count + 1;
-    for (uint32_t i = 1; i < end; i++)
-        fklUninitFuncPrototype(&pts[i]);
-    fklZfree(pts);
-    p->pa = 0;
-    p->count = 0;
+FklVMvalueProto *const *fklVMvalueProtoChildren(const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return (FklVMvalueProto *const *)&v->vals[v->child_proto_offset];
+}
+
+FklVMvalue *const *fklVMvalueProtoConsts(const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return &v->vals[v->konsts_offset];
 }

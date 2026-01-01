@@ -35,8 +35,7 @@ static inline int pre_compile(const char *main_file_name,
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
 
     const char *main_dir = ctx.main_file_real_path_dir;
     fklChdir(main_dir);
@@ -61,8 +60,9 @@ static inline int pre_compile(const char *main_file_name,
         goto pre_compile_exit;
     }
 
-    fklUpdatePrototype(&pts->p, ctx.global_env);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
+    FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, proto);
 
     outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
 
@@ -98,7 +98,7 @@ static inline int pre_compile(const char *main_file_name,
             &(FklWritePreCompileArgs){
                 .ctx = &ctx,
                 .main_info = codegen,
-                .main_bcl = FKL_VM_CO(co),
+                .main_proc = FKL_VM_PROC(proc),
             });
 
     fclose(outfp);
@@ -130,8 +130,7 @@ static inline int compile(const char *filename,
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
@@ -156,8 +155,9 @@ static inline int compile(const char *filename,
         goto compile_exit;
     }
 
-    fklUpdatePrototype(&pts->p, ctx.global_env);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
+    (void)proto;
 
     if (output) {
         outputname = fklStrCat(fklZstrdup(cwd), FKL_PATH_SEPARATOR_STR);
@@ -173,20 +173,15 @@ static inline int compile(const char *filename,
 
     fklChdir(ctx.cwd);
 
-    anotherVM = fklCreateVMwithByteCode(co,
-            gc,
-            1,
-            0,
-            pts,
-            fklCreateVMvalueLibs(vm));
+    FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
+    FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);
+    anotherVM = fklCreateVM(proc, gc, fklCreateVMvalueLibs(vm));
 
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
-    co = FKL_VM_PROC(anotherVM->top_frame->c.proc)->codeObj;
 
     fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
-            codegen->libraries,
-            anotherVM->pts);
+            codegen->libraries);
 
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
@@ -201,8 +196,7 @@ static inline int compile(const char *filename,
 
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
-                .pts = anotherVM->pts,
-                .main_func = FKL_VM_CO(co),
+                .proc = FKL_VM_PROC(proc),
                 .libs = anotherVM->libs,
             });
 

@@ -75,7 +75,6 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
         fklVMgcToGray(base[i], gc);
     fklVMgcToGray(exe->chan, gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, exe->libs), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, exe->pts), gc);
 }
 
 static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
@@ -85,18 +84,6 @@ static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
         fklVMgcToGray(cur->v, gc);
     }
     uv_mutex_unlock(&a->lock);
-}
-
-void fklVMgcMarkPrototypes(FklVMgc *gc, const FklFuncPrototypes *pts) {
-    for (size_t i = 0; i < pts->count; ++i) {
-        FklFuncPrototype *pt = &pts->pa[i + 1];
-        fklVMgcToGray(pt->file, gc);
-        fklVMgcToGray(pt->name, gc);
-        for (size_t j = 0; j < pt->konsts_count; ++j)
-            fklVMgcToGray(pt->konsts[j], gc);
-        for (size_t j = 0; j < pt->rcount; ++j)
-            fklVMgcToGray(pt->refs[j].k.id, gc);
-    }
 }
 
 void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {

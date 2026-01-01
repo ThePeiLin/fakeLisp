@@ -53,8 +53,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
@@ -78,20 +77,18 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
         return FKL_EXIT_FAILURE;
     }
 
-    fklUpdatePrototype(&pts->p, ctx.global_env);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
     FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
             gc,
-            1,
+            proto,
             0,
-            pts,
             fklCreateVMvalueLibs(vm));
 
     fklUpdateVMlibsWithCgLibVector(anotherVM,
             anotherVM->libs,
-            codegen->libraries,
-            anotherVM->pts);
+            codegen->libraries);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
@@ -107,16 +104,16 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     return r;
 }
 
-static inline void
-initLibWithPrototype(FklVMlib *lib, uint32_t num, FklFuncPrototypes *pts) {
-    FklFuncPrototype *pta = pts->pa;
-    for (uint32_t i = 1; i <= num; i++) {
-        FklVMlib *cur = &lib[i];
-        if (FKL_IS_PROC(cur->proc)) {
-            FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
-            proc->lcount = pta[proc->protoId].lcount;
-        }
-    }
+static inline void initLibWithPrototype(FklVMlib *lib, uint32_t num) {
+    FKL_TODO();
+    // FklFuncPrototype *pta = pts->pa;
+    // for (uint32_t i = 1; i <= num; i++) {
+    //     FklVMlib *cur = &lib[i];
+    //     if (FKL_IS_PROC(cur->proc)) {
+    //         FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
+    //         proc->lcount = pta[proc->proto_id].lcount;
+    //     }
+    // }
 }
 
 typedef struct {
@@ -169,12 +166,10 @@ runCode(const char *filename, int argc, const char *const *argv) {
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
     FklVMvalueLibs *libs = fklCreateVMvalueLibs(vm);
 
     FklLoadCodeFileArgs args = {
         .vm = vm,
-        .pts = pts,
         .libs = libs,
 
     };
@@ -182,7 +177,7 @@ runCode(const char *filename, int argc, const char *const *argv) {
     int r = fklLoadCodeFile(fp, &args);
     FKL_ASSERT(r == 0);
     fclose(fp);
-    vm = fklCreateVM(args.main_func, gc, pts, libs);
+    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc, libs);
 
     fklInitVMargs(vm->gc, argc, argv);
     r = fklRunVMidleLoop(vm);
@@ -201,18 +196,15 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
-    FklVMvalueProtos *pts = fklCreateVMvalueProtos(vm, 0);
 
     FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
-    fklInitCgCtx(&ctx, fklGetDir(rp), pts, vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
         .libraries = ctx.libraries,
         .macro_libraries = ctx.macro_libraries,
-        .pts = pts,
-        .macro_pts = ctx.macro_pts,
     };
 
     int load_result = fklLoadPreCompile(fp, rp, &args);
@@ -235,19 +227,11 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         return 1;
     }
 
-    FklVMvalue *main_byte_code = fklVMvalueCgLibsLast(ctx.libraries)->bcl;
+    FklVMvalue *proc = fklVMvalueCgLibsLast(ctx.libraries)->proc;
 
-    FklVM *anotherVM = fklCreateVMwithByteCode(main_byte_code,
-            gc,
-            1,
-            0,
-            pts,
-            fklCreateVMvalueLibs(vm));
+    FklVM *anotherVM = fklCreateVM(proc, gc, fklCreateVMvalueLibs(vm));
 
-    fklUpdateVMlibsWithCgLibVector(anotherVM,
-            anotherVM->libs,
-            ctx.libraries,
-            anotherVM->pts);
+    fklUpdateVMlibsWithCgLibVector(anotherVM, anotherVM->libs, ctx.libraries);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
@@ -849,7 +833,7 @@ typedef struct {
 static void resolve_ref_to_def_cb(const FklSymDefHashMapMutElm *ref,
         const FklSymDefHashMapElm *def,
         const FklUnReSymbolRef *uref,
-        FklFuncPrototype *p,
+        FklVMvalueProto *p,
         void *vargs) {
 
     const ResolveRefToDefCbArgs *args = (const ResolveRefToDefCbArgs *)vargs;
@@ -871,53 +855,55 @@ static void resolve_ref_to_def_cb(const FklSymDefHashMapMutElm *ref,
 static inline void resolve_ref_and_update_const_array_for_repl(
         FklVMvalueCgEnv *env,
         FklVMvalueCgEnv *top_env,
-        FklFuncPrototypes *cp,
         FklVM *exe,
         FklVMframe *mainframe,
         int is_need_update_const_array,
         uint64_t new_lib_count,
         FklVMlib *new_libs) {
-    uint32_t scope = 1;
-
-    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
-
-    struct ResolveRefArgs resolve_ref_args = {
-        .lr = lr,
-        .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
-        .is_need_update_const_array = is_need_update_const_array,
-        .new_lib_count = new_lib_count,
-        .new_libs = new_libs,
-    };
-
-    FklResolveRefArgVector *unresolve_refs = &resolve_ref_args.unresolve_refs;
-    fklResolveRefArgVectorInit(unresolve_refs, env->uref.size);
-
-    fklResolveRef(env,
-            scope,
-            cp,
-            &(const FklResolveRefArgs){
-                .top_env = top_env,
-                .no_refs_to_builtins = 1,
-                .resolve_ref_to_def_cb = resolve_ref_to_def_cb,
-                .resolve_ref_to_def_cb_args =
-                        (void *)&(const ResolveRefToDefCbArgs){
-                            .lr = lr,
-                            .unresolve_refs = unresolve_refs,
-                        },
-            });
-
-    if (unresolve_refs->size || is_need_update_const_array || new_lib_count) {
-        fklQueueWorkInIdleThread(exe, resolve_ref_cb, &resolve_ref_args);
-    }
-
-    uninit_resolve_ref_arg_stack(&resolve_ref_args);
+    FKL_TODO();
+    // uint32_t scope = 1;
+    //
+    // FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
+    //
+    // struct ResolveRefArgs resolve_ref_args = {
+    //     .lr = lr,
+    //     .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
+    //     .is_need_update_const_array = is_need_update_const_array,
+    //     .new_lib_count = new_lib_count,
+    //     .new_libs = new_libs,
+    // };
+    //
+    // FklResolveRefArgVector *unresolve_refs =
+    // &resolve_ref_args.unresolve_refs;
+    // fklResolveRefArgVectorInit(unresolve_refs, env->uref.size);
+    //
+    // fklResolveRef(env,
+    //         scope,
+    //         cp,
+    //         &(const FklResolveRefArgs){
+    //             .top_env = top_env,
+    //             .no_refs_to_builtins = 1,
+    //             .resolve_ref_to_def_cb = resolve_ref_to_def_cb,
+    //             .resolve_ref_to_def_cb_args =
+    //                     (void *)&(const ResolveRefToDefCbArgs){
+    //                         .lr = lr,
+    //                         .unresolve_refs = unresolve_refs,
+    //                     },
+    //         });
+    //
+    // if (unresolve_refs->size || is_need_update_const_array || new_lib_count)
+    // {
+    //     fklQueueWorkInIdleThread(exe, resolve_ref_cb, &resolve_ref_args);
+    // }
+    //
+    // uninit_resolve_ref_arg_stack(&resolve_ref_args);
 }
 
-static inline void update_prototype_lcount(FklFuncPrototypes *cp,
-        FklVMvalueCgEnv *env) {
-    FklFuncPrototype *pts = &cp->pa[env->prototypeId];
-    pts->lcount = env->lcount;
-}
+// static inline void update_prototype_lcount(FklFuncPrototypes *cp,
+//         FklVMvalueCgEnv *env) {
+//     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
+//     pts->lcount = env->lcount;
+// }
 
 static inline void alloc_more_space_for_var_ref(FklVMCompoundFrameVarRef *lr,
         uint32_t i,
@@ -1619,44 +1605,45 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         FklVMvalueCgEnv *main_env,
         const char *eval_expression,
         int8_t interactive) {
-    FklVMframe *replFrame =
-            fklCreateNewOtherObjVMframe(&ReplContextMethodTable);
-    replFrame->errorCallBack = replErrorCallBack;
-    exe->top_frame = replFrame;
-    ReplCtx *ctx = FKL_TYPE_CAST(ReplCtx *, replFrame->data);
-    ctx->c = (struct ReplFrameCtx *)fklZcalloc(1, sizeof(struct ReplFrameCtx));
-    FKL_ASSERT(ctx->c);
-
-    FklVMvalue *mainProc =
-            fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1, exe->pts);
-
-    ctx->exe = exe;
-    ctx->c->mainProc = mainProc;
-
-    ctx->c->stdinVal =
-            FKL_VM_VAR_REF(exe->gc->builtin_refs[FKL_VM_STDIN_IDX])->v;
-    ctx->codegen = codegen;
-    ctx->main_env = main_env;
-    NastCreatCtx *cc = createNastCreatCtx();
-    ctx->cc = cc;
-    ctx->state = READY;
-    ctx->c->lrefl = NULL;
-    ctx->interactive = interactive;
-    ctx->new_var_count = 0;
-    fklInitStrBuf(&ctx->c->buf);
-    if (eval_expression) {
-        replFrame->errorCallBack = NULL;
-        replFrame->t = &EvalContextMethodTable;
-        fklStrBufConcatWithCstr(&ctx->c->buf, eval_expression);
-    }
-    fklSetBp(exe);
-    ctx->c->bp = exe->bp;
-    ctx->c->sp = exe->bp + 1;
-    fklVMstackReserve(exe, ctx->c->sp + 1);
-    if (ctx->c->sp > exe->tp) {
-        memset(&exe->base[exe->tp],
-                0,
-                (ctx->c->sp - exe->tp) * sizeof(FklVMvalue *));
-        exe->tp = ctx->c->sp;
-    }
+    FKL_TODO();
+    // FklVMframe *replFrame =
+    //         fklCreateNewOtherObjVMframe(&ReplContextMethodTable);
+    // replFrame->errorCallBack = replErrorCallBack;
+    // exe->top_frame = replFrame;
+    // ReplCtx *ctx = FKL_TYPE_CAST(ReplCtx *, replFrame->data);
+    // ctx->c = (struct ReplFrameCtx *)fklZcalloc(1, sizeof(struct
+    // ReplFrameCtx)); FKL_ASSERT(ctx->c);
+    //
+    // FklVMvalue *mainProc =
+    //         fklCreateVMvalueProc2(exe, NULL, 0, FKL_VM_NIL, 1, exe->pts);
+    //
+    // ctx->exe = exe;
+    // ctx->c->mainProc = mainProc;
+    //
+    // ctx->c->stdinVal =
+    //         FKL_VM_VAR_REF(exe->gc->builtin_refs[FKL_VM_STDIN_IDX])->v;
+    // ctx->codegen = codegen;
+    // ctx->main_env = main_env;
+    // NastCreatCtx *cc = createNastCreatCtx();
+    // ctx->cc = cc;
+    // ctx->state = READY;
+    // ctx->c->lrefl = NULL;
+    // ctx->interactive = interactive;
+    // ctx->new_var_count = 0;
+    // fklInitStrBuf(&ctx->c->buf);
+    // if (eval_expression) {
+    //     replFrame->errorCallBack = NULL;
+    //     replFrame->t = &EvalContextMethodTable;
+    //     fklStrBufConcatWithCstr(&ctx->c->buf, eval_expression);
+    // }
+    // fklSetBp(exe);
+    // ctx->c->bp = exe->bp;
+    // ctx->c->sp = exe->bp + 1;
+    // fklVMstackReserve(exe, ctx->c->sp + 1);
+    // if (ctx->c->sp > exe->tp) {
+    //     memset(&exe->base[exe->tp],
+    //             0,
+    //             (ctx->c->sp - exe->tp) * sizeof(FklVMvalue *));
+    //     exe->tp = ctx->c->sp;
+    // }
 }

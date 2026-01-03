@@ -4,6 +4,7 @@
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
@@ -233,11 +234,11 @@ FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
     init_frame_var_ref(&f->lr);
     if (code) {
         f->lr.ref = code->closure;
-        f->lr.rcount = code->rcount;
+        f->lr.rcount = code->ref_count;
         f->pc = code->spc;
         f->spc = code->spc;
         f->end = code->end;
-        f->konsts = code->konsts;
+        f->konsts = fklVMvalueProtoConsts(code->proto);
         f->proc = proc;
     }
     return frame;

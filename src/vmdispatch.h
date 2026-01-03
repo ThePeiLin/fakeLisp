@@ -396,7 +396,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMframe *exit_frame = exe->top_frame;
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, plib->proc);
-            call_compound_procedure(exe, plib->proc);
+            call_compound_procedure(exe, FKL_VM_PROC(plib->proc));
 
             exe->top_frame->retCallBack = import_frame_ret_callback;
             exe->importing_lib = plib;

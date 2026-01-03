@@ -167,7 +167,7 @@ static inline void gc_extra_mark(FklVMgc *gc) {
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
     FklVMgc *gc = curVM->gc;
     FklVMvalue **ref = curVM->gc->builtin_refs;
-    FklVMvalue **end = &ref[FKL_BUILTIN_SYMBOL_NUM];
+    FklVMvalue **const end = &ref[FKL_BUILTIN_SYMBOL_NUM];
     for (; ref < end; ref++)
         fklVMgcToGray(*ref, gc);
     gc_extra_mark(curVM->gc);
@@ -283,7 +283,6 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     case FKL_TYPE_VAR_REF:
         break;
     case FKL_TYPE_PROC:
-        fklZfree(FKL_VM_PROC(cur)->closure);
         break;
     case FKL_TYPE_HASHTABLE:
         fklValueHashMapUninit(&FKL_VM_HASH(cur)->ht);

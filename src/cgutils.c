@@ -963,8 +963,7 @@ static void init_macro_match_local_variable(FklVM *exe,
     lr->lcount = count;
     lr->lref = NULL;
     lr->lrefl = NULL;
-    proc->closure = lr->ref;
-    proc->rcount = lr->rcount;
+    proc->ref_count = lr->rcount;
 }
 
 static inline void update_new_codegen_to_new_vm_lib(FklVM *vm,

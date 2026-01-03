@@ -1331,21 +1331,23 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
         uint64_t cpc,
         FklVMvalue *bcl,
         FklVMvalueProto *pt) {
-    FklVMvalue *r = NEW_OBJ(FklVMvalueProc);
+    uint32_t ref_count = pt->ref_count;
+    size_t total_size = sizeof(FklVMvalueProc) //
+                      + ref_count * sizeof(FklVMvalue *);
+    FklVMvalueProc *r = (FklVMvalueProc *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_PROC;
-    FklVMvalueProc *proc = FKL_VM_PROC(r);
 
-    proc->proto = pt;
-    proc->spc = spc;
-    proc->end = spc + cpc;
-    proc->name = pt->name;
-    proc->lcount = pt->local_count;
-    proc->bcl = bcl;
-    proc->konsts = fklVMvalueProtoConsts(pt);
+    r->proto = pt;
+    r->spc = spc;
+    r->end = spc + cpc;
+    r->name = pt->name;
+    r->local_count = pt->local_count;
+    r->ref_count = ref_count;
+    r->bcl = bcl;
 
-    fklAddToGC(r, exe);
-    return r;
+    fklAddToGC(FKL_VM_VAL(r), exe);
+    return FKL_VM_VAL(r);
 }
 
 FklVMvalue *
@@ -1666,7 +1668,7 @@ void fklAtomicVMproc(FklVMvalue *root, FklVMgc *gc) {
     fklVMgcToGray(proc->name, gc);
     fklVMgcToGray(proc->bcl, gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, proc->proto), gc);
-    uint32_t count = proc->rcount;
+    uint32_t count = proc->ref_count;
     FklVMvalue **ref = proc->closure;
     for (uint32_t i = 0; i < count; i++)
         fklVMgcToGray(ref[i], gc);

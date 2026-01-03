@@ -121,17 +121,24 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
+    uint32_t idx;
+    _Atomic(FklVMvalue **) ref;
+    FklVMvalue *v;
+} FklVMvalueVarRef;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
     const FklInstruction *spc;
     const FklInstruction *end;
     FklVMvalue *name;
-    FklVMvalue **closure;
     FklVMvalue *bcl;
 
     struct FklVMvalueProto *proto;
-    FklVMvalue *const *konsts;
 
-    uint32_t lcount;
-    uint32_t rcount;
+    uint32_t local_count;
+    uint32_t ref_count;
+
+    FklVMvalue *closure[];
 } FklVMvalueProc;
 
 typedef struct {
@@ -141,13 +148,6 @@ typedef struct {
     FklVMvalue *dll;
     FklVMvalue *pd;
 } FklVMvalueCproc;
-
-typedef struct {
-    FKL_VM_VALUE_COMMON_HEADER;
-    uint32_t idx;
-    _Atomic(FklVMvalue **) ref;
-    FklVMvalue *v;
-} FklVMvalueVarRef;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
 
@@ -1071,11 +1071,6 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *,
         size_t,
         uint32_t pid,
         const FklVMvalueProto *parent_proto);
-void fklCreateVMvalueClosureFrom(FklVM *,
-        FklVMvalue **closure,
-        FklVMframe *f,
-        uint32_t from,
-        const FklVMvalueProto *pt);
 
 #ifdef _WIN32
 #define FKL_DLL_EXPORT __declspec(dllexport)

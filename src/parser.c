@@ -53,17 +53,17 @@ char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args) {
                 &restLen,
                 &ctx,
                 &err,
-                &args->output_line,
+                &args->ast_line,
                 symbols,
                 states);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            args->output_line = ctx.line;
+            args->curline = ctx.line;
             args->unexpect_eof = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
-                args->output_line =
+                args->curline =
                         fklAnalysisSymbolVectorIsEmpty(symbols)
                                 ? ctx.line
                                 : fklAnalysisSymbolVectorBack(symbols)->line;
@@ -72,7 +72,7 @@ char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args) {
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbols)) {
-                    args->output_line = symbols->base[0].line;
+                    args->curline = symbols->base[0].line;
                     args->unexpect_eof = FKL_PARSE_TERMINAL_MATCH_FAILED;
                     fklStrBufClear(&buf);
                 }
@@ -94,7 +94,7 @@ char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args) {
         offset = buf.index - restLen;
         fklGetDelim(fp, &buf, '\n');
     }
-    args->output_line = ctx.line;
+    args->curline = ctx.line;
     args->output_size = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
     fklUninitStrBuf(&buf);
@@ -124,17 +124,17 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, //
                 &restLen,
                 &ctx,
                 &err,
-                &args->output_line,
+                &args->ast_line,
                 symbols,
                 states);
         if (err == FKL_PARSE_WAITING_FOR_MORE && feof(fp)) {
-            args->output_line = ctx.line;
+            args->curline = ctx.line;
             args->unexpect_eof = FKL_PARSE_TERMINAL_MATCH_FAILED;
             buf.index = 0;
             break;
         } else if (err == FKL_PARSE_TERMINAL_MATCH_FAILED) {
             if (restLen) {
-                args->output_line =
+                args->curline =
                         fklAnalysisSymbolVectorIsEmpty(symbols)
                                 ? ctx.line
                                 : fklAnalysisSymbolVectorBack(symbols)->line;
@@ -143,7 +143,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, //
                 break;
             } else if (feof(fp)) {
                 if (!fklAnalysisSymbolVectorIsEmpty(symbols)) {
-                    args->output_line = symbols->base[0].line;
+                    args->curline = symbols->base[0].line;
                     args->unexpect_eof = FKL_PARSE_TERMINAL_MATCH_FAILED;
                     buf.index = 0;
                 }
@@ -165,7 +165,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, //
         offset = buf.index - restLen;
         fklGetDelim(fp, &buf, '\n');
     }
-    args->output_line = ctx.line;
+    args->curline = ctx.line;
     args->output_size = buf.index;
     char *tmp = buf.index ? fklZstrdup(buf.buf) : NULL;
     fklUninitStrBuf(&buf);

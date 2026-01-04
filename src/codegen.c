@@ -1131,11 +1131,18 @@ static inline FklVMvalue *make_grammer_create_error(FklVM *exe) {
 
 static inline FklVMvalue *
 make_grammer_create_error2(FklVM *exe, const char *s, FklVMvalue *place) {
-    return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
-            exe,
-            "%s %S",
-            fklCreateVMvalueStrFromCstr(exe, s),
-            place);
+    if (place == NULL) {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s",
+                fklCreateVMvalueStrFromCstr(exe, s));
+    } else {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s %S",
+                fklCreateVMvalueStrFromCstr(exe, s),
+                place);
+    }
 }
 
 static inline FklVMvalue *make_parse_error(FklVM *exe, FklParseError e) {
@@ -5323,11 +5330,12 @@ static inline FklVMvalue *getExpressionFromFile(FklCgCtx *ctx,
 
     if (*unexpect_eof) {
         args.output = NULL;
-        *output_line = args.output_line;
+        *output_line = args.curline;
         return NULL;
     }
 
-    info->curline = args.output_line;
+    *output_line = args.ast_line;
+    info->curline = args.curline;
 
     return args.output;
 }
@@ -5719,10 +5727,11 @@ add_all_group_to_grammer(FklCgCtx *ctx, uint64_t line, FklVMvalueCgInfo *info) {
             place = nonterm.sid;
         }
 
-        errors->error = make_import_reader_macro_error(vm,
+        errors->error = make_grammer_create_error2(vm, //
                 "Undefined non-terminal",
                 place);
         errors->fid = info->fid;
+        errors->line = line;
         return 1;
     }
 
@@ -5733,9 +5742,8 @@ add_all_group_to_grammer(FklCgCtx *ctx, uint64_t line, FklVMvalueCgInfo *info) {
 
     int r = fklGenerateLalrAnalyzeTable(vm, g, itemSet, &err_msg);
     if (r) {
-        errors->error = make_import_reader_macro_error(vm, //
-                err_msg.buf,
-                NULL);
+        errors->error = make_import_reader_macro_error(vm, err_msg.buf, NULL);
+        errors->line = line;
     }
 
     fklUninitStrBuf(&err_msg);
@@ -8031,7 +8039,9 @@ static FklVMvalue *process_adding_production(const FklCgActCbArgs *args) {
         if (fklAddProdToProdTable(&item->g, extra_prod)) {
             fklDestroyGrammerProduction(extra_prod);
         reader_macro_error:
-            errors->error = make_grammer_create_error(vm);
+            errors->error = make_grammer_create_error2(vm,
+                    "Duplicate production rule",
+                    NULL);
             errors->line = line;
             return NULL;
         }
@@ -8458,7 +8468,11 @@ static FklVMvalue *update_grammer(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
     FklCgErrorState *error_state = ctx->error_state;
 
-    if (add_all_group_to_grammer(ctx, line, info)) {
+    int err = add_all_group_to_grammer(ctx, line, info);
+    if (error_state->error != NULL)
+        return NULL;
+
+    if (err) {
         error_state->error = make_grammer_create_error(ctx->vm);
         error_state->line = line;
         return NULL;
@@ -8556,6 +8570,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
             errors->line = CURLINE(name->container);
             return;
         }
+
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(update_grammer,
                 createDefaultStackContext(),
                 NULL,
@@ -8636,6 +8651,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
         error_state->line = CURLINE(err_node.container);
         return;
     }
+
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(update_grammer,
             createDefaultStackContext(),
             NULL,

@@ -60,7 +60,8 @@ typedef struct {
     // out
     size_t output_size;
     int unexpect_eof;
-    size_t output_line;
+    size_t ast_line;
+    size_t curline;
     FklVMvalue *output;
 } FklReadArgs;
 

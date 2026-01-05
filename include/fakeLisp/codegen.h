@@ -298,14 +298,16 @@ typedef enum {
 
 typedef struct FklCgCtx {
     struct FklCgActVector *action_vector;
-    FklValueVector *bcl_vector;
     struct FklVMvalueCgEnv *global_env;
     struct FklVMvalueCgInfo *global_info;
     struct FklCgErrorState *error_state;
+    FklPmatchRes cur_exp;
 
     char *cwd;
     char *main_file_real_path_dir;
     const char *cur_file_dir;
+
+    FklValueVector *bcl_vector;
 
     FklVMvalueCgLibs *libraries;
 
@@ -449,6 +451,7 @@ typedef struct {
     int8_t is_lib;
     int8_t is_macro;
     int8_t is_global;
+    int8_t is_precompile;
     int8_t inherit_grammer;
 } FklCgInfoArgs;
 
@@ -595,13 +598,13 @@ FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
 
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        FklVMvalueCgInfo *,
-        FklVMvalueCgMacroScope *macros);
+        const FklVMvalueCgInfo *,
+        const FklVMvalueCgMacroScope *macros);
 
 FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        FklVMvalueCgInfo *,
-        FklVMvalueCgMacroScope *macros);
+        const FklVMvalueCgInfo *,
+        const FklVMvalueCgMacroScope *macros);
 
 void fklInitVMlibWithCgLib(const FklCgLib *clib, FklVMlib *vlib, FklVM *exe);
 

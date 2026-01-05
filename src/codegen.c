@@ -3442,7 +3442,7 @@ typedef FklVMvalue *(*ReplacementFunc)(const FklCgCtx *ctx,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info);
 
-static inline ReplacementFunc findBuiltInReplacementWithId(FklVMvalue *id,
+static inline ReplacementFunc find_builtin_replacements(FklVMvalue *id,
         FklVMvalue *const builtin_replacement_id[]);
 
 static inline int is_replacement_define(FklVMvalue *value,
@@ -3457,7 +3457,7 @@ static inline int is_replacement_define(FklVMvalue *value,
         replacement = fklGetReplacement(value, cs->replacements);
     if (replacement) {
         return 1;
-    } else if ((f = findBuiltInReplacementWithId(value,
+    } else if ((f = find_builtin_replacements(value,
                         ctx->builtin_replacement_id)))
         return 1;
     else
@@ -3477,7 +3477,7 @@ static inline int is_replacement_true(const FklPmatchRes *value,
     if (replacement) {
         int r = replacement != FKL_VM_NIL;
         return r;
-    } else if ((f = findBuiltInReplacementWithId(value->value,
+    } else if ((f = find_builtin_replacements(value->value,
                         ctx->builtin_replacement_id))) {
         FklVMvalue *t = f(ctx, value, env, info);
         int r = t != FKL_VM_NIL;
@@ -3498,7 +3498,7 @@ static inline FklVMvalue *get_replacement(const FklPmatchRes *value,
         replacement = fklGetReplacement(value->value, cs->replacements);
     if (replacement)
         return replacement;
-    else if ((f = findBuiltInReplacementWithId(value->value,
+    else if ((f = find_builtin_replacements(value->value,
                       ctx->builtin_replacement_id)))
         return f(ctx, value, env, info);
     else
@@ -3818,9 +3818,9 @@ static FklVMvalue *cfg_check_or_method(CfgCtx *ctx, int r) {
     }
 }
 
-static inline int is_check_subpattern_true(const FklVMvalueCgInfo *info,
+static inline int is_check_subpattern_true(FklCgCtx *ctx,
+        const FklVMvalueCgInfo *info,
         const FklPmatchRes *exp_,
-        const FklCgCtx *ctx,
         uint32_t scope,
         const FklVMvalueCgMacroScope *macro_scope,
         const FklVMvalueCgEnv *env) {
@@ -3851,6 +3851,13 @@ check_nested_sub_pattern:
         else if (FKL_IS_SYM(exp.value))
             r = is_replacement_true(&exp, info, ctx, macro_scope, env);
         else if (FKL_IS_PAIR(exp.value)) {
+            FklVMvalue *old = exp.value;
+            exp.value = fklTryExpandCgMacro(ctx, &exp, info, macro_scope);
+            if (error_state->error)
+                goto exit;
+            if (exp.value != old)
+                goto loop_start;
+
             if (fklPatternMatch(ctx->builtin_sub_pattern_node
                                         [FKL_CODEGEN_SUB_PATTERN_DEFINE],
                         exp.value,
@@ -3989,7 +3996,7 @@ static void codegen_check(const CgCbArgs *args) {
 
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtin_sym_value);
-    int r = is_check_subpattern_true(info, value, ctx, scope, macro_scope, env);
+    int r = is_check_subpattern_true(ctx, info, value, scope, macro_scope, env);
     if (error_state->error)
         return;
     FklVMvalue *bcl = fklCreateVMvalueCodeObjExt(vm,
@@ -4029,7 +4036,7 @@ static void codegen_cond_compile(const CgCbArgs *args) {
         error_state->line = CURLINE(orig->container);
         return;
     }
-    int r = is_check_subpattern_true(info, cond, ctx, scope, macro_scope, env);
+    int r = is_check_subpattern_true(ctx, info, cond, scope, macro_scope, env);
     if (error_state->error)
         return;
     if (r) {
@@ -4053,12 +4060,12 @@ static void codegen_cond_compile(const CgCbArgs *args) {
         rest_value = FKL_VM_CDR(rest_value);
         FklVMvalue *value = FKL_VM_CAR(rest_value);
         rest_value = FKL_VM_CDR(rest_value);
-        int r = is_check_subpattern_true(info,
+        int r = is_check_subpattern_true(ctx,
+                info,
                 &(FklPmatchRes){
                     .value = cond,
                     .container = rest_value,
                 },
-                ctx,
                 scope,
                 macro_scope,
                 env);
@@ -7492,14 +7499,14 @@ static inline FklCgActCtx *createReaderMacroActionContext(
     return r;
 }
 
-static FklVMvalue *_nil_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_nil_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
     return FKL_VM_NIL;
 }
 
-static FklVMvalue *_is_main_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_is_main_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7510,7 +7517,7 @@ static FklVMvalue *_is_main_replacement(const FklCgCtx *ctx,
     return FKL_VM_NIL;
 }
 
-static FklVMvalue *_platform_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_platform_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7527,7 +7534,7 @@ static FklVMvalue *_platform_replacement(const FklCgCtx *ctx,
     return fklCreateVMvalueStrFromCstr(ctx->vm, platform);
 }
 
-static FklVMvalue *_file_dir_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_file_dir_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7545,7 +7552,7 @@ static FklVMvalue *_file_dir_replacement(const FklCgCtx *ctx,
     return r;
 }
 
-static FklVMvalue *_file_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_file_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7554,7 +7561,7 @@ static FklVMvalue *_file_replacement(const FklCgCtx *ctx,
                  : fklCreateVMvalueStrFromCstr(ctx->vm, info->filename);
 }
 
-static FklVMvalue *_file_rp_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_file_rp_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7563,7 +7570,7 @@ static FklVMvalue *_file_rp_replacement(const FklCgCtx *ctx,
                  : fklCreateVMvalueStrFromCstr(ctx->vm, info->realpath);
 }
 
-static FklVMvalue *_line_replacement(const FklCgCtx *ctx,
+static FklVMvalue *b_line_replacement(const FklCgCtx *ctx,
         const FklPmatchRes *orig,
         const FklVMvalueCgEnv *env,
         const FklVMvalueCgInfo *info) {
@@ -7577,16 +7584,16 @@ static struct SymbolReplacement {
     const char *s;
     ReplacementFunc func;
 } builtInSymbolReplacement[FKL_BUILTIN_REPLACEMENT_NUM] = {
-    { "nil", _nil_replacement },
-    { "*line*", _line_replacement },
-    { "*file*", _file_replacement },
-    { "*file-rp*", _file_rp_replacement },
-    { "*file-dir*", _file_dir_replacement },
-    { "*main?*", _is_main_replacement },
-    { "*platform*", _platform_replacement },
+    { "nil", b_nil_replacement },
+    { "*line*", b_line_replacement },
+    { "*file*", b_file_replacement },
+    { "*file-rp*", b_file_rp_replacement },
+    { "*file-dir*", b_file_dir_replacement },
+    { "*main?*", b_is_main_replacement },
+    { "*platform*", b_platform_replacement },
 };
 
-static inline ReplacementFunc findBuiltInReplacementWithId(FklVMvalue *id,
+static inline ReplacementFunc find_builtin_replacements(FklVMvalue *id,
         FklVMvalue *const builtin_replacement_id[]) {
     for (size_t i = 0; i < FKL_BUILTIN_REPLACEMENT_NUM; i++) {
         if (builtin_replacement_id[i] == id)
@@ -8908,7 +8915,7 @@ static FklVMvalue *gen_push_literal_code(FklVM *exe,
     return r;
 }
 
-static inline int matchAndCall(FklCgCtx *ctx,
+static inline int match_and_call(FklCgCtx *ctx,
         FklCgFunc func,
         const FklVMvalue *pattern,
         uint32_t scope,
@@ -9036,6 +9043,9 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
 
+    fklVMgcToGray(ctx->cur_exp.value, gc);
+    fklVMgcToGray(ctx->cur_exp.container, gc);
+
     mark_action_vector(gc, ctx->action_vector);
 
     if (ctx->error_state) {
@@ -9161,8 +9171,8 @@ void fklUninitCgCtx(FklCgCtx *ctx) {
     ctx->macro_libraries = NULL;
 }
 
-static inline int mapAllBuiltInPattern(FklCgCtx *ctx,
-        const FklPmatchRes *curExp,
+static inline int map_builtin_pattern(FklCgCtx *ctx,
+        const FklPmatchRes *cur_exp,
         FklCgActVector *actions,
         uint32_t scope,
         FklVMvalueCgMacroScope *macro_scope,
@@ -9171,22 +9181,22 @@ static inline int mapAllBuiltInPattern(FklCgCtx *ctx,
         uint8_t must_has_retval) {
     FklVMvalue *const *builtin_pattern_node = ctx->builtin_pattern_node;
 
-    if (fklIsList(curExp->value))
+    if (fklIsList(cur_exp->value))
         for (size_t i = 0; i < FKL_CODEGEN_PATTERN_NUM; i++)
-            if (matchAndCall(ctx,
+            if (match_and_call(ctx,
                         builtin_pattern_cstr_func[i].func,
                         builtin_pattern_node[i],
                         scope,
                         macro_scope,
-                        curExp,
+                        cur_exp,
                         actions,
                         env,
                         info,
                         must_has_retval))
                 return 0;
 
-    if (FKL_IS_PAIR(curExp->value)) {
-        codegen_funcall(curExp, actions, scope, macro_scope, env, info, ctx);
+    if (FKL_IS_PAIR(cur_exp->value)) {
+        codegen_funcall(cur_exp, actions, scope, macro_scope, env, info, ctx);
         return 0;
     }
     return 1;
@@ -9274,6 +9284,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
             FklPmatchRes exp = { 0 };
             while (get_next_expression(ctx, expressions->context, &exp)) {
             skip:
+                ctx->cur_exp = exp;
                 if (FKL_IS_PAIR(exp.value)) {
                     exp.value = fklTryExpandCgMacro(ctx,
                             &exp,
@@ -9297,7 +9308,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                     if (replacement) {
                         exp.value = replacement;
                         goto skip;
-                    } else if ((f = findBuiltInReplacementWithId(exp.value,
+                    } else if ((f = find_builtin_replacements(exp.value,
                                         ctx->builtin_replacement_id))) {
                         FklVMvalue *t = f(ctx, &exp, env, info);
                         FKL_ASSERT(t);
@@ -9336,7 +9347,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                     }
                 }
                 FKL_ASSERT(exp.value);
-                r = mapAllBuiltInPattern(ctx,
+                r = map_builtin_pattern(ctx,
                         &exp,
                         &act_vec,
                         cur_action->scope,

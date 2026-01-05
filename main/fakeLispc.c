@@ -46,6 +46,7 @@ static inline int pre_compile(const char *main_file_name,
             &(FklCgInfoArgs){
                 .is_global = 1,
                 .is_lib = 1,
+                .is_precompile = 1,
             });
 
     FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(&ctx,

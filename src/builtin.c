@@ -5281,7 +5281,7 @@ FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum) {
     return builtInSymbolList[idx].inlfunc[argNum];
 }
 
-void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm) {
+void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm, int is_precompile) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
             list->name != NULL;
             list++) {
@@ -5290,6 +5290,8 @@ void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm) {
                         curEnv);
         ref->v.isConst = 1;
     }
+    if (is_precompile)
+        curEnv->proto_id = 0;
 }
 
 static alignas(8)

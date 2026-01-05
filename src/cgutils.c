@@ -647,7 +647,7 @@ void fklInitCgScriptLib(FklCgLib *lib,
 }
 
 static const FklCgMacro *find_macro(FklVMvalue *exp,
-        FklVMvalueCgMacroScope *macro_scope,
+        const FklVMvalueCgMacroScope *macro_scope,
         FklPmatchHashMap *pht) {
     if (exp == NULL || !FKL_IS_PAIR(exp))
         return NULL;
@@ -727,8 +727,8 @@ static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
 static inline FklVMvalue *expand_macro_arg(FklCgCtx *ctx,
         FklPmatchExpandType e,
         const FklPmatchRes *exp,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros) {
+        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueCgMacroScope *macros) {
     switch (e) {
     case FKL_PMATCH_EXPAND_NONE:
         return exp->value;
@@ -744,10 +744,25 @@ static inline FklVMvalue *expand_macro_arg(FklCgCtx *ctx,
     return NULL;
 }
 
+static inline int expand_all_macro_arg(FklCgCtx *ctx,
+        const FklPmatchHashMap *ht,
+        const FklVMvalueCgInfo *info,
+        const FklVMvalueCgMacroScope *macro_scope) {
+    for (FklPmatchHashMapNode *cur = ht->first; cur; cur = cur->next) {
+        FklPmatchRes *r = &cur->v;
+        FklVMvalue *rr = expand_macro_arg(ctx, r->expand, r, info, macro_scope);
+        if (rr == NULL)
+            return 1;
+        r->value = rr;
+    }
+
+    return 0;
+}
+
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros) {
+        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueCgMacroScope *macros) {
     FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
@@ -757,17 +772,8 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
     for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
-        for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
-            FklPmatchRes *r = &cur->v;
-            FklVMvalue *rr = expand_macro_arg(ctx, //
-                    r->expand,
-                    r,
-                    codegen,
-                    macros);
-            if (rr == NULL)
-                return NULL;
-            r->value = rr;
-        }
+        if (expand_all_macro_arg(ctx, &ht, codegen, macros))
+            return NULL;
 
         fklPmatchHashMapAdd2(&ht,
                 ctx->builtin_sym_orig,
@@ -813,8 +819,8 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
 
 FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalueCgMacroScope *macros) {
+        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueCgMacroScope *macros) {
     FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
@@ -824,18 +830,9 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
     for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
+        if (expand_all_macro_arg(ctx, &ht, codegen, macros))
+            return NULL;
 
-        for (FklPmatchHashMapNode *cur = ht.first; cur; cur = cur->next) {
-            FklPmatchRes *r = &cur->v;
-            FklVMvalue *rr = expand_macro_arg(ctx, //
-                    r->expand,
-                    r,
-                    codegen,
-                    macros);
-            if (rr == NULL)
-                return NULL;
-            r->value = rr;
-        }
         fklPmatchHashMapAdd2(&ht,
                 ctx->builtin_sym_orig,
                 (FklPmatchRes){
@@ -1383,15 +1380,15 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     r->export_macros = is_lib ? fklMacroHashMapCreate() : NULL;
     r->export_replacement = is_lib ? fklReplacementHashMapCreate() : NULL;
     r->export_prod_groups = is_lib ? fklGraProdGroupHashMapCreate() : NULL;
-    r->exports.buckets = NULL;
+    if (is_lib)
+        fklCgExportSidIdxHashMapInit(&r->exports);
+    else
+        r->exports.buckets = NULL;
 
     r->work_cb = work_cb;
     r->work_ctx = work_ctx;
 
     r->libraries = libs;
-
-    if (is_lib)
-        fklCgExportSidIdxHashMapInit(&r->exports);
 
     if (args->inherit_grammer && prev) {
         r->g = &prev->self_g;
@@ -1413,7 +1410,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .name = NULL,
                     .line = r->curline,
                 });
-        fklInitGlobCgEnv(r->global_env, ctx->vm);
+        fklInitGlobCgEnv(r->global_env, ctx->vm, args->is_precompile);
     }
 
     r->global_env->work_ctx = work_ctx;

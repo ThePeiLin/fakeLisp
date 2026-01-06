@@ -296,11 +296,17 @@ typedef enum {
     XX(simple)                                                                 \
     XX(replace)
 
+typedef struct FklPmatchStorage {
+    struct FklPmatchStorage *next;
+    const FklPmatchHashMap *ht;
+} FklPmatchStorage;
+
 typedef struct FklCgCtx {
     struct FklCgActVector *action_vector;
     struct FklVMvalueCgEnv *global_env;
     struct FklVMvalueCgInfo *global_info;
     struct FklCgErrorState *error_state;
+    FklPmatchStorage *ht_storage;
     FklPmatchRes cur_exp;
 
     char *cwd;
@@ -595,6 +601,19 @@ fklCreateCgMacro(FklVMvalue *pattern, FklVMvalue *proc, FklCgMacro *next);
 int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
         FklVMvalueCgMacroScope *prev);
+
+static inline void fklPushCgPmatchStorage(FklCgCtx *ctx, FklPmatchStorage *s) {
+    s->next = ctx->ht_storage;
+    ctx->ht_storage = s;
+}
+
+static inline void fklPopCgPmatchStorage(FklCgCtx *ctx,
+        const FklPmatchStorage *s) {
+    FKL_ASSERT(ctx->ht_storage == s);
+    FklPmatchStorage *ss = ctx->ht_storage;
+    ctx->ht_storage = ss->next;
+    ss->next = NULL;
+}
 
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,

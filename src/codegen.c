@@ -3842,6 +3842,9 @@ static inline int is_check_subpattern_true(FklCgCtx *ctx,
 
 check_nested_sub_pattern:
     fklPmatchHashMapInit(&ht);
+    FklPmatchStorage storage = { .ht = &ht };
+    fklPushCgPmatchStorage(ctx, &storage);
+
     cgCfgCtxVectorInit(&s, 8);
 
     for (;;) {
@@ -3978,6 +3981,8 @@ check_nested_sub_pattern:
     }
 exit:
     cgCfgCtxVectorUninit(&s);
+
+    fklPopCgPmatchStorage(ctx, &storage);
     fklPmatchHashMapUninit(&ht);
     return r;
 }
@@ -4575,6 +4580,9 @@ static void qsquote_state_none(const QsquoteStateNoneArgs *args) {
 
     FklPmatchHashMap table;
     fklPmatchHashMapInit(&table);
+    FklPmatchStorage storage = { .ht = &table };
+    fklPushCgPmatchStorage(ctx, &storage);
+
     if (is_unquote(ctx, value, &table)) {
         const FklPmatchRes *unquoteValue =
                 fklPmatchHashMapGet2(&table, ctx->builtin_sym_value);
@@ -4603,6 +4611,8 @@ static void qsquote_state_none(const QsquoteStateNoneArgs *args) {
                 env,
                 prev,
                 info);
+
+    fklPopCgPmatchStorage(ctx, &storage);
     fklPmatchHashMapUninit(&table);
 }
 
@@ -8927,6 +8937,9 @@ static inline int match_and_call(FklCgCtx *ctx,
         uint8_t must_has_retval) {
     FklPmatchHashMap ht;
     fklPmatchHashMapInit(&ht);
+    FklPmatchStorage storage = { .ht = &ht };
+    fklPushCgPmatchStorage(ctx, &storage);
+
     int r = fklPatternMatch(pattern, exp->value, &ht);
     if (r) {
         fklChdir(info->dir);
@@ -8945,6 +8958,8 @@ static inline int match_and_call(FklCgCtx *ctx,
         func(&args);
         fklChdir(ctx->cwd);
     }
+
+    fklPopCgPmatchStorage(ctx, &storage);
     fklPmatchHashMapUninit(&ht);
     return r;
 }
@@ -9035,6 +9050,14 @@ static inline void mark_action_vector(FklVMgc *gc, FklCgActVector *v) {
     }
 }
 
+static void mark_match_hash_map(const FklPmatchHashMap *ht, FklVMgc *gc) {
+    for (const FklPmatchHashMapNode *cur = ht->first; cur; cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+        fklVMgcToGray(cur->v.container, gc);
+        fklVMgcToGray(cur->v.value, gc);
+    }
+}
+
 static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     FklCgCtx *ctx = FKL_TYPE_CAST(FklCgCtx *, c);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_env), gc);
@@ -9045,6 +9068,10 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
 
     fklVMgcToGray(ctx->cur_exp.value, gc);
     fklVMgcToGray(ctx->cur_exp.container, gc);
+
+    for (const FklPmatchStorage *cur = ctx->ht_storage; cur; cur = cur->next) {
+        mark_match_hash_map(cur->ht, gc);
+    }
 
     mark_action_vector(gc, ctx->action_vector);
 

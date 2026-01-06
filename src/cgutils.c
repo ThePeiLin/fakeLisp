@@ -662,8 +662,6 @@ static const FklCgMacro *find_macro(FklVMvalue *exp,
             continue;
 
         for (const FklCgMacro *cur = *pm; cur; cur = cur->next) {
-            if (pht->buckets == NULL)
-                fklPmatchHashMapInit(pht);
             if (fklPatternMatch(cur->pattern, exp, pht))
                 return cur;
 
@@ -767,7 +765,12 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
         return r;
-    FklPmatchHashMap ht = { .buckets = NULL };
+    FklPmatchHashMap ht = { 0 };
+    fklPmatchHashMapInit(&ht);
+
+    FklPmatchStorage storage = { .ht = &ht };
+    fklPushCgPmatchStorage(ctx, &storage);
+
     uint64_t curline = CURLINE(exp->container);
     for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
@@ -812,8 +815,9 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         fklDestroyAllVMs(exe);
         break;
     }
-    if (ht.buckets)
-        fklPmatchHashMapUninit(&ht);
+
+    fklPopCgPmatchStorage(ctx, &storage);
+    fklPmatchHashMapUninit(&ht);
     return r;
 }
 
@@ -825,7 +829,13 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
     FklVMvalue *r = exp->value;
     if (!FKL_IS_PAIR(r))
         return r;
-    FklPmatchHashMap ht = { .buckets = NULL };
+
+    FklPmatchHashMap ht = { 0 };
+    fklPmatchHashMapInit(&ht);
+
+    FklPmatchStorage storage = { .ht = &ht };
+    fklPushCgPmatchStorage(ctx, &storage);
+
     uint64_t curline = CURLINE(exp->container);
     for (const FklCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
@@ -869,8 +879,9 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         fklPmatchHashMapClear(&ht);
         fklDestroyAllVMs(exe);
     }
-    if (ht.buckets)
-        fklPmatchHashMapUninit(&ht);
+
+    fklPopCgPmatchStorage(ctx, &storage);
+    fklPmatchHashMapUninit(&ht);
     return r;
 }
 
@@ -1487,8 +1498,12 @@ static void *custom_action(void *c,
     FklVMvalue *nodes_vector = fklCreateVMvalueVec(cg_ctx->vm, line);
     for (size_t i = 0; i < num; i++)
         FKL_VM_VEC(nodes_vector)->base[i] = nodes[i].ast;
+
     FklPmatchHashMap ht;
     fklPmatchHashMapInit(&ht);
+    FklPmatchStorage storage = { .ht = &ht };
+    fklPushCgPmatchStorage(cg_ctx, &storage);
+
     FklVMvalue *line_node = fklMakeVMuint(line, cg_ctx->vm);
 
     put_line_number(pctx->ln, nodes_vector, line);
@@ -1536,6 +1551,7 @@ static void *custom_action(void *c,
     if (e)
         fklDeleteCallChain(exe);
 
+    fklPopCgPmatchStorage(cg_ctx, &storage);
     fklPmatchHashMapUninit(&ht);
     fklDestroyAllVMs(exe);
     return r;

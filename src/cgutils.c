@@ -1289,6 +1289,11 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
             fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
         }
     }
+
+    for (const FklCgExportSidIdxHashMapNode *cur = e->exports.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
 }
 
 static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {

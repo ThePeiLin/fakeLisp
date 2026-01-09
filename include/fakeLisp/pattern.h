@@ -36,8 +36,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, {
     FklPmatchExpandType expand;
 });
 
-FklVMvalue *
-fklCreatePatternFromNast(FklVM *exe, FklVMvalue *, FklValueHashSet **);
+FklVMvalue *fklCreatePattern(FklVM *exe, FklVMvalue *, FklValueHashSet **);
 int fklPatternMatch(const FklVMvalue *pattern,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht);

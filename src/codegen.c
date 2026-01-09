@@ -1184,11 +1184,7 @@ static inline FklVMvalue *make_macro_pattern_error(FklVM *exe,
 
 static inline FklVMvalue *
 make_export_error(FklVM *exe, const char *msg, FklVMvalue *place) {
-    return FKL_MAKE_VM_ERR(FKL_ERR_EXPORT_ERROR,
-            exe,
-            "%s %S",
-            fklCreateVMvalueStrFromCstr(exe, msg),
-            place);
+    return FKL_MAKE_VM_ERR(FKL_ERR_EXPORT_ERROR, exe, msg, place);
 }
 
 static void codegen_funcall(const FklPmatchRes *rest,
@@ -6368,7 +6364,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
         }
 
         errors->error = make_export_error(vm, //
-                "Undefined non-terminal",
+                "Undefined non-terminal %S",
                 place);
         errors->fid = info->fid;
         errors->line = info->curline;
@@ -8504,6 +8500,21 @@ static inline int is_valid_production_rule_node(const FklVMvalue *n) {
         || is_string_list(n);
 }
 
+static inline int check_export_symbol_interned(FklVM *vm,
+        FklVMvalue *s,
+        uint64_t line,
+        FklCgErrorState *errors) {
+    FKL_ASSERT(FKL_IS_SYM(s));
+    if (!FKL_VM_SYM_INTERNED(s)) {
+        errors->error = make_export_error(vm,
+                "export uninterned symbol %S is not allowed",
+                s);
+        errors->line = line;
+        return 0;
+    }
+    return 1;
+}
+
 static void codegen_defmacro_impl(const CgCbArgs *args,
         FklVMvalueCgInfo *lib_info) {
     FklPmatchHashMap *ht = args->ht;
@@ -8531,20 +8542,35 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
                 name->value,
                 value->value);
         if (lib_info) {
+            if (!check_export_symbol_interned(vm,
+                        name->value,
+                        CURLINE(name->container),
+                        errors))
+                return;
             fklReplacementHashMapAdd2(lib_info->export_replacement,
                     name->value,
                     value->value);
         }
     } else if (FKL_IS_PAIR(name->value)) {
-        FklValueHashSet *symbolSet = NULL;
-        FklVMvalue *pattern =
-                fklCreatePatternFromNast(vm, name->value, &symbolSet);
+        FklValueHashSet *symbol_set = NULL;
+        FklVMvalue *pattern = fklCreatePattern(vm, name->value, &symbol_set);
         if (!pattern) {
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;
         }
-        if (fklValueHashSetPut2(symbolSet, ctx->builtin_sym_orig)) {
+
+        if (lib_info
+                && !check_export_symbol_interned(vm,
+                        FKL_VM_CAR(pattern),
+                        CURLINE(name->container),
+                        errors)) {
+            fklValueHashSetDestroy(symbol_set);
+            return;
+        }
+
+        if (fklValueHashSetPut2(symbol_set, ctx->builtin_sym_orig)) {
+            fklValueHashSetDestroy(symbol_set);
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;
@@ -8554,10 +8580,10 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
         FklVMvalueCgInfo *macro_info = macro_compile_prepare(ctx,
                 info,
                 macro_scope,
-                symbolSet,
+                symbol_set,
                 &macroEnv,
                 CURLINE(value->container));
-        fklValueHashSetDestroy(symbolSet);
+        fklValueHashSetDestroy(symbol_set);
 
         CgExpQueue *queue = cgExpQueueCreate();
         cgExpQueuePush(queue, value);
@@ -8576,6 +8602,13 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
                 actions);
     } else if (FKL_IS_BOX(name->value)) {
         FklVMvalue *group_id = FKL_VM_BOX(name->value);
+        if (lib_info
+                && !check_export_symbol_interned(vm,
+                        group_id,
+                        CURLINE(name->container),
+                        errors))
+            return;
+
         if (!is_valid_production_rule_node(value->value)) {
             errors->error = make_syntax_error(vm, value->value);
             errors->line = CURLINE(value->container);
@@ -8634,14 +8667,38 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
         error_state->line = CURLINE(orig->container);
         return;
     }
+
     FklValueQueue prod_vector_queue;
     fklValueQueueInit(&prod_vector_queue);
+
     const FklPmatchRes *name = fklPmatchHashMapGet2(ht, ctx->builtin_sym_arg0);
+
     FklPmatchRes err_node = { 0 };
     if (!FKL_IS_BOX(name->value)) {
         err_node = *name;
         goto reader_macro_error;
     }
+
+    FklVMvalue *group_id = FKL_VM_BOX(name->value);
+    if (!FKL_IS_SYM(group_id)) {
+        err_node = *name;
+    reader_macro_error:
+        fklValueQueueUninit(&prod_vector_queue);
+        if (error_state->error != NULL)
+            return;
+        error_state->error = make_syntax_error(vm, err_node.value);
+        error_state->line = CURLINE(err_node.container);
+        return;
+    }
+
+    if (lib_info
+            && !check_export_symbol_interned(vm,
+                    group_id,
+                    CURLINE(name->container),
+                    error_state)) {
+        goto reader_macro_error;
+    }
+
     const FklPmatchRes *arg = fklPmatchHashMapGet2(ht, ctx->builtin_sym_arg1);
     if (!is_valid_production_rule_node(arg->value)) {
         err_node = *arg;
@@ -8657,16 +8714,6 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
             goto reader_macro_error;
         }
         fklValueQueuePush2(&prod_vector_queue, FKL_VM_CAR(rv));
-    }
-
-    FklVMvalue *group_id = FKL_VM_BOX(name->value);
-    if (!FKL_IS_SYM(group_id)) {
-        err_node = *name;
-    reader_macro_error:
-        fklValueQueueUninit(&prod_vector_queue);
-        error_state->error = make_syntax_error(vm, err_node.value);
-        error_state->line = CURLINE(err_node.container);
-        return;
     }
 
     FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(update_grammer,
@@ -8813,6 +8860,10 @@ static void codegen_export_single(const CgCbArgs *args) {
     process_def_in_lib:
         if (!FKL_IS_SYM(name))
             goto error;
+
+        if (!check_export_symbol_interned(vm, name, 0, errors))
+            goto error;
+
         FklCgExportIdx *item =
                 fklCgExportSidIdxHashMapGet2(&lib_info->exports, name);
         if (item == NULL) {
@@ -8851,7 +8902,8 @@ error:
         cgExpQueueDestroy(queue);
     }
 
-    errors->error = make_syntax_error(vm, orig.value);
+    if (errors->error == NULL)
+        errors->error = make_syntax_error(vm, orig.value);
     errors->line = CURLINE(orig.container);
     return;
 }
@@ -9137,7 +9189,7 @@ static inline void init_builtin_patterns(FklCgCtx *ctx) {
         FklVMvalue *node = fklCreateNastNodeFromCstr(vm,
                 builtin_pattern_cstr_func[i].ps,
                 NULL);
-        builtin_pattern_node[i] = fklCreatePatternFromNast(vm, node, NULL);
+        builtin_pattern_node[i] = fklCreatePattern(vm, node, NULL);
     }
 }
 
@@ -9156,7 +9208,7 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     for (size_t i = 0; i < FKL_CODEGEN_SUB_PATTERN_NUM; i++) {
         FklVMvalue *node =
                 fklCreateNastNodeFromCstr(vm, builtInSubPattern[i], NULL);
-        builtin_sub_pattern_node[i] = fklCreatePatternFromNast(vm, node, NULL);
+        builtin_sub_pattern_node[i] = fklCreatePattern(vm, node, NULL);
     }
 }
 

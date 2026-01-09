@@ -272,9 +272,8 @@ static inline int is_pattern_slot_expand_all(const FklVMvalue *s,
     return is_pattern_slot(s, rest);
 }
 
-FklVMvalue *fklCreatePatternFromNast(FklVM *vm,
-        FklVMvalue *node,
-        FklValueHashSet **psymbolTable) {
+FklVMvalue *
+fklCreatePattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
     if (FKL_IS_PAIR(node)                                 //
             && fklIsList(node)                            //
             && FKL_IS_SYM(FKL_VM_CAR(node))               //

@@ -65,13 +65,13 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
             });
 
     fklZfree(rp);
-    FklVMvalue *mainByteCode = fklGenExpressionCodeWithFp(&ctx, //
+    FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, //
             fp,
             codegen,
             ctx.global_env);
     fklVMclearExtraMarkFunc(gc);
 
-    if (mainByteCode == NULL) {
+    if (bc == NULL) {
         fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
         return FKL_EXIT_FAILURE;
@@ -80,15 +80,8 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
-    FklVM *anotherVM = fklCreateVMwithByteCode(mainByteCode,
-            gc,
-            proto,
-            0,
-            fklCreateVMvalueLibs(vm));
-
-    fklUpdateVMlibsWithCgLibVector(anotherVM,
-            anotherVM->libs,
-            codegen->libraries);
+    FklVMvalueVec *libs = fklCreateVMvalueLibVec(&gc->gcvm, codegen->libraries);
+    FklVM *anotherVM = fklCreateVMwithByteCode(bc, gc, proto, 0, libs);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
@@ -104,7 +97,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     return r;
 }
 
-static inline void initLibWithPrototype(FklVMlib *lib, uint32_t num) {
+static inline void initLibWithPrototype(FklVMvalueLib *lib, uint32_t num) {
     FKL_TODO();
     // FklFuncPrototype *pta = pts->pa;
     // for (uint32_t i = 1; i <= num; i++) {
@@ -166,18 +159,16 @@ runCode(const char *filename, int argc, const char *const *argv) {
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
-    FklVMvalueLibs *libs = fklCreateVMvalueLibs(vm);
 
     FklLoadCodeFileArgs args = {
         .vm = vm,
-        .libs = libs,
 
     };
 
     int r = fklLoadCodeFile(fp, &args);
     FKL_ASSERT(r == 0);
     fclose(fp);
-    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc, libs);
+    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc, args.libs);
 
     fklInitVMargs(vm->gc, argc, argv);
     r = fklRunVMidleLoop(vm);
@@ -228,10 +219,10 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     }
 
     FklVMvalue *proc = fklVMvalueCgLibsLast(ctx.libraries)->proc;
+    fklVMvalueCgLibsPopBack(ctx.libraries);
 
-    FklVM *anotherVM = fklCreateVM(proc, gc, fklCreateVMvalueLibs(vm));
-
-    fklUpdateVMlibsWithCgLibVector(anotherVM, anotherVM->libs, ctx.libraries);
+    FklVMvalueVec *libs = fklCreateVMvalueLibVec(vm, ctx.libraries);
+    FklVM *anotherVM = fklCreateVM(proc, gc, libs);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
@@ -714,13 +705,11 @@ struct ResolveRefArgs {
     FklVMvalue **loc;
     FklVMCompoundFrameVarRef *lr;
     FklResolveRefArgVector unresolve_refs;
-    uint64_t new_lib_count;
-    FklVMlib *new_libs;
+    FklVMvalueVec *new_libs;
     int is_need_update_const_array;
 };
 
-static inline void
-update_vm_libs(FklVMgc *gc, uint64_t new_libs_count, FklVMlib *new_libs) {
+static inline void update_vm_libs(FklVMgc *gc, FklVMvalueVec *new_libs) {
     FKL_TODO();
     // FklVMlib *libs = fklZrealloc(gc->libs,
     //         (gc->lib_num + new_libs_count + 1) * sizeof(FklVMlib));
@@ -795,8 +784,7 @@ static inline void resolve_ref_work_func(FklVM *exe,
 }
 
 struct UpdateConstArrayArgs {
-    uint64_t new_libs_count;
-    FklVMlib *new_libs;
+    FklVMvalueVec *new_libs;
     int is_need_update_const_array;
 };
 
@@ -819,8 +807,6 @@ static inline void uninit_resolve_ref_arg_stack(struct ResolveRefArgs *s) {
     s->loc = NULL;
     s->lr = NULL;
     fklResolveRefArgVectorUninit(&s->unresolve_refs);
-    s->new_lib_count = 0;
-    fklZfree(s->new_libs);
     s->new_libs = NULL;
     s->is_need_update_const_array = 0;
 }
@@ -858,8 +844,7 @@ static inline void resolve_ref_and_update_const_array_for_repl(
         FklVM *exe,
         FklVMframe *mainframe,
         int is_need_update_const_array,
-        uint64_t new_lib_count,
-        FklVMlib *new_libs) {
+        FklVMvalueVec *new_libs) {
     FKL_TODO();
     // uint32_t scope = 1;
     //

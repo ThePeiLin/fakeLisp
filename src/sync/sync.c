@@ -532,11 +532,8 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     return symbols;
 }
 
-FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
-    *count = EXPORT_NUM;
-    FklVMvalue **loc =
-            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
-    FKL_ASSERT(loc);
+FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
+    FKL_ASSERT(count == EXPORT_NUM);
     FklVMvalue *spd = fklCreateVMvalueUd(exe, &SyncPublicDataMetaTable, dll);
 
     init_sync_public_data(as_sync_pd(spd), exe);
@@ -548,7 +545,10 @@ FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
                 dll,
                 spd,
                 exports_and_func[i].sym);
-        loc[i] = dlproc;
+        values[i] = dlproc;
     }
-    return loc;
+    return 0;
 }
+
+FKL_CHECK_EXPORT_DLL_INIT_FUNC();
+FKL_CHECK_IMPORT_DLL_INIT_FUNC();

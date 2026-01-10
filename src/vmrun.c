@@ -1,9 +1,9 @@
-#include "fakeLisp/symbol.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
+#include <fakeLisp/symbol.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -196,10 +196,10 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc,
-        FklVMvalueLibs *libs) {
+        FklVMvalueVec *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
@@ -230,10 +230,10 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc,
-        FklVMvalueLibs *libs) {
+        FklVMvalueVec *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
@@ -652,12 +652,13 @@ close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
 
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     const FklInstruction *ins;
-    FklVMlib *plib;
+    FklVMvalueLib *plib;
     uint32_t idx;
     uint32_t idx1;
+    uint32_t exporting_idx = 0;
     uint64_t size;
     int64_t offset;
-    FklVMvalueLibs *libs = exe->libs;
+    FklVMvalueVec *libs = exe->libs;
 start:
     ins = frame->c.pc++;
     switch ((FklOpcode)ins->op) {
@@ -1309,10 +1310,10 @@ void fklDBG_printVMstack(FklVM *stack,
     }
 }
 
-FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueLibs *libs) {
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueVec *libs) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(fklIsVMvalueLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
+    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     exe->gc = gc;
     exe->prev = exe;
     exe->next = exe;
@@ -1391,33 +1392,6 @@ void fklDestroyVMframes(FklVMframe *h) {
         h = h->prev;
         fklZfree(cur);
     }
-}
-
-void fklInitVMlib(FklVMlib *lib, FklVMvalue *proc_obj, uint64_t epc) {
-    lib->proc = proc_obj;
-    lib->loc = NULL;
-    lib->import_state = FKL_VM_LIB_NONE;
-    lib->count = 0;
-    lib->epc = epc;
-}
-
-void fklInitVMlibWithCodeObj(FklVMlib *lib,
-        FklVMvalue *codeObj,
-        FklVM *exe,
-        FklVMvalueProto *pt,
-        uint64_t spc) {
-    FklVMvalue *proc = fklCreateVMvalueProc(exe, codeObj, pt);
-    fklInitVMlib(lib, proc, spc);
-}
-
-void fklUninitVMlib(FklVMlib *lib) {
-    fklZfree(lib->loc);
-    memset(lib, 0, sizeof(*lib));
-}
-
-void fklDestroyVMlib(FklVMlib *lib) {
-    fklUninitVMlib(lib);
-    fklZfree(lib);
 }
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj) {

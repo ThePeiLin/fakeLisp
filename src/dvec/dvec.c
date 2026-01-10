@@ -17,8 +17,6 @@ static FKL_ALWAYS_INLINE FklVMvalueDvec *as_dvec(const FklVMvalue *v) {
 static int _dvec_equal(const FklVMvalue *a, const FklVMvalue *b) {
     FklValueVector *da = &as_dvec(a)->vec;
     FklValueVector *db = &as_dvec(b)->vec;
-    // FKL_DECL_UD_DATA(da, FklValueVector, a);
-    // FKL_DECL_UD_DATA(db, FklValueVector, b);
     if (da->size != db->size)
         return 0;
     for (size_t i = 0; i < da->size; i++)
@@ -28,20 +26,17 @@ static int _dvec_equal(const FklVMvalue *a, const FklVMvalue *b) {
 }
 
 static void _dvec_atomic(const FklVMvalue *d, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(dd, FklValueVector, d);
     FklValueVector *dd = &as_dvec(d)->vec;
     for (size_t i = 0; i < dd->size; i++)
         fklVMgcToGray(dd->base[i], gc);
 }
 
 static size_t _dvec_length(const FklVMvalue *d) {
-    // FKL_DECL_UD_DATA(dd, FklValueVector, d);
     FklValueVector *dd = &as_dvec(d)->vec;
     return dd->size;
 }
 
 static uintptr_t _dvec_hash(const FklVMvalue *ud) {
-    // FKL_DECL_UD_DATA(vec, FklValueVector, ud);
     FklValueVector *vec = &as_dvec(ud)->vec;
     uintptr_t seed = vec->size;
     for (size_t i = 0; i < vec->size; ++i)
@@ -50,15 +45,12 @@ static uintptr_t _dvec_hash(const FklVMvalue *ud) {
 }
 
 static int _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(vec, FklValueVector, ud);
-    // fklValueVectorUninit(vec);
     fklValueVectorUninit(&as_dvec(ud)->vec);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static int
 _dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
-    // FKL_DECL_UD_DATA(dvec, FklValueVector, ud);
     FklValueVector *dvec = &as_dvec(ud)->vec;
     size_t new_size = dvec->size;
     for (uint32_t i = 0; i < argc; ++i) {
@@ -122,7 +114,6 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
         const FklVMvalue *v_,
         uint32_t argc,
         FklVMvalue *const *base) {
-    // FKL_DECL_UD_DATA(dvec, FklValueVector, v);
     FklVMvalueDvec *v = as_dvec(v_);
     FklValueVector *dvec = &v->vec;
     size_t new_size = dvec->size;
@@ -161,7 +152,6 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
 FKL_VM_USER_DATA_DEFAULT_PRINT(_dvec_print, "dvec");
 
 static FklVMudMetaTable const DvecMetaTable = {
-    // .size = sizeof(FklValueVector),
     .size = sizeof(FklVMvalueDvec),
     .equal = _dvec_equal,
     .prin1 = _dvec_print,
@@ -819,13 +809,13 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     return symbols;
 }
 
-FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
-    *count = EXPORT_NUM;
-    FklVMvalue **loc =
-            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
-    FKL_ASSERT(loc);
+FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
+    FKL_ASSERT(count == EXPORT_NUM);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        loc[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
     }
-    return loc;
+    return 0;
 }
+
+FKL_CHECK_EXPORT_DLL_INIT_FUNC();
+FKL_CHECK_IMPORT_DLL_INIT_FUNC();

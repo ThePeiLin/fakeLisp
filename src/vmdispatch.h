@@ -13,12 +13,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
         const FklInstruction *ins,
         FklVMframe *frame) {
-    FklVMlib *plib;
+    FklVMvalueLib *plib;
     uint32_t idx;
     uint32_t idx1;
+    uint32_t exporting_idx = 0;
     uint64_t size;
     int64_t offset;
-    FklVMvalueLibs *libs = exe->libs;
+    FklVMvalueVec *libs = exe->libs;
     switch (op) {
 #endif
     case FKL_OP_DUMMY:
@@ -293,9 +294,9 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     import_lib: {
-        FklVMlib *plib = exe->importing_lib;
+        FklVMvalueLib *plib = exe->importing_lib;
         uint32_t count = plib->count;
-        FklVMvalue *v = idx >= count ? NULL : plib->loc[idx];
+        FklVMvalue *v = idx >= count ? NULL : plib->values[idx];
         FKL_VM_GET_ARG(exe, frame, idx1) = v;
     } break;
     case FKL_OP_GET_LOC:
@@ -364,25 +365,25 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_EXPORT_X:
         idx = GET_INS_UX(ins, frame);
         export : {
-            FklVMlib *lib = exe->importing_lib;
-            lib->loc[lib->count++] = FKL_VM_GET_ARG(exe, frame, idx);
+            FklVMvalueLib *lib = exe->importing_lib;
+            lib->values[exporting_idx++] = FKL_VM_GET_ARG(exe, frame, idx);
         }
         break;
     case FKL_OP_LOAD_LIB:
-        plib = &libs->libs[ins->bu];
+        plib = fklVMvalueLib(libs->base[ins->bu]);
         goto load_lib;
     case FKL_OP_LOAD_LIB_C:
-        plib = &libs->libs[FKL_GET_INS_UC(ins)];
+        plib = fklVMvalueLib(libs->base[FKL_GET_INS_UC(ins)]);
         goto load_lib;
     case FKL_OP_LOAD_LIB_X:
-        plib = &libs->libs[GET_INS_UX(ins, frame)];
+        plib = fklVMvalueLib(libs->base[GET_INS_UX(ins, frame)]);
     load_lib: {
 
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
             fklUnlockThread(exe);
-            fklLockVMlibs(libs);
+            fklLockVMlib(plib);
             fklLockThread(exe);
         }
 
@@ -404,7 +405,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
             atomic_store(&plib->import_state,
                     r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED);
-            fklUnlockVMlibs(libs);
+            fklUnlockVMlib(plib);
 
             if (r) {
                 fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
@@ -417,14 +418,14 @@ void fklVMexecuteInstruction(FklVM *exe,
         } break;
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
-                fklUnlockVMlibs(libs);
+                fklUnlockVMlib(plib);
             exe->importing_lib = plib;
             FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
             break;
 
         case FKL_VM_LIB_ERROR:
             if (state == FKL_VM_LIB_IMPORTING)
-                fklUnlockVMlibs(libs);
+                fklUnlockVMlib(plib);
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                     exe,
                     "library cannot be re-imported because of its' previous failure");
@@ -436,19 +437,19 @@ void fklVMexecuteInstruction(FklVM *exe,
         return;
     } break;
     case FKL_OP_LOAD_DLL:
-        plib = &libs->libs[ins->bu];
+        plib = fklVMvalueLib(libs->base[ins->bu]);
         goto load_dll;
     case FKL_OP_LOAD_DLL_C:
-        plib = &libs->libs[FKL_GET_INS_UC(ins)];
+        plib = fklVMvalueLib(libs->base[FKL_GET_INS_UC(ins)]);
         goto load_dll;
     case FKL_OP_LOAD_DLL_X:
-        plib = &libs->libs[GET_INS_UX(ins, frame)];
+        plib = fklVMvalueLib(libs->base[GET_INS_UX(ins, frame)]);
     load_dll: {
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
             fklUnlockThread(exe);
-            fklLockVMlibs(libs);
+            fklLockVMlib(plib);
             fklLockThread(exe);
         }
 
@@ -471,7 +472,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
             else {
                 atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                fklUnlockVMlibs(libs);
+                fklUnlockVMlib(plib);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         FKL_VM_STR(errorStr)->str);
@@ -479,7 +480,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
             if (!initFunc) {
                 atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                fklUnlockVMlibs(libs);
+                fklUnlockVMlib(plib);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
                         "Failed to import dll: %s",
@@ -488,15 +489,15 @@ void fklVMexecuteInstruction(FklVM *exe,
 
             uint32_t tp = exe->tp;
             plib->proc = dll;
-            plib->loc = initFunc(exe, dll, &plib->count);
+            initFunc(exe, dll, plib->count, plib->values);
             exe->tp = tp;
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTED);
-            fklUnlockVMlibs(libs);
+            fklUnlockVMlib(plib);
             break;
 
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
-                fklUnlockVMlibs(libs);
+                fklUnlockVMlib(plib);
             break;
 
         case FKL_VM_LIB_ERROR:
@@ -1176,17 +1177,11 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->c.pc += 2;
     export_to: {
-        FklVMlib *lib = &libs->libs[idx];
+        exporting_idx = 0;
+        FklVMvalueLib *lib = fklVMvalueLib(libs->base[idx]);
         // pop all values in stack
         // module should only return nil
         exe->tp = frame->c.sp;
-        FklVMvalue **loc = NULL;
-        if (idx1) {
-            loc = (FklVMvalue **)fklZcalloc(idx1, sizeof(FklVMvalue *));
-            FKL_ASSERT(loc);
-        }
-        lib->loc = loc;
-        lib->count = 0;
         exe->importing_lib = lib;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;

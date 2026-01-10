@@ -15,6 +15,7 @@
 
 #include "codegen.h"
 
+typedef uint32_t LibCount;
 enum ValueCreateOpcode {
     NOP = 0,
     MAKE_NIL,
@@ -731,11 +732,12 @@ int fklLoadByteCodelnt(FILE *fp,
     return 0;
 }
 
-static void write_vm_libs_pass_1(const FklVMvalueLibs *l,
+static void write_vm_libs_pass_1(const FklVMvalueVec *l,
         FklValueTable *vt,
         FklValueTable *proto_table) {
-    for (size_t i = 1; i <= l->count; ++i) {
-        const FklVMlib *lib = &l->libs[i];
+    for (size_t i = 1; i < l->size; ++i) {
+        const FklVMvalueLib *lib = fklVMvalueLib(l->base[i]);
+        FKL_TODO();
         if (FKL_IS_PROC(lib->proc)) {
             fklWriteProc(FKL_VM_PROC(lib->proc),
                     vt,
@@ -748,13 +750,16 @@ static void write_vm_libs_pass_1(const FklVMvalueLibs *l,
     }
 }
 
-static void write_vm_libs_pass_2(const FklVMvalueLibs *l,
+static void write_vm_libs_pass_2(const FklVMvalueVec *l,
         FklValueTable *vt,
         FklValueTable *proto_table,
         FILE *fp) {
-    fwrite(&l->count, sizeof(l->count), 1, fp);
-    for (size_t i = 1; i <= l->count; ++i) {
-        const FklVMlib *lib = &l->libs[i];
+
+    LibCount count = l->size - 1;
+    fwrite(&count, sizeof(count), 1, fp);
+    for (size_t i = 1; i < l->size; ++i) {
+        FKL_TODO();
+        const FklVMvalueLib *lib = fklVMvalueLib(l->base[i]);
         FKL_ASSERT(FKL_IS_PROC(lib->proc) || FKL_IS_STR(lib->proc));
         uint8_t type_byte = FKL_IS_PROC(lib->proc) ? FKL_CODEGEN_LIB_SCRIPT
                                                    : FKL_CODEGEN_LIB_DLL;
@@ -773,7 +778,7 @@ static void write_vm_libs_pass_2(const FklVMvalueLibs *l,
     }
 }
 
-void fklWriteVMlibs(const FklVMvalueLibs *l,
+void fklWriteVMlibs(const FklVMvalueVec *l,
         FklValueTable *vt,
         FklValueTable *proto_table,
         FklWriteCodePass pass,
@@ -788,34 +793,35 @@ void fklWriteVMlibs(const FklVMvalueLibs *l,
     }
 }
 
-void fklLoadVMlibs(FILE *fp,
+FklVMvalueVec *fklLoadVMlibs(FILE *fp,
         FklVM *vm,
         const FklLoadValueArgs *values,
-        const FklLoadProtoArgs *protos,
-        FklVMvalueLibs *l) {
-    fread(&l->count, sizeof(l->count), 1, fp);
-    fklVMvalueLibsReserve(l, l->count);
-
-    for (uint64_t i = 1; i <= l->count; ++i) {
-        FklVMlib *lib = &l->libs[i];
-        memset(lib, 0, sizeof(*lib));
-        uint8_t type_byte = 0;
-        fread(&type_byte, sizeof(type_byte), 1, fp);
-        switch ((FklCgLibType)type_byte) {
-        case FKL_CODEGEN_LIB_SCRIPT: {
-            fread(&lib->epc, sizeof(lib->epc), 1, fp);
-            FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
-
-            lib->proc = FKL_VM_VAL(proc);
-        } break;
-        case FKL_CODEGEN_LIB_DLL: {
-            lib->proc = load_value_id(fp, values);
-        } break;
-        default:
-            FKL_UNREACHABLE();
-            break;
-        }
-    }
+        const FklLoadProtoArgs *protos) {
+    FKL_TODO();
+    LibCount count = 0;
+    // fread(&count, sizeof(count), 1, fp);
+    // fklVMvalueLibsReserve(l, l->count);
+    //
+    // for (uint64_t i = 1; i <= l->count; ++i) {
+    //     FklVMlib *lib = &l->libs[i];
+    //     memset(lib, 0, sizeof(*lib));
+    //     uint8_t type_byte = 0;
+    //     fread(&type_byte, sizeof(type_byte), 1, fp);
+    //     switch ((FklCgLibType)type_byte) {
+    //     case FKL_CODEGEN_LIB_SCRIPT: {
+    //         fread(&lib->epc, sizeof(lib->epc), 1, fp);
+    //         FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+    //
+    //         lib->proc = FKL_VM_VAL(proc);
+    //     } break;
+    //     case FKL_CODEGEN_LIB_DLL: {
+    //         lib->proc = load_value_id(fp, values);
+    //     } break;
+    //     default:
+    //         FKL_UNREACHABLE();
+    //         break;
+    //     }
+    // }
 }
 
 static inline void write_code_file_passes(FILE *fp,
@@ -886,7 +892,7 @@ int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
 
     args->main_func = main_func;
 
-    fklLoadVMlibs(fp, vm, &values, &protos, args->libs);
+    args->libs = fklLoadVMlibs(fp, vm, &values, &protos);
 
     values.count = 0;
     fklZfree(values.values);

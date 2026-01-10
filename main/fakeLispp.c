@@ -136,12 +136,9 @@ int main(int argc, char **argv) {
             }
             FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
             FklVM *vm = &gc->gcvm;
-            FklVMvalueLibs *libs = fklCreateVMvalueLibs(vm);
 
             FklLoadCodeFileArgs args = {
                 .vm = vm,
-                .libs = libs,
-
             };
 
             int r = fklLoadCodeFile(fp, &args);
@@ -162,10 +159,10 @@ int main(int argc, char **argv) {
                         opcode_count);
 
             CB_LINE("");
-            size_t count = libs->count;
+            size_t count = args.libs->size - 1;
 
             for (size_t i = 1; i <= count; ++i) {
-                const FklVMlib *cur = &libs->libs[i];
+                const FklVMvalueLib *cur = fklVMvalueLib(args.libs->base[i]);
                 CB_LINE("");
                 CB_LINE("lib %" PRIu64 ":", i);
                 if (FKL_IS_PROC(cur->proc)) {

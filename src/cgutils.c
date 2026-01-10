@@ -545,15 +545,25 @@ void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
     }
 }
 
-void fklInitVMlibWithCgLib(const FklCgLib *clib, FklVMlib *vlib, FklVM *exe) {
-    FklVMvalue *val = FKL_VM_NIL;
-    if (clib->type == FKL_CODEGEN_LIB_SCRIPT) {
-        val = clib->proc;
-    } else
-        val = fklCreateVMvalueStr2(exe,
+FklVMvalueLib *fklCreateVMvalueLib2(FklVM *vm, const FklCgLib *clib) {
+    FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
+
+    switch (clib->type) {
+    default:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_CODEGEN_LIB_SCRIPT:
+        l->proc = clib->proc;
+        l->epc = clib->epc;
+        break;
+    case FKL_CODEGEN_LIB_DLL:
+        l->proc = fklCreateVMvalueStr2(vm,
                 strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
                 clib->rp);
-    fklInitVMlib(vlib, val, clib->epc);
+        break;
+    }
+
+    return l;
 }
 
 static inline void uninit_codegen_lib_exports(FklCgLib *lib) {
@@ -974,23 +984,45 @@ static void init_macro_match_local_variable(FklVM *exe,
     proc->ref_count = lr->rcount;
 }
 
-static inline void update_new_codegen_to_new_vm_lib(FklVM *vm,
-        const FklCgLibVector *clibs,
-        FklVMvalueLibs *libs) {
-    if (libs->count != clibs->size) {
-        uint64_t old_count = libs->count;
-        fklVMvalueLibsReserve(libs, clibs->size);
-        for (size_t i = old_count; i < clibs->size; ++i) {
-            const FklCgLib *cur = &clibs->base[i];
-            fklInitVMlibWithCgLib(cur, &libs->libs[i + 1], vm);
-        }
+FklVMvalueVec *fklCreateVMvalueLibVec(FklVM *vm,
+        const FklVMvalueCgLibs *clibs) {
+    FklVMvalue *vv = fklCreateVMvalueVec(vm, clibs->libs.size + 1);
+    FklVMvalueVec *v = FKL_VM_VEC(vv);
+    v->base[0] = FKL_VM_NIL;
+    for (size_t i = 0; i < clibs->libs.size; ++i) {
+        FklVMvalueLib *l = fklCreateVMvalueLib2(vm, &clibs->libs.base[i]);
+        v->base[i + 1] = FKL_VM_VAL(l);
     }
+
+    return v;
 }
 
-void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
-        FklVMvalueLibs *libs,
+FklVMvalueVec *fklUpdateVMvalueLibVec(FklVM *vm,
+        FklVMvalueVec *libs,
         const FklVMvalueCgLibs *clibs) {
-    update_new_codegen_to_new_vm_lib(vm, &clibs->libs, libs);
+    if (libs == NULL)
+        return fklCreateVMvalueLibVec(vm, clibs);
+    size_t new_size = clibs->libs.size;
+    size_t old_size = libs->size - 1;
+    if (new_size == old_size)
+        return libs;
+
+    FklVMvalue *new_libs_v = fklCreateVMvalueVec(vm, clibs->libs.size + 1);
+    FklVMvalueVec *new_libs = FKL_VM_VEC(new_libs_v);
+
+    new_libs->base[0] = FKL_VM_NIL;
+    size_t i = 0;
+    for (; i < old_size; ++i) {
+        new_libs->base[i + 1] = libs->base[i + 1];
+    }
+
+    i = old_size;
+    for (; i < new_size; ++i) {
+        FklVMvalueLib *l = fklCreateVMvalueLib2(vm, &clibs->libs.base[i]);
+        new_libs->base[i + 1] = FKL_VM_VAL(l);
+    }
+
+    return new_libs;
 }
 
 static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
@@ -1002,11 +1034,10 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
     FKL_ASSERT(FKL_IS_PROC(proc));
     FklCgErrorState *error_state = ctx->error_state;
 
-    FklVMvalueLibs *libs = ctx->macro_vm_libs;
-    if (libs == NULL) {
-        libs = fklCreateVMvalueLibs(ctx->vm);
-        ctx->macro_vm_libs = libs;
-    }
+    FklVMvalueVec *libs = fklUpdateVMvalueLibVec(ctx->vm,
+            ctx->macro_vm_libs,
+            ctx->macro_libraries);
+    ctx->macro_vm_libs = libs;
 
     FklVM *exe = fklCreateVM(NULL, ctx->vm->gc, libs);
 
@@ -1020,8 +1051,6 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
             ht,
             lnt,
             FKL_VM_PROC(proc)->proto);
-
-    update_new_codegen_to_new_vm_lib(exe, &ctx->macro_libraries->libs, libs);
     return exe;
 }
 
@@ -2710,6 +2739,11 @@ FklCgLib *fklVMvalueCgLibsGet(FklVMvalueCgLibs *v, size_t id) {
     FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
     FKL_ASSERT(id > 0 && id <= v->libs.size);
     return &v->libs.base[id - 1];
+}
+
+void fklVMvalueCgLibsPopBack(FklVMvalueCgLibs *v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
+    fklCgLibVectorPopBack(&v->libs);
 }
 
 FklCgLib *fklVMvalueCgLibs(FklVMvalueCgLibs *v) {

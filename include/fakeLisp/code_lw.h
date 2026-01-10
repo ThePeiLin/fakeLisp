@@ -79,29 +79,28 @@ int fklLoadByteCodelnt(FILE *fp,
         FklByteCodelnt *bcl);
 
 // write and load vm libs
-void fklWriteVMlibs(const FklVMvalueLibs *l,
+void fklWriteVMlibs(const FklVMvalueVec *l,
         FklValueTable *vt,
         FklValueTable *proto_table,
         FklWriteCodePass pass,
         FILE *fp);
 
-void fklLoadVMlibs(FILE *fp,
+FklVMvalueVec *fklLoadVMlibs(FILE *fp,
         FklVM *vm,
         const FklLoadValueArgs *values,
-        const FklLoadProtoArgs *protos,
-        FklVMvalueLibs *l);
+        const FklLoadProtoArgs *protos);
 
 typedef struct {
     const FklVMvalueProc *proc;
-    const FklVMvalueLibs *libs;
+    const FklVMvalueVec *libs;
 } FklWriteCodeFileArgs;
 
 typedef struct {
     // in
     FklVM *const vm;
-    FklVMvalueLibs *const libs;
 
     // out
+    FklVMvalueVec *libs;
     FklVMvalueProc *main_func;
 } FklLoadCodeFileArgs;
 

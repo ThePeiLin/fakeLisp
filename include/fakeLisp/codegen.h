@@ -319,7 +319,7 @@ typedef struct FklCgCtx {
 
     FklVMvalueCgLibs *macro_libraries;
 
-    FklVMvalueLibs *macro_vm_libs;
+    FklVMvalueVec *macro_vm_libs;
 
     FklVM *vm;
 
@@ -485,6 +485,7 @@ size_t fklVMvalueCgLibsFind(const FklVMvalueCgLibs *v, const char *realpath);
 FklCgLib *fklVMvalueCgLibsPushBack(FklVMvalueCgLibs *v);
 FklCgLib *fklVMvalueCgLibsEmplaceBack(FklVMvalueCgLibs *v, FklCgLib *libs);
 FklCgLib *fklVMvalueCgLibsGet(FklVMvalueCgLibs *v, size_t id);
+void fklVMvalueCgLibsPopBack(FklVMvalueCgLibs *v);
 
 FklCgLib *fklVMvalueCgLibs(FklVMvalueCgLibs *v);
 size_t fklVMvalueCgLibsCount(FklVMvalueCgLibs *v);
@@ -625,10 +626,14 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklVMvalueCgInfo *,
         const FklVMvalueCgMacroScope *macros);
 
-void fklInitVMlibWithCgLib(const FklCgLib *clib, FklVMlib *vlib, FklVM *exe);
+FklVMvalueLib *fklCreateVMvalueLib2(FklVM *vm, const FklCgLib *clib);
 
-void fklUpdateVMlibsWithCgLibVector(FklVM *vm,
-        FklVMvalueLibs *libs,
+FKL_NODISCARD
+FklVMvalueVec *fklCreateVMvalueLibVec(FklVM *vm, const FklVMvalueCgLibs *clibs);
+
+FKL_NODISCARD
+FklVMvalueVec *fklUpdateVMvalueLibVec(FklVM *vm,
+        FklVMvalueVec *libs,
         const FklVMvalueCgLibs *clibs);
 
 FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,

@@ -439,15 +439,12 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     return symbols;
 }
 
-FKL_DLL_EXPORT FklVMvalue **_fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
-    *count = EXPORT_NUM;
-    FklVMvalue **loc =
-            (FklVMvalue **)fklZmalloc(sizeof(FklVMvalue *) * EXPORT_NUM);
-    FKL_ASSERT(loc);
+FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
+    FKL_ASSERT(count == EXPORT_NUM);
     size_t i = 0;
     for (; i < EXPORT_NUM; i++) {
-        loc[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
     }
 
-    return loc;
+    return 0;
 }

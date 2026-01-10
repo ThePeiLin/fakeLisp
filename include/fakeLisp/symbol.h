@@ -93,16 +93,30 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueProto, {
 });
 
 int fklIsVMvalueProto(const FklVMvalue *v);
-static inline FklVMvalueProto *fklVMvalueProto(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FklVMvalueProto *fklVMvalueProto(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueProto(v));
     return FKL_TYPE_CAST(FklVMvalueProto *, v);
 }
 
 FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count);
 
-FklVarRefDef *fklVMvalueProtoVarRefs(const FklVMvalueProto *v);
-FklVMvalueProto *const *fklVMvalueProtoChildren(const FklVMvalueProto *v);
-FklVMvalue *const *fklVMvalueProtoConsts(const FklVMvalueProto *v);
+static FKL_ALWAYS_INLINE FklVarRefDef *fklVMvalueProtoVarRefs(
+        const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return (FklVarRefDef *)&v->vals[v->ref_offset];
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueProto *const *fklVMvalueProtoChildren(
+        const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return (FklVMvalueProto *const *)&v->vals[v->child_proto_offset];
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *const *fklVMvalueProtoConsts(
+        const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return &v->vals[v->konsts_offset];
+}
 
 #ifdef __cplusplus
 }

@@ -104,7 +104,6 @@ static FklVMvalue *fkl_box_copyer(const FklVMvalue *obj, FklVM *vm) {
 }
 
 static FklVMvalue *fkl_userdata_copyer(const FklVMvalue *obj, FklVM *vm) {
-    // const FklVMvalueUd *ud = FKL_VM_UD(obj);
     FklVMudCopyAppendCb copy = FKL_VM_UD(obj)->mt_->copy_append;
     return copy(vm, obj, 0, NULL);
 }
@@ -981,21 +980,14 @@ FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
     return r;
 }
 
-// static FKL_ALWAYS_INLINE FklVMvalueError *as_err(const FklVMvalue *v) {
-//     FKL_ASSERT(fklIsVMvalueError(v));
-//     return FKL_TYPE_CAST(FklVMvalueError *, v);
-// }
-
 static void
 _error_userdata_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
-    // FKL_DECL_UD_DATA(err, FklVMerror, ud);
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklPrintString2(FKL_VM_STR(err->message), build);
 }
 
 static void
 _error_userdata_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
-    // FKL_DECL_UD_DATA(err, FklVMerror, ud);
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklVMformat(exe,
             build,
@@ -1006,14 +998,12 @@ _error_userdata_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
 }
 
 static void _error_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(err, FklVMerror, v);
     FklVMvalueError *err = FKL_VM_ERR(v);
     fklVMgcToGray(err->message, gc);
     fklVMgcToGray(err->type, gc);
 }
 
 static FklVMudMetaTable const ErrorUserDataMetaTable = {
-    // .size = sizeof(FklVMerror),
     .size = sizeof(FklVMvalueError),
     .princ = _error_userdata_princ,
     .prin1 = _error_userdata_prin1,
@@ -1056,13 +1046,7 @@ static inline void init_chanl_recvq(struct FklVMchanlRecvq *q) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(_chanl_userdata_print, "chanl");
 
-// static FKL_ALWAYS_INLINE FklVMvalueChanl *as_chanl(const FklVMvalue *v) {
-//     FKL_ASSERT(fklIsVMvalueChanl(v));
-//     return FKL_TYPE_CAST(FklVMvalueChanl *, v);
-// }
-
 static void _chanl_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(ch, FklVMchanl, root);
     FklVMvalueChanl *ch = FKL_VM_CHANL(root);
 
     if (ch->recvx < ch->sendx) {
@@ -1445,19 +1429,12 @@ int fklIsVMvalueCodeObj(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(_dll_userdata_print, "dll");
 
-// static FKL_ALWAYS_INLINE FklVMvalueDll *as_dll(const FklVMvalue *v) {
-//     FKL_ASSERT(fklIsVMvalueDll(v));
-//     return FKL_TYPE_CAST(FklVMvalueDll *, v);
-// }
-
 static void _dll_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(dll, FklVMdll, root);
     FklVMvalueDll *dll = FKL_VM_DLL(root);
     fklVMgcToGray(dll->pd, gc);
 }
 
 static int _dll_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(dll, FklVMdll, v);
     FklVMvalueDll *dll = FKL_VM_DLL(v);
     FklDllUninitFunc uninit =
             (FklDllUninitFunc)fklGetAddress("_fklUninit", &dll->dll);
@@ -1468,7 +1445,6 @@ static int _dll_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
 }
 
 static FklVMudMetaTable const DllUserDataMetaTable = {
-    // .size = sizeof(FklVMdll),
     .size = sizeof(FklVMvalueDll),
     .princ = _dll_userdata_print,
     .prin1 = _dll_userdata_print,
@@ -1509,75 +1485,6 @@ int fklIsVMvalueDll(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &DllUserDataMetaTable;
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(_libs_userdata_print, "libs");
-
-static FKL_ALWAYS_INLINE FklVMvalueLibs *as_libs(const FklVMvalue *v) {
-    FKL_ASSERT(fklIsVMvalueLibs(v));
-    return FKL_TYPE_CAST(FklVMvalueLibs *, v);
-}
-
-static void _libs_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
-    // struct FklVMlibs *t = &as_libs(v)->_libs;
-    FklVMvalueLibs *t = as_libs(v);
-
-    for (size_t i = 1; i <= t->count; ++i) {
-        FklVMlib *lib = &t->libs[i];
-        fklVMgcToGray(lib->proc, gc);
-        FklVMvalue **cur = lib->loc;
-        FklVMvalue **const end = cur + lib->count;
-        for (; cur < end; ++cur)
-            fklVMgcToGray(*cur, gc);
-    }
-}
-
-static int _libs_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(t, struct FklVMlibs, v);
-    // struct FklVMlibs *t = &as_libs(v)->_libs;
-    FklVMvalueLibs *t = as_libs(v);
-    uv_mutex_destroy(&t->lock);
-    for (size_t i = 1; i <= t->count; i++)
-        fklUninitVMlib(&t->libs[i]);
-    t->count = 0;
-    fklZfree(t->libs);
-    t->libs = NULL;
-
-    return FKL_VM_UD_FINALIZE_NOW;
-}
-
-static FklVMudMetaTable const LibsUserDataMetaTable = {
-    // .size = sizeof(struct FklVMlibs),
-    .size = sizeof(FklVMvalueLibs),
-    .princ = _libs_userdata_print,
-    .prin1 = _libs_userdata_print,
-    .atomic = _libs_userdata_atomic,
-    .finalize = _libs_userdata_finalize,
-};
-
-FklVMvalueLibs *fklCreateVMvalueLibs(FklVM *exe) {
-    FklVMvalueLibs *r = (FklVMvalueLibs *)fklCreateVMvalueUd(exe,
-            &LibsUserDataMetaTable,
-            NULL);
-    uv_mutex_init_recursive(&r->lock);
-    return r;
-}
-
-int fklIsVMvalueLibs(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LibsUserDataMetaTable;
-}
-
-void fklVMvalueLibsReserve(FklVMvalueLibs *l, uint64_t count) {
-    size_t new_size = (count + 1) * sizeof(FklVMlib);
-    l->libs = (FklVMlib *)fklZrealloc(l->libs, new_size);
-    FKL_ASSERT(l->libs);
-
-    l->count = count;
-}
-
-void fklLockVMlibs(FklVMvalueLibs *libs) { uv_mutex_lock(&libs->lock); }
-
-void fklUnlockVMlibs(FklVMvalueLibs *libs) { uv_mutex_unlock(&libs->lock); }
-
 FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
         FklVMcFunc func,
         FklVMvalue *dll,
@@ -1598,8 +1505,6 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *exe,
 FklVMvalue *fklCreateVMvalueUd(FklVM *exe, //
         const FklVMudMetaTable *t,
         FklVMvalue *dll) {
-    // FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueUd) +
-    // t->size);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, t->size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_USERDATA;
@@ -1614,8 +1519,6 @@ FklVMvalue *fklCreateVMvalueUd2(FklVM *exe,
         const FklVMudMetaTable *t,
         size_t extra_size,
         FklVMvalue *dll) {
-    // FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-    //         sizeof(FklVMvalueUd) + t->size + extra_size);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, t->size + extra_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_USERDATA;
@@ -1704,10 +1607,6 @@ static inline int is_writable_ud(const FklVMvalueUd *u) {
     return u->mt_->write != NULL;
 }
 
-// static inline int is_to_string_castable_ud(const FklVMvalueUd *u) {
-//     return u->mt_->__as_prin1 != NULL || u->mt_->__as_princ != NULL;
-// }
-
 static inline int is_ud_has_length(const FklVMvalueUd *u) {
     return u->mt_->length != NULL;
 }
@@ -1760,3 +1659,51 @@ fklVMvalueTerminalCreate(const char *s, size_t len, size_t line, void *c) {
     FklVMparseCtx *ctx = c;
     return fklCreateVMvalueStr2(ctx->exe, len, s);
 }
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(_lib_userdata_print, "lib");
+
+static void _lib_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
+    FklVMvalueLib *t = fklVMvalueLib(v);
+
+    fklVMgcToGray(t->proc, gc);
+
+    FklVMvalue **cur = t->values;
+    FklVMvalue **const end = cur + t->count;
+    for (; cur < end; ++cur)
+        fklVMgcToGray(*cur, gc);
+}
+
+static int _lib_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
+    FklVMvalueLib *t = fklVMvalueLib(v);
+    uv_mutex_destroy(&t->lock);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable const LibUserDataMetaTable = {
+    .size = sizeof(FklVMvalueLib),
+    .princ = _lib_userdata_print,
+    .prin1 = _lib_userdata_print,
+    .atomic = _lib_userdata_atomic,
+    .finalize = _lib_userdata_finalize,
+};
+
+int fklIsVMvalueLib(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LibUserDataMetaTable;
+}
+
+FklVMvalueLib *fklCreateVMvalueLib(FklVM *exe, uint32_t count) {
+    FklVMvalueLib *r = NULL;
+    size_t extra_size = count * sizeof(r->values[0]);
+
+    r = (FklVMvalueLib *)fklCreateVMvalueUd2(exe, //
+            &LibUserDataMetaTable,
+            extra_size,
+            NULL);
+    uv_mutex_init_recursive(&r->lock);
+    r->count = count;
+    return r;
+}
+
+void fklLockVMlib(FklVMvalueLib *libs) { uv_mutex_lock(&libs->lock); }
+
+void fklUnlockVMlib(FklVMvalueLib *libs) { uv_mutex_unlock(&libs->lock); }

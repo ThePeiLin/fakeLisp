@@ -176,13 +176,10 @@ static inline int compile(const char *filename,
 
     FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);
-    anotherVM = fklCreateVM(proc, gc, fklCreateVMvalueLibs(vm));
+    FklVMvalueVec *libs = fklCreateVMvalueLibVec(vm, codegen->libraries);
+    anotherVM = fklCreateVM(proc, gc, libs);
 
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
-
-    fklUpdateVMlibsWithCgLibVector(anotherVM,
-            anotherVM->libs,
-            codegen->libraries);
 
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {

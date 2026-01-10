@@ -165,12 +165,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueFp, {
     FklVMfpRW rw;
 });
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueLibs, {
-    uv_mutex_t lock;
-    uint64_t count;
-    struct FklVMlib *libs;
-});
-
 typedef enum {
     FKL_FRAME_COMPOUND = 0,
     FKL_FRAME_OTHEROBJ,
@@ -292,13 +286,16 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 #define FKL_VM_LIB_IMPORTED (2)
 #define FKL_VM_LIB_ERROR (3)
 
-typedef struct FklVMlib {
-    FklVMvalue *proc;
-    uint64_t epc;
-    FklVMvalue **loc;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueLib, {
+    uv_mutex_t lock;
     uint32_t count;
     atomic_int import_state;
-} FklVMlib;
+
+    FklVMvalue *proc;
+    uint64_t epc;
+
+    FklVMvalue *values[];
+});
 
 #define FKL_VM_ERR_RAISE (1)
 
@@ -387,8 +384,8 @@ typedef struct FklVM {
     struct FklVM *next;
     jmp_buf *buf;
 
-    FklVMlib *importing_lib;
-    FklVMvalueLibs *libs;
+    FklVMvalueVec *libs;
+    FklVMvalueLib *importing_lib;
 
     FklVMinsFunc dummy_ins_func;
 
@@ -761,15 +758,15 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc,
-        FklVMvalueLibs *libs);
+        FklVMvalueVec *libs);
 
 FklVM *fklCreateVMwithByteCode2(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *proto,
         uint64_t spc,
-        FklVMvalueLibs *libs);
+        FklVMvalueVec *libs);
 
-FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueLibs *libs);
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueVec *libs);
 
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
@@ -1413,10 +1410,19 @@ int fklVMfpClose(FklVMvalueFp *);
 typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVM *vm, uint32_t *num);
 
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
-    FklVM *exe, FklVMvalue *dll, uint32_t *count
-typedef FklVMvalue **(*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
+    FklVM *exe, FklVMvalue *dll, uint32_t count, FklVMvalue *values[]
+typedef int (*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
 typedef void (*FklDllInitFunc)(FklVMvalueDll *dll, FklVM *exe);
 typedef void (*FklDllUninitFunc)(void);
+
+#define FKL_CHECK_IMPORT_DLL_INIT_FUNC()                                       \
+    static_assert((FklImportDllInitFunc) & _fklImportInit == &_fklImportInit,  \
+            "error")
+
+#define FKL_CHECK_EXPORT_DLL_INIT_FUNC()                                       \
+    static_assert((FklCgDllLibInitExportCb)                                    \
+                          & _fklExportSymbolInit == &_fklExportSymbolInit,     \
+            "error")
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *);
 
@@ -1504,24 +1510,15 @@ static FKL_ALWAYS_INLINE FklOpcode fklGetCompoundFrameOp(FklVMframe *f) {
 void fklVMcompoundFrameReturn(FklVM *exe);
 void fklDestroyVMframes(FklVMframe *h);
 
-void fklDestroyVMlib(FklVMlib *lib);
+void fklLockVMlib(FklVMvalueLib *lib);
+void fklUnlockVMlib(FklVMvalueLib *lib);
 
-void fklInitVMlib(FklVMlib *, FklVMvalue *proc, uint64_t epc);
-
-void fklInitVMlibWithCodeObj(FklVMlib *,
-        FklVMvalue *codeObj,
-        FklVM *exe,
-        FklVMvalueProto *pt,
-        uint64_t epc);
-
-void fklUninitVMlib(FklVMlib *);
-
-void fklLockVMlibs(FklVMvalueLibs *libs);
-void fklUnlockVMlibs(FklVMvalueLibs *libs);
-
-FklVMvalueLibs *fklCreateVMvalueLibs(FklVM *vm);
-int fklIsVMvalueLibs(const FklVMvalue *);
-void fklVMvalueLibsReserve(FklVMvalueLibs *v, uint64_t count);
+int fklIsVMvalueLib(const FklVMvalue *);
+FklVMvalueLib *fklCreateVMvalueLib(FklVM *vm, uint32_t count);
+static FKL_ALWAYS_INLINE FklVMvalueLib *fklVMvalueLib(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueLib(v));
+    return FKL_TYPE_CAST(FklVMvalueLib *, v);
+}
 
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklVMgc *);

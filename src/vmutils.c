@@ -143,7 +143,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
                 } else {
                     fklCodeBuilderPuts(build, "stdin");
                 }
-                fklCodeBuilderFmt(build, ":%" PRIu64 ">", pt->line);
+                fklCodeBuilderFmt(build, ": %" PRIu64 ">", pt->line);
             }
         } else {
             fklCodeBuilderPuts(build, "at <top>");
@@ -154,11 +154,11 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
                 codeObj->ls,
                 codeObj->l);
         if (node->fid) {
-            fklCodeBuilderFmt(build, " (%u:", node->line);
+            fklCodeBuilderFmt(build, " (%" PRIu32 ": ", node->line);
             fklPrintString2(FKL_VM_SYM(node->fid), build);
             fklCodeBuilderPuts(build, ")\n");
         } else {
-            fklCodeBuilderFmt(build, " (%u)\n", node->line);
+            fklCodeBuilderFmt(build, " (%" PRIu32 ")\n", node->line);
         }
     } else
         print_back_trace(cur, build, exe->gc);

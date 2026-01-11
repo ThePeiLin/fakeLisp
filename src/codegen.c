@@ -6672,7 +6672,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
                     .prev_env = info->global_env,
                     .prev_ms = info->global_env->macros,
                     .parent_scope = 1,
-                    .filename = info->fid,
+                    .filename = next_info->fid,
                     .name = NULL,
                     .line = 1,
                 });
@@ -6693,8 +6693,12 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
                 next_info,
                 actions);
     } else {
+        const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, //
+                next_info->realpath,
+                lib->lib);
+
         FklVMvalue *importBc = import_args->import_cb(ctx,
-                fklVMvalueCgEnvAddUsedLib(env, next_info->realpath, lib->lib)->id,
+                lib_id->id,
                 info,
                 lib,
                 env,

@@ -46,14 +46,15 @@ push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
 
 // call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
-    FklVMframe *tmpFrame = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
+    FklVMframe *frame = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
     uint32_t lcount = proc->local_count;
-    fklVMframeSetBp(exe, tmpFrame, lcount);
+    fklVMframeSetBp(exe, frame, lcount);
     FklVMvalueProto *proto = proc->proto;
-    tmpFrame->c.konsts = fklVMvalueProtoConsts(proto);
-    FklVMCompoundFrameVarRef *f = &tmpFrame->c.lr;
+    frame->c.konsts = fklVMvalueProtoConsts(proto);
+    frame->c.libs = fklVMvalueProtoUsedLibs(proto);
+    FklVMCompoundFrameVarRef *f = &frame->c.lr;
     f->lcount = lcount;
-    fklPushVMframe(tmpFrame, exe);
+    fklPushVMframe(frame, exe);
 }
 
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *fp, FklVM *exe) {
@@ -132,7 +133,7 @@ typedef struct ImportPostProcessContext {
 } ImportPostProcessContext;
 
 static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
-    f->retCallBack = NULL;
+    f->ret_cb = NULL;
 
     uint32_t const value_count = (exe->tp - f->c.sp);
     if (value_count > 1 || value_count < 1) {
@@ -195,18 +196,15 @@ static inline void vm_stack_init(FklVM *exe) {
 FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
-        uint64_t spc,
-        FklVMvalueVec *libs) {
+        uint64_t spc) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
     exe->gc = gc;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->libs = libs;
     vm_stack_init(exe);
     if (co != NULL) {
         FklByteCodelnt *bcl = FKL_VM_CO(co);
@@ -229,18 +227,15 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
 FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
-        uint64_t spc,
-        FklVMvalueVec *libs) {
+        uint64_t spc) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
     exe->gc = gc;
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->libs = libs;
     vm_stack_init(exe);
     if (co != NULL) {
         FklByteCodelnt *bcl = FKL_VM_CO(co);
@@ -658,7 +653,6 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     uint32_t exporting_idx = 0;
     uint64_t size;
     int64_t offset;
-    FklVMvalueVec *libs = exe->libs;
 start:
     ins = frame->c.pc++;
     switch ((FklOpcode)ins->op) {
@@ -759,8 +753,7 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
                 if (do_callable_obj_frame_step(curframe, exe))
                     continue;
 
-                if (curframe->retCallBack
-                        && curframe->retCallBack(exe, curframe))
+                if (curframe->ret_cb && curframe->ret_cb(exe, curframe))
                     continue;
 
                 do_finalize_obj_frame(exe, popFrame(exe));
@@ -1310,17 +1303,15 @@ void fklDBG_printVMstack(FklVM *stack,
     }
 }
 
-FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueVec *libs) {
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     FklVM *exe = (FklVM *)fklZcalloc(1, sizeof(FklVM));
     FKL_ASSERT(exe);
-    FKL_ASSERT(FKL_IS_VECTOR(FKL_TYPE_CAST(FklVMvalue *, libs)));
     exe->gc = gc;
     exe->prev = exe;
     exe->next = exe;
     vm_stack_init(exe);
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->libs = libs;
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
     if (proc != NULL) {
@@ -1346,7 +1337,6 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     vm_stack_init(exe);
     exe->frame_cache_head = &exe->inplace_frame;
     exe->frame_cache_tail = &exe->frame_cache_head->prev;
-    exe->libs = prev->libs;
     exe->state = FKL_VM_READY;
     memcpy(exe->rand_state, prev->rand_state, sizeof(uint64_t[4]));
     exe->dummy_ins_func = prev->dummy_ins_func;

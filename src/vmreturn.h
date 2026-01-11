@@ -16,7 +16,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     FKL_ASSERT(VM->top_frame->type == FKL_FRAME_COMPOUND);
 #endif
 
-    if (F->retCallBack && F->retCallBack(VM, F))
+    if (F->ret_cb && F->ret_cb(VM, F))
         return;
 
     switch (F->c.mark) {

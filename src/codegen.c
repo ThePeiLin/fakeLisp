@@ -710,16 +710,14 @@ static inline FklVMvalue *append_load_dll_ins(FklVM *exe,
 static inline FklVMvalue *append_export_to_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
-        uint32_t libId,
         uint32_t num,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(exe,
+    return set_and_append_ins_with_unsigned_imm(exe,
             m,
             bcl,
             FKL_OP_EXPORT_TO,
-            libId,
             num,
             fid,
             line,
@@ -5660,7 +5658,7 @@ typedef FklVMvalue *(*ImportDllCb)(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *args,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
@@ -6311,7 +6309,6 @@ static inline void process_export_bc(FklCgCtx *ctx,
     append_export_to_ins(vm,
             INS_APPEND_BACK,
             lib_bc,
-            fklVMvalueCgLibsNextId(info->libraries),
             info->exports.count,
             fid,
             line,
@@ -6389,15 +6386,11 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, co, pt);
     fklInitMainProcRefs(ctx->vm, proc);
 
-    FklCgLib *lib = fklVMvalueCgLibsPushBack(info->libraries);
-    fklInitCgScriptLib(lib, info, proc, info->epc);
+    FklCgLib *lib = fklVMvalueCgLibsAdd(info->libraries, info->realpath);
+    fklInitCgScriptLib(ctx, lib, info, proc, info->epc);
 
-    info->realpath = NULL;
-
-    info->export_macros = NULL;
-    info->export_replacement = NULL;
     return d->import_cb(ctx,
-            fklVMvalueCgLibsLastId(info->libraries),
+            fklVMvalueCgEnvAddUsedLib(d->env, info->realpath, lib->lib)->id,
             d->info,
             lib,
             d->env,
@@ -6664,8 +6657,9 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
         errors->line = CURLINE(orig);
         return;
     }
-    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, next_info->realpath);
-    if (!lib_id) {
+    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, //
+            next_info->realpath);
+    if (lib == NULL) {
         FILE *fp = fopen(filename, "r");
         if (!fp) {
             errors->error = make_file_failure_error(vm, name);
@@ -6699,12 +6693,8 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
                 next_info,
                 actions);
     } else {
-        fklReplacementHashMapDestroy(next_info->export_replacement);
-        next_info->export_replacement = NULL;
-        const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, lib_id);
-
         FklVMvalue *importBc = import_args->import_cb(ctx,
-                lib_id,
+                fklVMvalueCgEnvAddUsedLib(env, next_info->realpath, lib->lib)->id,
                 info,
                 lib,
                 env,
@@ -6745,10 +6735,18 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     FklCgActVector *actions = args->actions;
 
     FklVMvalue *name = import_args->name;
+    FklVMvalue *rp_v = NULL;
+    {
+        char *rp = fklRealpath(filename);
+        rp_v = fklCreateVMvalueStrFromCstr(vm, rp);
+        fklZfree(rp);
+    }
 
-    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, filename);
-    if (!lib_id) {
-        FILE *fp = fopen(filename, "rb");
+    const char *rp = FKL_VM_STR(rp_v)->str;
+    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, rp);
+
+    if (lib == NULL) {
+        FILE *fp = fopen(rp, "rb");
         if (fp == NULL) {
             errors->error = make_import_failed_error(vm, name);
             errors->line = CURLINE(orig);
@@ -6758,10 +6756,11 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
         FklLoadPreCompileArgs args = {
             .ctx = ctx,
             .libraries = info->libraries,
-            .macro_libraries = ctx->macro_libraries,
         };
 
-        if (fklLoadPreCompile(fp, filename, &args)) {
+        lib = fklLoadPreCompile(fp, rp, &args);
+        if (lib == NULL) {
+            fklVMvalueCgLibsRemove(info->libraries, rp);
             if (args.error) {
                 errors->error = make_import_failed_error2(vm, args.error, name);
                 fklZfree(args.error);
@@ -6773,14 +6772,10 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
             errors->line = CURLINE(orig);
             return -1;
         }
-
-        lib_id = fklVMvalueCgLibsLastId(info->libraries);
     }
 
-    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, lib_id);
-
     FklVMvalue *importBc = import_args->import_cb(ctx,
-            lib_id,
+            fklVMvalueCgEnvAddUsedLib(env, rp, lib->lib)->id,
             info,
             lib,
             env,
@@ -6804,22 +6799,28 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     return 0;
 }
 
-static inline size_t load_dll(FklCgCtx *ctx,
+static inline const FklCgLib *load_dll(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *name,
         const char *filename,
         FklVMvalueCgInfo *info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
-    char *realpath = fklRealpath(filename);
-    size_t lib_id = fklVMvalueCgLibsFind(info->libraries, realpath);
-    if (lib_id != 0) {
-        fklZfree(realpath);
-        return lib_id;
+    FklVMvalue *rp_v = NULL;
+    {
+        char *rp = fklRealpath(filename);
+        rp_v = fklCreateVMvalueStrFromCstr(vm, rp);
+        fklZfree(rp);
+    }
+    const char *rp = FKL_VM_STR(rp_v)->str;
+
+    FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, rp);
+    if (lib != NULL) {
+        return lib;
     }
 
     uv_lib_t dll = { 0 };
-    if (uv_dlopen(realpath, &dll)) {
+    if (uv_dlopen(rp, &dll)) {
         const char *msg = uv_dlerror(&dll);
         errors->error = make_file_failure_error2(vm, msg, name);
         errors->line = CURLINE(orig);
@@ -6835,11 +6836,12 @@ static inline size_t load_dll(FklCgCtx *ctx,
         fklZfree(realpath);
         return 0;
     }
-    FklCgLib *lib = fklVMvalueCgLibsPushBack(info->libraries);
-    fklInitCgDllLib(ctx, lib, realpath, dll, initExport);
-    lib_id = fklVMvalueCgLibsLastId(info->libraries);
 
-    return lib_id;
+    lib = fklVMvalueCgLibsAdd(info->libraries, rp);
+    fklInitCgDllLib(ctx, lib, dll, initExport);
+    uv_dlclose(&dll);
+
+    return lib;
 }
 
 FKL_NODISCARD
@@ -6857,15 +6859,15 @@ static inline int import_dll_impl(const CgCbArgs *args,
 
     FklVMvalue *name = import_args->name;
 
-    size_t lib_id = load_dll(ctx, orig, name, filename, info);
+    const FklCgLib *lib = load_dll(ctx, orig, name, filename, info);
 
-    if (lib_id == 0)
+    if (lib == NULL)
         return -1;
 
     FklVMvalue *load_dll_bc = append_load_dll_ins(vm,
             INS_APPEND_BACK,
             NULL,
-            lib_id,
+            fklVMvalueCgEnvAddUsedLib(env, fklCgLibRp(lib), lib->lib)->id,
             info->fid,
             CURLINE(orig),
             scope);
@@ -6874,7 +6876,7 @@ static inline int import_dll_impl(const CgCbArgs *args,
             orig,
             import_args->import_cb_args,
             load_dll_bc,
-            fklVMvalueCgLibsGet(info->libraries, lib_id),
+            lib,
             env,
             scope,
             info,
@@ -6905,14 +6907,14 @@ static inline FklVMvalue *process_import_from_dll_only(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *only,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
-    FklCgExportSidIdxHashMap *exports = &lib->exports;
+    const FklCgExportSidIdxHashMap *exports = &lib->exports;
 
     for (; FKL_IS_PAIR(only); only = FKL_VM_CDR(only)) {
         FklVMvalue *cur = FKL_VM_CAR(only);
@@ -6942,13 +6944,13 @@ static inline FklVMvalue *process_import_from_dll_except(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *except,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
-    FklCgExportSidIdxHashMap *exports = &lib->exports;
+    const FklCgExportSidIdxHashMap *exports = &lib->exports;
     FklValueHashSet excepts;
     fklValueHashSetInit(&excepts);
 
@@ -6978,7 +6980,7 @@ static inline FklVMvalue *process_import_from_dll_common(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *args,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
@@ -6999,7 +7001,7 @@ static inline FklVMvalue *process_import_from_dll_prefix(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *prefix_v,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
@@ -7024,14 +7026,14 @@ static inline FklVMvalue *process_import_from_dll_alias(FklCgCtx *ctx,
         FklVMvalue *orig,
         FklVMvalue *alias,
         FklVMvalue *load_dll_bc,
-        FklCgLib *lib,
+        const FklCgLib *lib,
         FklVMvalueCgEnv *env,
         uint32_t scope,
         FklVMvalueCgInfo *info,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
-    FklCgExportSidIdxHashMap *exports = &lib->exports;
+    const FklCgExportSidIdxHashMap *exports = &lib->exports;
 
     for (; FKL_IS_PAIR(alias); alias = FKL_VM_CDR(alias)) {
         FklVMvalue *cur_alias = FKL_VM_CAR(alias);
@@ -7518,7 +7520,7 @@ static FklVMvalue *b_is_main_replacement(const FklCgCtx *ctx,
         const FklVMvalueCgInfo *info) {
     if (env->proto_id != 0)
         return FKL_VM_NIL;
-    if (env->prev == NULL || env->prev->proto_id == UINT32_MAX)
+    if (env->prev == NULL || env->prev->proto_id == FKL_TOP_ENV_PROTO_ID)
         return FKL_VM_TRUE;
     return FKL_VM_NIL;
 }
@@ -9114,7 +9116,6 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
     FklCgCtx *ctx = FKL_TYPE_CAST(FklCgCtx *, c);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_info), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_vm_libs), gc);
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
 
@@ -9482,13 +9483,13 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                 .line = cur_action->curline,
             };
 
-            FklVMvalue *resultBcl = cur_action->cb(&args);
+            FklVMvalue *result = cur_action->cb(&args);
 
-            if (resultBcl) {
+            if (result) {
                 if (fklCgActVectorIsEmpty(&act_vec))
-                    fklValueVectorPushBack2(&results, resultBcl);
+                    fklValueVectorPushBack2(&results, result);
                 else {
-                    fklValueVectorPushBack2(&prevAction->bcl_vector, resultBcl);
+                    fklValueVectorPushBack2(&prevAction->bcl_vector, result);
                 }
                 fklCheckAndGC(vm, FORCE_GC);
             }

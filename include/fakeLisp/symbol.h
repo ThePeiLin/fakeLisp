@@ -89,6 +89,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueProto, {
     uint32_t child_proto_count;
     uint32_t child_proto_offset;
 
+    uint32_t used_libraries_count;
+    uint32_t used_libraries_offset;
     FklVMvalue *vals[];
 });
 
@@ -116,6 +118,12 @@ static FKL_ALWAYS_INLINE FklVMvalue *const *fklVMvalueProtoConsts(
         const FklVMvalueProto *v) {
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
     return &v->vals[v->konsts_offset];
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueLib *const *fklVMvalueProtoUsedLibs(
+        const FklVMvalueProto *v) {
+    FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, v)));
+    return (FklVMvalueLib *const *)&v->vals[v->used_libraries_offset];
 }
 
 #ifdef __cplusplus

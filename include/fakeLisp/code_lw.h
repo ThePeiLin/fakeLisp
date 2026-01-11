@@ -4,6 +4,7 @@
 #define FKL_CODE_LW
 
 #include "bytecode.h"
+#include "codegen.h"
 #include "vm.h"
 
 #ifdef __cplusplus
@@ -14,6 +15,29 @@ typedef enum FklWriteCodePass {
     FKL_WRITE_CODE_PASS_FIRST = 0,
     FKL_WRITE_CODE_PASS_SECOND,
 } FklWriteCodePass;
+
+// for type-safe
+typedef struct {
+    FklValueTable vt;
+} FklProtoTable;
+
+static inline void fklInitProtoTable(FklProtoTable *t) {
+    fklInitValueTable(&t->vt);
+}
+
+static inline void fklUninitProtoTable(FklProtoTable *t) {
+    fklUninitValueTable(&t->vt);
+}
+
+static inline FklValueId fklProtoTableAdd(FklProtoTable *t,
+        const FklVMvalueProto *v) {
+    return fklValueTableAdd(&t->vt, FKL_VM_VAL(v));
+}
+
+static inline FklValueId fklProtoTableGet(const FklProtoTable *t,
+        const FklVMvalueProto *v) {
+    return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
+}
 
 // write and load value table
 
@@ -61,7 +85,7 @@ void fklLoadByteCode(FklByteCode *bc, FILE *fp);
 
 void fklWriteProc(const FklVMvalueProc *proc,
         FklValueTable *vt,
-        FklValueTable *proto_table,
+        FklProtoTable *proto_table,
         FklWriteCodePass pass,
         FILE *fp);
 FklVMvalueProc *fklLoadProc(FILE *fp,
@@ -81,7 +105,7 @@ int fklLoadByteCodelnt(FILE *fp,
 // write and load vm libs
 void fklWriteVMlibs(const FklVMvalueVec *l,
         FklValueTable *vt,
-        FklValueTable *proto_table,
+        FklProtoTable *proto_table,
         FklWriteCodePass pass,
         FILE *fp);
 
@@ -92,7 +116,6 @@ FklVMvalueVec *fklLoadVMlibs(FILE *fp,
 
 typedef struct {
     const FklVMvalueProc *proc;
-    const FklVMvalueVec *libs;
 } FklWriteCodeFileArgs;
 
 typedef struct {
@@ -100,7 +123,6 @@ typedef struct {
     FklVM *const vm;
 
     // out
-    FklVMvalueVec *libs;
     FklVMvalueProc *main_func;
 } FklLoadCodeFileArgs;
 
@@ -126,18 +148,16 @@ void fklWritePreCompile(FILE *fp,
 
 typedef struct {
     // in
-    struct FklCgCtx *const ctx;
-    struct FklVMvalueCgLibs *const libraries;
-    struct FklVMvalueCgLibs *const macro_libraries;
+    FklCgCtx *const ctx;
+    FklVMvalueCgLibs *const libraries;
 
     // out
     char *error;
 } FklLoadPreCompileArgs;
 
 FKL_NODISCARD
-int fklLoadPreCompile(FILE *fp,
-        const char *rp,
-        FklLoadPreCompileArgs *const args);
+const FklCgLib *
+fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args);
 
 #ifdef __cplusplus
 }

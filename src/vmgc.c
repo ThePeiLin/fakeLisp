@@ -74,7 +74,6 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     for (uint32_t i = 0; i < exe->tp; i++)
         fklVMgcToGray(base[i], gc);
     fklVMgcToGray(exe->chan, gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, exe->libs), gc);
 }
 
 static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {

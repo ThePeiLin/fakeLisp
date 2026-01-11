@@ -8,6 +8,7 @@ extern "C" {
 typedef struct FklVMgc FklVMgc;
 typedef struct FklVM FklVM;
 typedef struct FklVMvalue FklVMvalue;
+typedef struct FklVMvalueLib FklVMvalueLib;
 
 #define FKL_VM_TYPE_X                                                          \
     X(F64 = 0, F64)                                                            \

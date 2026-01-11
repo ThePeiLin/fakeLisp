@@ -189,6 +189,7 @@ typedef struct {
 typedef struct {
     FklVMvalue *proc;
     FklVMvalue *const *konsts;
+    FklVMvalueLib *const *libs;
     FklVMCompoundFrameVarRef lr;
     const FklInstruction *spc;
     const FklInstruction *pc;
@@ -245,7 +246,7 @@ typedef struct FklVMframe {
     FklFrameType type;
     uint32_t bp;
     FklVMerrorCallBack errorCallBack;
-    FklVMretCallBack retCallBack;
+    FklVMretCallBack ret_cb;
     struct FklVMframe *prev;
     union {
         FklVMCompoundFrameData c;
@@ -384,7 +385,6 @@ typedef struct FklVM {
     struct FklVM *next;
     jmp_buf *buf;
 
-    FklVMvalueVec *libs;
     FklVMvalueLib *importing_lib;
 
     FklVMinsFunc dummy_ins_func;
@@ -676,8 +676,9 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
-    uv_lib_t dll;
+    FklVMvalueStr *path;
     struct FklVMvalue *pd;
+    uv_lib_t dll;
 });
 
 void fklPopVMframe(FklVM *);
@@ -757,16 +758,14 @@ void fklVMthreadStart(FklVM *, FklVMqueue *q);
 FklVM *fklCreateVMwithByteCode(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *pt,
-        uint64_t spc,
-        FklVMvalueVec *libs);
+        uint64_t spc);
 
 FklVM *fklCreateVMwithByteCode2(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *proto,
-        uint64_t spc,
-        FklVMvalueVec *libs);
+        uint64_t spc);
 
-FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc, FklVMvalueVec *libs);
+FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
@@ -816,9 +815,9 @@ void fklVMrestoreSymbol(FklVMgc *);
 
 void fklInitValueTable(FklValueTable *t);
 void fklUninitValueTable(FklValueTable *t);
-FklValueId fklValueTableAdd(FklValueTable *t, FklVMvalue *v);
-FklValueId fklValueTableGet(const FklValueTable *t, FklVMvalue *v);
-void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v);
+FklValueId fklValueTableAdd(FklValueTable *t, const FklVMvalue *v);
+FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v);
+void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v);
 
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
 void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
@@ -1334,6 +1333,7 @@ void fklAddToGC(FklVMvalue *, FklVM *);
 FklVMvalue *fklCreateTrueValue(void);
 FklVMvalue *fklCreateNilValue(void);
 
+// return the callee if I is -1
 #define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
@@ -1417,12 +1417,12 @@ typedef void (*FklDllUninitFunc)(void);
 
 #define FKL_CHECK_IMPORT_DLL_INIT_FUNC()                                       \
     static_assert((FklImportDllInitFunc) & _fklImportInit == &_fklImportInit,  \
-            "error")
+            "invalid import dll init func")
 
 #define FKL_CHECK_EXPORT_DLL_INIT_FUNC()                                       \
     static_assert((FklCgDllLibInitExportCb)                                    \
                           & _fklExportSymbolInit == &_fklExportSymbolInit,     \
-            "error")
+            "invalid export dll init func")
 
 void fklInitVMdll(FklVMvalue *rel, FklVM *);
 

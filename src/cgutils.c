@@ -19,12 +19,20 @@
 #include <stdio.h>
 #include <string.h>
 
-// FklCgLibVector
-#define FKL_VECTOR_ELM_TYPE FklCgLib
-#define FKL_VECTOR_ELM_TYPE_NAME CgLib
-#include <fakeLisp/cont/vector.h>
+static void uninit_cg_lib(FklCgLib *lib);
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibVector libs; });
+// FklCgLibHashMap
+#define FKL_HASH_KEY_TYPE const char *
+#define FKL_HASH_VAL_TYPE FklCgLib
+#define FKL_HASH_ELM_NAME CgLib
+#define FKL_HASH_KEY_HASH return fklCharBufHash(*pk, strlen(*pk));
+#define FKL_HASH_KEY_EQUAL(A, B) (!(strcmp(*(A), *(B))))
+#define FKL_HASH_KEY_INIT(X, K) *(X) = fklZstrdup(*(K))
+#define FKL_HASH_KEY_UNINIT(K) fklZfree((void *)*(K));
+#define FKL_HASH_VAL_UNINIT(V) uninit_cg_lib((V));
+#include <fakeLisp/cont/hash.h>
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap libs; });
 
 static FklVM *init_macro_expand_vm(FklCgCtx *ctx,
         FklVMvalue *proc,
@@ -545,62 +553,51 @@ void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
     }
 }
 
-FklVMvalueLib *fklCreateVMvalueLib2(FklVM *vm, const FklCgLib *clib) {
+static FklVMvalueLib *create_script_lib(FklVM *vm,
+        FklCgLib *clib,
+        FklVMvalueProc *proc,
+        uint64_t epc) {
+    FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_SCRIPT);
+    if (clib->lib)
+        return clib->lib;
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
+    l->proc = FKL_VM_VAL(proc);
+    l->epc = epc;
+    clib->lib = l;
+    return l;
+}
 
-    switch (clib->type) {
-    default:
-        FKL_UNREACHABLE();
-        break;
-    case FKL_CODEGEN_LIB_SCRIPT:
-        l->proc = clib->proc;
-        l->epc = clib->epc;
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        l->proc = fklCreateVMvalueStr2(vm,
-                strlen(clib->rp) - strlen(FKL_DLL_FILE_TYPE),
-                clib->rp);
-        break;
-    }
-
+static FklVMvalueLib *create_dll_lib(FklVM *vm, FklCgLib *clib) {
+    FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_DLL);
+    if (clib->lib)
+        return clib->lib;
+    const char *rp = fklCgLibRp(clib);
+    FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
+    l->proc = fklCreateVMvalueStr2(vm,
+            strlen(rp) - strlen(FKL_DLL_FILE_TYPE),
+            rp);
+    clib->lib = l;
     return l;
 }
 
 static inline void uninit_codegen_lib_exports(FklCgLib *lib) {
     if (lib->exports.buckets)
         fklCgExportSidIdxHashMapUninit(&lib->exports);
-    fklZfree(lib->rp);
-    lib->rp = NULL;
 }
 
 static void uninit_cg_lib(FklCgLib *lib) {
     if (lib == NULL)
         return;
-    switch (lib->type) {
-    case FKL_CODEGEN_LIB_SCRIPT:
-        lib->proc = NULL;
-        lib->epc = 0;
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        uv_dlclose(&lib->dll);
-        break;
-    case FKL_CODEGEN_LIB_UNINIT:
-        return;
-        break;
-    }
     uninit_codegen_lib_exports(lib);
     fklClearCgLibMacros(lib);
 }
 
 void fklInitCgDllLib(const FklCgCtx *ctx,
         FklCgLib *lib,
-        char *rp,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init) {
     memset(lib, 0, sizeof(*lib));
-    lib->rp = rp;
     lib->type = FKL_CODEGEN_LIB_DLL;
-    lib->dll = dll;
 
     uint32_t num = 0;
     FklVMvalue **exports = init(ctx->vm, &num);
@@ -615,30 +612,27 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     }
     if (exports)
         fklZfree(exports);
+    lib->lib = create_dll_lib(ctx->vm, lib);
 }
 
-void fklInitCgScriptLib(FklCgLib *lib,
+void fklInitCgScriptLib(const FklCgCtx *ctx,
+        FklCgLib *lib,
         FklVMvalueCgInfo *info,
         FklVMvalue *proc,
         uint64_t epc) {
     memset(lib, 0, sizeof(*lib));
 
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
-    lib->proc = proc;
-    lib->epc = epc;
 
     if (info == NULL) {
-        lib->rp = NULL;
         lib->macros = NULL;
         lib->replacements = NULL;
         return;
     }
-    lib->rp = info->realpath;
     lib->macros = info->export_macros;
     lib->replacements = info->export_replacement;
     lib->named_prod_groups = info->export_prod_groups;
 
-    info->realpath = NULL;
     info->export_macros = NULL;
     info->export_replacement = NULL;
     info->export_prod_groups = NULL;
@@ -654,6 +648,8 @@ void fklInitCgScriptLib(FklCgLib *lib,
                 &sid_idx_list->k,
                 &sid_idx_list->v);
     }
+
+    lib->lib = create_script_lib(ctx->vm, lib, FKL_VM_PROC(proc), epc);
 }
 
 static const FklCgMacro *find_macro(FklVMvalue *exp,
@@ -697,17 +693,12 @@ void fklClearCgLibMacros(FklCgLib *lib) {
 }
 
 void fklClearCgLibMacros2(const FklCgCtx *ctx) {
-    FklCgLib *cur = ctx->libraries->libs.base;
-    FklCgLib *end = &cur[ctx->libraries->libs.size];
-    for (; cur < end; ++cur) {
-        fklClearCgLibMacros(cur);
-    }
-
-    cur = ctx->macro_libraries->libs.base;
-    end = &cur[ctx->macro_libraries->libs.size];
-    for (; cur < end; ++cur) {
-        fklClearCgLibMacros(cur);
-    }
+    for (FklCgLibHashMapNode *cur = ctx->libraries->libs.first; cur;
+            cur = cur->next)
+        fklClearCgLibMacros(&cur->v);
+    for (FklCgLibHashMapNode *cur = ctx->macro_libraries->libs.first; cur;
+            cur = cur->next)
+        fklClearCgLibMacros(&cur->v);
 }
 
 FklCgMacro *
@@ -984,47 +975,6 @@ static void init_macro_match_local_variable(FklVM *exe,
     proc->ref_count = lr->rcount;
 }
 
-FklVMvalueVec *fklCreateVMvalueLibVec(FklVM *vm,
-        const FklVMvalueCgLibs *clibs) {
-    FklVMvalue *vv = fklCreateVMvalueVec(vm, clibs->libs.size + 1);
-    FklVMvalueVec *v = FKL_VM_VEC(vv);
-    v->base[0] = FKL_VM_NIL;
-    for (size_t i = 0; i < clibs->libs.size; ++i) {
-        FklVMvalueLib *l = fklCreateVMvalueLib2(vm, &clibs->libs.base[i]);
-        v->base[i + 1] = FKL_VM_VAL(l);
-    }
-
-    return v;
-}
-
-FklVMvalueVec *fklUpdateVMvalueLibVec(FklVM *vm,
-        FklVMvalueVec *libs,
-        const FklVMvalueCgLibs *clibs) {
-    if (libs == NULL)
-        return fklCreateVMvalueLibVec(vm, clibs);
-    size_t new_size = clibs->libs.size;
-    size_t old_size = libs->size - 1;
-    if (new_size == old_size)
-        return libs;
-
-    FklVMvalue *new_libs_v = fklCreateVMvalueVec(vm, clibs->libs.size + 1);
-    FklVMvalueVec *new_libs = FKL_VM_VEC(new_libs_v);
-
-    new_libs->base[0] = FKL_VM_NIL;
-    size_t i = 0;
-    for (; i < old_size; ++i) {
-        new_libs->base[i + 1] = libs->base[i + 1];
-    }
-
-    i = old_size;
-    for (; i < new_size; ++i) {
-        FklVMvalueLib *l = fklCreateVMvalueLib2(vm, &clibs->libs.base[i]);
-        new_libs->base[i + 1] = FKL_VM_VAL(l);
-    }
-
-    return new_libs;
-}
-
 static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
         FklVMvalue *proc,
         FklPmatchHashMap *ht,
@@ -1034,12 +984,7 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
     FKL_ASSERT(FKL_IS_PROC(proc));
     FklCgErrorState *error_state = ctx->error_state;
 
-    FklVMvalueVec *libs = fklUpdateVMvalueLibVec(ctx->vm,
-            ctx->macro_vm_libs,
-            ctx->macro_libraries);
-    ctx->macro_vm_libs = libs;
-
-    FklVM *exe = fklCreateVM(NULL, ctx->vm->gc, libs);
+    FklVM *exe = fklCreateVM(NULL, ctx->vm->gc);
 
     push_macro_expand_frame(exe, pr, lnt, curline, error_state);
 
@@ -1155,6 +1100,11 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     for (size_t i = 0; i < e->child_proc_protos.size; ++i) {
         fklVMgcToGray(e->child_proc_protos.base[i], gc);
     }
+
+    for (const FklLibIdHashMapNode *cur = e->used_libraries.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(FKL_VM_VAL(cur->v.lib), gc);
+    }
 }
 
 static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1175,6 +1125,7 @@ static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     fklPredefHashMapUninit(&cur->pdef);
     fklPreDefRefVectorUninit(&cur->ref_pdef);
 
+    fklLibIdHashMapUninit(&cur->used_libraries);
     fklUninitValueTable(&cur->konsts);
     fklValueVectorUninit(&cur->child_proc_protos);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -1221,7 +1172,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->scope = 0;
     r->scopes = NULL;
     enter_new_scope(0, r);
-    r->proto_id = UINT32_MAX;
+    r->proto_id = FKL_TOP_ENV_PROTO_ID;
     r->prev = prev_env;
     r->lcount = 0;
     r->slot_flags = NULL;
@@ -1233,6 +1184,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->macros = fklCreateVMvalueCgMacroScope(c, prev_ms);
     fklInitValueTable(&r->konsts);
     fklValueVectorInit(&r->child_proc_protos, 4);
+    fklLibIdHashMapInit(&r->used_libraries);
 
     if (prev_env) {
         r->work_ctx = prev_env->work_ctx;
@@ -1241,6 +1193,19 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
 
     insert_proto_to_parent(r);
     return r;
+}
+
+FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
+        const char *rp,
+        FklVMvalueLib *lib) {
+    FKL_ASSERT(lib != NULL);
+    FklLibId *id = &fklLibIdHashMapInsert(&env->used_libraries, &rp, NULL)->v;
+    if (id->lib == NULL) {
+        id->id = env->used_libraries.count - 1;
+        id->lib = lib;
+    }
+
+    return id;
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(info_print, "info");
@@ -1278,6 +1243,7 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->libraries), gc);
 
     fklVMgcToGray(e->fid, gc);
 
@@ -2603,14 +2569,14 @@ int fklIsVMvalueCgLibs(const FklVMvalue *v) {
 FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
 
 static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, lib->lib), gc);
     for (const FklCgExportSidIdxHashMapNode *cur = lib->exports.first; cur;
             cur = cur->next) {
         fklVMgcToGray(cur->k, gc);
     }
+
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
-        fklVMgcToGray(lib->proc, gc);
-
         for (const FklMacroHashMapNode *cur = lib->macros->first; cur;
                 cur = cur->next) {
             fklVMgcToGray(cur->k, gc);
@@ -2644,10 +2610,10 @@ static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
     }
 }
 
-static inline void mark_codegen_lib_vector(FklVMgc *gc,
-        const FklCgLibVector *libs) {
-    for (size_t i = 0; i < libs->size; ++i) {
-        mark_codegen_lib(gc, &libs->base[i]);
+static inline void mark_codegen_lib_hash_map(FklVMgc *gc,
+        const FklCgLibHashMap *libs) {
+    for (const FklCgLibHashMapNode *cur = libs->first; cur; cur = cur->next) {
+        mark_codegen_lib(gc, &cur->v);
     }
 }
 
@@ -2658,17 +2624,12 @@ static FklVMvalueCgLibs *as_cg_libs(const FklVMvalue *ud) {
 
 static void cg_libs_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgLibs *libs = as_cg_libs(ud);
-    mark_codegen_lib_vector(gc, &libs->libs);
+    mark_codegen_lib_hash_map(gc, &libs->libs);
 }
 
 static int cg_libs_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgLibs *libs = as_cg_libs(ud);
-    FklCgLibVector *l = &libs->libs;
-    while (!fklCgLibVectorIsEmpty(l))
-        uninit_cg_lib(fklCgLibVectorPopBackNonNull(l));
-
-    fklCgLibVectorUninit(l);
-
+    fklCgLibHashMapUninit(&libs->libs);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -2685,7 +2646,7 @@ FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm) {
             &CgLibsUserDataMetaTable,
             NULL);
 
-    fklCgLibVectorInit(&r->libs, 8);
+    fklCgLibHashMapInit(&r->libs);
     return r;
 }
 
@@ -2694,79 +2655,46 @@ FklVMvalueCgLibs *fklCreateVMvalueCgLibs1(FklVM *vm, size_t num) {
             &CgLibsUserDataMetaTable,
             NULL);
 
-    fklCgLibVectorInit(&r->libs, num);
+    fklCgLibHashMapInit(&r->libs);
     return r;
 }
 
-size_t fklVMvalueCgLibsFind(const FklVMvalueCgLibs *libs,
-        const char *realpath) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    const FklCgLibVector *l = &libs->libs;
-    for (size_t i = 0; i < l->size; i++) {
-        const FklCgLib *cur = &l->base[i];
-        if (!strcmp(realpath, cur->rp))
-            return i + 1;
-    }
-    return 0;
+FklCgLib *fklVMvalueCgLibsGet(const FklVMvalueCgLibs *libs, const char *rp) {
+    return fklCgLibHashMapGet2(&libs->libs, rp);
 }
 
-size_t fklVMvalueCgLibsLastId(const FklVMvalueCgLibs *libs) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    return libs->libs.size;
+FklCgLib *fklVMvalueCgLibsAdd(FklVMvalueCgLibs *libs, const char *rp) {
+    return &fklCgLibHashMapInsert(&libs->libs, &rp, NULL)->v;
 }
 
-size_t fklVMvalueCgLibsNextId(const FklVMvalueCgLibs *libs) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    return libs->libs.size + 1;
-}
-
-FklCgLib *fklVMvalueCgLibsLast(const FklVMvalueCgLibs *libs) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, libs)));
-    return &libs->libs.base[libs->libs.size - 1];
-}
-
-FklCgLib *fklVMvalueCgLibsPushBack(FklVMvalueCgLibs *v) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    return fklCgLibVectorPushBack(&v->libs, NULL);
-}
-
-FklCgLib *fklVMvalueCgLibsEmplaceBack(FklVMvalueCgLibs *v, FklCgLib *l) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    return fklCgLibVectorPushBack(&v->libs, l);
-}
-
-FklCgLib *fklVMvalueCgLibsGet(FklVMvalueCgLibs *v, size_t id) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    FKL_ASSERT(id > 0 && id <= v->libs.size);
-    return &v->libs.base[id - 1];
-}
-
-void fklVMvalueCgLibsPopBack(FklVMvalueCgLibs *v) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    fklCgLibVectorPopBack(&v->libs);
-}
-
-FklCgLib *fklVMvalueCgLibs(FklVMvalueCgLibs *v) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    return v->libs.base;
+void fklVMvalueCgLibsRemove(FklVMvalueCgLibs *libs, const char *rp) {
+    fklCgLibHashMapDel2(&libs->libs, rp);
 }
 
 size_t fklVMvalueCgLibsCount(FklVMvalueCgLibs *v) {
     FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    return v->libs.size;
+    return v->libs.count;
 }
 
-void fklVMvalueCgLibsMerge(FklVMvalueCgLibs *out_v, FklVMvalueCgLibs *in_v) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, out_v)));
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, in_v)));
+FklCgLib *fklVMvalueCgLibsIter(const FklVMvalueCgLibs *v) {
+    return (v->libs.first) ? &v->libs.first->v : NULL;
+}
 
-    FklCgLibVector *in = &in_v->libs;
-    FklCgLibVector *out = &out_v->libs;
+FklCgLib *fklCgLibNext(const FklCgLib *c) {
+    if (c == NULL)
+        return NULL;
+    FklCgLibHashMapNode *n = FKL_CONTAINER_OF(c, FklCgLibHashMapNode, v);
+    if (n->next == NULL)
+        return NULL;
+    n = n->next;
+    return &n->v;
+}
 
-    for (uint32_t i = 0; i < in->size; i++)
-        fklCgLibVectorPushBack(out, &in->base[i]);
-
-    in->size = 0;
+const char *fklCgLibRp(const FklCgLib *c) {
+    if (c == NULL)
+        return NULL;
+    FklCgLibHashMapNode *n = FKL_CONTAINER_OF(c, FklCgLibHashMapNode, v);
+    return n->k;
 }
 
 FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
@@ -2787,9 +2715,14 @@ FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
 
     uint32_t child_proto_offset = konsts_offset + konsts_count;
 
+    uint32_t used_libraries_count = env->used_libraries.count;
+
+    uint32_t used_libraries_offset = child_proto_offset + child_proto_count;
+
     uint32_t total_val_count = (ref_count * FKL_VAR_REF_DEF_MEMBER_COUNT) //
                              + konsts_count                               //
-                             + child_proto_count;
+                             + child_proto_count                          //
+                             + used_libraries_count;
 
     FklVMvalueProto *proto = fklCreateVMvalueProto(exe, total_val_count);
 
@@ -2806,6 +2739,9 @@ FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
 
     proto->child_proto_count = child_proto_count;
     proto->child_proto_offset = child_proto_offset;
+
+    proto->used_libraries_count = used_libraries_count;
+    proto->used_libraries_offset = used_libraries_offset;
 
     FklVMvalue **const vals = proto->vals;
 
@@ -2834,6 +2770,14 @@ FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
 
     for (size_t i = 0; i < proto->child_proto_count; ++i) {
         protos[i] = env->child_proc_protos.base[i];
+    }
+
+    FklVMvalue **const libs = &vals[used_libraries_offset];
+
+    for (const FklLibIdHashMapNode *cur = env->used_libraries.first; cur;
+            cur = cur->next) {
+        FKL_ASSERT(cur->v.lib);
+        libs[cur->v.id] = FKL_VM_VAL(cur->v.lib);
     }
 
     update_parent_env_proto(env, FKL_VM_VAL(proto));

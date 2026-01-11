@@ -80,8 +80,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
-    FklVMvalueVec *libs = fklCreateVMvalueLibVec(&gc->gcvm, codegen->libraries);
-    FklVM *anotherVM = fklCreateVMwithByteCode(bc, gc, proto, 0, libs);
+    FklVM *anotherVM = fklCreateVMwithByteCode(bc, gc, proto, 0);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
@@ -168,7 +167,7 @@ runCode(const char *filename, int argc, const char *const *argv) {
     int r = fklLoadCodeFile(fp, &args);
     FKL_ASSERT(r == 0);
     fclose(fp);
-    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc, args.libs);
+    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc);
 
     fklInitVMargs(vm->gc, argc, argv);
     r = fklRunVMidleLoop(vm);
@@ -194,11 +193,9 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
-        .libraries = ctx.libraries,
-        .macro_libraries = ctx.macro_libraries,
     };
 
-    int load_result = fklLoadPreCompile(fp, rp, &args);
+    const FklCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
     fklZfree(rp);
 
@@ -206,7 +203,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
 
     fclose(fp);
 
-    if (load_result) {
+    if (cg_lib == NULL) {
         fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
         if (args.error) {
@@ -218,11 +215,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
         return 1;
     }
 
-    FklVMvalue *proc = fklVMvalueCgLibsLast(ctx.libraries)->proc;
-    fklVMvalueCgLibsPopBack(ctx.libraries);
-
-    FklVMvalueVec *libs = fklCreateVMvalueLibVec(vm, ctx.libraries);
-    FklVM *anotherVM = fklCreateVM(proc, gc, libs);
+    FklVM *anotherVM = fklCreateVM(cg_lib->lib->proc, gc);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);

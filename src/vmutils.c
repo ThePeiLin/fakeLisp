@@ -189,6 +189,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
         fklCodeBuilderPuts(build, "interrupt with value: ");
         fklPrin1VMvalue2(ev, build, exe);
         fklCodeBuilderPutc(build, '\n');
+        fklPrintBacktrace(exe, build);
     }
 
     if (build_ == NULL) {
@@ -2225,7 +2226,7 @@ void fklUninitValueTable(FklValueTable *t) {
     fklValueIdHashMapUninit(&t->ht);
 }
 
-FklValueId fklValueTableAdd(FklValueTable *t, FklVMvalue *v) {
+FklValueId fklValueTableAdd(FklValueTable *t, const FklVMvalue *v) {
     if (v == NULL)
         return 0;
     FklValueId *n = fklValueIdHashMapPut2(&t->ht, v, t->next_id);
@@ -2234,7 +2235,7 @@ FklValueId fklValueTableAdd(FklValueTable *t, FklVMvalue *v) {
     return r;
 }
 
-FklValueId fklValueTableGet(const FklValueTable *t, FklVMvalue *v) {
+FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v) {
     if (v == NULL)
         return 0;
     FklValueId *n = fklValueIdHashMapGet2(&t->ht, v);
@@ -2259,7 +2260,7 @@ static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
     return 0;
 }
 
-void fklTraverseSerializableValue(FklValueTable *t, FklVMvalue *v) {
+void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v) {
     if (v == NULL)
         return;
     if (is_serializable_leaf_node(v)) {

@@ -5291,7 +5291,7 @@ void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm, int is_precompile) {
         ref->v.isConst = 1;
     }
     if (is_precompile)
-        curEnv->proto_id = 0;
+        curEnv->proto_id = FKL_PRE_COMPILE_TOP_ENV_PROTO_ID;
 }
 
 static alignas(8)

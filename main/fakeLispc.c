@@ -176,8 +176,7 @@ static inline int compile(const char *filename,
 
     FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);
-    FklVMvalueVec *libs = fklCreateVMvalueLibVec(vm, codegen->libraries);
-    anotherVM = fklCreateVM(proc, gc, libs);
+    anotherVM = fklCreateVM(proc, gc);
 
     FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
 
@@ -195,7 +194,6 @@ static inline int compile(const char *filename,
     fklWriteCodeFile(outfp,
             &(FklWriteCodeFileArgs){
                 .proc = FKL_VM_PROC(proc),
-                .libs = anotherVM->libs,
             });
 
     fclose(outfp);

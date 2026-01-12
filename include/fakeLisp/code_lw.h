@@ -39,6 +39,29 @@ static inline FklValueId fklProtoTableGet(const FklProtoTable *t,
     return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
 }
 
+// for type-safe
+typedef struct {
+    FklValueTable vt;
+} FklLibTable;
+
+static inline void fklInitLibTable(FklLibTable *t) {
+    fklInitValueTable(&t->vt);
+}
+
+static inline void fklUninitLibTable(FklLibTable *t) {
+    fklUninitValueTable(&t->vt);
+}
+
+static inline FklValueId fklLibTableAdd(FklLibTable *t,
+        const FklVMvalueLib *v) {
+    return fklValueTableAdd(&t->vt, FKL_VM_VAL(v));
+}
+
+static inline FklValueId fklLibTableGet(const FklLibTable *t,
+        const FklVMvalueLib *v) {
+    return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
+}
+
 // write and load value table
 
 typedef struct {
@@ -67,6 +90,21 @@ int fklLoadProtoTable(FILE *fp,
         const FklLoadValueArgs *values,
         FklLoadProtoArgs *args);
 
+typedef struct {
+    // in
+    FklVM *const vm;
+
+    // out
+    FklValueId count;
+    FklVMvalueLib **libs;
+} FklLoadLibArgs;
+
+FKL_NODISCARD
+int fklLoadLibTable(FILE *fp,
+        const FklLoadValueArgs *values,
+        const FklLoadProtoArgs *protos,
+        FklLoadLibArgs *args);
+
 // write and load bytecodes
 
 void fklWriteLineNumberTable(const FklLineNumberTableItem *,
@@ -86,6 +124,7 @@ void fklLoadByteCode(FklByteCode *bc, FILE *fp);
 void fklWriteProc(const FklVMvalueProc *proc,
         FklValueTable *vt,
         FklProtoTable *proto_table,
+        FklLibTable *lib_table,
         FklWriteCodePass pass,
         FILE *fp);
 FklVMvalueProc *fklLoadProc(FILE *fp,
@@ -103,16 +142,17 @@ int fklLoadByteCodelnt(FILE *fp,
         FklByteCodelnt *bcl);
 
 // write and load vm libs
-void fklWriteVMlibs(const FklVMvalueVec *l,
-        FklValueTable *vt,
-        FklProtoTable *proto_table,
-        FklWriteCodePass pass,
-        FILE *fp);
-
-FklVMvalueVec *fklLoadVMlibs(FILE *fp,
-        FklVM *vm,
-        const FklLoadValueArgs *values,
-        const FklLoadProtoArgs *protos);
+// void fklWriteVMlibs(const FklVMvalueVec *l,
+//         FklValueTable *vt,
+//         FklProtoTable *proto_table,
+//         FklLibTable *lib_table,
+//         FklWriteCodePass pass,
+//         FILE *fp);
+//
+// FklVMvalueVec *fklLoadVMlibs(FILE *fp,
+//         FklVM *vm,
+//         const FklLoadValueArgs *values,
+//         const FklLoadProtoArgs *protos);
 
 typedef struct {
     const FklVMvalueProc *proc;

@@ -159,25 +159,26 @@ int main(int argc, char **argv) {
                         opcode_count);
 
             CB_LINE("");
-            size_t count = args.libs->size - 1;
+			FKL_TODO();
+            // size_t count = args.libs->size - 1;
 
-            for (size_t i = 1; i <= count; ++i) {
-                const FklVMvalueLib *cur = fklVMvalueLib(args.libs->base[i]);
-                CB_LINE("");
-                CB_LINE("lib %" PRIu64 ":", i);
-                if (FKL_IS_PROC(cur->proc)) {
-                    CB_LINE("epc %" PRIu64 "", cur->epc);
-                    fklDisassembleProc(vm, FKL_VM_PROC(cur->proc), build);
-                    if (stats->count > 0)
-                        do_gather_statistics(
-                                FKL_VM_CO(FKL_VM_PROC(cur->proc)->bcl),
-                                opcode_count);
-                } else {
-                    CB_LINE("%s", FKL_VM_STR(cur->proc)->str);
-                }
+            // for (size_t i = 1; i <= count; ++i) {
+            //     const FklVMvalueLib *cur = fklVMvalueLib(args.libs->base[i]);
+            //     CB_LINE("");
+            //     CB_LINE("lib %" PRIu64 ":", i);
+            //     if (FKL_IS_PROC(cur->proc)) {
+            //         CB_LINE("epc %" PRIu64 "", cur->epc);
+            //         fklDisassembleProc(vm, FKL_VM_PROC(cur->proc), build);
+            //         if (stats->count > 0)
+            //             do_gather_statistics(
+            //                     FKL_VM_CO(FKL_VM_PROC(cur->proc)->bcl),
+            //                     opcode_count);
+            //     } else {
+            //         CB_LINE("%s", FKL_VM_STR(cur->proc)->str);
+            //     }
 
-                CB_LINE("");
-            }
+            //     CB_LINE("");
+            // }
 
             CB_LINE("\nobarray:");
 
@@ -198,119 +199,120 @@ int main(int argc, char **argv) {
             char *rp = fklRealpath(filename);
             fklInitCgCtx(&ctx, fklGetDir(rp), vm);
 
-            FklLoadPreCompileArgs args = {
-                .ctx = &ctx,
-                .libraries = ctx.libraries,
-                .macro_libraries = ctx.macro_libraries,
-            };
+			FKL_TODO();
+            // FklLoadPreCompileArgs args = {
+            //     .ctx = &ctx,
+            //     .libraries = ctx.libraries,
+            //     .macro_libraries = ctx.macro_libraries,
+            // };
 
-            int load_result = fklLoadPreCompile(fp, rp, &args);
+            // int load_result = fklLoadPreCompile(fp, rp, &args);
 
-            fklZfree(rp);
+            // fklZfree(rp);
 
-            fklVMclearExtraMarkFunc(gc);
+            // fklVMclearExtraMarkFunc(gc);
 
-            fclose(fp);
+            // fclose(fp);
 
-            if (load_result) {
-                if (args.error) {
-                    fprintf(stderr, "%s\n", args.error);
-                    fklZfree(args.error);
-                } else
-                    fprintf(stderr, "%s: load failed\n", filename);
-                exitState = EXIT_FAILURE;
-                goto precompile_exit;
-            }
+            // if (load_result) {
+            //     if (args.error) {
+            //         fprintf(stderr, "%s\n", args.error);
+            //         fklZfree(args.error);
+            //     } else
+            //         fprintf(stderr, "%s: load failed\n", filename);
+            //     exitState = EXIT_FAILURE;
+            //     goto precompile_exit;
+            // }
 
             FklCodeBuilder builder = { 0 };
             fklInitCodeBuilderFp(&builder, stdout, NULL);
             FklCodeBuilder *const build = &builder;
 
-            CB_LINE("file: %s", filename);
-            CB_LINE("");
-            uint64_t count = fklVMvalueCgLibsCount(ctx.libraries);
-            const FklCgLib *base = fklVMvalueCgLibs(ctx.libraries);
-            for (uint64_t i = 0; i < count; ++i) {
-                const FklCgLib *cur = &base[i];
-                CB_LINE("lib %" PRIu64 ":", i + 1);
-                switch (cur->type) {
-                case FKL_CODEGEN_LIB_SCRIPT: {
-                    const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
-                    CB_LINE("epc %" PRIu64 "", cur->epc);
-                    fklDisassembleProc(vm, proc, build);
-                    if (stats->count > 0)
-                        do_gather_statistics(FKL_VM_CO(proc->bcl),
-                                opcode_count);
-                    CB_LINE("");
-                    if (cur->macros)
-                        print_compiler_macros(vm,
-                                cur->macros,
-                                build,
-                                opcode_count);
-                    if (cur->named_prod_groups)
-                        print_reader_macros(vm,
-                                cur->named_prod_groups,
-                                build,
-                                opcode_count);
-                    if (cur->replacements->buckets)
-                        print_replacements(vm, cur->replacements, build);
-                    if (!cur->macros && !cur->named_prod_groups)
-                        CB_LINE("");
-                } break;
-                case FKL_CODEGEN_LIB_DLL:
-                    CB_LINE("%s", cur->rp);
-                    CB_LINE("");
-                    break;
-                case FKL_CODEGEN_LIB_UNINIT:
-                    FKL_UNREACHABLE();
-                    break;
-                }
-                CB_LINE("");
-            }
+            // CB_LINE("file: %s", filename);
+            // CB_LINE("");
+            // uint64_t count = fklVMvalueCgLibsCount(ctx.libraries);
+            // const FklCgLib *base = fklVMvalueCgLibs(ctx.libraries);
+            // for (uint64_t i = 0; i < count; ++i) {
+            //     const FklCgLib *cur = &base[i];
+            //     CB_LINE("lib %" PRIu64 ":", i + 1);
+            //     switch (cur->type) {
+            //     case FKL_CODEGEN_LIB_SCRIPT: {
+            //         const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
+            //         CB_LINE("epc %" PRIu64 "", cur->epc);
+            //         fklDisassembleProc(vm, proc, build);
+            //         if (stats->count > 0)
+            //             do_gather_statistics(FKL_VM_CO(proc->bcl),
+            //                     opcode_count);
+            //         CB_LINE("");
+            //         if (cur->macros)
+            //             print_compiler_macros(vm,
+            //                     cur->macros,
+            //                     build,
+            //                     opcode_count);
+            //         if (cur->named_prod_groups)
+            //             print_reader_macros(vm,
+            //                     cur->named_prod_groups,
+            //                     build,
+            //                     opcode_count);
+            //         if (cur->replacements->buckets)
+            //             print_replacements(vm, cur->replacements, build);
+            //         if (!cur->macros && !cur->named_prod_groups)
+            //             CB_LINE("");
+            //     } break;
+            //     case FKL_CODEGEN_LIB_DLL:
+            //         CB_LINE("%s", cur->rp);
+            //         CB_LINE("");
+            //         break;
+            //     case FKL_CODEGEN_LIB_UNINIT:
+            //         FKL_UNREACHABLE();
+            //         break;
+            //     }
+            //     CB_LINE("");
+            // }
 
-            if (fklVMvalueCgLibsCount(ctx.macro_libraries) > 0) {
-                CB_LINE("");
-                CB_LINE("macro loaded libs:");
-                uint64_t count = fklVMvalueCgLibsCount(ctx.macro_libraries);
-                const FklCgLib *base = fklVMvalueCgLibs(ctx.macro_libraries);
-                for (uint64_t i = 0; i < count; ++i) {
-                    const FklCgLib *cur = &base[i];
-                    CB_LINE("lib %" PRIu64 ":", i + 1);
-                    switch (cur->type) {
-                    case FKL_CODEGEN_LIB_SCRIPT: {
-                        CB_LINE("epc %" PRIu64 "", cur->epc);
-                        const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
-                        fklDisassembleProc(vm, proc, build);
-                        if (stats->count > 0)
-                            do_gather_statistics(FKL_VM_CO(proc->bcl),
-                                    opcode_count);
-                        CB_LINE("");
-                        if (cur->macros)
-                            print_compiler_macros(vm,
-                                    cur->macros,
-                                    build,
-                                    opcode_count);
-                        if (cur->named_prod_groups)
-                            print_reader_macros(vm,
-                                    cur->named_prod_groups,
-                                    build,
-                                    opcode_count);
-                        if (cur->replacements->buckets)
-                            print_replacements(vm, cur->replacements, build);
-                        if (!cur->macros && !cur->named_prod_groups)
-                            CB_LINE("");
-                    } break;
-                    case FKL_CODEGEN_LIB_DLL:
-                        CB_LINE("%s", cur->rp);
-                        CB_LINE("");
-                        break;
-                    case FKL_CODEGEN_LIB_UNINIT:
-                        FKL_UNREACHABLE();
-                        break;
-                    }
-                    CB_LINE("");
-                }
-            }
+            // if (fklVMvalueCgLibsCount(ctx.macro_libraries) > 0) {
+            //     CB_LINE("");
+            //     CB_LINE("macro loaded libs:");
+            //     uint64_t count = fklVMvalueCgLibsCount(ctx.macro_libraries);
+            //     const FklCgLib *base = fklVMvalueCgLibs(ctx.macro_libraries);
+            //     for (uint64_t i = 0; i < count; ++i) {
+            //         const FklCgLib *cur = &base[i];
+            //         CB_LINE("lib %" PRIu64 ":", i + 1);
+            //         switch (cur->type) {
+            //         case FKL_CODEGEN_LIB_SCRIPT: {
+            //             CB_LINE("epc %" PRIu64 "", cur->epc);
+            //             const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
+            //             fklDisassembleProc(vm, proc, build);
+            //             if (stats->count > 0)
+            //                 do_gather_statistics(FKL_VM_CO(proc->bcl),
+            //                         opcode_count);
+            //             CB_LINE("");
+            //             if (cur->macros)
+            //                 print_compiler_macros(vm,
+            //                         cur->macros,
+            //                         build,
+            //                         opcode_count);
+            //             if (cur->named_prod_groups)
+            //                 print_reader_macros(vm,
+            //                         cur->named_prod_groups,
+            //                         build,
+            //                         opcode_count);
+            //             if (cur->replacements->buckets)
+            //                 print_replacements(vm, cur->replacements, build);
+            //             if (!cur->macros && !cur->named_prod_groups)
+            //                 CB_LINE("");
+            //         } break;
+            //         case FKL_CODEGEN_LIB_DLL:
+            //             CB_LINE("%s", cur->rp);
+            //             CB_LINE("");
+            //             break;
+            //         case FKL_CODEGEN_LIB_UNINIT:
+            //             FKL_UNREACHABLE();
+            //             break;
+            //         }
+            //         CB_LINE("");
+            //     }
+            // }
 
             CB_LINE("\nobarray:");
             fklPrintObarray(vm, gc->obarray, build);

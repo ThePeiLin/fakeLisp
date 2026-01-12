@@ -2983,11 +2983,10 @@ static int builtin_newline(FKL_CPROC_ARGL) {
 
 static int builtin_dlopen(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
-    FklVMvalue *dllName = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(dllName, FKL_IS_STR, exe);
+    FklVMvalue *dll_name = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(dll_name, FKL_IS_STR, exe);
     FklVMvalue *errorStr = NULL;
-    FklVMvalue *ndll =
-            fklCreateVMvalueDll(exe, FKL_VM_STR(dllName)->str, &errorStr);
+    FklVMvalue *ndll = fklCreateVMvalueDll(exe, dll_name, &errorStr);
     if (!ndll)
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,
                 exe,

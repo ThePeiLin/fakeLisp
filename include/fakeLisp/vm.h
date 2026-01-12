@@ -676,8 +676,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
-    FklVMvalueStr *path;
-    struct FklVMvalue *pd;
+    FklVMvalue *path;
+    FklVMvalue *pd;
     uv_lib_t dll;
 });
 
@@ -1074,7 +1074,9 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *,
 #define FKL_DLL_EXPORT
 #endif
 
-FklVMvalue *fklCreateVMvalueDll(FklVM *, const char *, FklVMvalue **);
+FklVMvalue *fklCreateVMvalueDll(FklVM *vm, //
+        FklVMvalue *realpath,
+        FklVMvalue **error_msg);
 int fklIsVMvalueDll(const FklVMvalue *v);
 void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 

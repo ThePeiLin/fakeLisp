@@ -1453,31 +1453,33 @@ static FklVMudMetaTable const DllUserDataMetaTable = {
 };
 
 FklVMvalue *
-fklCreateVMvalueDll(FklVM *exe, const char *dllName, FklVMvalue **errorStr) {
-    size_t len = strlen(dllName) + strlen(FKL_DLL_FILE_TYPE) + 1;
-    char *realDllName = (char *)fklZmalloc(len);
-    FKL_ASSERT(realDllName);
-    strcpy(realDllName, dllName);
-    strcat(realDllName, FKL_DLL_FILE_TYPE);
-    char *rpath = fklRealpath(realDllName);
+fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
+	const char* dll_name = FKL_VM_STR(path)->str;
+    size_t len = strlen(dll_name) + strlen(FKL_DLL_FILE_TYPE) + 1;
+    char *real_dll_name = (char *)fklZmalloc(len);
+    FKL_ASSERT(real_dll_name);
+    strcpy(real_dll_name, dll_name);
+    strcat(real_dll_name, FKL_DLL_FILE_TYPE);
+    char *rpath = fklRealpath(real_dll_name);
     if (rpath) {
-        fklZfree(realDllName);
-        realDllName = rpath;
+        fklZfree(real_dll_name);
+        real_dll_name = rpath;
     }
     uv_lib_t lib;
-    if (uv_dlopen(realDllName, &lib)) {
+    if (uv_dlopen(real_dll_name, &lib)) {
         *errorStr = fklCreateVMvalueStrFromCstr(exe, uv_dlerror(&lib));
         uv_dlclose(&lib);
         goto err;
     }
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DllUserDataMetaTable, NULL);
     FklVMvalueDll *dll = FKL_VM_DLL(r);
+	dll->path = path;
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
-    fklZfree(realDllName);
+    fklZfree(real_dll_name);
     return r;
 err:
-    fklZfree(realDllName);
+    fklZfree(real_dll_name);
     return NULL;
 }
 

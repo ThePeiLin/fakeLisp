@@ -459,13 +459,11 @@ void fklVMexecuteInstruction(FklVM *exe,
         switch (atomic_load(&plib->import_state)) {
         case FKL_VM_LIB_NONE:
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
-            FklVMvalue *errorStr = NULL;
+            FklVMvalue *error_msg = NULL;
             FklVMvalue *dll;
             FklImportDllInitFunc initFunc = NULL;
             if (FKL_IS_STR(plib->proc)) {
-                dll = fklCreateVMvalueDll(exe,
-                        FKL_VM_STR(plib->proc)->str,
-                        &errorStr);
+                dll = fklCreateVMvalueDll(exe, plib->proc, &error_msg);
                 fklInitVMdll(dll, exe);
             } else {
                 dll = plib->proc;
@@ -478,7 +476,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 fklUnlockVMlib(plib);
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
                         exe,
-                        FKL_VM_STR(errorStr)->str);
+                        FKL_VM_STR(error_msg)->str);
             }
 
             if (!initFunc) {

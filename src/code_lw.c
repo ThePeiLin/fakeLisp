@@ -15,7 +15,11 @@
 
 #include "codegen.h"
 
+typedef uint32_t TotalValCount;
+
 typedef uint32_t LibIdx;
+
+typedef uint8_t LibType;
 #define PRIu_LIBIDX PRIu32
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLibPlaceholder, { LibIdx idx; });
@@ -137,6 +141,13 @@ static inline FklValueId read_lib_id(FILE *fp) {
     FklValueId u = 0;
     fread(&u, sizeof(u), 1, fp);
     return u;
+}
+
+static inline FklVMvalueLib *get_lib_with_id(const FklLoadLibArgs *libs,
+        LibIdx id) {
+    FklVMvalueLib *r = libs->libs[id - 1];
+    FKL_ASSERT(r);
+    return r;
 }
 
 static inline void write_bigint(const FklVMvalueBigInt *bi, FILE *fp) {
@@ -405,8 +416,6 @@ load_symbol_def(FILE *fp, const FklLoadValueArgs *values, FklVarRefDef *def) {
     def->is_local = load_value_id(fp, values);
 }
 
-typedef uint32_t TotalValCount;
-
 static inline FklVMvalueProto *load_prototype(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos) {
@@ -458,6 +467,32 @@ static inline FklVMvalueProto *load_prototype(FILE *fp,
     return pt;
 }
 
+static inline FklVMvalueLib *load_vm_lib(FILE *fp,
+        const FklLoadValueArgs *values,
+        const FklLoadProtoArgs *protos,
+        const FklLoadLibArgs *libs) {
+    TotalValCount val_count = 0;
+    fread(&val_count, sizeof(val_count), 1, fp);
+    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, val_count);
+    LibType lib_type = 0;
+    fread(&lib_type, sizeof(lib_type), 1, fp);
+    switch ((FklCgLibType)lib_type) {
+    default:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_CODEGEN_LIB_SCRIPT:
+        fread(&lib->epc, sizeof(lib->epc), 1, fp);
+        FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+        lib->proc = FKL_VM_VAL(proc);
+        break;
+    case FKL_CODEGEN_LIB_DLL:
+        lib->proc = load_value_id(fp, values);
+        break;
+    }
+
+    return lib;
+}
+
 int fklLoadProtoTable(FILE *fp,
         const FklLoadValueArgs *values,
         FklLoadProtoArgs *args) {
@@ -478,7 +513,16 @@ int fklLoadLibTable(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos,
         FklLoadLibArgs *args) {
-    FKL_TODO();
+    fread(&args->count, sizeof(args->count), 1, fp);
+    FklVMvalueLib **libs = (FklVMvalueLib **)fklZcalloc(args->count, //
+            sizeof(FklVMvalueLib *));
+    FKL_ASSERT(libs);
+    args->libs = libs;
+    for (FklValueId id = args->count; id > 0; --id) {
+        args->libs[id - 1] = load_vm_lib(fp, values, protos, args);
+    }
+
+    return 0;
 }
 
 static inline void write_symbol_def_pass_1(const FklVarRefDef *def,
@@ -985,7 +1029,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     FKL_ASSERT(FKL_IS_PROC(lib->proc)   //
                || FKL_IS_STR(lib->proc) //
                || fklIsVMvalueDll(lib->proc));
-    uint8_t type_byte = FKL_IS_PROC(lib->proc) ? FKL_CODEGEN_LIB_SCRIPT
+    LibType type_byte = FKL_IS_PROC(lib->proc) ? FKL_CODEGEN_LIB_SCRIPT
                                                : FKL_CODEGEN_LIB_DLL;
 
     TotalValCount val_count = lib->count;
@@ -1067,9 +1111,20 @@ void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args) {
     fklUninitValueTable(&value_table);
 }
 
-static int fix_proto_lib_refs(const FklLoadProtoArgs *prots,
-        const FklLoadLibArgs *libs) {
-    FKL_TODO();
+static int fix_proto_lib_refs(const FklLoadProtoArgs *protos,
+        const FklLoadLibArgs *args) {
+    FklVMvalueProto *const *cur = protos->protos;
+    FklVMvalueProto *const *const end = cur + protos->count;
+    for (; cur < end; ++cur) {
+        FklVMvalueProto *c = *cur;
+        LibIdx count = c->used_libraries_count;
+        FklVMvalue **libs = &c->vals[c->used_libraries_offset];
+        for (LibIdx i = 0; i < count; ++i) {
+            LibIdx idx = as_lib_placeholder(libs[i])->idx;
+            libs[i] = FKL_VM_VAL(get_lib_with_id(args, idx));
+        }
+    }
+    return 0;
 }
 
 int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
@@ -1093,9 +1148,6 @@ int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
     FklVMvalueProc *main_func = fklLoadProc(fp, &values, &protos);
 
     args->main_func = main_func;
-
-    FKL_TODO();
-    // args->libs = fklLoadVMlibs(fp, vm, &values, &protos);
 
     values.count = 0;
     fklZfree(values.values);

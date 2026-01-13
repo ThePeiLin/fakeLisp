@@ -193,6 +193,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
+        .libraries = ctx.libraries,
     };
 
     const FklCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);

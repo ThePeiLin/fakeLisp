@@ -16,6 +16,84 @@
 
 #include "codegen.h"
 
+// write and load value table
+
+typedef struct {
+    // in
+    FklVM *const vm;
+
+    // out
+    FklValueId count;
+    FklVMvalue **values;
+} FklLoadValueArgs;
+
+FKL_NODISCARD
+static int load_value_table(FILE *fp, FklLoadValueArgs *args);
+
+typedef struct {
+    // in
+    FklVM *const vm;
+
+    // out
+    FklValueId count;
+    FklVMvalueProto **protos;
+} FklLoadProtoArgs;
+
+FKL_NODISCARD
+static int load_proto_table(FILE *fp,
+        const FklLoadValueArgs *values,
+        FklLoadProtoArgs *args);
+
+typedef struct {
+    // in
+    FklVM *const vm;
+
+    // out
+    FklValueId count;
+    FklVMvalueLib **libs;
+} FklLoadLibArgs;
+
+FKL_NODISCARD
+static int load_lib_table(FILE *fp,
+        const FklLoadValueArgs *values,
+        const FklLoadProtoArgs *protos,
+        FklLoadLibArgs *args);
+
+// write and load bytecodes
+
+static void write_lnt(const FklLineNumberTableItem *,
+        uint32_t count,
+        FklValueTable *vt,
+        FklWriteCodePass pass,
+        FILE *);
+
+static void load_lnt(FILE *fp,
+        const FklLoadValueArgs *values,
+        FklLineNumberTableItem **plist,
+        uint32_t *pnum);
+
+static void write_bc(const FklByteCode *bc, FILE *fp);
+static void load_bc(FklByteCode *bc, FILE *fp);
+
+static void write_proc(const FklVMvalueProc *proc,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table,
+        FklWriteCodePass pass,
+        FILE *fp);
+static FklVMvalueProc *load_proc(FILE *fp,
+        const FklLoadValueArgs *values,
+        const FklLoadProtoArgs *protos);
+
+static void write_bc_lnt(const FklByteCodelnt *bcl,
+        FklValueTable *vt,
+        FklWriteCodePass pass,
+        FILE *fp);
+
+FKL_NODISCARD
+static int
+load_bc_lnt(FILE *fp, const FklLoadValueArgs *values, FklByteCodelnt *bcl);
+
 typedef uint32_t TotalValCount;
 
 typedef uint32_t LibIdx;
@@ -394,7 +472,7 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
     return NULL;
 }
 
-int fklLoadValueTable(FILE *fp, FklLoadValueArgs *args) {
+static int load_value_table(FILE *fp, FklLoadValueArgs *args) {
     FklVM *vm = args->vm;
     fread(&args->count, sizeof(args->count), 1, fp);
 
@@ -483,7 +561,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         break;
     case FKL_CODEGEN_LIB_SCRIPT:
         fread(&lib->epc, sizeof(lib->epc), 1, fp);
-        FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+        FklVMvalueProc *proc = load_proc(fp, values, protos);
         lib->proc = FKL_VM_VAL(proc);
         break;
     case FKL_CODEGEN_LIB_DLL:
@@ -494,7 +572,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     return lib;
 }
 
-int fklLoadProtoTable(FILE *fp,
+static int load_proto_table(FILE *fp,
         const FklLoadValueArgs *values,
         FklLoadProtoArgs *args) {
     fread(&args->count, sizeof(args->count), 1, fp);
@@ -510,7 +588,7 @@ int fklLoadProtoTable(FILE *fp,
     return 0;
 }
 
-int fklLoadLibTable(FILE *fp,
+static int load_lib_table(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos,
         FklLoadLibArgs *args) {
@@ -580,7 +658,7 @@ static inline void write_prototype_pass_1(const FklVMvalueProto *pt,
             if (FKL_IS_PROC(proc_v)) {
                 FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
                 fklValueVectorPushBack2(&pending, FKL_VM_VAL(proc->proto));
-                fklWriteByteCodelnt(FKL_VM_CO(proc->bcl),
+                write_bc_lnt(FKL_VM_CO(proc->bcl),
                         vt,
                         FKL_WRITE_CODE_PASS_FIRST,
                         NULL);
@@ -650,7 +728,7 @@ static inline void write_prototype_pass_2(const FklVMvalueProto *pt,
     }
 }
 
-void fklWriteLineNumberTable(const FklLineNumberTableItem *items,
+static void write_lnt(const FklLineNumberTableItem *items,
         uint32_t count,
         FklValueTable *vt,
         FklWriteCodePass pass,
@@ -673,7 +751,7 @@ void fklWriteLineNumberTable(const FklLineNumberTableItem *items,
     }
 }
 
-void fklLoadLineNumberTable(FILE *fp,
+static void load_lnt(FILE *fp,
         const FklLoadValueArgs *values,
         FklLineNumberTableItem **plist,
         uint32_t *pnum) {
@@ -702,7 +780,7 @@ void fklLoadLineNumberTable(FILE *fp,
     *pnum = count;
 }
 
-void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {
+static void write_bc(const FklByteCode *bc, FILE *outfp) {
     uint64_t len = bc->len;
     fwrite(&len, sizeof(bc->len), 1, outfp);
     const FklInstruction *end = bc->code + len;
@@ -771,7 +849,7 @@ void fklWriteByteCode(const FklByteCode *bc, FILE *outfp) {
     }
 }
 
-void fklWriteProc(const FklVMvalueProc *proc,
+static void write_proc(const FklVMvalueProc *proc,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
@@ -785,17 +863,17 @@ void fklWriteProc(const FklVMvalueProc *proc,
         write_proto_id(proto_table, 0, proc->proto, fp);
         break;
     }
-    fklWriteByteCodelnt(FKL_VM_CO(proc->bcl), vt, pass, fp);
+    write_bc_lnt(FKL_VM_CO(proc->bcl), vt, pass, fp);
 }
 
-FklVMvalueProc *fklLoadProc(FILE *fp,
+static FklVMvalueProc *load_proc(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos) {
     FklVM *vm = values->vm;
     FklVMvalueProto *pt = load_proto_id(fp, protos);
     FklVMvalue *bcl = fklCreateVMvalueCodeObj1(vm);
 
-    int r = fklLoadByteCodelnt(fp, values, FKL_VM_CO(bcl));
+    int r = load_bc_lnt(fp, values, FKL_VM_CO(bcl));
     FKL_ASSERT(r == 0);
 
     FklVMvalue *proc = fklCreateVMvalueProc(vm, bcl, pt);
@@ -804,16 +882,16 @@ FklVMvalueProc *fklLoadProc(FILE *fp,
     return FKL_VM_PROC(proc);
 }
 
-void fklWriteByteCodelnt(const FklByteCodelnt *bcl,
+static void write_bc_lnt(const FklByteCodelnt *bcl,
         FklValueTable *vt,
         FklWriteCodePass pass,
         FILE *fp) {
-    fklWriteLineNumberTable(bcl->l, bcl->ls, vt, pass, fp);
+    write_lnt(bcl->l, bcl->ls, vt, pass, fp);
     if (pass == FKL_WRITE_CODE_PASS_SECOND)
-        fklWriteByteCode(&bcl->bc, fp);
+        write_bc(&bcl->bc, fp);
 }
 
-void fklLoadByteCode(FklByteCode *tmp, FILE *fp) {
+static void load_bc(FklByteCode *tmp, FILE *fp) {
     uint64_t len = 0;
     fread(&len, sizeof(uint64_t), 1, fp);
     fklInitByteCode(tmp, len);
@@ -892,11 +970,10 @@ void fklLoadByteCode(FklByteCode *tmp, FILE *fp) {
     }
 }
 
-int fklLoadByteCodelnt(FILE *fp,
-        const FklLoadValueArgs *values,
-        FklByteCodelnt *bcl) {
-    fklLoadLineNumberTable(fp, values, &bcl->l, &bcl->ls);
-    fklLoadByteCode(&bcl->bc, fp);
+static int
+load_bc_lnt(FILE *fp, const FklLoadValueArgs *values, FklByteCodelnt *bcl) {
+    load_lnt(fp, values, &bcl->l, &bcl->ls);
+    load_bc(&bcl->bc, fp);
     return 0;
 }
 
@@ -936,7 +1013,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
         fwrite(&lib->epc, sizeof(lib->epc), 1, fp);
 
         FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
-        fklWriteProc(proc,
+        write_proc(proc,
                 FKL_TYPE_CAST(FklValueTable *, value_table),
                 FKL_TYPE_CAST(FklProtoTable *, proto_table),
                 FKL_TYPE_CAST(FklLibTable *, lib_table),
@@ -982,7 +1059,7 @@ void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const main_func) {
     FklLibTable lib_table = { 0 };
     fklInitLibTable(&lib_table);
 
-    fklWriteProc(main_func,
+    write_proc(main_func,
             &value_table,
             &proto_table,
             &lib_table,
@@ -995,7 +1072,7 @@ void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const main_func) {
 
     write_lib_table(&lib_table, &value_table, &proto_table, fp);
 
-    fklWriteProc(main_func,
+    write_proc(main_func,
             &value_table,
             &proto_table,
             &lib_table,
@@ -1028,19 +1105,19 @@ FklVMvalueProc *fklLoadCodeFile(FILE *fp, FklVM *vm, FklLibTable *lib_table) {
     FklLoadProtoArgs protos = { .vm = vm };
     FklLoadLibArgs libs = { .vm = vm };
 
-    int r = fklLoadValueTable(fp, &values);
+    int r = load_value_table(fp, &values);
     (void)r;
     FKL_ASSERT(r == 0);
 
-    r = fklLoadProtoTable(fp, &values, &protos);
+    r = load_proto_table(fp, &values, &protos);
     FKL_ASSERT(r == 0);
 
-    r = fklLoadLibTable(fp, &values, &protos, &libs);
+    r = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(r == 0);
 
     fix_proto_lib_refs(&protos, &libs);
 
-    FklVMvalueProc *main_func = fklLoadProc(fp, &values, &protos);
+    FklVMvalueProc *main_func = load_proc(fp, &values, &protos);
 
     values.count = 0;
     fklZfree(values.values);
@@ -1087,7 +1164,7 @@ static inline void write_production_rule_action_pass_1(
         FklLibTable *lib_table) {
     if (fklIsCustomActionProd(prod)) {
         FklVMvalueCustomActCtx *ctx = prod->ctx;
-        fklWriteProc(FKL_VM_PROC(ctx->proc),
+        write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
                 lib_table,
@@ -1114,7 +1191,7 @@ static inline void write_production_rule_action_pass_2(
         type = FKL_CODEGEN_PROD_CUSTOM;
         fwrite(&type, sizeof(type), 1, fp);
         FklVMvalueCustomActCtx *ctx = prod->ctx;
-        fklWriteProc(FKL_VM_PROC(ctx->proc),
+        write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
                 lib_table,
@@ -1379,7 +1456,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 prod_len,
                 syms);
         FklVMvalueCustomActCtx *actx = prod->ctx;
-        FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+        FklVMvalueProc *proc = load_proc(fp, values, protos);
         actx->proc = FKL_VM_VAL(proc);
     } break;
 
@@ -1622,7 +1699,7 @@ static inline FklMacroHashMap *load_compiler_macros(FklVM *exe,
         fread(&count, sizeof(count), 1, fp);
         for (uint64_t j = 0; j < count; ++j) {
             FklVMvalue *pattern = load_value_id(fp, values);
-            FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+            FklVMvalueProc *proc = load_proc(fp, values, protos);
 
             FklCgMacro *cur = fklCreateCgMacro(pattern, FKL_VM_VAL(proc), NULL);
 
@@ -1658,7 +1735,7 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     cg_lib->replacements = load_replacements(fp, values);
     cg_lib->named_prod_groups = load_named_prods(fp, args->ctx, values, protos);
 
-    FklVMvalueProc *proc = fklLoadProc(fp, values, protos);
+    FklVMvalueProc *proc = load_proc(fp, values, protos);
     FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, cg_lib->exports.count);
     fread(&lib->epc, sizeof(lib->epc), 1, fp);
     lib->proc = FKL_VM_VAL(proc);
@@ -1697,7 +1774,7 @@ static inline void write_compiler_macros_pass_1(const FklMacroHashMap *macros,
         fklTraverseSerializableValue(vt, cur->k);
         for (const FklCgMacro *c = cur->v; c; c = c->next) {
             fklTraverseSerializableValue(vt, c->pattern);
-            fklWriteProc(FKL_VM_PROC(c->proc),
+            write_proc(FKL_VM_PROC(c->proc),
                     vt,
                     proto_table,
                     lib_table,
@@ -1729,7 +1806,7 @@ static inline void write_compiler_macros_pass_2(const FklMacroHashMap *macros,
         fwrite(&count, sizeof(count), 1, fp);
         for (const FklCgMacro *c = cur->v; c; c = c->next) {
             write_value_id(vt, 0, c->pattern, fp);
-            fklWriteProc(FKL_VM_PROC(c->proc),
+            write_proc(FKL_VM_PROC(c->proc),
                     vt,
                     proto_table,
                     lib_table,
@@ -1786,7 +1863,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 value_table,
                 proto_table,
                 lib_table);
-        fklWriteProc(proc,
+        write_proc(proc,
                 value_table,
                 proto_table,
                 lib_table,
@@ -1811,7 +1888,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 lib_table,
                 outfp);
 
-        fklWriteProc(proc,
+        write_proc(proc,
                 value_table,
                 proto_table,
                 lib_table,
@@ -1894,14 +1971,14 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     FklLoadProtoArgs protos = { .vm = ctx->vm };
     FklLoadLibArgs libs = { .vm = ctx->vm };
 
-    err = fklLoadValueTable(fp, &values);
+    err = load_value_table(fp, &values);
     (void)err;
     FKL_ASSERT(err == 0);
 
-    err = fklLoadProtoTable(fp, &values, &protos);
+    err = load_proto_table(fp, &values, &protos);
     FKL_ASSERT(err == 0);
 
-    err = fklLoadLibTable(fp, &values, &protos, &libs);
+    err = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(err == 0);
 
     fix_proto_lib_refs(&protos, &libs);

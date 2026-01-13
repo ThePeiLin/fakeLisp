@@ -7,6 +7,7 @@
 #include <fakeLisp/string_table.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
+#include <fakeLisp/value_table.h>
 #include <fakeLisp/vm.h>
 
 #include <inttypes.h>
@@ -899,15 +900,6 @@ int fklLoadByteCodelnt(FILE *fp,
     return 0;
 }
 
-static inline void write_code_file_passes(FILE *fp,
-        FklValueTable *value_table,
-        FklProtoTable *proto_table,
-        FklLibTable *lib_table,
-        FklWriteCodePass pass,
-        const FklWriteCodeFileArgs *args) {
-    fklWriteProc(args->proc, value_table, proto_table, lib_table, pass, fp);
-}
-
 static inline void write_prototype_table(const FklProtoTable *proto_table,
         const FklValueTable *value_table,
         const FklLibTable *lib_table,
@@ -980,7 +972,7 @@ static inline void write_lib_table(const FklLibTable *lib_table,
     }
 }
 
-void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args) {
+void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const main_func) {
     FklValueTable value_table = { 0 };
     fklInitValueTable(&value_table);
 
@@ -990,12 +982,12 @@ void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args) {
     FklLibTable lib_table = { 0 };
     fklInitLibTable(&lib_table);
 
-    write_code_file_passes(fp,
+    fklWriteProc(main_func,
             &value_table,
             &proto_table,
             &lib_table,
             FKL_WRITE_CODE_PASS_FIRST,
-            args);
+            NULL);
 
     fklWriteValueTable(&value_table, fp);
 
@@ -1003,12 +995,12 @@ void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args) {
 
     write_lib_table(&lib_table, &value_table, &proto_table, fp);
 
-    write_code_file_passes(fp,
+    fklWriteProc(main_func,
             &value_table,
             &proto_table,
             &lib_table,
             FKL_WRITE_CODE_PASS_SECOND,
-            args);
+            fp);
 
     fklUninitLibTable(&lib_table);
     fklUninitProtoTable(&proto_table);
@@ -1031,8 +1023,7 @@ static int fix_proto_lib_refs(const FklLoadProtoArgs *protos,
     return 0;
 }
 
-int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
-    FklVM *vm = args->vm;
+FklVMvalueProc *fklLoadCodeFile(FILE *fp, FklVM *vm, FklLibTable *lib_table) {
     FklLoadValueArgs values = { .vm = vm };
     FklLoadProtoArgs protos = { .vm = vm };
     FklLoadLibArgs libs = { .vm = vm };
@@ -1051,8 +1042,6 @@ int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
 
     FklVMvalueProc *main_func = fklLoadProc(fp, &values, &protos);
 
-    args->main_func = main_func;
-
     values.count = 0;
     fklZfree(values.values);
     values.values = NULL;
@@ -1061,10 +1050,16 @@ int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args) {
     fklZfree(protos.protos);
     protos.protos = NULL;
 
+    if (lib_table != NULL) {
+        for (FklValueId i = 0; i < libs.count; ++i)
+            fklLibTableAdd(lib_table, libs.libs[i]);
+    }
+
     libs.count = 0;
     fklZfree(libs.libs);
     libs.libs = NULL;
-    return 0;
+
+    return main_func;
 }
 
 // write pre compile file
@@ -1596,29 +1591,6 @@ static inline FklGraProdGroupHashMap *load_named_prods(FILE *fp,
     return ht;
 }
 
-static inline char *load_script_lib_path(const char *main_dir, FILE *fp) {
-    FklStrBuf buf;
-    fklInitStrBuf(&buf);
-    fklStrBufConcatWithCstr(&buf, main_dir);
-    int ch = fgetc(fp);
-    for (;;) {
-        while (ch) {
-            fklStrBufPutc(&buf, ch);
-            ch = fgetc(fp);
-        }
-        ch = fgetc(fp);
-        if (!ch)
-            break;
-        fklStrBufPutc(&buf, FKL_PATH_SEPARATOR);
-    }
-
-    fklStrBufPutc(&buf, FKL_PRE_COMPILE_FKL_SUFFIX);
-
-    char *path = fklZstrdup(buf.buf);
-    fklUninitStrBuf(&buf);
-    return path;
-}
-
 static inline void load_export_sid_idx_table(FILE *fp,
         const FklLoadValueArgs *values,
         FklCgExportSidIdxHashMap *t) {
@@ -1690,32 +1662,7 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, cg_lib->exports.count);
     fread(&lib->epc, sizeof(lib->epc), 1, fp);
     lib->proc = FKL_VM_VAL(proc);
-	cg_lib->lib = lib;
-}
-
-static inline char *load_dll_lib_path(const char *main_dir, FILE *fp) {
-    FklStrBuf buf;
-    fklInitStrBuf(&buf);
-    fklStrBufConcatWithCstr(&buf, main_dir);
-    int ch = fgetc(fp);
-    for (;;) {
-        while (ch) {
-            fklStrBufPutc(&buf, ch);
-            ch = fgetc(fp);
-        }
-        ch = fgetc(fp);
-        if (!ch)
-            break;
-        fklStrBufPutc(&buf, FKL_PATH_SEPARATOR);
-    }
-
-    fklStrBufConcatWithCstr(&buf, FKL_DLL_FILE_TYPE);
-
-    char *path = fklZstrdup(buf.buf);
-    fklUninitStrBuf(&buf);
-    char *rp = fklRealpath(path);
-    fklZfree(path);
-    return rp;
+    cg_lib->lib = lib;
 }
 
 static inline void write_export_sid_idx_table_pass_2(
@@ -1969,6 +1916,11 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     protos.count = 0;
     fklZfree(protos.protos);
     protos.protos = NULL;
+
+    if (args->lib_table != NULL) {
+        for (FklValueId i = 0; i < libs.count; ++i)
+            fklLibTableAdd(args->lib_table, libs.libs[i]);
+    }
 
     libs.count = 0;
     fklZfree(libs.libs);

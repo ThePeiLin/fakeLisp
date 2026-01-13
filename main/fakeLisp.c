@@ -159,18 +159,13 @@ runCode(const char *filename, int argc, const char *const *argv) {
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
     FklVM *vm = &gc->gcvm;
 
-    FklLoadCodeFileArgs args = {
-        .vm = vm,
-
-    };
-
-    int r = fklLoadCodeFile(fp, &args);
-    FKL_ASSERT(r == 0);
+    FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, NULL);
+    FKL_ASSERT(proc != NULL);
     fclose(fp);
-    vm = fklCreateVM(FKL_VM_VAL(args.main_func), gc);
+    vm = fklCreateVM(FKL_VM_VAL(proc), gc);
 
     fklInitVMargs(vm->gc, argc, argv);
-    r = fklRunVMidleLoop(vm);
+    int r = fklRunVMidleLoop(vm);
 
     fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);

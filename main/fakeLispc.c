@@ -191,10 +191,7 @@ static inline int compile(const char *filename,
     fklCheckAndGC(anotherVM, 1);
     fklVMrestoreSymbol(gc);
 
-    fklWriteCodeFile(outfp,
-            &(FklWriteCodeFileArgs){
-                .proc = FKL_VM_PROC(proc),
-            });
+    fklWriteCodeFile(outfp, FKL_VM_PROC(proc));
 
     fclose(outfp);
 compile_exit:

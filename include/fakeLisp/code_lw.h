@@ -1,10 +1,11 @@
 // bytecode file loader and writer
 
-#ifndef FKL_CODE_LW
-#define FKL_CODE_LW
+#ifndef FKL_CODE_LW_H
+#define FKL_CODE_LW_H
 
 #include "bytecode.h"
 #include "codegen.h"
+#include "value_table.h"
 #include "vm.h"
 
 #ifdef __cplusplus
@@ -15,52 +16,6 @@ typedef enum FklWriteCodePass {
     FKL_WRITE_CODE_PASS_FIRST = 0,
     FKL_WRITE_CODE_PASS_SECOND,
 } FklWriteCodePass;
-
-// for type-safe
-typedef struct {
-    FklValueTable vt;
-} FklProtoTable;
-
-static inline void fklInitProtoTable(FklProtoTable *t) {
-    fklInitValueTable(&t->vt);
-}
-
-static inline void fklUninitProtoTable(FklProtoTable *t) {
-    fklUninitValueTable(&t->vt);
-}
-
-static inline FklValueId fklProtoTableAdd(FklProtoTable *t,
-        const FklVMvalueProto *v) {
-    return fklValueTableAdd(&t->vt, FKL_VM_VAL(v));
-}
-
-static inline FklValueId fklProtoTableGet(const FklProtoTable *t,
-        const FklVMvalueProto *v) {
-    return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
-}
-
-// for type-safe
-typedef struct {
-    FklValueTable vt;
-} FklLibTable;
-
-static inline void fklInitLibTable(FklLibTable *t) {
-    fklInitValueTable(&t->vt);
-}
-
-static inline void fklUninitLibTable(FklLibTable *t) {
-    fklUninitValueTable(&t->vt);
-}
-
-static inline FklValueId fklLibTableAdd(FklLibTable *t,
-        const FklVMvalueLib *v) {
-    return fklValueTableAdd(&t->vt, FKL_VM_VAL(v));
-}
-
-static inline FklValueId fklLibTableGet(const FklLibTable *t,
-        const FklVMvalueLib *v) {
-    return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
-}
 
 // write and load value table
 
@@ -141,43 +96,15 @@ int fklLoadByteCodelnt(FILE *fp,
         const FklLoadValueArgs *values,
         FklByteCodelnt *bcl);
 
-// write and load vm libs
-// void fklWriteVMlibs(const FklVMvalueVec *l,
-//         FklValueTable *vt,
-//         FklProtoTable *proto_table,
-//         FklLibTable *lib_table,
-//         FklWriteCodePass pass,
-//         FILE *fp);
-//
-// FklVMvalueVec *fklLoadVMlibs(FILE *fp,
-//         FklVM *vm,
-//         const FklLoadValueArgs *values,
-//         const FklLoadProtoArgs *protos);
-
-typedef struct {
-    const FklVMvalueProc *proc;
-} FklWriteCodeFileArgs;
-
-typedef struct {
-    // in
-    FklVM *const vm;
-
-    // out
-    FklVMvalueProc *main_func;
-} FklLoadCodeFileArgs;
-
 // write and load byte code files
-void fklWriteCodeFile(FILE *fp, const FklWriteCodeFileArgs *const args);
+void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const proc);
 
 FKL_NODISCARD
-int fklLoadCodeFile(FILE *fp, FklLoadCodeFileArgs *const args);
-
-struct FklCgCtx;
-struct FklGraProdGroupHashMap;
+FklVMvalueProc *fklLoadCodeFile(FILE *fp, FklVM *vm, FklLibTable *lib_table);
 
 typedef struct {
-    const struct FklCgCtx *const ctx;
-    const struct FklVMvalueCgInfo *const main_info;
+    const FklCgCtx *const ctx;
+    const FklVMvalueCgInfo *const main_info;
 
     const FklVMvalueProc *main_proc;
 } FklWritePreCompileArgs;
@@ -192,6 +119,7 @@ typedef struct {
     FklVMvalueCgLibs *const libraries;
 
     // out
+    FklLibTable *lib_table;
     FklCgLib *cg_lib;
     char *error;
 } FklLoadPreCompileArgs;

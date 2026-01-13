@@ -192,6 +192,7 @@ typedef struct {
     FklVMvalueCgLibs *const libraries;
 
     // out
+    FklCgLib *cg_lib;
     char *error;
 } FklLoadPreCompileArgs;
 

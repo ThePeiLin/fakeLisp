@@ -93,7 +93,6 @@ static inline int pre_compile(const char *main_file_name,
         goto pre_compile_exit;
     }
 
-    fklClearCgLibMacros2(&ctx);
     fklWritePreCompile(outfp,
             output_dir,
             &(FklWritePreCompileArgs){
@@ -188,7 +187,7 @@ static inline int compile(const char *filename,
     }
 
     fklVMclearSymbol(gc);
-    fklCheckAndGC(anotherVM, 1);
+    fklVMgcCheck(anotherVM, 1);
     fklVMrestoreSymbol(gc);
 
     fklWriteCodeFile(outfp, FKL_VM_PROC(proc));

@@ -17,9 +17,15 @@ static inline int print_single_ins(FklVM *vm,
         uint64_t i,
         const FklVMvalueProto *pt,
         FklCodeBuilder *build,
+        int indents,
+        const char *indent_str,
         const FklLibTable *lib_table) {
     FklOpcode op = ins->op;
     FklOpcodeMode mode = fklGetOpcodeMode(op);
+
+    for (int i = 0; i < indents; ++i) {
+        CB_FMT("%s", indent_str);
+    }
 
     CB_FMT("%-*" PRIu64 ":", digits_count, i);
     CB_LINE_START("%s", fklGetOpcodeName(op));
@@ -120,9 +126,19 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
         const FklVMvalueProto *pt,
         uint64_t i,
         FklCodeBuilder *build,
+        int indents,
+        const char *indent_str,
         const FklLibTable *lib_table) {
     while (pc < end) {
-        print_single_ins(vm, digits_count, pc, i, pt, build, lib_table);
+        print_single_ins(vm,
+                digits_count,
+                pc,
+                i,
+                pt,
+                build,
+                indents,
+                indent_str,
+                lib_table);
         if (fklIsPushProcIns(pc)) {
             FklInstructionArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
@@ -136,6 +152,8 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         i++,
                         pt,
                         build,
+                        indents,
+                        indent_str,
                         lib_table);
             }
 
@@ -148,6 +166,8 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         fklVMvalueProtoChildren(pt)[ins_arg.ux],
                         i,
                         build,
+                        indents,
+                        indent_str,
                         lib_table);
             }
 
@@ -176,8 +196,13 @@ void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklVMvalueProto *pt,
         FklCodeBuilder *build,
-        const FklLibTable *lib_table) {
+        const FklDisArgs *args) {
     int digits_count = compute_digits_count(bcl->bc.len);
+    int indents = args ? args->indents : 0;
+    const char *indent_str = args && args->indent_str //
+                                   ? args->indent_str
+                                   : "    ";
+    const FklLibTable *lib_table = args ? args->lib_table : NULL;
     uint64_t i = 0;
     CB_INDENT(flag) {
         disassemble_byte_code_lnt(vm,
@@ -188,6 +213,8 @@ void fklDisassembleByteCodelnt(FklVM *vm,
                 pt,
                 i,
                 build,
+                indents,
+                indent_str,
                 lib_table);
     }
 }
@@ -195,10 +222,15 @@ void fklDisassembleByteCodelnt(FklVM *vm,
 void fklDisassembleProc(FklVM *vm,
         const FklVMvalueProc *p,
         FklCodeBuilder *build,
-        const FklLibTable *lib_table) {
+        const FklDisArgs *args) {
     const FklVMvalue *co = p->bcl;
     const FklByteCodelnt *bcl = FKL_VM_CO(co);
 
+    int indents = args ? args->indents : 0;
+    const char *indent_str = args && args->indent_str //
+                                   ? args->indent_str
+                                   : "    ";
+    const FklLibTable *lib_table = args ? args->lib_table : NULL;
     int digits_count = compute_digits_count(bcl->bc.len);
     uint64_t i = 0;
     CB_INDENT(flag) {
@@ -210,6 +242,8 @@ void fklDisassembleProc(FklVM *vm,
                 p->proto,
                 i,
                 build,
+                indents,
+                indent_str,
                 lib_table);
     }
 }

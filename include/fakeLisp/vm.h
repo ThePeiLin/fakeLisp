@@ -480,6 +480,7 @@ typedef struct FklVMudMetaTable {
 
 typedef enum {
     FKL_GC_NONE = 0,
+    FKL_GC_STW,
     FKL_GC_MARK_ROOT,
     FKL_GC_PROPAGATE,
     FKL_GC_SWEEP,
@@ -558,7 +559,7 @@ typedef FklVMinterruptResult (*FklVMinterruptHandler)(FklVM *exe,
 typedef void (*FklVMextraMarkFunc)(FklVMgc *, void *arg);
 
 typedef struct FklVMgc {
-    FklGCstate volatile running;
+    _Atomic(FklGCstate) volatile running;
     atomic_size_t alloced_size;
     size_t threshold;
     FklVMvalue *head;
@@ -751,7 +752,32 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMframe *frame);
 
 // check and gc in single thread
-void fklCheckAndGC(FklVM *exe, int forced);
+void fklVMgcCheck(FklVM *exe, int forced);
+
+static FKL_ALWAYS_INLINE void fklVMgcStateSet(FklVMgc *gc, FklGCstate state) {
+    atomic_store(&gc->running, state);
+}
+
+static FKL_ALWAYS_INLINE FklGCstate fklVMgcStateGet(FklVMgc *gc) {
+    return atomic_load(&gc->running);
+}
+
+static FKL_ALWAYS_INLINE void fklVMgcCheckPoint(FklVM *exe, int forced) {
+    if (exe == &exe->gc->gcvm || exe->is_single_thread) {
+        fklVMgcCheck(exe, forced);
+        return;
+    }
+
+    if (!atomic_load(&exe->notice_lock))
+        return;
+
+    uv_mutex_unlock(&exe->lock);
+
+    while (fklVMgcStateGet(exe->gc) == FKL_GC_STW)
+        uv_sleep(0);
+
+    uv_mutex_lock(&exe->lock);
+}
 
 void fklVMthreadStart(FklVM *, FklVMqueue *q);
 
@@ -847,7 +873,7 @@ void fklDestroyVMgc(FklVMgc *);
 void fklDestroyAllVMs(FklVM *cur);
 void fklDeleteCallChain(FklVM *);
 
-FklGCstate fklGetGCstate(FklVMgc *);
+FklGCstate fklVMgcStateGet(FklVMgc *);
 void fklVMgcToGray(const FklVMvalue *, FklVMgc *);
 
 void fklDBG_printVMstack(FklVM *,
@@ -1447,11 +1473,17 @@ void fklResumeQueueWorkThread(FklVM *, uv_cond_t *);
 void fklResumeQueueIdleThread(FklVM *, uv_cond_t *);
 
 static FKL_ALWAYS_INLINE void fklVMyield(FklVM *exe) {
-    if (atomic_load(&(exe)->notice_lock) && exe->is_single_thread) {
-        uv_mutex_unlock(&exe->lock);
+    if (exe->is_single_thread || !atomic_load(&(exe)->notice_lock)) {
         uv_sleep(0);
-        uv_mutex_lock(&exe->lock);
+        return;
     }
+
+    uv_mutex_unlock(&exe->lock);
+
+    while (fklVMgcStateGet(exe->gc) == FKL_GC_STW)
+        uv_sleep(0);
+
+    uv_mutex_lock(&exe->lock);
 }
 
 void fklUnlockThread(FklVM *);

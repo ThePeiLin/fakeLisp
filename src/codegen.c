@@ -9465,7 +9465,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
             }
             fklCgActVectorUninit(&act_vec);
             fklValueVectorUninit(&results);
-            fklCheckAndGC(vm, FORCE_GC);
+            fklVMgcCheckPoint(vm, FORCE_GC);
             return NULL;
         }
         FklCgAct *other_cg_act = *fklCgActVectorBackNonNull(&act_vec);
@@ -9495,7 +9495,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                 else {
                     fklValueVectorPushBack2(&prevAction->bcl_vector, result);
                 }
-                fklCheckAndGC(vm, FORCE_GC);
+                fklVMgcCheckPoint(vm, FORCE_GC);
             }
             if (error_state.error) {
                 fklCgActVectorPushBack2(&act_vec, cur_action);
@@ -9504,7 +9504,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
             destroy_cg_action(cur_action);
         }
     }
-    fklCheckAndGC(vm, FORCE_GC);
+    fklVMgcCheckPoint(vm, FORCE_GC);
     ctx->action_vector = NULL;
     ctx->error_state = NULL;
     ctx->bcl_vector = NULL;

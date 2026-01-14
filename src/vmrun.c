@@ -10,9 +10,12 @@
 #include <uv.h>
 
 #include <inttypes.h>
+#include <setjmp.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
+
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
@@ -23,8 +26,6 @@
 #include <termios.h>
 #include <unistd.h>
 #endif
-#include <setjmp.h>
-#include <time.h>
 
 static inline void
 push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
@@ -702,7 +703,7 @@ static inline void remove_thread_frame_cache(FklVM *exe) {
                                                   : &exe->frame_cache_head;
 }
 
-void fklCheckAndGC(FklVM *exe, int forced) {
+void fklVMgcCheck(FklVM *exe, int forced) {
     FklVMgc *gc = exe->gc;
     if (forced || atomic_load(&gc->alloced_size) > gc->threshold) {
         fklMoveThreadObjectsToGc(&gc->gcvm, gc);
@@ -760,7 +761,8 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
                 break;
             }
 
-            fklVMyield(exe);
+            fklVMgcCheckPoint(exe, 0);
+
             if (exe->top_frame == exit_frame)
                 goto done;
         } break;
@@ -930,8 +932,7 @@ static inline void unlock_all_vm(FklThreadQueue *q) {
         uv_mutex_unlock(&((FklVM *)(n->data))->lock);
 }
 
-static inline void
-move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(FklVMgc *gc) {
+static inline void move_all_thread_objects_to_gc(FklVMgc *gc) {
     FklVM *vm = gc->main_thread;
     fklMoveThreadObjectsToGc(vm, gc);
     fklVMgcMoveLocvCache(vm, gc);
@@ -1001,21 +1002,29 @@ void fklVMidleLoop(FklVMgc *gc) {
     for (;;) {
         if (atomic_load(&gc->alloced_size) > gc->threshold) {
             switch_notice_lock_ins_for_running_threads(&q->running_q);
+
+            fklVMgcStateSet(gc, FKL_GC_STW);
             lock_all_vm(&q->running_q);
 
-            move_all_thread_objects_and_old_locv_to_gc_and_remove_frame_cache(
-                    gc);
+            move_all_thread_objects_to_gc(gc);
 
+            fklVMgcStateSet(gc, FKL_GC_MARK_ROOT);
             FklVM *exe = gc->main_thread;
             fklVMgcMarkAllRootToGray(exe);
+
+            fklVMgcStateSet(gc, FKL_GC_PROPAGATE);
             while (!fklVMgcPropagate(gc))
                 ;
             fklVMgcUpdateWeakRefs(gc);
             FklVMvalue *white = NULL;
+            fklVMgcStateSet(gc, FKL_GC_COLLECT);
             fklVMgcCollect(gc, &white);
+
+            fklVMgcStateSet(gc, FKL_GC_SWEEPING);
             fklVMgcSweep(gc, white);
             fklVMgcUpdateThreshold(gc);
 
+            fklVMgcStateSet(gc, FKL_GC_DONE);
             FklThreadQueue other_running_q;
             fklThreadQueueInit(&other_running_q);
 
@@ -1042,6 +1051,7 @@ void fklVMidleLoop(FklVMgc *gc) {
 
             switch_un_notice_lock_ins_for_running_threads(&q->running_q);
             unlock_all_vm(&q->running_q);
+            fklVMgcStateSet(gc, FKL_GC_NONE);
         }
         uv_mutex_lock(&q->pre_running_lock);
         for (FklThreadQueueNode *n = fklThreadQueuePopNode(&q->pre_running_q);
@@ -1131,14 +1141,6 @@ int fklRunVMidleLoop(FklVM *volatile exe) {
     fklVMthreadStart(exe, &gc->q);
     fklVMidleLoop(gc);
     return gc->exit_code;
-}
-
-void fklChangeGCstate(FklGCstate state, FklVMgc *gc) { gc->running = state; }
-
-FklGCstate fklGetGCstate(FklVMgc *gc) {
-    FklGCstate state = FKL_GC_NONE;
-    state = gc->running;
-    return state;
 }
 
 FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx) {

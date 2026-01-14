@@ -105,7 +105,10 @@ static inline void print_lib_table(FklVM *vm,
         CB_LINE("lib %" PRIu64 ":", id);
         if (FKL_IS_PROC(l->proc)) {
             CB_LINE("epc %" PRIu64 "", l->epc);
-            fklDisassembleProc(vm, FKL_VM_PROC(l->proc), build, lib_table);
+            FKL_DIS_PROC(vm,
+                    FKL_VM_PROC(l->proc),
+                    build,
+                    .lib_table = lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(FKL_VM_PROC(l->proc)->bcl),
                         opcode_count);
@@ -179,7 +182,7 @@ int main(int argc, char **argv) {
             CB_LINE("");
 
             CB_LINE("main func:");
-            fklDisassembleProc(vm, proc, build, &lib_table);
+            FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
 
@@ -244,7 +247,7 @@ int main(int argc, char **argv) {
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
             CB_LINE("lib 0:");
             CB_LINE("epc %" PRIu64 "", lib->epc);
-            fklDisassembleProc(vm, proc, build, &lib_table);
+            FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
             CB_LINE("");
@@ -296,13 +299,12 @@ static inline void print_compiler_macro_list(FklVM *vm,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
-    CB_LINE("pattern:");
-    CB_LINE_START("");
+    CB_LINE_START("pattern:\t");
     fklPrin1VMvalue2(cur->pattern, build, vm);
     CB_LINE_END("");
 
     const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
-    fklDisassembleProc(vm, proc, build, lib_table);
+    FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
     if (stats->count > 0)
         do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
     CB_LINE("");
@@ -330,7 +332,7 @@ static void print_reader_macro_action(FklVM *vm,
         CB_LINE_END("custom");
         FklVMvalueCustomActCtx *ctx = prod->ctx;
         const FklVMvalueProc *proc = FKL_VM_PROC(ctx->proc);
-        fklDisassembleProc(vm, proc, build, lib_table);
+        FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
     } else {
         if (prod->ctx == NULL) {
             CB_FMT("|first|");
@@ -361,7 +363,7 @@ static void print_reader_macros(FklVM *vm,
         }
 
         if (l->v.g.productions.first) {
-            CB_LINE("\nprods:");
+            CB_LINE("prods:");
             for (const FklProdHashMapNode *cur = l->v.g.productions.first; cur;
                     cur = cur->next) {
                 for (const FklGrammerProduction *prod = cur->v; prod;

@@ -86,7 +86,7 @@ compileAndRun(const char *filename, int argc, const char *const *argv) {
     fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
-    fklCheckAndGC(anotherVM, 1);
+    fklVMgcCheck(anotherVM, 1);
     fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
@@ -217,7 +217,7 @@ runPreCompile(const char *filename, int argc, const char *const *argv) {
     fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
-    fklCheckAndGC(anotherVM, 1);
+    fklVMgcCheck(anotherVM, 1);
     fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);

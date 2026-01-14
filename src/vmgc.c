@@ -227,7 +227,6 @@ void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
     FklVMvalue *v = gc->weak_refs;
     while (v) {
         FKL_ASSERT(is_weak_ref_value(v));
-        // FklVMud *ud = FKL_VM_UD(v);
         FKL_VM_UD(v)->mt_->update_weak_ref(v, gc);
 
         gc->weak_refs = v->gray_next_;
@@ -240,7 +239,6 @@ void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
 void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     FklVMvalue *head = gc->head;
     gc->head = NULL;
-    gc->running = FKL_GC_SWEEPING;
     FklVMvalue **phead = &head;
     while (*phead) {
         FklVMvalue *cur = *phead;
@@ -356,11 +354,6 @@ void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc) {
     }
     vm->old_locv_list = NULL;
     vm->old_locv_count = 0;
-}
-
-void fklGetGCstateAndGCNum(FklVMgc *gc, FklGCstate *s, int *cr) {
-    *s = gc->running;
-    *cr = atomic_load(&gc->alloced_size) > gc->threshold;
 }
 
 static inline void init_vm_queue(FklVMqueue *q) {

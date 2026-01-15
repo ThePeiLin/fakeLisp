@@ -28,15 +28,14 @@ static inline void mark_interrupt_handler(FklVMgc *gc,
             l->mark(l->int_handle_arg, gc);
 }
 
-static inline void remove_closed_var_ref_from_list(FklVMvarRefList **ll) {
-    while (*ll) {
-        FklVMvarRefList *l = *ll;
-        FklVMvalue *ref = l->ref;
+static inline void remove_closed_var_ref_from_list(FklVMvalue **ll) {
+    while (FKL_IS_PAIR(*ll)) {
+        FklVMvalue *l = *ll;
+        FklVMvalue *ref = FKL_VM_CAR(l);
         if (fklIsClosedVMvalueVarRef(ref)) {
-            *ll = l->next;
-            fklZfree(l);
+            *ll = FKL_VM_CDR(l);
         } else
-            ll = &l->next;
+            ll = &FKL_VM_CDR(l);
     }
 }
 
@@ -48,12 +47,12 @@ static inline void remove_closed_var_ref(FklVM *exe) {
 
 static inline void do_atomic_frame(FklVMframe *f, FklVMgc *gc) {
     switch (f->type) {
-    case FKL_FRAME_COMPOUND:
-        for (FklVMvarRefList *l = fklGetCompoundFrameLocRef(f)->lrefl; l;
-                l = l->next)
-            fklVMgcToGray(l->ref, gc);
+    case FKL_FRAME_COMPOUND: {
+        FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
+        fklVMgcToGray(lr->lref, gc);
+        fklVMgcToGray(lr->lrefl, gc);
         fklVMgcToGray(fklGetCompoundFrameProc(f), gc);
-        break;
+    } break;
     case FKL_FRAME_OTHEROBJ:
         if (f->t->atomic)
             f->t->atomic(fklGetFrameData(f), gc);

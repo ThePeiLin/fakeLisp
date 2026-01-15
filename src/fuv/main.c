@@ -1202,7 +1202,7 @@ poll_events_to_list(FklVM *exe, int events, const FuvValuePd *fpd) {
 
 #define XX(A, B, C)                                                            \
     if (events & A) {                                                          \
-        *pr = fklCreateVMvaluePairWithCar(exe, fpd->A##_sid);                  \
+        *pr = fklCreateVMvaluePair1(exe, fpd->A##_sid);                        \
         pr = &FKL_VM_CDR(*pr);                                                 \
     }
     FUV_UV_POLL_EVENT_MAP(XX)
@@ -1475,8 +1475,7 @@ addrinfo_to_value(FklVM *exe, struct addrinfo *info, const FuvValuePd *fpd) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (; info; info = info->ai_next) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
-                addrinfo_to_vmhash(exe, info, fpd));
+        *pr = fklCreateVMvaluePair1(exe, addrinfo_to_vmhash(exe, info, fpd));
         pr = &FKL_VM_CDR(*pr);
     }
     return r;
@@ -3752,7 +3751,7 @@ static void fuv_udp_recv_cb_value_creator(FklVM *exe, void *a) {
     FklVMvalue **pcur = &flags;
 #define XX(A, B, C)                                                            \
     if (arg->flags & UV_UDP_IPV6ONLY) {                                        \
-        *pcur = fklCreateVMvaluePairWithCar(exe, fpd->A##_sid);                \
+        *pcur = fklCreateVMvaluePair1(exe, fpd->A##_sid);                      \
         pcur = &FKL_VM_CDR(*pcur);                                             \
     }
 
@@ -3899,11 +3898,11 @@ static void fuv_fs_event_value_creator(FklVM *exe, void *a) {
     FklVMvalue *events = FKL_VM_NIL;
     FklVMvalue **pevents = &events;
     if (arg->events & UV_RENAME) {
-        *pevents = fklCreateVMvaluePairWithCar(exe, fpd->UV_RENAME_sid);
+        *pevents = fklCreateVMvaluePair1(exe, fpd->UV_RENAME_sid);
         pevents = &FKL_VM_CDR(*pevents);
     }
     if (arg->events & UV_CHANGE) {
-        *pevents = fklCreateVMvaluePairWithCar(exe, fpd->UV_CHANGE_sid);
+        *pevents = fklCreateVMvaluePair1(exe, fpd->UV_CHANGE_sid);
         pevents = &FKL_VM_CDR(*pevents);
     }
 
@@ -4315,7 +4314,7 @@ static inline FklVMvalue *readdir_result_to_list(FklVM *exe,
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
     for (ssize_t i = 0; i < result; i++) {
-        *pr = fklCreateVMvaluePairWithCar(exe,
+        *pr = fklCreateVMvaluePair1(exe,
                 dirent_to_vmtable(exe, &dir->dirents[i], fpd));
         pr = &FKL_VM_CDR(*pr);
     }

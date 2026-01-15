@@ -172,7 +172,7 @@ static int ht_ht_to_list(FKL_CPROC_ARGL) {
         FklVMvalue **cur = &r;
         for (FklValueHashMapNode *list = hash->first; list; list = list->next) {
             FklVMvalue *pair = fklCreateVMvaluePair(exe, list->k, list->v);
-            *cur = fklCreateVMvaluePairWithCar(exe, pair);
+            *cur = fklCreateVMvaluePair1(exe, pair);
             cur = &FKL_VM_CDR(*cur);
         }
         FKL_CPROC_RETURN(exe, ctx, r);
@@ -190,7 +190,7 @@ static int ht_ht_keys(FKL_CPROC_ARGL) {
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
         for (FklValueHashMapNode *list = hash->first; list; list = list->next) {
-            *cur = fklCreateVMvaluePairWithCar(exe, list->k);
+            *cur = fklCreateVMvaluePair1(exe, list->k);
             cur = &FKL_VM_CDR(*cur);
         }
         FKL_CPROC_RETURN(exe, ctx, r);
@@ -208,7 +208,7 @@ static int ht_ht_values(FKL_CPROC_ARGL) {
         FklVMvalue *r = FKL_VM_NIL;
         FklVMvalue **cur = &r;
         for (FklValueHashMapNode *list = hash->first; list; list = list->next) {
-            *cur = fklCreateVMvaluePairWithCar(exe, list->v);
+            *cur = fklCreateVMvaluePair1(exe, list->v);
             cur = &FKL_VM_CDR(*cur);
         }
         FKL_CPROC_RETURN(exe, ctx, r);

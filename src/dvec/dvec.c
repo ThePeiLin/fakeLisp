@@ -274,7 +274,7 @@ static int export_dvec_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < v->size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, v->base[i]);
+        *cur = fklCreateVMvaluePair1(exe, v->base[i]);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

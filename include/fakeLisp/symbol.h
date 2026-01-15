@@ -26,8 +26,8 @@ typedef struct FklSymDef {
     uint8_t isConst;
 } FklSymDef;
 
-typedef struct // unresolved symbol ref
-{
+// unresolved symbol ref
+typedef struct {
     struct FklVMvalue *id;
     struct FklVMvalue *fid;
     uint32_t scope;

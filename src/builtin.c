@@ -657,7 +657,7 @@ static int builtin_make_list(FKL_CPROC_ARGL) {
     FklVMvalue **cur = &r;
     FklVMvalue *t = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : FKL_VM_NIL;
     for (size_t i = 0; i < len; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, t);
+        *cur = fklCreateVMvaluePair1(exe, t);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -672,7 +672,7 @@ static int builtin_string_to_list(FKL_CPROC_ARGL) {
     FklString *str = FKL_VM_STR(obj);
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < str->size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_CHR(str->str[i]));
+        *cur = fklCreateVMvaluePair1(exe, FKL_MAKE_VM_CHR(str->str[i]));
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -689,7 +689,7 @@ static int builtin_bytevector_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_FIX(u8a[i]));
+        *cur = fklCreateVMvaluePair1(exe, FKL_MAKE_VM_FIX(u8a[i]));
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -719,7 +719,7 @@ static int builtin_vector_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < vec->size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, vec->base[i]);
+        *cur = fklCreateVMvaluePair1(exe, vec->base[i]);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -3023,7 +3023,7 @@ static int builtin_argv(FKL_CPROC_ARGL) {
     int gc_argc = exe->gc->argc;
     char *const *const argv = exe->gc->argv;
     for (int i = 0; i < gc_argc; i++, tmp = &FKL_VM_CDR(*tmp))
-        *tmp = fklCreateVMvaluePairWithCar(exe,
+        *tmp = fklCreateVMvaluePair1(exe,
                 fklCreateVMvalueStrFromCstr(exe, argv[i]));
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
@@ -3271,21 +3271,21 @@ static int builtin_chanl_msg_to_list(FKL_CPROC_ARGL) {
 
             FklVMvalue **const end = &ch->buf[ch->sendx];
             for (FklVMvalue **buf = &ch->buf[ch->recvx]; buf < end; buf++) {
-                *cur = fklCreateVMvaluePairWithCar(exe, *buf);
+                *cur = fklCreateVMvaluePair1(exe, *buf);
                 cur = &FKL_VM_CDR(*cur);
             }
         } else {
             FklVMvalue **end = &ch->buf[ch->qsize];
             FklVMvalue **buf = &ch->buf[ch->recvx];
             for (; buf < end; buf++) {
-                *cur = fklCreateVMvaluePairWithCar(exe, *buf);
+                *cur = fklCreateVMvaluePair1(exe, *buf);
                 cur = &FKL_VM_CDR(*cur);
             }
 
             buf = ch->buf;
             end = &ch->buf[ch->sendx];
             for (; buf < end; buf++) {
-                *cur = fklCreateVMvaluePairWithCar(exe, *buf);
+                *cur = fklCreateVMvaluePair1(exe, *buf);
                 cur = &FKL_VM_CDR(*cur);
             }
         }
@@ -3721,7 +3721,7 @@ static int builtin_map(FKL_CPROC_ARGL) {
     {                                                                          \
         FklVMvalue **rlist = &FKL_CPROC_GET_ARG(exe, ctx, arg_num);            \
         FklVMvalue **cur_pair = &FKL_CPROC_GET_ARG(exe, ctx, arg_num + 1);     \
-        FklVMvalue *new_pair = fklCreateVMvaluePairWithCar(exe, r);            \
+        FklVMvalue *new_pair = fklCreateVMvaluePair1(exe, r);                  \
         if (*rlist == FKL_VM_NIL) {                                            \
             *rlist = new_pair;                                                 \
             *cur_pair = new_pair;                                              \
@@ -3902,7 +3902,7 @@ static int builtin_filter(FKL_CPROC_ARGL) {
             FklVMvalue **rlist = &FKL_CPROC_GET_ARG(exe, ctx, arg_num);        \
             FklVMvalue **cur_pair = &FKL_CPROC_GET_ARG(exe, ctx, arg_num + 1); \
             FklVMvalue *new_pair =                                             \
-                    fklCreateVMvaluePairWithCar(exe, FKL_VM_CAR(*arg_pair));   \
+                    fklCreateVMvaluePair1(exe, FKL_VM_CAR(*arg_pair));         \
             if (*rlist == FKL_VM_NIL) {                                        \
                 *rlist = new_pair;                                             \
                 *cur_pair = new_pair;                                          \
@@ -4010,7 +4010,7 @@ static int builtin_list(FKL_CPROC_ARGL) {
     FklVMvalue **base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue **const end = base + argc;
     for (; base < end; ++base) {
-        *pcur = fklCreateVMvaluePairWithCar(exe, *base);
+        *pcur = fklCreateVMvaluePair1(exe, *base);
         pcur = &FKL_VM_CDR(*pcur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -4519,7 +4519,7 @@ static int builtin_hash_to_list(FKL_CPROC_ARGL) {
     FklVMvalue **cur = &r;
     for (FklValueHashMapNode *list = hash->ht.first; list; list = list->next) {
         FklVMvalue *pair = fklCreateVMvaluePair(exe, list->k, list->v);
-        *cur = fklCreateVMvaluePairWithCar(exe, pair);
+        *cur = fklCreateVMvaluePair1(exe, pair);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -4534,7 +4534,7 @@ static int builtin_hash_keys(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (FklValueHashMapNode *list = hash->ht.first; list; list = list->next) {
-        *cur = fklCreateVMvaluePairWithCar(exe, list->k);
+        *cur = fklCreateVMvaluePair1(exe, list->k);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -4549,7 +4549,7 @@ static int builtin_hash_values(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (FklValueHashMapNode *list = hash->ht.first; list; list = list->next) {
-        *cur = fklCreateVMvaluePairWithCar(exe, list->v);
+        *cur = fklCreateVMvaluePair1(exe, list->v);
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

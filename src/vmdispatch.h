@@ -68,7 +68,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue **pcur_value = &exe->base[bp];
         FklVMvalue **const pvalue_end = &exe->base[exe->tp];
         for (; pcur_value < pvalue_end; ++pcur_value) {
-            *pcur = fklCreateVMvaluePairWithCar(exe, *pcur_value);
+            *pcur = fklCreateVMvaluePair1(exe, *pcur_value);
             pcur = &FKL_VM_CDR(*pcur);
         }
         *pcur = last;
@@ -174,7 +174,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *obj = FKL_VM_NIL;
             FklVMvalue *volatile *pValue = &obj;
             for (uint32_t i = ins->bu; i < arg_num; ++i) {
-                *pValue = fklCreateVMvaluePairWithCar(exe,
+                *pValue = fklCreateVMvaluePair1(exe,
                         FKL_VM_GET_ARG(exe, frame, i));
                 FKL_VM_GET_ARG(exe, frame, i) = NULL;
                 pValue = &FKL_VM_CDR(*pValue);

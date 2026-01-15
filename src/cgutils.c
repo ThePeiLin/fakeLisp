@@ -220,7 +220,7 @@ static inline void initPdefRef(FklPreDefRef *r,
         uint32_t scope,
         uint32_t prototypeId,
         uint32_t idx) {
-    r->id = id;
+    r->sid = id;
     r->scope = scope;
     r->prototypeId = prototypeId;
     r->idx = idx;
@@ -284,7 +284,7 @@ void fklResolveCgPreDef(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {
         const FklPreDefRef *pdef_ref = &ref_pdef->base[i];
-        if (pdef_ref->id == id && pdef_ref->scope == scope) {
+        if (pdef_ref->sid == id && pdef_ref->scope == scope) {
             FklVMvalue *pt_v = child_proc_protos->base[pdef_ref->prototypeId];
             FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
 
@@ -970,8 +970,8 @@ static void init_macro_match_local_variable(FklVM *exe,
         idx++;
     }
     lr->lcount = count;
-    lr->lref = NULL;
-    lr->lrefl = NULL;
+    lr->lref = FKL_VM_NIL;
+    lr->lrefl = FKL_VM_NIL;
     proc->ref_count = lr->rcount;
 }
 
@@ -1418,7 +1418,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .prev_ms = is_macro ? args->macro_scope : NULL,
                     .parent_scope = 0,
                     .filename = r->fid,
-                    .name = NULL,
+                    .name = FKL_VM_NIL,
                     .line = r->curline,
                 });
         fklInitGlobCgEnv(r->global_env, ctx->vm, args->is_precompile);
@@ -1440,7 +1440,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .prev_ms = macros,
                     .parent_scope = 1,
                     .filename = r->fid,
-                    .name = NULL,
+                    .name = FKL_VM_NIL,
                     .line = r->curline,
                 });
         ctx->global_env = main_env;
@@ -1693,7 +1693,7 @@ static void *simple_action_head(void *c,
         uint64_t idx = FKL_GET_FIX(c);
 
         const FklAnalysisSymbol *s = &nodes[idx];
-        *pr = fklCreateVMvaluePairWithCar(ct->exe, s->ast);
+        *pr = fklCreateVMvaluePair1(ct->exe, s->ast);
         put_line_number(ct->ln, *pr, s->line);
         pr = &FKL_VM_CDR(*pr);
     }
@@ -1738,7 +1738,7 @@ static void *simple_action_list(void *c,
         uint64_t idx = FKL_GET_FIX(c);
 
         const FklAnalysisSymbol *s = &nodes[idx];
-        *pr = fklCreateVMvaluePairWithCar(ct->exe, s->ast);
+        *pr = fklCreateVMvaluePair1(ct->exe, s->ast);
         put_line_number(ct->ln, *pr, s->line);
         pr = &FKL_VM_CDR(*pr);
     }
@@ -2224,7 +2224,7 @@ static inline void *builtin_prod_action_cons(void *action_ctx,
     FklVMparseCtx *c = ctx;
     if (num == 1) {
         FklVMvalue *car = nodes[0].ast;
-        FklVMvalue *pair = fklCreateVMvaluePairWithCar(c->exe, car);
+        FklVMvalue *pair = fklCreateVMvaluePair1(c->exe, car);
         put_line_number(c->ln, pair, line);
         return pair;
     } else if (num == 2) {
@@ -2697,9 +2697,11 @@ const char *fklCgLibRp(const FklCgLib *c) {
     return n->k;
 }
 
-FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
+FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
+        FklVMvalueCgEnv *env,
+        const FklResolveRefArgs *args) {
     FKL_ASSERT(env->pdef.count == 0);
-    fklResolveRef(env, 1, NULL);
+    fklResolveRef(env, 1, args);
 
     uint32_t ref_count = env->refs.count;
     uint32_t ref_offset = 0; // 固定等于 0
@@ -2782,4 +2784,8 @@ FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
 
     update_parent_env_proto(env, FKL_VM_VAL(proto));
     return proto;
+}
+
+FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
+    return fklCreateVMvalueProto3(exe, env, NULL);
 }

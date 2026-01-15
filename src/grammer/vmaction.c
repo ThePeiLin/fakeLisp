@@ -229,7 +229,7 @@ static inline FklVMvalue *create_vmvalue_list(FklVM *exe,
     FklVMvalue *r = NULL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < num; i++) {
-        (*cur) = fklCreateVMvaluePairWithCar(exe, a[i]);
+        (*cur) = fklCreateVMvaluePair1(exe, a[i]);
         put_line_number(c->ln, *cur, line);
         cur = &FKL_VM_CDR(*cur);
     }

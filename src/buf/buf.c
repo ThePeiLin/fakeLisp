@@ -277,7 +277,7 @@ static int export_strbuf_to_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < len; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_CHR(ptr[i]));
+        *cur = fklCreateVMvaluePair1(exe, FKL_MAKE_VM_CHR(ptr[i]));
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

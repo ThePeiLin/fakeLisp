@@ -80,7 +80,7 @@ FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
+    FKL_ASSERT(fid == FKL_VM_NIL || FKL_IS_SYM(fid));
     FklByteCodelnt *r = fklCreateByteCodelnt(1);
     fklInitSingleInsBcl(r, ins, fid, line, scope);
     return r;
@@ -516,7 +516,7 @@ void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
+    FKL_ASSERT(fid == FKL_VM_NIL || FKL_IS_SYM(fid));
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
@@ -534,7 +534,7 @@ void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
+    FKL_ASSERT(fid == FKL_VM_NIL || FKL_IS_SYM(fid));
     if (!bcl->l) {
         bcl->ls = 1;
         bcl->l = (FklLineNumberTableItem *)fklZmalloc(
@@ -596,7 +596,7 @@ void fklInitLineNumTabNode(FklLineNumberTableItem *n,
         uint64_t scp,
         uint32_t line,
         uint32_t scope) {
-    FKL_ASSERT(fid == NULL || FKL_IS_SYM(fid));
+    FKL_ASSERT(fid == FKL_VM_NIL || FKL_IS_SYM(fid));
     n->fid = fid;
     n->scp = scp;
     n->line = line;

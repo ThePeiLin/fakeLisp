@@ -170,14 +170,9 @@ typedef enum {
     FKL_FRAME_OTHEROBJ,
 } FklFrameType;
 
-typedef struct FklVMvarRefList {
-    FklVMvalue *ref;
-    struct FklVMvarRefList *next;
-} FklVMvarRefList;
-
 typedef struct {
-    FklVMvalue **lref;
-    FklVMvarRefList *lrefl;
+    FklVMvalue *lref;
+    FklVMvalue *lrefl;
     FklVMvalue **ref;
     uint32_t lcount;
     uint32_t rcount;
@@ -1044,7 +1039,7 @@ FklVMvalue *fklCopyVMvalue(const FklVMvalue *, FklVM *);
 // value creator
 
 FklVMvalue *fklCreateVMvaluePair(FklVM *, FklVMvalue *car, FklVMvalue *cdr);
-FklVMvalue *fklCreateVMvaluePairWithCar(FklVM *, FklVMvalue *car);
+FklVMvalue *fklCreateVMvaluePair1(FklVM *, FklVMvalue *car);
 FklVMvalue *fklCreateVMvaluePairNil(FklVM *);
 
 FklVMvalue *fklCreateVMvalueStr(FklVM *, const FklString *str);
@@ -1224,6 +1219,8 @@ FklVMvalue *fklVMvalueEof(void);
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
 #define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
 
+#define FKL_IS_TRUE(P) ((P) != FKL_VM_NIL)
+
 #define X(A, B)                                                                \
     static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
         return FKL_IS_PTR(p) && (p)->type_ == FKL_TYPE_##B;                    \
@@ -1396,8 +1393,9 @@ static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
         if (f->type == FKL_FRAME_COMPOUND) {
             FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
             FklVMvalue **loc = &FKL_VM_GET_ARG(exe, f, 0);
-            for (FklVMvarRefList *ll = lr->lrefl; ll; ll = ll->next) {
-                FklVMvalueVarRef *ref = FKL_VM_VAR_REF(ll->ref);
+            for (FklVMvalue *ll = lr->lrefl; FKL_IS_PAIR(ll);
+                    ll = FKL_VM_CDR(ll)) {
+                FklVMvalueVarRef *ref = FKL_VM_VAR_REF(FKL_VM_CAR(ll));
                 if (ref->ref != &ref->v)
                     ref->ref = &loc[ref->idx];
             }

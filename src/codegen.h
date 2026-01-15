@@ -129,7 +129,7 @@ static inline FklVMvalue *create_nast_list(ListElm *a,
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < num; i++) {
-        (*cur) = fklCreateVMvaluePairWithCar(vm, a[i].v);
+        (*cur) = fklCreateVMvaluePair1(vm, a[i].v);
         put_line_number(ln, *cur, a[i].line);
         cur = &FKL_VM_CDR(*cur);
     }

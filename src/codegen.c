@@ -2946,7 +2946,7 @@ static void codegen_lambda(const CgCbArgs *args) {
                 .prev_ms = macro_scope,
                 .parent_scope = scope,
                 .filename = info->fid,
-                .name = NULL,
+                .name = FKL_VM_NIL,
                 .line = CURLINE(orig->container),
             });
     FklVMvalue *argsBc = processArgs(vm, argl->value, lambda_env, info);
@@ -6673,7 +6673,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
                     .prev_ms = info->global_env->macros,
                     .parent_scope = 1,
                     .filename = next_info->fid,
-                    .name = NULL,
+                    .name = FKL_VM_NIL,
                     .line = 1,
                 });
 
@@ -7912,7 +7912,7 @@ static inline FklVMvalueCgInfo *macro_compile_prepare(FklCgCtx *ctx,
                 .prev_ms = macro_scope,
                 .parent_scope = 1,
                 .filename = info->fid,
-                .name = NULL,
+                .name = FKL_VM_NIL,
                 .line = line,
             });
 

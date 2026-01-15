@@ -277,18 +277,18 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref) {
 }
 
 static inline void close_all_var_ref(FklVMCompoundFrameVarRef *lr) {
-    for (FklVMvarRefList *l = lr->lrefl; l;) {
-        close_var_ref(l->ref);
-        FklVMvarRefList *c = l;
-        l = c->next;
-        fklZfree(c);
+    for (FklVMvalue *l = lr->lrefl; FKL_IS_PAIR(l); l = FKL_VM_CDR(l)) {
+        close_var_ref(FKL_VM_CAR(l));
     }
 }
 
 static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklVMCompoundFrameVarRef *lr = &frame->c.lr;
     close_all_var_ref(lr);
-    fklZfree(lr->lref);
+
+    lr->lref = FKL_VM_NIL;
+    lr->lrefl = FKL_VM_NIL;
+    lr->ref = NULL;
 
     frame->prev = NULL;
     *(exe->frame_cache_tail) = frame;
@@ -625,15 +625,17 @@ static inline FklImportDllInitFunc getImportInit(uv_lib_t *handle) {
 }
 
 static inline void
-close_var_ref_between(FklVMvalue **lref, uint32_t sIdx, uint32_t eIdx) {
-    if (lref)
+close_var_ref_between(FklVMvalue *lref_v, uint32_t sIdx, uint32_t eIdx) {
+    if (FKL_IS_VECTOR(lref_v)) {
+        FklVMvalueVec *lref = FKL_VM_VEC(lref_v);
         for (; sIdx < eIdx; sIdx++) {
-            FklVMvalue *ref = lref[sIdx];
+            FklVMvalue *ref = lref->base[sIdx];
             if (ref) {
                 close_var_ref(ref);
-                lref[sIdx] = NULL;
+                lref->base[sIdx] = NULL;
             }
         }
+    }
 }
 
 #define GET_INS_UX(ins, frame)                                                 \
@@ -1182,27 +1184,44 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
     return FKL_VM_VAL(ref);
 }
 
-static inline void inc_lref(FklVMCompoundFrameVarRef *lr, uint32_t lcount) {
-    if (!lr->lref) {
-        lr->lref = (FklVMvalue **)fklZcalloc(lcount, sizeof(FklVMvalue *));
-        FKL_ASSERT(lr->lref);
+static inline void
+init_lref_vec(FklVM *vm, FklVMCompoundFrameVarRef *lr, uint32_t lcount) {
+    if (!FKL_IS_VECTOR(lr->lref)) {
+        lr->lref = fklCreateVMvalueVec(vm, lcount);
     }
 }
 
-static inline FklVMvalue *
-insert_local_ref(FklVMCompoundFrameVarRef *lr, FklVMvalue *ref, uint32_t cidx) {
-    FklVMvarRefList *rl =
-            (FklVMvarRefList *)fklZmalloc(sizeof(FklVMvarRefList));
-    FKL_ASSERT(rl);
-    rl->ref = ref;
-    rl->next = lr->lrefl;
+static inline FklVMvalue *insert_local_ref(FklVM *exe,
+        FklVMCompoundFrameVarRef *lr,
+        FklVMvalue *ref,
+        uint32_t cidx) {
+    FklVMvalue *rl = fklCreateVMvaluePair(exe, ref, lr->lrefl);
     lr->lrefl = rl;
-    lr->lref[cidx] = ref;
+    FKL_VM_VEC(lr->lref)->base[cidx] = ref;
     return ref;
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
     return FKL_VM_PROC(frame->c.proc)->bcl;
+}
+
+static inline FklVMvalue *
+fetch_var_ref(FklVM *exe, const FklVarRefDef *c, FklVMframe *f) {
+    uint32_t cidx = FKL_GET_FIX(c->cidx);
+    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
+    FklVMvalue **ref = lr->ref;
+    if (FKL_IS_TRUE(c->is_local)) {
+        init_lref_vec(exe, lr, lr->lcount);
+        return FKL_VM_VEC(lr->lref)->base[cidx]
+                     ? FKL_VM_VEC(lr->lref)->base[cidx]
+                     : insert_local_ref(exe,
+                               lr,
+                               fklCreateVMvalueVarRef(exe, f, cidx),
+                               cidx);
+    } else {
+        return cidx < lr->rcount ? ref[cidx]
+                                 : fklCreateClosedVMvalueVarRef(exe, NULL);
+    }
 }
 
 FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
@@ -1219,30 +1238,13 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
             pt);
 
     uint32_t count = pt->ref_count;
-    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
     FklVMvalueProc *proc = FKL_VM_PROC(r);
     proc->ref_count = count;
     if (count) {
         const FklVarRefDef *refs = fklVMvalueProtoVarRefs(pt);
-        FklVMvalue **ref = lr->ref;
         FklVMvalue **closure = proc->closure;
         for (uint32_t i = 0; i < count; i++) {
-            const FklVarRefDef *c = &refs[i];
-            uint32_t cidx = FKL_GET_FIX(c->cidx);
-
-            if (c->is_local != FKL_VM_NIL) {
-                inc_lref(lr, lr->lcount);
-                closure[i] =
-                        lr->lref[cidx]
-                                ? lr->lref[cidx]
-                                : insert_local_ref(lr,
-                                          fklCreateVMvalueVarRef(exe, f, cidx),
-                                          cidx);
-            } else {
-                closure[i] = cidx < lr->rcount
-                                   ? ref[cidx]
-                                   : fklCreateClosedVMvalueVarRef(exe, NULL);
-            }
+            closure[i] = fetch_var_ref(exe, &refs[i], f);
         }
     }
     return r;
@@ -1256,8 +1258,9 @@ void fklVMstackReserve(FklVM *exe, uint32_t s) {
     if (exe->last < s)
         exe->last = s;
 
-    FklVMvalue **nbase =
-            fklAllocLocalVarSpaceFromGC(exe->gc, exe->last, &exe->last);
+    FklVMvalue **nbase = fklAllocLocalVarSpaceFromGC(exe->gc, //
+            exe->last,
+            &exe->last);
 
     FklVMvalue **obase = exe->base;
     memcpy(nbase, obase, exe->tp * sizeof(FklVMvalue *));
@@ -1288,16 +1291,18 @@ void fklDBG_printVMstack(FklVM *stack,
         FklCodeBuilder *fp,
         int mode,
         FklVM *exe) {
-    fklCodeBuilderPuts(fp, "Current stack:\n");
+    if (mode)
+        fklCodeBuilderPuts(fp, "Current stack:\n");
     if (stack->tp == 0)
         fklCodeBuilderPuts(fp, "[#EMPTY]\n");
     else {
         int64_t i = stack->tp - 1;
         int64_t end = stack->tp - count;
         for (; i >= end; i--) {
-            if (mode && stack->bp == i)
+            if (mode && stack->bp == i) {
                 fklCodeBuilderPuts(fp, "->");
-            fklCodeBuilderFmt(fp, "%" PRId64 ":", i);
+                fklCodeBuilderFmt(fp, "%" PRId64 ":", i);
+            }
             FklVMvalue *tmp = stack->base[i];
             fklPrin1VMvalue2(tmp, fp, exe);
             fklCodeBuilderPutc(fp, '\n');

@@ -818,7 +818,7 @@ FklVMvalue *fklCreateVMvaluePair(FklVM *exe, FklVMvalue *car, FklVMvalue *cdr) {
     return r;
 }
 
-FklVMvalue *fklCreateVMvaluePairWithCar(FklVM *exe, FklVMvalue *car) {
+FklVMvalue *fklCreateVMvaluePair1(FklVM *exe, FklVMvalue *car) {
     FklVMvalue *r = NEW_OBJ(FklVMvaluePair);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_PAIR;

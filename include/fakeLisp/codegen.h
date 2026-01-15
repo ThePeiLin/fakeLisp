@@ -28,7 +28,7 @@ typedef struct FklCgEnvScope {
 #define FKL_INVALID_LIB_ID (UINT32_MAX)
 
 typedef struct {
-    FklVMvalue *id;
+    FklVMvalue *sid;
     uint32_t scope;
     uint32_t prototypeId;
     uint32_t idx;
@@ -108,6 +108,14 @@ typedef struct {
 
 FKL_NODISCARD
 FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env);
+
+FKL_NODISCARD
+FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
+        FklVMvalueCgEnv *env,
+        const FklResolveRefArgs *args);
+
+#define FKL_CREATE_VMVALUE_PROTO(EXE, ENV, ...)                                \
+    fklCreateVMvalueProto3(EXE, ENV, &(const FklResolveRefArgs){ __VA_ARGS__ })
 
 void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,

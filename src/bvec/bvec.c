@@ -167,7 +167,7 @@ static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_FIX(s8a[i]));
+        *cur = fklCreateVMvaluePair1(exe, FKL_MAKE_VM_FIX(s8a[i]));
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -184,7 +184,7 @@ static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < size; i++) {
-        *cur = fklCreateVMvaluePairWithCar(exe, FKL_MAKE_VM_FIX(u8a[i]));
+        *cur = fklCreateVMvaluePair1(exe, FKL_MAKE_VM_FIX(u8a[i]));
         cur = &FKL_VM_CDR(*cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

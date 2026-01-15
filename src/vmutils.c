@@ -123,22 +123,22 @@ print_back_trace(FklVMframe *f, FklCodeBuilder *build, FklVMgc *gc) {
 void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
     if (cur->type == FKL_FRAME_COMPOUND) {
         FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
-        if (proc->name) {
+        if (proc->name != FKL_VM_NIL) {
             fklCodeBuilderPuts(build, "at proc: ");
             fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
         } else if (cur->prev) {
             FklVMvalueProto *pt = fklGetCompoundFrameProcPrototype(cur);
             FklVMvalue *sid = fklGetCompoundFrameSid(cur);
-            if (!sid) {
+            if (sid == FKL_VM_NIL) {
                 sid = pt->name;
             }
 
-            if (pt->name) {
+            if (pt->name != FKL_VM_NIL) {
                 fklCodeBuilderPuts(build, "at proc: ");
                 fklPrintSymbolLiteral2(FKL_VM_SYM(pt->name), build);
             } else {
                 fklCodeBuilderPuts(build, "at proc: <");
-                if (pt->file) {
+                if (pt->file != FKL_VM_NIL) {
                     fklPrintStringLiteral2(FKL_VM_SYM(pt->file), build);
                 } else {
                     fklCodeBuilderPuts(build, "stdin");
@@ -148,12 +148,12 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
         } else {
             fklCodeBuilderPuts(build, "at <top>");
         }
-        FklByteCodelnt *codeObj = FKL_VM_CO(get_compound_frame_code_obj(cur));
+        FklByteCodelnt *co = FKL_VM_CO(get_compound_frame_code_obj(cur));
         const FklLineNumberTableItem *node = fklFindLineNumTabNode(
-                fklGetCompoundFrameCode(cur) - codeObj->bc.code - 1,
-                codeObj->ls,
-                codeObj->l);
-        if (node->fid) {
+                fklGetCompoundFrameCode(cur) - co->bc.code - 1,
+                co->ls,
+                co->l);
+        if (node->fid != FKL_VM_NIL) {
             fklCodeBuilderFmt(build, " (%" PRIu32 ": ", node->line);
             fklPrintString2(FKL_VM_SYM(node->fid), build);
             fklCodeBuilderPuts(build, ")\n");
@@ -203,11 +203,12 @@ void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
 }
 
 static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
-    lr->lcount = 0;
-    lr->lref = NULL;
+    lr->lref = FKL_VM_NIL;
+    lr->lrefl = FKL_VM_NIL;
     lr->ref = NULL;
+
+    lr->lcount = 0;
     lr->rcount = 0;
-    lr->lrefl = NULL;
 }
 
 FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {

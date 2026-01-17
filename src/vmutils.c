@@ -241,6 +241,7 @@ FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
         f->spc = code->spc;
         f->end = code->end;
         f->konsts = fklVMvalueProtoConsts(code->proto);
+		f->libs = fklVMvalueProtoUsedLibs(code->proto);
         f->proc = proc;
     }
     return frame;

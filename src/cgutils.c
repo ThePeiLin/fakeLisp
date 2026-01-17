@@ -34,7 +34,8 @@ static void uninit_cg_lib(FklCgLib *lib);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap libs; });
 
-static FklVM *init_macro_expand_vm(FklCgCtx *ctx,
+static FklVMframe *init_macro_expand_frame(FklVM *exe,
+        FklCgCtx *ctx,
         FklVMvalue *proc,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
@@ -758,6 +759,46 @@ static inline int expand_all_macro_arg(FklCgCtx *ctx,
     return 0;
 }
 
+FKL_NODISCARD
+static int execute_macro_expand_procedure(FklCgCtx *ctx,
+        const char *file_dir,
+        FklVMvalue *macro_proc,
+        FklPmatchHashMap *ht,
+        uint64_t curline,
+        FklVMvalue **pretval) {
+    const char *cwd = ctx->cwd;
+    fklChdir(file_dir);
+
+    FklVMgc *gc = ctx->vm->gc;
+
+    int is_repl = ctx->vm != &gc->gcvm;
+
+    FklVM *exe = is_repl ? ctx->vm : fklCreateVM(NULL, gc);
+
+    uint32_t bottom_tp = exe->tp;
+    FklVMframe *exit_frame = init_macro_expand_frame(exe,
+            ctx,
+            macro_proc,
+            ht,
+            ctx->lnt,
+            pretval,
+            curline);
+
+    int e = is_repl ? fklRunVM(exe, exit_frame) : fklRunVMidleLoop(exe);
+    fklMoveThreadObjectsToGc(exe, gc);
+
+    fklChdir(cwd);
+
+    fklPopVMframe2(exe, exit_frame);
+
+    if (!is_repl) {
+        fklDestroyAllVMs(exe);
+    } else
+        exe->tp = bottom_tp;
+
+    return e;
+}
+
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,
         const FklVMvalueCgInfo *codegen,
@@ -787,25 +828,16 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
                 });
         FklVMvalue *retval = NULL;
 
-        const char *cwd = ctx->cwd;
-        fklChdir(codegen->dir);
-
-        FklVM *exe = init_macro_expand_vm(ctx,
+        int e = execute_macro_expand_procedure(ctx,
+                codegen->dir,
                 macro->proc,
                 &ht,
-                ctx->lnt,
-                &retval,
-                curline);
-        FklVMgc *gc = exe->gc;
-        int e = fklRunVMidleLoop(exe);
-        fklMoveThreadObjectsToGc(exe, gc);
-
-        fklChdir(cwd);
+                curline,
+                &retval);
 
         if (e) {
             error_state->error = make_macroexpand_error(ctx->vm, r);
             error_state->line = curline;
-            fklDeleteCallChain(exe);
             r = NULL;
         } else if (retval) {
             r = retval;
@@ -813,7 +845,6 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
             error_state->line = curline;
         }
         fklPmatchHashMapClear(&ht);
-        fklDestroyAllVMs(exe);
         break;
     }
 
@@ -852,25 +883,16 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
                 });
         FklVMvalue *retval = NULL;
 
-        const char *cwd = ctx->cwd;
-        fklChdir(codegen->dir);
-
-        FklVM *exe = init_macro_expand_vm(ctx,
+        int e = execute_macro_expand_procedure(ctx,
+                codegen->dir,
                 macro->proc,
                 &ht,
-                ctx->lnt,
-                &retval,
-                curline);
-        FklVMgc *gc = exe->gc;
-        int e = fklRunVMidleLoop(exe);
-        fklMoveThreadObjectsToGc(exe, gc);
-
-        fklChdir(cwd);
+                curline,
+                &retval);
 
         if (e) {
             error_state->error = make_macroexpand_error(ctx->vm, r);
             error_state->line = curline;
-            fklDeleteCallChain(exe);
             r = NULL;
         } else if (retval) {
             r = retval;
@@ -878,7 +900,6 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
             error_state->line = curline;
         }
         fklPmatchHashMapClear(&ht);
-        fklDestroyAllVMs(exe);
     }
 
     fklPopCgPmatchStorage(ctx, &storage);
@@ -975,7 +996,8 @@ static void init_macro_match_local_variable(FklVM *exe,
     proc->ref_count = lr->rcount;
 }
 
-static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
+static inline FklVMframe *init_macro_expand_frame(FklVM *exe,
+        FklCgCtx *ctx,
         FklVMvalue *proc,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
@@ -984,7 +1006,7 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
     FKL_ASSERT(FKL_IS_PROC(proc));
     FklCgErrorState *error_state = ctx->error_state;
 
-    FklVM *exe = fklCreateVM(NULL, ctx->vm->gc);
+    FklVMframe *exit_frame = exe->top_frame;
 
     push_macro_expand_frame(exe, pr, lnt, curline, error_state);
 
@@ -996,7 +1018,7 @@ static inline FklVM *init_macro_expand_vm(FklCgCtx *ctx,
             ht,
             lnt,
             FKL_VM_PROC(proc)->proto);
-    return exe;
+    return exit_frame;
 }
 
 static FklVMudMetaTable const MacroScopeUserDataMetaTable;
@@ -1531,29 +1553,18 @@ static void *custom_action(void *c,
             });
 
     FklVMvalue *r = NULL;
-    const char *cwd = cg_ctx->cwd;
-    const char *file_dir = cg_ctx->cur_file_dir;
-    fklChdir(file_dir);
 
-    FklVM *exe = init_macro_expand_vm(cg_ctx,
+    int e = execute_macro_expand_procedure(cg_ctx,
+            cg_ctx->cur_file_dir,
             action_ctx->proc,
             &ht,
-            pctx->ln,
-            &r,
-            line);
-    FklVMgc *gc = exe->gc;
+            line,
+            &r);
 
-    int e = fklRunVMidleLoop(exe);
-    fklMoveThreadObjectsToGc(exe, gc);
-
-    fklChdir(cwd);
-
-    if (e)
-        fklDeleteCallChain(exe);
+    (void)e;
 
     fklPopCgPmatchStorage(cg_ctx, &storage);
     fklPmatchHashMapUninit(&ht);
-    fklDestroyAllVMs(exe);
     return r;
 }
 

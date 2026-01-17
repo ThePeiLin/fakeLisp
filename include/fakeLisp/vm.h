@@ -678,6 +678,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
 });
 
 void fklPopVMframe(FklVM *);
+void fklPopVMframe2(FklVM *, FklVMframe *const bottom_frame);
 
 int fklRunVM(FklVM *exe, FklVMframe *const exit_frame);
 

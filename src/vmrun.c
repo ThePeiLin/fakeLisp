@@ -364,6 +364,13 @@ void fklPopVMframe(FklVM *exe) {
     }
 }
 
+void fklPopVMframe2(FklVM *exe, FklVMframe *const bottom) {
+    FKL_ASSERT(exe->top_frame != NULL || bottom == NULL);
+    while (exe->top_frame != bottom) {
+        fklPopVMframe(exe);
+    }
+}
+
 #define CALL_CALLABLE_OBJ(EXE, V)                                              \
     case FKL_TYPE_CPROC:                                                       \
         call_cproc(EXE, V);                                                    \

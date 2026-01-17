@@ -36,7 +36,7 @@ static void init_frame_to_repl_frame(FklVM *exe,
         const char *eval_expression,
         int8_t interactive);
 
-static int exitState = 0;
+static int exit_state = 0;
 
 #define FKL_EXIT_FAILURE (255)
 
@@ -384,7 +384,7 @@ int main(int argc, char *argv[]) {
     error:
         arg_print_errors(stdout, end, progname);
         printf("Try '%s --help' for more informaction.\n", progname);
-        exitState = EXIT_FAILURE;
+        exit_state = EXIT_FAILURE;
         goto exit;
     }
 
@@ -394,31 +394,7 @@ int main(int argc, char *argv[]) {
         goto interactive;
     } else if (rest->count == 0) {
     interactive:
-        // FKL_TODO();
-        // fklInitCodegenCtx(&ctx, NULL, NULL, NULL);
-        // FklVMvalueCgInfo *codegen = fklCreateVMvalueCodegenInfo(&ctx,
-        //         NULL,
-        //         NULL,
-        //         &(FklCodegenInfoArgs){
-        //             .is_lib = 1,
-        //             .is_global = 1,
-        //             .st = &ctx.public_st,
-        //             .kt = &ctx.public_kt,
-        //         });
-        // FklVMvalueCgEnv *main_env = ctx.global_env;
-        // exitState = runRepl(codegen,
-        //         main_env,
-        //         eval->count > 0 ? eval->sval[0] : NULL,
-        //         interactive->count > 0);
-        // FklCodegenLibVector *loadedLibStack = codegen->libraries;
-        // while (!fklCgLibVectorIsEmpty(loadedLibStack)) {
-        //     FklCodegenLib *lib =
-        //             fklCgLibVectorPopBackNonNull(loadedLibStack);
-        //     fklUninitCodegenLib(lib);
-        // }
-        // fklUninitCodegenCtx(&ctx);
-        //
-        exitState = run_repl(eval->count > 0 ? eval->sval[0] : NULL,
+        exit_state = run_repl(eval->count > 0 ? eval->sval[0] : NULL,
                 interactive->count > 0);
     } else {
         const char *filename = rest->sval[0];
@@ -428,13 +404,13 @@ int main(int argc, char *argv[]) {
             goto handle_module;
         if (fklIsAccessibleRegFile(filename)) {
             if (fklIsScriptFile(filename))
-                exitState = compile_and_run(filename, argc, argv);
+                exit_state = compile_and_run(filename, argc, argv);
             else if (fklIsByteCodeFile(filename))
-                exitState = run_bytecode(filename, argc, argv);
+                exit_state = run_bytecode(filename, argc, argv);
             else if (fklIsPrecompileFile(filename))
-                exitState = run_pre_compile(filename, argc, argv);
+                exit_state = run_pre_compile(filename, argc, argv);
             else {
-                exitState = FKL_EXIT_FAILURE;
+                exit_state = FKL_EXIT_FAILURE;
                 fprintf(stderr, "%s: It is not a correct file.\n", filename);
             }
         } else {
@@ -486,21 +462,21 @@ int main(int argc, char *argv[]) {
                     break;
                 case PRIORITY_MODULE_SCRIPT:
                     if (fklIsAccessibleRegFile(module_script_file)) {
-                        exitState =
+                        exit_state =
                                 compile_and_run(module_script_file, argc, argv);
                         goto execute_done;
                     }
                     break;
                 case PRIORITY_MODULE_BYTECODE:
                     if (fklIsAccessibleRegFile(module_bytecode_file)) {
-                        exitState =
+                        exit_state =
                                 run_bytecode(module_bytecode_file, argc, argv);
                         goto execute_done;
                     }
                     break;
                 case PRIORITY_PACKAGE_SCRIPT:
                     if (fklIsAccessibleRegFile(main_script_buf.buf)) {
-                        exitState = compile_and_run(main_script_buf.buf,
+                        exit_state = compile_and_run(main_script_buf.buf,
                                 argc,
                                 argv);
                         goto execute_done;
@@ -508,14 +484,14 @@ int main(int argc, char *argv[]) {
                     break;
                 case PRIORITY_PACKAGE_BYTECODE:
                     if (fklIsAccessibleRegFile(main_code_file)) {
-                        exitState = run_bytecode(main_code_file, argc, argv);
+                        exit_state = run_bytecode(main_code_file, argc, argv);
                         goto execute_done;
                     }
                     break;
 
                 case PRIORITY_PACKAGE_PRECOMPILE:
                     if (fklIsAccessibleRegFile(main_pre_file)) {
-                        exitState = run_pre_compile(main_pre_file, argc, argv);
+                        exit_state = run_pre_compile(main_pre_file, argc, argv);
                         goto execute_done;
                     }
                     break;
@@ -523,7 +499,7 @@ int main(int argc, char *argv[]) {
             }
 
         execute_err:
-            exitState = FKL_EXIT_FAILURE;
+            exit_state = FKL_EXIT_FAILURE;
             fprintf(stderr, "%s: No such file or directory\n", filename);
 
         execute_done:
@@ -537,7 +513,7 @@ int main(int argc, char *argv[]) {
 
 exit:
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-    return exitState;
+    return exit_state;
 }
 
 static int run_repl(const char *eval_expression, int8_t interactive) {
@@ -614,14 +590,6 @@ typedef struct {
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplFrameCtx);
 
-static inline void
-init_lref_vec(FklVM *vm, FklVMCompoundFrameVarRef *lr, uint32_t lcount) {
-    if (!FKL_IS_VECTOR(lr->lref)) {
-        lr->lref = fklCreateVMvalueVec(vm, lcount);
-        FKL_ASSERT(lr->lref);
-    }
-}
-
 static inline FklVMvalue *insert_local_ref(FklVM *vm,
         FklVMCompoundFrameVarRef *lr,
         FklVMvalue *ref,
@@ -648,17 +616,6 @@ struct ResolveRefArgs {
     FklVMCompoundFrameVarRef *lr;
     FklResolveRefArgVector *resolvable_refs;
 };
-
-// static inline void update_vm_libs(FklVMgc *gc, FklVMvalueVec *new_libs) {
-//     FklVMlib *libs = fklZrealloc(gc->libs,
-//             (gc->lib_num + new_libs_count + 1) * sizeof(FklVMlib));
-//     FKL_ASSERT(libs);
-//     for (uint64_t i = 0; i < new_libs_count; ++i) {
-//         libs[1 + i + gc->lib_num] = new_libs[i];
-//     }
-//     gc->libs = libs;
-//     gc->lib_num += new_libs_count;
-// }
 
 static inline FklVMvalue *fetch_var_ref_for_repl(FklVM *vm,
         FklVMvalueProc *proc,
@@ -709,91 +666,20 @@ static inline void resolve_ref_work_func(FklVM *exe,
                 }
         }
     }
-
-    // if (s->new_libs)
-    //     update_vm_libs(exe->gc, s->new_lib_count, s->new_libs);
 }
-
-// struct UpdateConstArrayArgs {
-//     FklVMvalueVec *new_libs;
-//     int is_need_update_const_array;
-// };
-
-// static void update_const_array_cb(FklVM *exe, void *arg) {
-//     const struct UpdateConstArrayArgs *args = arg;
-//     if (args->is_need_update_const_array) {
-//         fklVMgcUpdateConstArray(exe->gc, exe->gc->kt);
-//     }
-//     if (args->new_libs)
-//         update_vm_libs(exe->gc, args->new_libs_count, args->new_libs);
-// }
 
 static void resolve_ref_cb(FklVM *exe, void *arg) {
     const struct ResolveRefArgs *aarg = (struct ResolveRefArgs *)arg;
     resolve_ref_work_func(exe, aarg);
 }
 
-// static inline void uninit_resolve_ref_arg_stack(struct ResolveRefArgs *s) {
-//     s->loc = NULL;
-//     s->lr = NULL;
-//     fklResolveRefArgVectorUninit(&s->unresolve_refs);
-// }
-
-// FKL_DEPRECATED
-// typedef struct {
-//     FklVMCompoundFrameVarRef *lr;
-//     FklVMvalue **loc;
-//     FklResolveRefArgVector *resolvable_refs;
-// } ResolveRefToDefCbArgs;
-//
-// static void resolve_ref_to_def_cb(const FklVarRefDef *ref,
-//         const FklSymDefHashMapElm *def,
-//         const FklUnReSymbolRef *uref,
-//         FklVMvalueProto *proto,
-//         void *vargs) {
-//     const ResolveRefToDefCbArgs *args = (const ResolveRefToDefCbArgs *)vargs;
-//     FklVMCompoundFrameVarRef *lr = args->lr;
-//     FklResolveRefArgVector *resolvable_refs = args->resolvable_refs;
-//
-//     uint32_t prototype_id = uref->prototypeId;
-//     uint32_t idx = uref->idx;
-//     inc_lref(lr, lr->lcount);
-//
-//     fklResolveRefArgVectorPushBack(resolvable_refs,
-//             &(struct ResolveRefArg){
-//                 .def = def,
-//                 .prototypeId = prototype_id,
-//                 .idx = idx,
-//             });
-// }
-
 static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
         FklVMvalueCgEnv *top_env,
         FklVM *exe,
         FklVMframe *mainframe,
         FklResolveRefArgVector *resolvable_refs) {
-    uint32_t scope = 1;
 
     FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
-
-    // ResolveRefToDefCbArgs args = {
-    // 	.lr = lr,
-    // 	.resolvable_refs = resolvable_refs,
-    // 	.loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
-    // };
-
-    // FklResolveRefArgVector *unresolve_refs =
-    // &resolve_ref_args.unresolve_refs;
-    // fklResolveRefArgVectorInit(unresolve_refs, env->uref.size);
-
-    // fklResolveRef(env,
-    //         scope,
-    //         &(const FklResolveRefArgs){
-    //             .top_env = top_env,
-    //             .no_refs_to_builtins = 1,
-    //             .resolve_ref_to_def_cb = resolve_ref_to_def_cb,
-    //             .resolve_ref_to_def_cb_args = (void *)&args,
-    //         });
 
     if (resolvable_refs->size) {
         struct ResolveRefArgs resolve_ref_args = {
@@ -804,15 +690,7 @@ static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
 
         fklQueueWorkInIdleThread(exe, resolve_ref_cb, &resolve_ref_args);
     }
-
-    // uninit_resolve_ref_arg_stack(&resolve_ref_args);
 }
-
-// static inline void update_prototype_lcount(FklFuncPrototypes *cp,
-//         FklVMvalueCgEnv *env) {
-//     FklFuncPrototype *pts = &cp->pa[env->prototypeId];
-//     pts->lcount = env->lcount;
-// }
 
 static inline void alloc_more_space_for_var_ref(FklVM *vm,
         FklVMCompoundFrameVarRef *lr,
@@ -969,24 +847,6 @@ init_mainframe_lref(FklVMvalue *lref, uint32_t lcount, FklVMvalue *lrefl) {
     }
 }
 
-// struct ConstArrayCount {
-//     uint32_t i64_count;
-//     uint32_t f64_count;
-//     uint32_t str_count;
-//     uint32_t bvec_count;
-//     uint32_t bi_count;
-// };
-//
-// static inline int is_need_update_const_array(const struct ConstArrayCount
-// *cc,
-//         const FklConstTable *kt) {
-//     return cc->i64_count != kt->ki64t.count || cc->f64_count !=
-//     kt->kf64t.count
-//         || cc->str_count != kt->kstrt.count
-//         || cc->bvec_count != kt->kbvect.count || cc->bi_count !=
-//         kt->kbit.count;
-// }
-
 static int repl_frame_ret_callback(FklVM *exe, FklVMframe *frame) {
     FklVMvalue *lrefl = frame->c.lr.lrefl;
     FklVMvalue *lref = frame->c.lr.lref;
@@ -1024,13 +884,7 @@ static void collect_resolvable_ref_cb(const FklVarRefDef *ref,
         void *vargs) {
     FklResolveRefArgVector *resolvable_refs =
             FKL_TYPE_CAST(FklResolveRefArgVector *, vargs);
-    // const ResolveRefToDefCbArgs *args = (const ResolveRefToDefCbArgs *)vargs;
-    // FklVMCompoundFrameVarRef *lr = args->lr;
-    // FklResolveRefArgVector *unresolve_refs = args->unresolve_refs;
-
-    uint32_t prototype_id = uref->prototypeId;
     uint32_t idx = uref->idx;
-    // inc_lref(lr, lr->lcount);
 
     fklResolveRefArgVectorPushBack(resolvable_refs,
             &(struct ResolveRefArg){
@@ -1040,19 +894,6 @@ static void collect_resolvable_ref_cb(const FklVarRefDef *ref,
             });
 }
 
-// static inline void collect_resolvable_refs(FklVMvalueCgEnv *env,
-//         FklVMvalueCgEnv *top_env,
-//         FklResolveRefArgVector *unresolve_refs) {
-//     fklResolveRef(env,
-//             1,
-//             &(const FklResolveRefArgs){
-//                 .top_env = top_env,
-//                 .no_refs_to_builtins = 1,
-//                 .resolve_ref_to_def_cb = collect_resolvable_ref_cb,
-//                 .resolve_ref_to_def_cb_args = (void *)unresolve_refs,
-//             });
-// }
-
 static inline void
 execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     uint32_t o_lcount = fctx->lcount;
@@ -1060,10 +901,6 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
 
     FklResolveRefArgVector resolvable_refs;
     fklResolveRefArgVectorInit(&resolvable_refs, fctx->main_env->uref.size);
-
-    // collect_resolvable_refs(fctx->main_env,
-    //         fctx->info->global_env,
-    //         &resolvable_refs);
 
     FklVMvalueProto *pt = FKL_CREATE_VMVALUE_PROTO(exe,
             fctx->main_env,
@@ -1161,14 +998,10 @@ static int repl_frame_step(void *data, FklVM *exe) {
         else if (c->err == READ_ERROR_INVALIDEXPR)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
     } else if (ast) {
-        FklVMvalue *main_bc = NULL;
-
-        FKL_VM_UNLOCK_BLOCK(exe, flag) {
-            main_bc = fklGenExpressionCode(c->cg_ctx, //
-                    ast,
-                    main_env,
-                    c->info);
-        }
+        FklVMvalue *main_bc = fklGenExpressionCode(c->cg_ctx, //
+                ast,
+                main_env,
+                c->info);
 
         fklStoreHistoryInStrBuf(s, c->offset);
 
@@ -1201,22 +1034,6 @@ static void repl_frame_atomic(void *data, FklVMgc *gc) {
     fklVMgcToGray(fctx->lrefl, gc);
     fklVMgcToGray(fctx->lref, gc);
 }
-
-// static inline void destroyNastCreatCtx(NastCreatCtx *cc) {
-//     FKL_TODO();
-//     fklParseStateVectorUninit(&cc->stateStack);
-//
-//     FklAnalysisSymbolVector *ss = &cc->symbolStack;
-//     FklAnalysisSymbol *cur_sym = ss->base;
-//     FklAnalysisSymbol *const sym_end = cur_sym + ss->size;
-//     for (; cur_sym < sym_end; ++cur_sym)
-//         fklDestroyNastNode(cur_sym->ast);
-//     ss->size = 0;
-//
-//     fklUintVectorUninit(&cc->lineStack);
-//     fklAnalysisSymbolVectorUninit(&cc->symbolStack);
-//     fklZfree(cc);
-// }
 
 static void repl_frame_finalizer(void *data) {
     ReplFrameCtx *ctx = (ReplFrameCtx *)data;
@@ -1284,15 +1101,6 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     }
     return 1;
 }
-
-// static inline void clear_ast_queue(FklNastNodeQueue *q) {
-//     while (!fklNastNodeQueueIsEmpty(q)) {
-//         FklNastNode *const *pnode = fklNastNodeQueuePop(q);
-//         FKL_ASSERT(pnode);
-//         fklDestroyNastNode(*pnode);
-//     }
-//     fklZfree(q);
-// }
 
 static int eval_frame_step(void *data, FklVM *exe) {
     FklVMframe *repl_frame = exe->top_frame;
@@ -1374,17 +1182,6 @@ static const FklVMframeContextMethodTable EvalContextMethodTable = {
     .print_backtrace = repl_frame_print_backtrace,
     .step = eval_frame_step,
 };
-
-// static inline NastCreatCtx *createNastCreatCtx(void) {
-// FKL_TODO();
-// NastCreatCtx *cc = (NastCreatCtx *)fklZcalloc(1, sizeof(NastCreatCtx));
-// FKL_ASSERT(cc);
-// fklAnalysisSymbolVectorInit(&cc->symbolStack, 16);
-// fklUintVectorInit(&cc->lineStack, 16);
-// fklParseStateVectorInit(&cc->stateStack, 16);
-// fklNastPushState0ToStack(&cc->stateStack);
-// return cc;
-// }
 
 static inline void init_frame_to_repl_frame(FklVM *exe,
         FklCgCtx *cg_ctx,

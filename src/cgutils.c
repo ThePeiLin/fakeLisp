@@ -977,23 +977,22 @@ static void push_macro_expand_frame(FklVM *exe,
 }
 
 static void init_macro_match_local_variable(FklVM *exe,
-        FklVMframe *frame,
+        FklVMframe *f,
         FklPmatchHashMap *ht,
         FklVMvalueLnt *lnt,
         const FklVMvalueProto *pt) {
-    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(frame);
-    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
     uint32_t count = pt->local_count;
     uint32_t idx = 0;
     for (FklPmatchHashMapNode *list = ht->first; list; list = list->next) {
         FklVMvalue *v = list->v.value;
-        FKL_VM_GET_ARG(exe, frame, idx) = v;
+        FKL_VM_GET_ARG(exe, f, idx) = v;
         idx++;
     }
-    lr->lcount = count;
-    lr->lref = FKL_VM_NIL;
-    lr->lrefl = FKL_VM_NIL;
-    proc->ref_count = lr->rcount;
+    f->lcount = count;
+    f->lref = FKL_VM_NIL;
+    f->lrefl = FKL_VM_NIL;
+    proc->ref_count = f->rcount;
 }
 
 static inline FklVMframe *init_macro_expand_frame(FklVM *exe,

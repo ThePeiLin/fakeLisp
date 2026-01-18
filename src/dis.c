@@ -13,7 +13,7 @@
 
 static inline int print_single_ins(FklVM *vm,
         int digits_count,
-        const FklInstruction *ins,
+        const FklIns *ins,
         uint64_t i,
         const FklVMvalueProto *pt,
         FklCodeBuilder *build,
@@ -32,7 +32,7 @@ static inline int print_single_ins(FklVM *vm,
 
     CB_FMT(" ");
 
-    FklInstructionArg ins_arg = { 0 };
+    FklInsArg ins_arg = { 0 };
     int len = fklGetInsOpArg(ins, &ins_arg);
 
     FklVMvalue *const *konsts = fklVMvalueProtoConsts(pt);
@@ -121,8 +121,8 @@ end:
 static inline void disassemble_byte_code_lnt(FklVM *vm,
         int digits_count,
         const FklByteCodelnt *bcl,
-        const FklInstruction *pc,
-        const FklInstruction *end,
+        const FklIns *pc,
+        const FklIns *end,
         const FklVMvalueProto *pt,
         uint64_t i,
         FklCodeBuilder *build,
@@ -140,7 +140,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                 indent_str,
                 lib_table);
         if (fklIsPushProcIns(pc)) {
-            FklInstructionArg ins_arg = { 0 };
+            FklInsArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
 
             ++pc;

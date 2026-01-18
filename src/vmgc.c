@@ -42,20 +42,19 @@ static inline void remove_closed_var_ref_from_list(FklVMvalue **ll) {
 static inline void remove_closed_var_ref(FklVM *exe) {
     for (FklVMframe *f = exe->top_frame; f; f = f->prev)
         if (f->type == FKL_FRAME_COMPOUND)
-            remove_closed_var_ref_from_list(&f->c.lr.lrefl);
+            remove_closed_var_ref_from_list(&f->lrefl);
 }
 
 static inline void do_atomic_frame(FklVMframe *f, FklVMgc *gc) {
     switch (f->type) {
     case FKL_FRAME_COMPOUND: {
-        FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
-        fklVMgcToGray(lr->lref, gc);
-        fklVMgcToGray(lr->lrefl, gc);
-        fklVMgcToGray(fklGetCompoundFrameProc(f), gc);
+        fklVMgcToGray(f->lref, gc);
+        fklVMgcToGray(f->lrefl, gc);
+        fklVMgcToGray(f->proc, gc);
     } break;
     case FKL_FRAME_OTHEROBJ:
         if (f->t->atomic)
-            f->t->atomic(fklGetFrameData(f), gc);
+            f->t->atomic((void *)f->data, gc);
         break;
     }
 }

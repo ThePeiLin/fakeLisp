@@ -249,12 +249,12 @@ static inline FklVMvalue *create_0len_bcl(FklVM *exe) {
 #define I32_L16_MASK (0xFFFF)
 #define I64_L24_MASK (0xFFFFFF)
 
-static inline void set_ins_uc(FklInstruction *ins, uint32_t k) {
+static inline void set_ins_uc(FklIns *ins, uint32_t k) {
     ins->au = k & I24_L8_MASK;
     ins->bu = k >> FKL_BYTE_WIDTH;
 }
 
-static inline void set_ins_uxx(FklInstruction *ins, uint64_t k) {
+static inline void set_ins_uxx(FklIns *ins, uint64_t k) {
     set_ins_uc(&ins[0], k & I64_L24_MASK);
     ins[1].op = FKL_OP_EXTRA_ARG;
     set_ins_uc(&ins[1], (k >> FKL_I24_WIDTH) & I64_L24_MASK);
@@ -262,14 +262,14 @@ static inline void set_ins_uxx(FklInstruction *ins, uint64_t k) {
     ins[2].bu = (k >> (FKL_I24_WIDTH * 2));
 }
 
-static inline void set_ins_ux(FklInstruction *ins, uint32_t k) {
+static inline void set_ins_ux(FklIns *ins, uint32_t k) {
     ins[0].bu = k & I32_L16_MASK;
     ins[1].op = FKL_OP_EXTRA_ARG;
     ins[1].bu = k >> FKL_I16_WIDTH;
 }
 
 static inline int
-set_ins_with_unsigned_imm(FklInstruction *ins, FklOpcode op, uint64_t k) {
+set_ins_with_unsigned_imm(FklIns *ins, FklOpcode op, uint64_t k) {
     int l = 1;
     if (k <= UINT16_MAX) {
         ins[0].op = op;
@@ -297,7 +297,7 @@ static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklInstruction ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
+    FklIns ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_unsigned_imm(ins, op, k);
     if (bcl == NULL)
         bcl = create_0len_bcl(exe);
@@ -321,7 +321,7 @@ static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
     return bcl;
 }
 
-static inline int set_ins_with_2_unsigned_imm(FklInstruction *ins,
+static inline int set_ins_with_2_unsigned_imm(FklIns *ins,
         FklOpcode op,
         uint64_t ux,
         uint64_t uy) {
@@ -376,7 +376,7 @@ static inline FklVMvalue *set_and_append_ins_with_2_unsigned_imm(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
+    FklIns ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_2_unsigned_imm(ins, op, ux, uy);
     if (bcl == NULL)
         bcl = create_0len_bcl(exe);
@@ -401,7 +401,7 @@ static inline FklVMvalue *set_and_append_ins_with_2_unsigned_imm(FklVM *exe,
 }
 
 static inline int
-set_ins_with_signed_imm(FklInstruction *ins, FklOpcode op, int64_t k) {
+set_ins_with_signed_imm(FklIns *ins, FklOpcode op, int64_t k) {
     int l = 1;
     if (k >= INT16_MIN && k <= INT16_MAX) {
         ins[0].op = op;
@@ -429,7 +429,7 @@ static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklInstruction ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
+    FklIns ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
     int l = set_ins_with_signed_imm(ins, op, k);
     if (bcl == NULL)
         bcl = create_0len_bcl(exe);
@@ -455,7 +455,7 @@ static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
 
 static inline FklByteCode *
 append_push_chr_ins_to_bc(InsAppendMode m, FklByteCode *bc, char ch) {
-    FklInstruction ins = FKL_INSTRUCTION_STATIC_INIT;
+    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
     ins.op = FKL_OP_PUSH_CHAR;
     ins.bu = (uint8_t)ch;
     if (bc == NULL)
@@ -475,7 +475,7 @@ static inline FklByteCode *append_push_const_ins_to_bc(InsAppendMode m,
         FklByteCode *bc,
         uint32_t k,
         FklVMvalueCgInfo *info) {
-    FklInstruction ins = FKL_INSTRUCTION_STATIC_INIT;
+    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
     ins.op = FKL_OP_PUSH_CONST;
     set_ins_uc(&ins, k);
     if (bc == NULL)
@@ -494,7 +494,7 @@ static inline FklByteCode *append_push_i24_ins_to_bc(InsAppendMode m,
         FklByteCode *bc,
         int32_t k,
         FklVMvalueCgInfo *info) {
-    FklInstruction ins = FKL_INSTRUCTION_STATIC_INIT;
+    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
     if (k == 0 || k == 1) {
         ins.op = FKL_OP_PUSH_0 + k;
         goto append;
@@ -533,7 +533,7 @@ static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklInstruction ins = FKL_INSTRUCTION_STATIC_INIT;
+    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
     if (k == 0 || k == 1) {
         ins.op = FKL_OP_PUSH_0 + k;
         goto append;
@@ -741,8 +741,8 @@ static inline FklVMvalue *append_export_ins(FklVM *exe,
             scope);
 }
 
-static inline FklInstruction create_op_ins(FklOpcode op) {
-    return (FklInstruction){ .op = op };
+static inline FklIns create_op_ins(FklOpcode op) {
+    return (FklIns){ .op = op };
 }
 
 static inline FklVMvalue *append_pop_loc_ins(FklVM *exe,
@@ -880,7 +880,7 @@ static FklVMvalue *sequnce_exp_bc_process(FklVM *exe,
         uint32_t line,
         uint32_t scope) {
     if (stack->size) {
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         FklVMvalue *retval = create_0len_bcl(exe);
         size_t top = stack->size;
         for (size_t i = 0; i < top; i++) {
@@ -937,7 +937,7 @@ static inline void pushListItemToStack(FklVMvalue *list,
         *last = list;
 }
 
-static inline int is_get_var_ref_ins(const FklInstruction *ins) {
+static inline int is_get_var_ref_ins(const FklIns *ins) {
     return ins->op >= FKL_OP_GET_VAR_REF && ins->op <= FKL_OP_GET_VAR_REF_X;
 }
 
@@ -945,8 +945,8 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
         FklVMvalueCgEnv *env,
         uint32_t argNum,
         FklVMvalueCgInfo *info) {
-    FklInstructionArg arg;
-    const FklInstruction *ins = &bc->code[0];
+    FklInsArg arg;
+    const FklIns *ins = &bc->code[0];
     if (is_get_var_ref_ins(ins)
             && bc->len == (unsigned)fklGetInsOpArg(ins, &arg)) {
         uint32_t idx = arg.ux;
@@ -1008,8 +1008,8 @@ static FklVMvalue *_funcall_exp_bc_process(const FklCgActCbArgs *args) {
                 fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
             }
             bcl_vec->size = 0;
-            FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
-            FklInstruction call = create_op_ins(FKL_OP_CALL);
+            FklIns setBp = create_op_ins(FKL_OP_SET_BP);
+            FklIns call = create_op_ins(FKL_OP_CALL);
             fklByteCodeLntInsertFrontIns(&setBp,
                     FKL_VM_CO(retval),
                     fid,
@@ -1864,7 +1864,7 @@ static FklVMvalue *_do0_exp_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *value = *fklValueVectorPopBackNonNull(bcl_vec);
     FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
 
-    FklInstruction pop = create_op_ins(FKL_OP_DROP);
+    FklIns pop = create_op_ins(FKL_OP_DROP);
 
     fklByteCodeLntInsertFrontIns(&pop, FKL_VM_CO(rest), fid, line, scope);
     insert_jmp_if_true_and_jmp_back_between(vm, cond, rest, fid, line, scope);
@@ -1886,7 +1886,7 @@ static FklVMvalue *_do_rest_exp_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     if (bcl_vec->size) {
-        FklInstruction pop = create_op_ins(FKL_OP_DROP);
+        FklIns pop = create_op_ins(FKL_OP_DROP);
         FklVMvalue *r = sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
         fklByteCodeLntPushBackIns(FKL_VM_CO(r), &pop, fid, line, scope);
         return r;
@@ -2042,7 +2042,7 @@ static FklVMvalue *_do1_init_val_bc_process(const FklCgActCbArgs *args) {
     Do1Context *let_ctx = FKL_TYPE_CAST(Do1Context *, data);
     FklUintVector *ss = let_ctx->ss;
 
-    FklInstruction pop = create_op_ins(FKL_OP_DROP);
+    FklIns pop = create_op_ins(FKL_OP_DROP);
 
     uint64_t *idxbase = ss->base;
     FklVMvalue **bclBase = bcl_vec->base;
@@ -2070,7 +2070,7 @@ static FklVMvalue *_do1_next_val_bc_process(const FklCgActCbArgs *args) {
 
     if (bcl_vec->size) {
         FklVMvalue *ret = create_0len_bcl(vm);
-        FklInstruction pop = create_op_ins(FKL_OP_DROP);
+        FklIns pop = create_op_ins(FKL_OP_DROP);
 
         uint64_t *idxbase = ss->base;
         FklVMvalue **bclBase = bcl_vec->base;
@@ -2112,7 +2112,7 @@ static FklVMvalue *_do1_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *cond = *fklValueVectorPopBackNonNull(bcl_vec);
     FklVMvalue *init = *fklValueVectorPopBackNonNull(bcl_vec);
 
-    FklInstruction pop = create_op_ins(FKL_OP_DROP);
+    FklIns pop = create_op_ins(FKL_OP_DROP);
 
     fklByteCodeLntInsertFrontIns(&pop, FKL_VM_CO(rest), fid, line, scope);
     if (next) {
@@ -2295,11 +2295,11 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
     if (stack->size >= 2) {
         FklVMvalue *cur = *fklValueVectorPopBackNonNull(stack);
         FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
-        const FklInstruction *cur_ins = &FKL_VM_CO(cur)->bc.code[0];
+        const FklIns *cur_ins = &FKL_VM_CO(cur)->bc.code[0];
         if (fklIsPushProcIns(cur_ins)) {
-            const FklInstruction *popVar_ins = &FKL_VM_CO(popVar)->bc.code[0];
+            const FklIns *popVar_ins = &FKL_VM_CO(popVar)->bc.code[0];
             if (fklIsPutLocIns(popVar_ins)) {
-                FklInstructionArg arg;
+                FklInsArg arg;
                 fklGetInsOpArg(cur_ins, &arg);
                 uint64_t prototypeId = arg.ux;
 
@@ -2317,7 +2317,7 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
                 }
 
             } else if (fklIsPutVarRefIns(popVar_ins)) {
-                FklInstructionArg arg;
+                FklInsArg arg;
                 fklGetInsOpArg(cur_ins, &arg);
                 uint64_t prototypeId = arg.ux;
 
@@ -2338,7 +2338,7 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
         return popVar;
     } else {
         FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
-        FklInstruction pushNil = create_op_ins(FKL_OP_PUSH_NIL);
+        FklIns pushNil = create_op_ins(FKL_OP_PUSH_NIL);
         fklByteCodeLntInsertFrontIns(&pushNil,
                 FKL_VM_CO(popVar),
                 fid,
@@ -2416,9 +2416,9 @@ static FklVMvalue *_lambda_exp_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     FklVMvalue *retval = NULL;
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    FklIns ret = create_op_ins(FKL_OP_RET);
     if (bcl_vec->size > 1) {
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         retval = create_0len_bcl(vm);
         size_t top = bcl_vec->size;
         for (size_t i = 1; i < top; i++) {
@@ -2493,7 +2493,7 @@ static inline FklVMvalue *processArgs(FklVM *exe,
         rest_list = 1;
         fklAddCgDefBySid(args, 1, env);
     }
-    FklInstruction check_arg = {
+    FklIns check_arg = {
         .op = FKL_OP_CHECK_ARG,
         .ai = rest_list,
         .bu = arg_count,
@@ -2519,7 +2519,7 @@ static inline FklVMvalue *processArgsInStack(FklVM *exe,
 
         fklAddCgDefBySid(curId, 1, env);
     }
-    FklInstruction check_arg = { .op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top };
+    FklIns check_arg = { .op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top };
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
             &check_arg,
             info->fid,
@@ -2545,7 +2545,7 @@ static FklVMvalue *_named_let_set_var_exp_bc_process(
     } else {
         FklVMvalue *cur = *fklValueVectorPopBackNonNull(bcl_vec);
         pop_var = cur;
-        FklInstruction pushNil = create_op_ins(FKL_OP_PUSH_NIL);
+        FklIns pushNil = create_op_ins(FKL_OP_PUSH_NIL);
         fklByteCodeLntInsertFrontIns(&pushNil,
                 FKL_VM_CO(pop_var),
                 fid,
@@ -2791,7 +2791,7 @@ static FklVMvalue *_and_exp_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     if (bcl_vec->size) {
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         FklVMvalue *retval = create_0len_bcl(vm);
         while (!fklValueVectorIsEmpty(bcl_vec)) {
             if (FKL_VM_CO(retval)->bc.len) {
@@ -2859,7 +2859,7 @@ static FklVMvalue *_or_exp_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     if (bcl_vec->size) {
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         FklVMvalue *retval = create_0len_bcl(vm);
         while (!fklValueVectorIsEmpty(bcl_vec)) {
             if (FKL_VM_CO(retval)->bc.len) {
@@ -4167,7 +4167,7 @@ static FklVMvalue *_qsquote_box_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     FklVMvalue *retval = *fklValueVectorPopBackNonNull(bcl_vec);
-    FklInstruction pushBox = { .op = FKL_OP_PUSH_BOX, .ai = 1 };
+    FklIns pushBox = { .op = FKL_OP_PUSH_BOX, .ai = 1 };
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushBox, fid, line, scope);
     return retval;
 }
@@ -4184,8 +4184,8 @@ static FklVMvalue *_qsquote_vec_bc_process(const FklCgActCbArgs *args) {
         fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
-    FklInstruction push_vec = create_op_ins(FKL_OP_PUSH_VEC_0);
-    FklInstruction set_bp = create_op_ins(FKL_OP_SET_BP);
+    FklIns push_vec = create_op_ins(FKL_OP_PUSH_VEC_0);
+    FklIns set_bp = create_op_ins(FKL_OP_SET_BP);
     fklByteCodeLntInsertFrontIns(&set_bp, FKL_VM_CO(retval), fid, line, scope);
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &push_vec, fid, line, scope);
     return retval;
@@ -4205,7 +4205,7 @@ static FklVMvalue *_qsquote_hash_bc_process(const FklCgActCbArgs *args) {
     }
     fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(push_hash));
     bcl_vec->size = 0;
-    FklInstruction set_bp = create_op_ins(FKL_OP_SET_BP);
+    FklIns set_bp = create_op_ins(FKL_OP_SET_BP);
     fklByteCodeLntInsertFrontIns(&set_bp, FKL_VM_CO(retval), fid, line, scope);
     return retval;
 }
@@ -4227,8 +4227,7 @@ static FklVMvalue *_unqtesp_vec_bc_process(const FklCgActCbArgs *args) {
         }
         fklCodeLntReverseConcat(FKL_VM_CO(other), FKL_VM_CO(retval));
     }
-    FklInstruction listPush = { .op = FKL_OP_PAIR,
-        .ai = FKL_SUBOP_PAIR_UNPACK };
+    FklIns listPush = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_UNPACK };
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &listPush, fid, line, scope);
     return retval;
 }
@@ -4245,8 +4244,8 @@ static FklVMvalue *_qsquote_pair_bc_process(const FklCgActCbArgs *args) {
         fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
-    FklInstruction pushPair = create_op_ins(FKL_OP_PUSH_LIST_0);
-    FklInstruction setBp = create_op_ins(FKL_OP_SET_BP);
+    FklIns pushPair = create_op_ins(FKL_OP_PUSH_LIST_0);
+    FklIns setBp = create_op_ins(FKL_OP_SET_BP);
     fklByteCodeLntInsertFrontIns(&setBp, FKL_VM_CO(retval), fid, line, scope);
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushPair, fid, line, scope);
     return retval;
@@ -4264,8 +4263,7 @@ static FklVMvalue *_qsquote_list_bc_process(const FklCgActCbArgs *args) {
         fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
     }
     bcl_vec->size = 0;
-    FklInstruction pushPair = { .op = FKL_OP_PAIR,
-        .ai = FKL_SUBOP_PAIR_APPEND };
+    FklIns pushPair = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_APPEND };
     fklByteCodeLntPushBackIns(FKL_VM_CO(retval), &pushPair, fid, line, scope);
     return retval;
 }
@@ -4700,8 +4698,8 @@ static FklVMvalue *_cond_exp_bc_process_0(const FklCgActCbArgs *args) {
 }
 
 static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
-    const FklInstruction *cur = bcl->bc.code;
-    const FklInstruction *const end = &cur[bcl->bc.len];
+    const FklIns *cur = bcl->bc.code;
+    const FklIns *const end = &cur[bcl->bc.len];
     for (; cur < end; cur++) {
         switch (cur->op) {
         case FKL_OP_SET_BP:
@@ -4742,7 +4740,7 @@ static FklVMvalue *_cond_exp_bc_process_1(const FklCgActCbArgs *args) {
         FklVMvalue *first = bcl_vec->base[1];
         retval = create_0len_bcl(vm);
 
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
 
         fklByteCodeLntInsertFrontIns(&drop, FKL_VM_CO(prev), fid, line, scope);
 
@@ -4827,7 +4825,7 @@ static FklVMvalue *_cond_exp_bc_process_2(const FklCgActCbArgs *args) {
     FklVMvalue *fid = args->fid;
     uint64_t line = args->line;
 
-    FklInstruction drop = create_op_ins(FKL_OP_DROP);
+    FklIns drop = create_op_ins(FKL_OP_DROP);
 
     FklVMvalue *retval = NULL;
     if (bcl_vec->size) {
@@ -4975,7 +4973,7 @@ static FklVMvalue *_if_exp_bc_process_0(const FklCgActCbArgs *args) {
     FklVMvalue *fid = args->fid;
     uint64_t line = args->line;
 
-    FklInstruction drop = create_op_ins(FKL_OP_DROP);
+    FklIns drop = create_op_ins(FKL_OP_DROP);
 
     if (bcl_vec->size >= 2) {
         FklVMvalue *exp = *fklValueVectorPopBackNonNull(bcl_vec);
@@ -5041,7 +5039,7 @@ static FklVMvalue *_if_exp_bc_process_1(const FklCgActCbArgs *args) {
     FklVMvalue *fid = args->fid;
     uint64_t line = args->line;
 
-    FklInstruction drop = create_op_ins(FKL_OP_DROP);
+    FklIns drop = create_op_ins(FKL_OP_DROP);
 
     if (bcl_vec->size >= 3) {
         FklVMvalue *exp0 = *fklValueVectorPopBackNonNull(bcl_vec);
@@ -5156,7 +5154,7 @@ static FklVMvalue *_when_exp_bc_process(const FklCgActCbArgs *args) {
         FklVMvalue *cond = bcl_vec->base[0];
         FklVMvalue *retval = create_0len_bcl(vm);
 
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         for (size_t i = 1; i < bcl_vec->size; i++) {
             FklVMvalue *cur = bcl_vec->base[i];
             fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
@@ -5200,7 +5198,7 @@ static FklVMvalue *_unless_exp_bc_process(const FklCgActCbArgs *args) {
         FklVMvalue *cond = bcl_vec->base[0];
         FklVMvalue *retval = create_0len_bcl(vm);
 
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         for (size_t i = 1; i < bcl_vec->size; i++) {
             FklVMvalue *cur = bcl_vec->base[i];
             fklByteCodeLntPushBackIns(FKL_VM_CO(retval),
@@ -6324,7 +6322,7 @@ static inline void process_export_bc(FklCgCtx *ctx,
                 scope);
     }
 
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    FklIns ret = create_op_ins(FKL_OP_RET);
     fklByteCodeLntPushBackIns(FKL_VM_CO(lib_bc), &ret, fid, line, scope);
 }
 
@@ -6374,7 +6372,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
     FklVMvalue *co = sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
 
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    FklIns ret = create_op_ins(FKL_OP_RET);
 
     fklByteCodeLntPushBackIns(FKL_VM_CO(co), &ret, fid, line, scope);
 
@@ -6431,7 +6429,7 @@ static inline FklVMvalue *export_sequnce_exp_bc_process(FklVM *exe,
         uint32_t line,
         uint32_t scope) {
     if (stack->size) {
-        FklInstruction drop = create_op_ins(FKL_OP_DROP);
+        FklIns drop = create_op_ins(FKL_OP_DROP);
         FklVMvalue *retval = create_0len_bcl(exe);
         size_t top = stack->size;
         for (size_t i = 0; i < top; i++) {
@@ -7408,7 +7406,7 @@ static FklVMvalue *compiler_macro_bc_process(const FklCgActCbArgs *args) {
 
     MacroContext *d = FKL_TYPE_CAST(MacroContext *, data);
     FklVMvalue *macro_bc = *fklValueVectorPopBackNonNull(bcl_vec);
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    FklIns ret = create_op_ins(FKL_OP_RET);
     fklByteCodeLntPushBackIns(FKL_VM_CO(macro_bc), &ret, fid, line, scope);
 
     FklVMvalue *pattern = d->pattern;
@@ -7479,7 +7477,7 @@ static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
     fklPrintUndefinedRef(env->prev, &ctx->vm->gc->err_out);
 
     FklVMvalue *macro_bcl = *fklValueVectorPopBackNonNull(bcl_vec);
-    FklInstruction ret = create_op_ins(FKL_OP_RET);
+    FklIns ret = create_op_ins(FKL_OP_RET);
     fklByteCodeLntPushBackIns(FKL_VM_CO(macro_bcl), &ret, fid, line, scope);
 
     fklPeepholeOptimize(FKL_VM_CO(macro_bcl));
@@ -8926,7 +8924,7 @@ static FklVMvalue *last_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     FklVMvalue *r = sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
-    FklInstruction r_ins = create_op_ins(FKL_OP_RET);
+    FklIns r_ins = create_op_ins(FKL_OP_RET);
     fklByteCodeLntPushBackIns(FKL_VM_CO(r),
             &r_ins,
             info->fid,
@@ -8975,8 +8973,7 @@ static FklVMvalue *gen_push_literal_code(FklVM *exe,
 
     FklByteCodelnt *rr = FKL_VM_CO(r);
     rr->ls = 1;
-    rr->l = (FklLineNumberTableItem *)fklZmalloc(
-            sizeof(FklLineNumberTableItem));
+    rr->l = (FklLntItem *)fklZmalloc(sizeof(FklLntItem));
     FKL_ASSERT(rr->l);
     fklInitLineNumTabNode(&rr->l[0], info->fid, 0, CURLINE(node), scope);
 

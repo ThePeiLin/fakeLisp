@@ -61,7 +61,7 @@ static int load_lib_table(FILE *fp,
 
 // write and load bytecodes
 
-static void write_lnt(const FklLineNumberTableItem *,
+static void write_lnt(const FklLntItem *,
         uint32_t count,
         FklValueTable *vt,
         FklWriteCodePass pass,
@@ -69,7 +69,7 @@ static void write_lnt(const FklLineNumberTableItem *,
 
 static void load_lnt(FILE *fp,
         const FklLoadValueArgs *values,
-        FklLineNumberTableItem **plist,
+        FklLntItem **plist,
         uint32_t *pnum);
 
 static void write_bc(const FklByteCode *bc, FILE *fp);
@@ -728,7 +728,7 @@ static inline void write_prototype_pass_2(const FklVMvalueProto *pt,
     }
 }
 
-static void write_lnt(const FklLineNumberTableItem *items,
+static void write_lnt(const FklLntItem *items,
         uint32_t count,
         FklValueTable *vt,
         FklWriteCodePass pass,
@@ -742,7 +742,7 @@ static void write_lnt(const FklLineNumberTableItem *items,
     case FKL_WRITE_CODE_PASS_SECOND:
         fwrite(&count, sizeof(count), 1, fp);
         for (uint32_t i = 0; i < count; i++) {
-            const FklLineNumberTableItem *n = &items[i];
+            const FklLntItem *n = &items[i];
             write_value_id(vt, 0, n->fid, fp);
             fwrite(&n->scp, sizeof(n->scp), 1, fp);
             fwrite(&n->line, sizeof(n->line), 1, fp);
@@ -753,19 +753,18 @@ static void write_lnt(const FklLineNumberTableItem *items,
 
 static void load_lnt(FILE *fp,
         const FklLoadValueArgs *values,
-        FklLineNumberTableItem **plist,
+        FklLntItem **plist,
         uint32_t *pnum) {
     uint32_t count = 0;
     fread(&count, sizeof(count), 1, fp);
-    FklLineNumberTableItem *list;
+    FklLntItem *list;
     if (count == 0)
         list = NULL;
     else {
-        list = (FklLineNumberTableItem *)fklZmalloc(
-                count * sizeof(FklLineNumberTableItem));
+        list = (FklLntItem *)fklZmalloc(count * sizeof(FklLntItem));
         FKL_ASSERT(list);
         for (uint32_t i = 0; i < count; i++) {
-            FklLineNumberTableItem *item = &list[i];
+            FklLntItem *item = &list[i];
             item->fid = load_value_id(fp, values);
             fread(&item->scp, sizeof(item->scp), 1, fp);
             fread(&item->line, sizeof(item->line), 1, fp);
@@ -783,8 +782,8 @@ static void load_lnt(FILE *fp,
 static void write_bc(const FklByteCode *bc, FILE *outfp) {
     uint64_t len = bc->len;
     fwrite(&len, sizeof(bc->len), 1, outfp);
-    const FklInstruction *end = bc->code + len;
-    const FklInstruction *code = bc->code;
+    const FklIns *end = bc->code + len;
+    const FklIns *code = bc->code;
     while (code < end) {
         uint8_t op = code->op;
         fwrite(&op, sizeof(op), 1, outfp);
@@ -896,8 +895,8 @@ static void load_bc(FklByteCode *tmp, FILE *fp) {
     fread(&len, sizeof(uint64_t), 1, fp);
     fklInitByteCode(tmp, len);
 
-    const FklInstruction *end = tmp->code + len;
-    FklInstruction *code = tmp->code;
+    const FklIns *end = tmp->code + len;
+    FklIns *code = tmp->code;
     while (code < end) {
         uint8_t op = 0;
         fread(&op, sizeof(op), 1, fp);

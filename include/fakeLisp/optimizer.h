@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    FklInstruction ins;
+    FklIns ins;
     uint32_t line;
     struct FklVMvalue *fid;
     uint32_t scope;
@@ -26,7 +26,7 @@ typedef int (*FklRecomputeInsImmPredicate)(FklOpcode op);
 typedef int (*FklRecomputeInsImmFunc)(void *ctx,
         FklOpcode *opcode,
         FklOpcodeMode *pmode,
-        FklInstructionArg *ins_arg);
+        FklInsArg *ins_arg);
 
 void fklRecomputeInsImm(FklByteCodelnt *bcl,
         void *ctx,
@@ -44,7 +44,7 @@ uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer *buf);
 FklByteCodelnt *fklCreateByteCodelntFromBuf(const FklByteCodeBuffer *);
 
 void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
-        const FklInstruction *ins,
+        const FklIns *ins,
         uint32_t line,
         uint32_t scope,
         struct FklVMvalue *fid);

@@ -19,15 +19,15 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     if (F->ret_cb && F->ret_cb(VM, F))
         return;
 
-    switch (F->c.mark) {
+    switch (F->mark) {
     case FKL_VM_COMPOUND_FRAME_MARK_RET: {
         VM->bp = FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
         // copy stack values
-        uint32_t const value_count = (VM->tp - F->c.sp);
+        uint32_t const value_count = (VM->tp - F->sp);
         if (value_count > 1 || value_count < 1)
             goto return_value_err;
         memmove(&FKL_VM_GET_ARG(VM, F, -2),
-                &VM->base[F->c.sp],
+                &VM->base[F->sp],
                 value_count * sizeof(FklVMvalue *));
         VM->tp = F->bp - 1 + value_count;
         do_finalize_compound_frame(VM, popFrame(VM));
@@ -46,7 +46,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     }
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
-        close_all_var_ref(&F->c.lr);
+        close_all_var_ref(F);
         // copy stack values
         uint32_t const value_count = (VM->tp - VM->bp);
         memmove(&FKL_VM_GET_ARG(VM, F, -1),
@@ -54,14 +54,14 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 value_count * sizeof(FklVMvalue *));
         VM->bp = F->bp;
         VM->tp = VM->bp + value_count;
-        fklVMframeSetSp(VM, F, F->c.lr.lcount);
+        fklVMframeSetSp(VM, F, F->lcount);
 
-        if (F->c.lr.lrefl) {
-            F->c.lr.lrefl = NULL;
-            memset(F->c.lr.lref, 0, sizeof(FklVMvalue *) * F->c.lr.lcount);
+        if (F->lrefl) {
+            F->lrefl = NULL;
+            memset(F->lref, 0, sizeof(FklVMvalue *) * F->lcount);
         }
-        F->c.pc = F->c.spc;
-        F->c.mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
+        F->pc = F->spc;
+        F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     } break;
     default: {
         FklCodeBuilder builder = { 0 };

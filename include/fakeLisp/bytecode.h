@@ -33,16 +33,16 @@ typedef union {
         uint32_t op2 : 8;
         uint32_t cu : 24;
     };
-} FklInstruction;
+} FklIns;
 
-static_assert(sizeof(FklInstruction) == sizeof(uint32_t),
+static_assert(sizeof(FklIns) == sizeof(uint32_t),
         "invalid instruction definition");
 
 #define FKL_INSTRUCTION_STATIC_INIT { .op = FKL_OP_DUMMY, .au = 0, .bu = 0 }
 
 typedef struct {
     uint64_t len;
-    FklInstruction *code;
+    FklIns *code;
 } FklByteCode;
 
 typedef struct {
@@ -50,10 +50,10 @@ typedef struct {
     uint64_t scp;
     uint32_t line;
     uint32_t scope;
-} FklLineNumberTableItem;
+} FklLntItem;
 
 typedef struct {
-    FklLineNumberTableItem *l;
+    FklLntItem *l;
     FklByteCode bc;
     uint32_t ls;
 } FklByteCodelnt;
@@ -83,13 +83,13 @@ void fklDestroyByteCode(FklByteCode *);
 void fklInitByteCodelnt(FklByteCodelnt *t, size_t len);
 FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
-FklByteCodelnt *fklCreateSingleInsBclnt(FklInstruction ins,
+FklByteCodelnt *fklCreateSingleInsBclnt(FklIns ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
 void fklInitSingleInsBcl(FklByteCodelnt *bcl,
-        FklInstruction ins,
+        FklIns ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
@@ -101,77 +101,72 @@ void fklCodeLntConcat(FklByteCodelnt *, const FklByteCodelnt *);
 void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
-        const FklInstruction *ins,
+        const FklIns *ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
-void fklByteCodeLntInsertFrontIns(const FklInstruction *ins,
+void fklByteCodeLntInsertFrontIns(const FklIns *ins,
         FklByteCodelnt *bcl,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope);
 
-void fklByteCodePushBack(FklByteCode *bc, FklInstruction ins);
-void fklByteCodeInsertFront(FklInstruction, FklByteCode *bc);
+void fklByteCodePushBack(FklByteCode *bc, FklIns ins);
+void fklByteCodeInsertFront(FklIns, FklByteCode *bc);
 
-void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl,
-        FklInstruction ins,
-        uint64_t idx);
-FklInstruction fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
+void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl, FklIns ins, uint64_t idx);
+FklIns fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
 
-void fklInitLineNumTabNode(FklLineNumberTableItem *,
+void fklInitLineNumTabNode(FklLntItem *,
         FklVMvalue *fid,
         uint64_t scp,
         uint32_t line,
         uint32_t scope);
 
-const FklLineNumberTableItem *
-fklFindLineNumTabNode(uint64_t cp, size_t ls, const FklLineNumberTableItem *l);
+const FklLntItem *fklFindLntItem(uint64_t cp, size_t ls, const FklLntItem *l);
 
 typedef struct {
     int64_t ix;
     uint64_t ux;
     uint64_t uy;
-} FklInstructionArg;
+} FklInsArg;
 
-int fklGetInsOpArg(const FklInstruction *ins, FklInstructionArg *arg);
-int fklGetInsOpArgWithOp(FklOpcode op,
-        const FklInstruction *ins,
-        FklInstructionArg *arg);
+int fklGetInsOpArg(const FklIns *ins, FklInsArg *arg);
+int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *arg);
 
-int fklGetNextIns(const FklInstruction *cur_ins, const FklInstruction *ins[2]);
-int fklGetNextIns2(FklInstruction *cur_ins, FklInstruction *ins[2]);
+int fklGetNextIns(const FklIns *cur_ins, const FklIns *ins[2]);
+int fklGetNextIns2(FklIns *cur_ins, FklIns *ins[2]);
 
-static inline int fklIsJmpIns(const FklInstruction *ins) {
+static inline int fklIsJmpIns(const FklIns *ins) {
     return ins->op >= FKL_OP_JMP && ins->op <= FKL_OP_JMP_XX;
 }
 
-static inline int fklIsCondJmpIns(const FklInstruction *ins) {
+static inline int fklIsCondJmpIns(const FklIns *ins) {
     return ins->op >= FKL_OP_JMP_IF_TRUE && ins->op <= FKL_OP_JMP_IF_FALSE_XX;
 }
 
-static inline int fklIsPutLocIns(const FklInstruction *ins) {
+static inline int fklIsPutLocIns(const FklIns *ins) {
     return ins->op >= FKL_OP_PUT_LOC && ins->op <= FKL_OP_PUT_LOC_X;
 }
 
-static inline int fklIsPushProcIns(const FklInstruction *ins) {
+static inline int fklIsPushProcIns(const FklIns *ins) {
     return ins->op >= FKL_OP_PUSH_PROC && ins->op <= FKL_OP_PUSH_PROC_XXX;
 }
 
-static inline int fklIsPutVarRefIns(const FklInstruction *ins) {
+static inline int fklIsPutVarRefIns(const FklIns *ins) {
     return ins->op >= FKL_OP_PUT_VAR_REF && ins->op <= FKL_OP_PUT_VAR_REF_X;
 }
 
-static inline int fklIsCallIns(const FklInstruction *ins) {
+static inline int fklIsCallIns(const FklIns *ins) {
     return ins->op == FKL_OP_CALL || ins->op == FKL_OP_TAIL_CALL;
 }
 
-static inline int fklIsRetIns(const FklInstruction *ins) {
+static inline int fklIsRetIns(const FklIns *ins) {
     return ins->op >= FKL_OP_RET_IF_TRUE && ins->op <= FKL_OP_RET;
 }
 
-static inline int fklIsLoadLibIns(const FklInstruction *ins) {
+static inline int fklIsLoadLibIns(const FklIns *ins) {
     return ins->op >= FKL_OP_LOAD_LIB && ins->op <= FKL_OP_LOAD_LIB_X;
 }
 

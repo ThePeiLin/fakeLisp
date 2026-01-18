@@ -11,7 +11,7 @@
 #ifndef DISPATCH_SWITCH
 void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
-        const FklInstruction *ins,
+        const FklIns *ins,
         FklVMframe *frame) {
     FklVMvalueLib *plib;
     uint32_t idx;
@@ -52,7 +52,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_CHR(ins->bu));
         break;
     case FKL_OP_PUSH_CONST:
-        FKL_VM_PUSH_VALUE(exe, frame->c.konsts[FKL_GET_INS_UC(ins)]);
+        FKL_VM_PUSH_VALUE(exe, frame->konsts[FKL_GET_INS_UC(ins)]);
         break;
     case FKL_OP_PUSH_BOX:
         FKL_VM_PUSH_VALUE(exe,
@@ -115,13 +115,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         goto push_proc;
     case FKL_OP_PUSH_PROC_X:
         idx = FKL_GET_INS_UC(ins);
-        ins = frame->c.pc++;
+        ins = frame->pc++;
         size = FKL_GET_INS_UC(ins);
         goto push_proc;
     case FKL_OP_PUSH_PROC_XX:
         idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
         size = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->c.pc += 2;
+        frame->pc += 2;
         goto push_proc;
     case FKL_OP_PUSH_PROC_XXX:
         idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
@@ -130,18 +130,18 @@ void fklVMexecuteInstruction(FklVM *exe,
              | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
              | (((uint64_t)ins[3].bu)
                      << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
-        frame->c.pc += 3;
+        frame->pc += 3;
     push_proc: {
         FKL_VM_PUSH_VALUE(exe,
                 fklCreateVMvalueProcWithFrame(exe,
                         frame,
                         size,
                         idx,
-                        FKL_VM_PROC(frame->c.proc)->proto));
-        frame->c.pc += size;
+                        FKL_VM_PROC(frame->proc)->proto));
+        frame->pc += size;
     } break;
     case FKL_OP_DUP: {
-        if (exe->tp <= frame->c.sp)
+        if (exe->tp <= frame->sp)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACKERROR, exe);
         FklVMvalue *val = FKL_VM_POP_TOP_VALUE(exe);
         FKL_VM_PUSH_VALUE(exe, val);
@@ -150,11 +150,11 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_DROP:
         switch (ins->ai) {
         case FKL_SUBOP_DROP_1:
-            if (exe->tp > frame->c.sp)
+            if (exe->tp > frame->sp)
                 DROP_TOP(exe);
             break;
         case FKL_SUBOP_DROP_ALL:
-            exe->tp = frame->c.sp;
+            exe->tp = frame->sp;
             break;
         default:
             FKL_UNREACHABLE();
@@ -162,7 +162,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         break;
     case FKL_OP_CHECK_ARG: {
-        uint32_t const arg_num = frame->c.arg_num;
+        uint32_t const arg_num = frame->arg_num;
         if (arg_num < ins->bu)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
         switch (ins->ai) {
@@ -180,7 +180,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 pValue = &FKL_VM_CDR(*pValue);
             }
             FKL_VM_GET_ARG(exe, frame, ins->bu) = obj;
-            exe->tp = frame->c.sp;
+            exe->tp = frame->sp;
         } break;
         default:
             FKL_UNREACHABLE();
@@ -201,9 +201,8 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        if (proc->type_ == FKL_TYPE_CPROC
-                && fklGetCompoundFrameProc(frame) == proc) {
-            frame->c.mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
+        if (proc->type_ == FKL_TYPE_CPROC && frame->proc == proc) {
+            frame->mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;
         }
         fklTailCallObj(exe, proc);
@@ -241,7 +240,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         offset = GET_INS_IXX(ins, frame);
     jmp_if_true:
         if (FKL_VM_GET_TOP_VALUE(exe) != FKL_VM_NIL)
-            frame->c.pc += offset;
+            frame->pc += offset;
         break;
 
     case FKL_OP_JMP_IF_FALSE:
@@ -260,7 +259,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         offset = GET_INS_IXX(ins, frame);
     jmp_if_false:
         if (FKL_VM_GET_TOP_VALUE(exe) == FKL_VM_NIL)
-            frame->c.pc += offset;
+            frame->pc += offset;
         break;
     case FKL_OP_JMP:
         offset = ins->bi;
@@ -277,7 +276,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_JMP_XX:
         offset = GET_INS_IXX(ins, frame);
     jmp:
-        frame->c.pc += offset;
+        frame->pc += offset;
         break;
     case FKL_OP_IMPORT:
         idx = ins->au;
@@ -285,13 +284,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         goto import_lib;
     case FKL_OP_IMPORT_X:
         idx = FKL_GET_INS_UC(ins);
-        ins = frame->c.pc++;
+        ins = frame->pc++;
         idx1 = FKL_GET_INS_UC(ins);
         goto import_lib;
     case FKL_OP_IMPORT_XX:
         idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->c.pc += 2;
+        frame->pc += 2;
     import_lib: {
         FklVMvalueLib *plib = exe->importing_lib;
         FKL_ASSERT(idx < plib->count);
@@ -373,13 +372,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         break;
     case FKL_OP_LOAD_LIB:
-        plib = frame->c.libs[ins->bu];
+        plib = frame->libs[ins->bu];
         goto load_lib;
     case FKL_OP_LOAD_LIB_C:
-        plib = frame->c.libs[FKL_GET_INS_UC(ins)];
+        plib = frame->libs[FKL_GET_INS_UC(ins)];
         goto load_lib;
     case FKL_OP_LOAD_LIB_X:
-        plib = frame->c.libs[GET_INS_UX(ins, frame)];
+        plib = frame->libs[GET_INS_UX(ins, frame)];
     load_lib: {
 
         int state = atomic_load(&plib->import_state);
@@ -440,13 +439,13 @@ void fklVMexecuteInstruction(FklVM *exe,
         return;
     } break;
     case FKL_OP_LOAD_DLL:
-        plib = frame->c.libs[ins->bu];
+        plib = frame->libs[ins->bu];
         goto load_dll;
     case FKL_OP_LOAD_DLL_C:
-        plib = frame->c.libs[FKL_GET_INS_UC(ins)];
+        plib = frame->libs[FKL_GET_INS_UC(ins)];
         goto load_dll;
     case FKL_OP_LOAD_DLL_X:
-        plib = frame->c.libs[GET_INS_UX(ins, frame)];
+        plib = frame->libs[GET_INS_UX(ins, frame)];
     load_dll: {
         int state = atomic_load(&plib->import_state);
 
@@ -1152,17 +1151,15 @@ void fklVMexecuteInstruction(FklVM *exe,
         goto close_ref;
     case FKL_OP_CLOSE_REF_X:
         idx = FKL_GET_INS_UC(ins);
-        ins = frame->c.pc++;
+        ins = frame->pc++;
         idx1 = FKL_GET_INS_UC(ins);
         goto close_ref;
     case FKL_OP_CLOSE_REF_XX:
         idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->c.pc += 2;
+        frame->pc += 2;
     close_ref:
-        close_var_ref_between(fklGetCompoundFrameLocRef(frame)->lref,
-                idx,
-                idx1);
+        close_var_ref_between(frame->lref, idx, idx1);
         break;
     case FKL_OP_EXPORT_TO:
         idx = ins->au;
@@ -1177,7 +1174,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalueLib *lib = fklVMvalueLib(FKL_VM_GET_ARG(exe, frame, -1));
         // pop all values in stack
         // module should only return nil
-        exe->tp = frame->c.sp;
+        exe->tp = frame->sp;
         exe->importing_lib = lib;
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;

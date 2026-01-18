@@ -1311,7 +1311,7 @@ FklVMvalue *fklVMbigIntSubI(FklVM *exe, const FklVMvalueBigInt *a, int64_t b) {
 }
 
 FklVMvalue *fklCreateVMvalueProc2(FklVM *exe,
-        const FklInstruction *spc,
+        const FklIns *spc,
         uint64_t cpc,
         FklVMvalue *bcl,
         FklVMvalueProto *pt) {
@@ -1413,7 +1413,7 @@ FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *exe) {
 }
 
 FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
-        FklInstruction ins,
+        FklIns ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
@@ -1454,7 +1454,7 @@ static FklVMudMetaTable const DllUserDataMetaTable = {
 
 FklVMvalue *
 fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
-	const char* dll_name = FKL_VM_STR(path)->str;
+    const char *dll_name = FKL_VM_STR(path)->str;
     size_t len = strlen(dll_name) + strlen(FKL_DLL_FILE_TYPE) + 1;
     char *real_dll_name = (char *)fklZmalloc(len);
     FKL_ASSERT(real_dll_name);
@@ -1473,7 +1473,7 @@ fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
     }
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DllUserDataMetaTable, NULL);
     FklVMvalueDll *dll = FKL_VM_DLL(r);
-	dll->path = path;
+    dll->path = path;
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
     fklZfree(real_dll_name);

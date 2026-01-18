@@ -47,38 +47,37 @@ push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
 
 // call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
-    FklVMframe *frame = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
+    FklVMframe *f = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
     uint32_t lcount = proc->local_count;
-    fklVMframeSetBp(exe, frame, lcount);
+    fklVMframeSetBp(exe, f, lcount);
     FklVMvalueProto *proto = proc->proto;
-    frame->c.konsts = fklVMvalueProtoConsts(proto);
-    frame->c.libs = fklVMvalueProtoUsedLibs(proto);
-    FklVMCompoundFrameVarRef *f = &frame->c.lr;
+    f->konsts = fklVMvalueProtoConsts(proto);
+    f->libs = fklVMvalueProtoUsedLibs(proto);
     f->lcount = lcount;
-    fklPushVMframe(frame, exe);
+    fklPushVMframe(f, exe);
 }
 
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *fp, FklVM *exe) {
     if (t->type == FKL_FRAME_COMPOUND) {
-        FklVMvalue *name = FKL_VM_PROC(t->c.proc)->name;
+        FklVMvalue *name = FKL_VM_PROC(t->proc)->name;
 
         if (name)
             fklPrintString2(FKL_VM_SYM(name), fp);
         else
             fklCodeBuilderPuts(fp, "<lambda>");
-        fklCodeBuilderFmt(fp, "[%u]", t->c.mark);
+        fklCodeBuilderFmt(fp, "[%u]", t->mark);
     } else
         fklCodeBuilderPuts(fp, "<obj>");
 
     for (FklVMframe *cur = t->prev; cur; cur = cur->prev) {
         fklCodeBuilderPuts(fp, " --> ");
         if (cur->type == FKL_FRAME_COMPOUND) {
-            FklVMvalue *name = FKL_VM_PROC(cur->c.proc)->name;
+            FklVMvalue *name = FKL_VM_PROC(cur->proc)->name;
             if (name)
                 fklPrintString2(FKL_VM_SYM(name), fp);
             else
                 fklCodeBuilderPuts(fp, "<lambda>");
-            fklCodeBuilderFmt(fp, "[%u]", cur->c.mark);
+            fklCodeBuilderFmt(fp, "[%u]", cur->mark);
         } else
             fklCodeBuilderPuts(fp, "<obj>");
     }
@@ -136,13 +135,13 @@ typedef struct ImportPostProcessContext {
 static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
     f->ret_cb = NULL;
 
-    uint32_t const value_count = (exe->tp - f->c.sp);
+    uint32_t const value_count = (exe->tp - f->sp);
     if (value_count > 1 || value_count < 1) {
         return 0;
     }
 
     uint64_t epc = fklVMgetUint(FKL_VM_GET_ARG(exe, f, -3));
-    f->c.pc = f->c.spc + epc;
+    f->pc = f->spc + epc;
     return 1;
 }
 
@@ -152,7 +151,7 @@ static inline void call_cproc(FklVM *exe, FklVMvalue *cproc) {
     fklPushVMframe(f, exe);
 }
 
-static inline void B_dummy(FklVM *exe, const FklInstruction *ins) {
+static inline void B_dummy(FklVM *exe, const FklIns *ins) {
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS],
             fklCreateVMvalueStrFromCstr(exe, "reach invalid opcode: `dummy`"));
@@ -258,7 +257,7 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
 
 static inline void do_finalize_obj_frame(FklVM *vm, FklVMframe *f) {
     if (f->t->finalizer)
-        f->t->finalizer(fklGetFrameData(f));
+        f->t->finalizer((void *)f->data);
     f->prev = NULL;
     *(vm->frame_cache_tail) = f;
     vm->frame_cache_tail = &f->prev;
@@ -276,23 +275,22 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref) {
     return p == &FKL_VM_VAR_REF(ref)->v;
 }
 
-static inline void close_all_var_ref(FklVMCompoundFrameVarRef *lr) {
-    for (FklVMvalue *l = lr->lrefl; FKL_IS_PAIR(l); l = FKL_VM_CDR(l)) {
+static inline void close_all_var_ref(FklVMframe *f) {
+    for (FklVMvalue *l = f->lrefl; FKL_IS_PAIR(l); l = FKL_VM_CDR(l)) {
         close_var_ref(FKL_VM_CAR(l));
     }
 }
 
-static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *frame) {
-    FklVMCompoundFrameVarRef *lr = &frame->c.lr;
-    close_all_var_ref(lr);
+static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *f) {
+    close_all_var_ref(f);
 
-    lr->lref = FKL_VM_NIL;
-    lr->lrefl = FKL_VM_NIL;
-    lr->ref = NULL;
+    f->lref = FKL_VM_NIL;
+    f->lrefl = FKL_VM_NIL;
+    f->ref = NULL;
 
-    frame->prev = NULL;
-    *(exe->frame_cache_tail) = frame;
-    exe->frame_cache_tail = &frame->prev;
+    f->prev = NULL;
+    *(exe->frame_cache_tail) = f;
+    exe->frame_cache_tail = &f->prev;
 }
 
 void fklDestroyVMframe(FklVMframe *frame, FklVM *exe) {
@@ -598,13 +596,12 @@ int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame) {
     FKL_VM_PUSH_VALUE(exe, fklProcessVMnumIdivResult(exe, a, r64, &bi))
 
 static inline FklVMvalue *
-get_var_val(FklVMframe *frame, uint32_t idx, FklVMvalue **psid) {
-    FklVMCompoundFrameVarRef *lr = &frame->c.lr;
-    FklVMvalue *v = idx < lr->rcount ? *FKL_VM_VAR_REF_GET(lr->ref[idx]) : NULL;
+get_var_val(FklVMframe *f, uint32_t idx, FklVMvalue **psid) {
+    FklVMvalue *v = idx < f->rcount ? *FKL_VM_VAR_REF_GET(f->ref[idx]) : NULL;
     if (v)
         return v;
 
-    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
     const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(proc->proto);
     FKL_ASSERT(refs[idx].sid);
     *psid = refs[idx].sid;
@@ -612,15 +609,14 @@ get_var_val(FklVMframe *frame, uint32_t idx, FklVMvalue **psid) {
 }
 
 static inline FklVMvalue *volatile *
-get_var_ref(FklVMframe *frame, uint32_t idx, FklVMvalue **psid) {
-    FklVMCompoundFrameVarRef *lr = &frame->c.lr;
+get_var_ref(FklVMframe *f, uint32_t idx, FklVMvalue **psid) {
     FklVMvalue *volatile *v =
-            (idx >= lr->rcount || !(FKL_VM_VAR_REF(lr->ref[idx])->ref))
+            (idx >= f->rcount || !(FKL_VM_VAR_REF(f->ref[idx])->ref))
                     ? NULL
-                    : FKL_VM_VAR_REF_GET(lr->ref[idx]);
+                    : FKL_VM_VAR_REF_GET(f->ref[idx]);
     if (v && *v)
         return v;
-    FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(frame));
+    FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
     const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(proc->proto);
     FKL_ASSERT(refs[idx].sid);
     *psid = refs[idx].sid;
@@ -646,17 +642,17 @@ close_var_ref_between(FklVMvalue *lref_v, uint32_t sIdx, uint32_t eIdx) {
 }
 
 #define GET_INS_UX(ins, frame)                                                 \
-    ((ins)->bu | (((uint32_t)frame->c.pc++->bu) << FKL_I16_WIDTH))
+    ((ins)->bu | (((uint32_t)frame->pc++->bu) << FKL_I16_WIDTH))
 #define GET_INS_IX(ins, frame) ((int32_t)GET_INS_UX(ins, frame))
 #define GET_INS_UXX(ins, frame)                                                \
-    (frame->c.pc += 2,                                                         \
+    (frame->pc += 2,                                                           \
             FKL_GET_INS_UC(ins)                                                \
                     | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH) \
                     | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
-    const FklInstruction *ins;
+    const FklIns *ins;
     FklVMvalueLib *plib;
     uint32_t idx;
     uint32_t idx1;
@@ -664,7 +660,7 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     uint64_t size;
     int64_t offset;
 start:
-    ins = frame->c.pc++;
+    ins = frame->pc++;
     switch ((FklOpcode)ins->op) {
 #define DISPATCH_INCLUDED
 #define DISPATCH_SWITCH
@@ -685,7 +681,7 @@ start:
 
 static FKL_ALWAYS_INLINE int do_callable_obj_frame_step(FklVMframe *f,
         struct FklVM *exe) {
-    return f->t->step(fklGetFrameData(f), exe);
+    return f->t->step((void *)f->data, exe);
 }
 
 void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc) {
@@ -1191,43 +1187,39 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
     return FKL_VM_VAL(ref);
 }
 
-static inline void
-init_lref_vec(FklVM *vm, FklVMCompoundFrameVarRef *lr, uint32_t lcount) {
-    if (!FKL_IS_VECTOR(lr->lref)) {
-        lr->lref = fklCreateVMvalueVec(vm, lcount);
+static inline void init_lref_vec(FklVM *vm, FklVMframe *f, uint32_t lcount) {
+    if (!FKL_IS_VECTOR(f->lref)) {
+        f->lref = fklCreateVMvalueVec(vm, lcount);
     }
 }
 
-static inline FklVMvalue *insert_local_ref(FklVM *exe,
-        FklVMCompoundFrameVarRef *lr,
-        FklVMvalue *ref,
-        uint32_t cidx) {
-    FklVMvalue *rl = fklCreateVMvaluePair(exe, ref, lr->lrefl);
-    lr->lrefl = rl;
-    FKL_VM_VEC(lr->lref)->base[cidx] = ref;
+static inline FklVMvalue *
+insert_local_ref(FklVM *exe, FklVMframe *f, FklVMvalue *ref, uint32_t cidx) {
+    FklVMvalue *rl = fklCreateVMvaluePair(exe, ref, f->lrefl);
+    f->lrefl = rl;
+    FKL_VM_VEC(f->lref)->base[cidx] = ref;
     return ref;
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
-    return FKL_VM_PROC(frame->c.proc)->bcl;
+    return FKL_VM_PROC(frame->proc)->bcl;
 }
 
 static inline FklVMvalue *
 fetch_var_ref(FklVM *exe, const FklVarRefDef *c, FklVMframe *f) {
     uint32_t cidx = FKL_GET_FIX(c->cidx);
-    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(f);
-    FklVMvalue **ref = lr->ref;
+    FklVMvalue **ref = f->ref;
     if (FKL_IS_TRUE(c->is_local)) {
-        init_lref_vec(exe, lr, lr->lcount);
-        return FKL_VM_VEC(lr->lref)->base[cidx]
-                     ? FKL_VM_VEC(lr->lref)->base[cidx]
+        init_lref_vec(exe, f, f->lcount);
+        return FKL_VM_VEC(f->lref)->base[cidx]
+                     ? FKL_VM_VEC(f->lref)->base[cidx]
                      : insert_local_ref(exe,
-                               lr,
+                               f,
                                fklCreateVMvalueVarRef(exe, f, cidx),
                                cidx);
     } else {
-        return cidx < lr->rcount ? ref[cidx]
-                                 : fklCreateClosedVMvalueVarRef(exe, NULL);
+        return cidx < f->rcount ? ref[cidx]
+                                : fklCreateClosedVMvalueVarRef(exe, NULL);
     }
 }
 
@@ -1239,7 +1231,7 @@ FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
     FklVMvalue *co = get_compound_frame_code_obj(f);
     FklVMvalueProto *pt = fklVMvalueProtoChildren(parent_proto)[pid];
     FklVMvalue *r = fklCreateVMvalueProc2(exe, //
-            fklGetCompoundFrameCode(f),
+            f->pc,
             cpc,
             co,
             pt);

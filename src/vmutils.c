@@ -107,7 +107,7 @@ double fklVMgetDouble(const FklVMvalue *p) {
 }
 
 static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
-    return FKL_VM_PROC(frame->c.proc)->bcl;
+    return FKL_VM_PROC(frame->proc)->bcl;
 }
 
 static inline void
@@ -120,15 +120,15 @@ print_back_trace(FklVMframe *f, FklCodeBuilder *build, FklVMgc *gc) {
         fklCodeBuilderPuts(build, "at callable-obj\n");
 }
 
-void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
-    if (cur->type == FKL_FRAME_COMPOUND) {
-        FklVMvalueProc *proc = FKL_VM_PROC(fklGetCompoundFrameProc(cur));
+void fklPrintFrame(FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
+    if (f->type == FKL_FRAME_COMPOUND) {
+        FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
         if (proc->name != FKL_VM_NIL) {
             fklCodeBuilderPuts(build, "at proc: ");
             fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
-        } else if (cur->prev) {
-            FklVMvalueProto *pt = fklGetCompoundFrameProcPrototype(cur);
-            FklVMvalue *sid = fklGetCompoundFrameSid(cur);
+        } else if (f->prev) {
+            FklVMvalueProto *pt = FKL_VM_PROC(f->proc)->proto;
+            FklVMvalue *sid = FKL_VM_PROC(f->proc)->name;
             if (sid == FKL_VM_NIL) {
                 sid = pt->name;
             }
@@ -148,11 +148,9 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
         } else {
             fklCodeBuilderPuts(build, "at <top>");
         }
-        FklByteCodelnt *co = FKL_VM_CO(get_compound_frame_code_obj(cur));
-        const FklLineNumberTableItem *node = fklFindLineNumTabNode(
-                fklGetCompoundFrameCode(cur) - co->bc.code - 1,
-                co->ls,
-                co->l);
+        FklByteCodelnt *co = FKL_VM_CO(get_compound_frame_code_obj(f));
+        uint64_t const pc_idx = f->pc - co->bc.code - 1;
+        const FklLntItem *node = fklFindLntItem(pc_idx, co->ls, co->l);
         if (node->fid != FKL_VM_NIL) {
             fklCodeBuilderFmt(build, " (%" PRIu32 ": ", node->line);
             fklPrintString2(FKL_VM_SYM(node->fid), build);
@@ -161,7 +159,7 @@ void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *build) {
             fklCodeBuilderFmt(build, " (%" PRIu32 ")\n", node->line);
         }
     } else
-        print_back_trace(cur, build, exe->gc);
+        print_back_trace(f, build, exe->gc);
 }
 
 void fklPrintBacktrace(FklVM *exe, FklCodeBuilder *build) {
@@ -202,49 +200,48 @@ void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
     longjmp(*exe->buf, FKL_VM_ERR_RAISE);
 }
 
-static inline void init_frame_var_ref(FklVMCompoundFrameVarRef *lr) {
-    lr->lref = FKL_VM_NIL;
-    lr->lrefl = FKL_VM_NIL;
-    lr->ref = NULL;
+static inline void init_frame_var_ref(FklVMframe *f) {
+    f->lref = FKL_VM_NIL;
+    f->lrefl = FKL_VM_NIL;
+    f->ref = NULL;
 
-    lr->lcount = 0;
-    lr->rcount = 0;
+    f->lcount = 0;
+    f->rcount = 0;
 }
 
 FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
     FklVMvalueProc *code = FKL_VM_PROC(proc);
-    FklVMframe *frame;
+    FklVMframe *f;
     if (exe->frame_cache_head) {
-        frame = exe->frame_cache_head;
-        exe->frame_cache_head = frame->prev;
-        if (frame->prev == NULL)
+        f = exe->frame_cache_head;
+        exe->frame_cache_head = f->prev;
+        if (f->prev == NULL)
             exe->frame_cache_tail = &exe->frame_cache_head;
-        memset(frame, 0, sizeof(FklVMframe));
+        memset(f, 0, sizeof(FklVMframe));
     } else {
-        frame = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
-        FKL_ASSERT(frame);
+        f = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
+        FKL_ASSERT(f);
     }
-    frame->type = FKL_FRAME_COMPOUND;
+    f->type = FKL_FRAME_COMPOUND;
 
-    FklVMCompoundFrameData *f = &frame->c;
     f->konsts = NULL;
     f->pc = NULL;
     f->spc = NULL;
     f->end = NULL;
     f->proc = NULL;
     f->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
-    init_frame_var_ref(&f->lr);
+    init_frame_var_ref(f);
     if (code) {
-        f->lr.ref = code->closure;
-        f->lr.rcount = code->ref_count;
+        f->ref = code->closure;
+        f->rcount = code->ref_count;
         f->pc = code->spc;
         f->spc = code->spc;
         f->end = code->end;
         f->konsts = fklVMvalueProtoConsts(code->proto);
-		f->libs = fklVMvalueProtoUsedLibs(code->proto);
+        f->libs = fklVMvalueProtoUsedLibs(code->proto);
         f->proc = proc;
     }
-    return frame;
+    return f;
 }
 
 FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,

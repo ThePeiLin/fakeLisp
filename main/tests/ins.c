@@ -4,18 +4,18 @@
 
 #include <inttypes.h>
 
-static FklInstruction ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
+static FklIns ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
 
 #define I24_L8_MASK (0xFF)
 #define I32_L16_MASK (0xFFFF)
 #define I64_L24_MASK (0xFFFFFF)
 
-static inline void set_ins_uc(FklInstruction *ins, uint32_t k) {
+static inline void set_ins_uc(FklIns *ins, uint32_t k) {
     ins->au = k & I24_L8_MASK;
     ins->bu = k >> FKL_BYTE_WIDTH;
 }
 
-static inline void set_ins_uxx(FklInstruction *ins, uint64_t k) {
+static inline void set_ins_uxx(FklIns *ins, uint64_t k) {
     set_ins_uc(&ins[0], k & I64_L24_MASK);
     ins[1].op = FKL_OP_EXTRA_ARG;
     set_ins_uc(&ins[1], (k >> FKL_I24_WIDTH) & I64_L24_MASK);
@@ -23,7 +23,7 @@ static inline void set_ins_uxx(FklInstruction *ins, uint64_t k) {
     ins[2].bu = (k >> (FKL_I24_WIDTH * 2));
 }
 
-static inline void set_ins_ux(FklInstruction *ins, uint32_t k) {
+static inline void set_ins_ux(FklIns *ins, uint32_t k) {
     ins[0].bu = k & I32_L16_MASK;
     ins[1].op = FKL_OP_EXTRA_ARG;
     ins[1].bu = k >> FKL_I16_WIDTH;
@@ -32,7 +32,7 @@ static inline void set_ins_ux(FklInstruction *ins, uint32_t k) {
 int main() {
     uint64_t ux = 0x123456;
     int64_t s = -0x123456;
-    FklInstructionArg arg;
+    FklInsArg arg;
     // IuC
     ins[0].op = FKL_OP_PUSH_I24;
     set_ins_uc(ins, ux);

@@ -590,13 +590,11 @@ typedef struct {
 
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(ReplFrameCtx);
 
-static inline FklVMvalue *insert_local_ref(FklVM *vm,
-        FklVMCompoundFrameVarRef *lr,
-        FklVMvalue *ref,
-        uint32_t cidx) {
-    FklVMvalue *rl = fklCreateVMvaluePair(vm, ref, lr->lrefl);
-    lr->lrefl = rl;
-    FKL_VM_VEC(lr->lref)->base[cidx] = ref;
+static inline FklVMvalue *
+insert_local_ref(FklVM *vm, FklVMframe *f, FklVMvalue *ref, uint32_t cidx) {
+    FklVMvalue *rl = fklCreateVMvaluePair(vm, ref, f->lrefl);
+    f->lrefl = rl;
+    FKL_VM_VEC(f->lref)->base[cidx] = ref;
     return ref;
 }
 
@@ -613,7 +611,7 @@ struct ResolveRefArg {
 
 struct ResolveRefArgs {
     FklVMvalue **loc;
-    FklVMCompoundFrameVarRef *lr;
+    FklVMframe *f;
     FklResolveRefArgVector *resolvable_refs;
 };
 
@@ -622,17 +620,17 @@ static inline FklVMvalue *fetch_var_ref_for_repl(FklVM *vm,
         const struct ResolveRefArgs *s,
         struct ResolveRefArg *cur) {
     FklVMvalue **loc = s->loc;
-    FklVMCompoundFrameVarRef *lr = s->lr;
+    FklVMframe *f = s->f;
     const FklSymDefHashMapElm *def = cur->def;
     uint32_t idx = cur->idx;
-    FklVMvalue *ref = FKL_VM_VEC(lr->lref)->base[def->v.idx];
+    FklVMvalue *ref = FKL_VM_VEC(f->lref)->base[def->v.idx];
     if (ref != NULL)
         return ref;
 
     ref = proc->closure[idx];
     FKL_VM_VAR_REF(ref)->idx = def->v.idx;
     FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
-    insert_local_ref(vm, lr, ref, def->v.idx);
+    insert_local_ref(vm, f, ref, def->v.idx);
     return ref;
 }
 
@@ -679,11 +677,9 @@ static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
         FklVMframe *mainframe,
         FklResolveRefArgVector *resolvable_refs) {
 
-    FklVMCompoundFrameVarRef *lr = fklGetCompoundFrameLocRef(mainframe);
-
     if (resolvable_refs->size) {
         struct ResolveRefArgs resolve_ref_args = {
-            .lr = lr,
+            .f = mainframe,
             .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
             .resolvable_refs = resolvable_refs,
         };
@@ -692,13 +688,11 @@ static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
     }
 }
 
-static inline void alloc_more_space_for_var_ref(FklVM *vm,
-        FklVMCompoundFrameVarRef *lr,
-        uint32_t i,
-        uint32_t n) {
-    FklVMvalue *o_lref = lr->lref;
+static inline void
+alloc_more_space_for_var_ref(FklVM *vm, FklVMframe *f, uint32_t i, uint32_t n) {
+    FklVMvalue *o_lref = f->lref;
     if (!FKL_IS_VECTOR(o_lref)) {
-        lr->lref = fklCreateVMvalueVec(vm, n);
+        f->lref = fklCreateVMvalueVec(vm, n);
         return;
     }
 
@@ -710,7 +704,7 @@ static inline void alloc_more_space_for_var_ref(FklVM *vm,
         FKL_VM_VEC(lref)->base[i] = FKL_VM_VEC(o_lref)->base[i];
     }
 
-    lr->lref = lref;
+    f->lref = lref;
 }
 
 #include <fakeLisp/grammer.h>
@@ -847,14 +841,14 @@ init_mainframe_lref(FklVMvalue *lref, uint32_t lcount, FklVMvalue *lrefl) {
     }
 }
 
-static int repl_frame_ret_callback(FklVM *exe, FklVMframe *frame) {
-    FklVMvalue *lrefl = frame->c.lr.lrefl;
-    FklVMvalue *lref = frame->c.lr.lref;
-    frame->c.lr.lrefl = FKL_VM_NIL;
-    frame->c.lr.lref = FKL_VM_NIL;
-    frame->c.lr.lcount = 1;
-    uint32_t bp = frame->bp;
-    uint32_t sp = frame->c.sp;
+static int repl_frame_ret_callback(FklVM *exe, FklVMframe *f) {
+    FklVMvalue *lrefl = f->lrefl;
+    FklVMvalue *lref = f->lref;
+    f->lrefl = FKL_VM_NIL;
+    f->lref = FKL_VM_NIL;
+    f->lcount = 1;
+    uint32_t bp = f->bp;
+    uint32_t sp = f->sp;
     fklPopVMframe(exe);
 
     FklVMframe *buttom_frame = exe->top_frame;
@@ -917,17 +911,16 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     fctx->new_var_count = fctx->lcount - o_lcount;
 
     exe->base[1] = fctx->main_proc;
-    FklVMframe *frame = fklCreateVMframeWithProc(exe, fctx->main_proc);
-    fklPushVMframe(frame, exe);
-    frame->c.lr.lrefl = fctx->lrefl;
-    frame->c.lr.lref = fctx->lref;
-    FklVMCompoundFrameVarRef *f = &frame->c.lr;
+    FklVMframe *f = fklCreateVMframeWithProc(exe, fctx->main_proc);
+    fklPushVMframe(f, exe);
+    f->lrefl = fctx->lrefl;
+    f->lref = fctx->lref;
 
-    frame->bp = fctx->bp;
-    frame->ret_cb = repl_frame_ret_callback;
-    fklVMframeSetSp(exe, frame, pt->local_count);
+    f->bp = fctx->bp;
+    f->ret_cb = repl_frame_ret_callback;
+    fklVMframeSetSp(exe, f, pt->local_count);
 
-    FKL_VM_GET_ARG(exe, frame, o_lcount) = NULL;
+    FKL_VM_GET_ARG(exe, f, o_lcount) = NULL;
     f->lcount = pt->local_count;
     alloc_more_space_for_var_ref(exe, f, o_lcount, f->lcount);
     init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
@@ -935,12 +928,12 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     resolve_ref_for_repl(fctx->main_env,
             fctx->info->global_env,
             exe,
-            frame,
+            f,
             &resolvable_refs);
 
     fklResolveRefArgVectorUninit(&resolvable_refs);
 
-    exe->top_frame = frame;
+    exe->top_frame = f;
     fctx->lrefl = FKL_VM_NIL;
     fctx->lref = FKL_VM_NIL;
 }
@@ -1064,15 +1057,15 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     if (main_frame->prev) {
         for (; main_frame->prev->prev; main_frame = main_frame->prev)
             ;
-        FklVMvalue *lrefl = main_frame->c.lr.lrefl;
-        FklVMvalue *lref = main_frame->c.lr.lref;
+        FklVMvalue *lrefl = main_frame->lrefl;
+        FklVMvalue *lref = main_frame->lref;
 
-        uint32_t lcount = main_frame->c.lr.lcount;
-        main_frame->c.lr.lrefl = FKL_VM_NIL;
-        main_frame->c.lr.lref = FKL_VM_NIL;
-        main_frame->c.lr.lcount = 1;
+        uint32_t lcount = main_frame->lcount;
+        main_frame->lrefl = FKL_VM_NIL;
+        main_frame->lref = FKL_VM_NIL;
+        main_frame->lcount = 1;
         uint32_t bp = main_frame->bp;
-        uint32_t sp = main_frame->c.sp;
+        uint32_t sp = main_frame->sp;
 
         while (exe->top_frame->prev) {
             FklVMframe *cur = exe->top_frame;

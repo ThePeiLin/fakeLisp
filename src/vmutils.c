@@ -234,6 +234,7 @@ FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
     if (code) {
         f->ref = code->closure;
         f->rcount = code->ref_count;
+        f->lcount = code->local_count;
         f->pc = code->spc;
         f->spc = code->spc;
         f->end = code->end;

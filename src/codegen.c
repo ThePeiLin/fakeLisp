@@ -8234,7 +8234,7 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                 left_sid,
                 other_args.len,
                 other_args.syms);
-        FklVMvalueCustomActCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
         for (size_t i = 0; i < ctx->actual_len; ++i) {
             fklAddCgDefBySid(ctx->dollers[i], 1, macro_env);
         }
@@ -8263,7 +8263,7 @@ nast_vector_to_production(const FklVMvalue *vec, NastToProductionArgs *args) {
                     .container = action_ast,
                 });
         FKL_PUSH_NEW_DEFAULT_PREV_CODEGEN_ACTION(_reader_macro_bc_process,
-                createReaderMacroActionContext(prod->ctx),
+                createReaderMacroActionContext(ctx),
                 createMustHasRetvalQueueNextExpression(queue),
                 1,
                 macro_env->macros,

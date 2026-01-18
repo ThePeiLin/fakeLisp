@@ -132,12 +132,9 @@ void fklVMexecuteInstruction(FklVM *exe,
                      << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
         frame->pc += 3;
     push_proc: {
-        FKL_VM_PUSH_VALUE(exe,
-                fklCreateVMvalueProcWithFrame(exe,
-                        frame,
-                        size,
-                        idx,
-                        FKL_VM_PROC(frame->proc)->proto));
+        FklVMvalueProto *proto = FKL_VM_PROC(frame->proc)->proto;
+        FklVMvalue *proc = fklCreateVMvalueProc3(exe, frame, size, idx, proto);
+        FKL_VM_PUSH_VALUE(exe, proc);
         frame->pc += size;
     } break;
     case FKL_OP_DUP: {

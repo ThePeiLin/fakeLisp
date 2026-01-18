@@ -48,12 +48,7 @@ push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
 // call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
     FklVMframe *f = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
-    uint32_t lcount = proc->local_count;
-    fklVMframeSetBp(exe, f, lcount);
-    FklVMvalueProto *proto = proc->proto;
-    f->konsts = fklVMvalueProtoConsts(proto);
-    f->libs = fklVMvalueProtoUsedLibs(proto);
-    f->lcount = lcount;
+    fklVMframeSetBp(exe, f, proc->local_count);
     fklPushVMframe(f, exe);
 }
 
@@ -1223,7 +1218,7 @@ fetch_var_ref(FklVM *exe, const FklVarRefDef *c, FklVMframe *f) {
     }
 }
 
-FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *exe,
+FklVMvalue *fklCreateVMvalueProc3(FklVM *exe,
         FklVMframe *f,
         size_t cpc,
         uint32_t pid,

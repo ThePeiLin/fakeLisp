@@ -1075,7 +1075,7 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *,
         FklVMvalue *codeObj,
         FklVMvalueProto *pt);
 
-FklVMvalue *fklCreateVMvalueProcWithFrame(FklVM *,
+FklVMvalue *fklCreateVMvalueProc3(FklVM *,
         FklVMframe *f,
         size_t,
         uint32_t pid,

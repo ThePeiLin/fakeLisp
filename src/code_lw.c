@@ -1162,7 +1162,7 @@ static inline void write_production_rule_action_pass_1(
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
     if (fklIsCustomActionProd(prod)) {
-        FklVMvalueCustomActCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
         write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
@@ -1170,11 +1170,11 @@ static inline void write_production_rule_action_pass_1(
                 FKL_WRITE_CODE_PASS_FIRST,
                 NULL);
     } else if (fklIsSimpleActionProd(prod)) {
-        FklVMvalueSimpleActCtx *ctx = prod->ctx;
+        FklVMvalueSimpleActCtx *ctx = (FklVMvalueSimpleActCtx *)prod->ctx;
         fklTraverseSerializableValue(vt, ctx->vec);
     } else {
         // is replace or builtin prod
-        FklVMvalue *r = prod->ctx;
+        FklVMvalue *r = (FklVMvalue *)prod->ctx;
         fklTraverseSerializableValue(vt, r);
     }
 }
@@ -1189,7 +1189,7 @@ static inline void write_production_rule_action_pass_2(
     if (fklIsCustomActionProd(prod)) {
         type = FKL_CODEGEN_PROD_CUSTOM;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueCustomActCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
         write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
@@ -1199,13 +1199,13 @@ static inline void write_production_rule_action_pass_2(
     } else if (fklIsSimpleActionProd(prod)) {
         type = FKL_CODEGEN_PROD_SIMPLE;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueSimpleActCtx *ctx = prod->ctx;
+        FklVMvalueSimpleActCtx *ctx = (FklVMvalueSimpleActCtx *)prod->ctx;
         write_value_id(vt, 0, ctx->vec, fp);
     } else {
         type = fklIsReplaceActionProd(prod) ? FKL_CODEGEN_PROD_REPLACE
                                             : FKL_CODEGEN_PROD_BUILTIN;
         fwrite(&type, sizeof(type), 1, fp);
-        write_value_id(vt, 0, prod->ctx, fp);
+        write_value_id(vt, 0, (FklVMvalue *)prod->ctx, fp);
     }
 }
 
@@ -1454,7 +1454,7 @@ static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
                 nt->sid,
                 prod_len,
                 syms);
-        FklVMvalueCustomActCtx *actx = prod->ctx;
+        FklVMvalueCustomActCtx *actx = (FklVMvalueCustomActCtx *)prod->ctx;
         FklVMvalueProc *proc = load_proc(fp, values, protos);
         actx->proc = FKL_VM_VAL(proc);
     } break;

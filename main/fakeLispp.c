@@ -330,14 +330,14 @@ static void print_reader_macro_action(FklVM *vm,
         const FklLibTable *lib_table) {
     if (fklIsCustomActionProd(prod)) {
         CB_LINE_END("custom");
-        FklVMvalueCustomActCtx *ctx = prod->ctx;
+        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
         const FklVMvalueProc *proc = FKL_VM_PROC(ctx->proc);
         FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
     } else {
         if (prod->ctx == NULL) {
             CB_FMT("|first|");
         } else {
-            fklPrin1VMvalue2(prod->ctx, build, vm);
+            fklPrin1VMvalue2((FklVMvalue *)prod->ctx, build, vm);
         }
         CB_LINE_END("");
     }

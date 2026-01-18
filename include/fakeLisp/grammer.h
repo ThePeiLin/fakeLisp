@@ -252,7 +252,8 @@ uint64_t fklGetFirstNthLine(FklAnalysisSymbolVector *symbol_vector,
         size_t num,
         size_t line);
 
-typedef void *(*FklProdActionFunc)(void *args,
+typedef struct FklProdActionArgs FklProdActionArgs;
+typedef void *(*FklProdActionFunc)(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,
@@ -261,7 +262,7 @@ typedef void *(*FklProdActionFunc)(void *args,
 typedef struct FklGrammerProduction {
     struct FklGrammerProduction *next;
     const char *name;
-    void *ctx;
+    FklProdActionArgs *ctx;
     FklProdActionFunc func;
     void *(*ctx_copy)(const void *);
     void (*ctx_destroy)(void *);

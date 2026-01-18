@@ -111,7 +111,7 @@ void fklVMgcMarkGrammerProd(FklVMgc *gc,
     }
 
     if (ctx_atomic) {
-        ctx_atomic(prod->ctx, gc);
+        ctx_atomic(gc, prod->ctx);
     } else if (ctx_atomic != FKL_VM_GRAMMER_CTX_MARKER_NONE) {
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, prod->ctx), gc);
     }

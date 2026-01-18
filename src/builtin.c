@@ -1992,7 +1992,7 @@ static inline int isVMfpWritable(const FklVMvalue *fp) {
     return FKL_VM_FP(fp)->rw & FKL_VM_FP_W_MASK;
 }
 
-static void *custom_parser_prod_action(void *action_ctx,
+static void *custom_parser_prod_action(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t num,
@@ -2422,7 +2422,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
             FKL_ASSERT(prod);
             next = EXCEPT_NEXT_ARG_SYMBOL;
             if (fklIsCallable(next_arg)) {
-                prod->ctx = next_arg;
+                prod->ctx = FKL_TYPE_CAST(FklProdActionArgs *, next_arg);
                 if (fklAddProdAndExtraToGrammer(grammer, prod)) {
                     fklDestroyGrammerProduction(prod);
                     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);

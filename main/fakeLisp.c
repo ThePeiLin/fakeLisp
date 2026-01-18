@@ -901,7 +901,7 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
             .top_env = fctx->info->global_env,
             .no_refs_to_builtins = 1,
             .resolve_ref_to_def_cb = collect_resolvable_ref_cb,
-            .resolve_ref_to_def_cb_args = (void *)&resolvable_refs, );
+            .resolve_ref_to_def_cb_args = (void *)&resolvable_refs);
 
     FklVMvalue *main_proc = fklCreateVMvalueProc(exe, main_bc, pt);
     fklInitMainProcRefs(exe, main_proc);
@@ -921,7 +921,6 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     fklVMframeSetSp(exe, f, pt->local_count);
 
     FKL_VM_GET_ARG(exe, f, o_lcount) = NULL;
-    f->lcount = pt->local_count;
     alloc_more_space_for_var_ref(exe, f, o_lcount, f->lcount);
     init_mainframe_lref(f->lref, fctx->lcount, fctx->lrefl);
 

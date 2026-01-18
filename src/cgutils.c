@@ -1231,19 +1231,19 @@ FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(info_print, "info");
 
-static void *custom_action(void *c,
+static void *custom_action(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line);
 
-static void *simple_action(void *c,
+static void *simple_action(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line);
 
-static void *replace_action(void *c,
+static void *replace_action(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -1507,7 +1507,7 @@ static const FklVMudMetaTable CustomActionCtxUdMetaTable = {
     .princ = custom_action_ctx_ud_as_print,
 };
 
-static void *custom_action(void *c,
+static void *custom_action(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -1515,7 +1515,7 @@ static void *custom_action(void *c,
     FklVMparseCtx *pctx = FKL_TYPE_CAST(FklVMparseCtx *, ctx);
     FklCgCtx *cg_ctx = pctx->opaque;
     FKL_ASSERT(cg_ctx);
-    FklVMvalueCustomActCtx *action_ctx = c;
+    FklVMvalueCustomActCtx *action_ctx = (FklVMvalueCustomActCtx *)c;
     FklVMvalue *nodes_vector = fklCreateVMvalueVec(cg_ctx->vm, line);
     for (size_t i = 0; i < num; i++)
         FKL_VM_VEC(nodes_vector)->base[i] = nodes[i].ast;
@@ -1631,12 +1631,12 @@ static inline uint64_t get_nth(FklVMvalue *vec) {
     return FKL_GET_FIX(FKL_VM_VEC(vec)->base[1]);
 }
 
-static void *simple_action_nth(void *action_ctx,
+static void *simple_action_nth(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
     if (nth >= num)
         return NULL;
     return nodes[nth].ast;
@@ -1661,14 +1661,14 @@ static inline void get_car_cdr(FklVMvalue *vec, uint64_t *car, uint64_t *cdr) {
     *cdr = FKL_GET_FIX(FKL_VM_VEC(vec)->base[2]);
 }
 
-static void *simple_action_cons(void *c,
+static void *simple_action_cons(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
     uint64_t car = 0;
     uint64_t cdr = 0;
-    get_car_cdr(c, &car, &cdr);
+    get_car_cdr((FklVMvalue *)c, &car, &cdr);
 
     if (car >= num || cdr >= num)
         return NULL;
@@ -1679,12 +1679,12 @@ static void *simple_action_cons(void *c,
     return retval;
 }
 
-static void *simple_action_head(void *c,
+static void *simple_action_head(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklVMvalue *vec = c;
+    FklVMvalue *vec = FKL_TYPE_CAST(FklVMvalue *, c);
     FKL_ASSERT(FKL_IS_VECTOR(vec));
 
     for (size_t i = 2; i < FKL_VM_VEC(vec)->size; i++) {
@@ -1725,12 +1725,12 @@ static int simple_action_head_check(FklVMvalue *rest[], size_t rest_len) {
     return 0;
 }
 
-static void *simple_action_list(void *c,
+static void *simple_action_list(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklVMvalue *vec = c;
+    FklVMvalue *vec = FKL_TYPE_CAST(FklVMvalue *, c);
     FKL_ASSERT(FKL_IS_VECTOR(vec));
 
     for (size_t i = 1; i < FKL_VM_VEC(vec)->size; i++) {
@@ -1769,12 +1769,12 @@ static int simple_action_list_check(FklVMvalue *rest[], size_t rest_len) {
     return 0;
 }
 
-static inline void *simple_action_box(void *action_ctx,
+static inline void *simple_action_box(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
 
     if (nth >= num)
         return NULL;
@@ -1784,12 +1784,12 @@ static inline void *simple_action_box(void *action_ctx,
     return box;
 }
 
-static inline void *simple_action_vector(void *action_ctx,
+static inline void *simple_action_vector(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
 
     if (nth >= num)
         return NULL;
@@ -1804,12 +1804,12 @@ static inline void *simple_action_vector(void *action_ctx,
     return r;
 }
 
-static inline void *simple_action_hasheq(void *action_ctx,
+static inline void *simple_action_hasheq(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
 
     if (nth >= num)
         return NULL;
@@ -1820,12 +1820,12 @@ static inline void *simple_action_hasheq(void *action_ctx,
     return codegen_create_hash(c, FKL_HASH_EQ, list, line);
 }
 
-static inline void *simple_action_hasheqv(void *action_ctx,
+static inline void *simple_action_hasheqv(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
 
     if (nth >= num)
         return NULL;
@@ -1836,12 +1836,12 @@ static inline void *simple_action_hasheqv(void *action_ctx,
     return codegen_create_hash(c, FKL_HASH_EQV, list, line);
 }
 
-static inline void *simple_action_hashequal(void *action_ctx,
+static inline void *simple_action_hashequal(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    uint64_t nth = get_nth(action_ctx);
+    uint64_t nth = get_nth((FklVMvalue *)action_ctx);
 
     if (nth >= num)
         return NULL;
@@ -1883,7 +1883,7 @@ static inline void get_nth_start_end(FklVMvalue *v,
     }
 }
 
-static inline void *simple_action_bytevector(void *actx,
+static inline void *simple_action_bytes(FklProdActionArgs *actx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -1891,7 +1891,7 @@ static inline void *simple_action_bytevector(void *actx,
     uint64_t nth = 0;
     const FklString *start_str = NULL;
     const FklString *end_str = NULL;
-    get_nth_start_end(actx, &start_str, &end_str, &nth);
+    get_nth_start_end((FklVMvalue *)actx, &start_str, &end_str, &nth);
 
     if (nth >= num)
         return NULL;
@@ -1947,7 +1947,7 @@ static int simple_action_symbol_check(FklVMvalue *rest[], size_t rest_len) {
     return 0;
 }
 
-static void *simple_action_symbol(void *c,
+static void *simple_action_symbol(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -1955,7 +1955,7 @@ static void *simple_action_symbol(void *c,
     uint64_t nth = 0;
     const FklString *start_str = NULL;
     const FklString *end_str = NULL;
-    get_nth_start_end(c, &start_str, &end_str, &nth);
+    get_nth_start_end((FklVMvalue *)c, &start_str, &end_str, &nth);
     if (nth >= num)
         return NULL;
     FklVMvalue *node = nodes[nth].ast;
@@ -2012,7 +2012,7 @@ static void *simple_action_symbol(void *c,
     return sym;
 }
 
-static inline void *simple_action_string(void *c,
+static inline void *simple_action_string(FklProdActionArgs *c,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2020,7 +2020,7 @@ static inline void *simple_action_string(void *c,
     uint64_t nth = 0;
     const FklString *start_str = NULL;
     const FklString *end_str = NULL;
-    get_nth_start_end(c, &start_str, &end_str, &nth);
+    get_nth_start_end((FklVMvalue *)c, &start_str, &end_str, &nth);
     if (nth >= num)
         return NULL;
     FklVMparseCtx *ct = ctx;
@@ -2104,17 +2104,17 @@ static struct FklSimpleProdAction
             },
             {
                 "bytes",
-                .func = simple_action_bytevector,
+                .func = simple_action_bytes,
                 .check = simple_action_symbol_check,
             },
         };
 
-static void *simple_action(void *actx,
+static void *simple_action(FklProdActionArgs *actx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklVMvalueSimpleActCtx *cc = actx;
+    FklVMvalueSimpleActCtx *cc = (FklVMvalueSimpleActCtx *)actx;
     return cc->mt->func((void *)cc->vec, ctx, nodes, num, line);
 }
 
@@ -2125,12 +2125,12 @@ static inline void init_simple_prod_action_list(FklCgCtx *ctx) {
                 add_symbol_cstr(ctx, CgProdCreatorActions[i].name);
 }
 
-static void *replace_action(void *action_ctx,
+static void *replace_action(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
         size_t line) {
-    FklVMvalue *v = action_ctx;
+    FklVMvalue *v = (FklVMvalue *)action_ctx;
     return v;
 }
 
@@ -2156,7 +2156,7 @@ int fklIsReplaceActionProd(const FklGrammerProduction *p) {
     return p->func == replace_action;
 }
 
-static void *builtin_prod_action_nil(void *action_ctx,
+static void *builtin_prod_action_nil(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2165,7 +2165,7 @@ static void *builtin_prod_action_nil(void *action_ctx,
     return FKL_VM_NIL;
 }
 
-static void *builtin_prod_action_first(void *action_ctx,
+static void *builtin_prod_action_first(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2175,7 +2175,7 @@ static void *builtin_prod_action_first(void *action_ctx,
     return nodes[0].ast;
 }
 
-static void *builtin_prod_action_symbol(void *action_ctx,
+static void *builtin_prod_action_symbol(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2189,7 +2189,7 @@ static void *builtin_prod_action_symbol(void *action_ctx,
     return fklVMaddSymbol(c->exe, FKL_VM_STR(node));
 }
 
-static void *builtin_prod_action_second(void *action_ctx,
+static void *builtin_prod_action_second(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2200,7 +2200,7 @@ static void *builtin_prod_action_second(void *action_ctx,
     return nodes[1].ast;
 }
 
-static void *builtin_prod_action_third(void *action_ctx,
+static void *builtin_prod_action_third(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2211,7 +2211,7 @@ static void *builtin_prod_action_third(void *action_ctx,
     return nodes[2].ast;
 }
 
-static inline void *builtin_prod_action_pair(void *action_ctx,
+static inline void *builtin_prod_action_pair(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2226,7 +2226,7 @@ static inline void *builtin_prod_action_pair(void *action_ctx,
     return pair;
 }
 
-static inline void *builtin_prod_action_cons(void *action_ctx,
+static inline void *builtin_prod_action_cons(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2247,7 +2247,7 @@ static inline void *builtin_prod_action_cons(void *action_ctx,
         return NULL;
 }
 
-static inline void *builtin_prod_action_box(void *action_ctx,
+static inline void *builtin_prod_action_box(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2260,7 +2260,7 @@ static inline void *builtin_prod_action_box(void *action_ctx,
     return box;
 }
 
-static inline void *builtin_prod_action_vector(void *action_ctx,
+static inline void *builtin_prod_action_vector(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2291,7 +2291,7 @@ static inline FklVMvalue *add_header(FklVMparseCtx *c,
     return create_nast_list(s_exps, 2, line, c->exe, c->ln);
 }
 
-static inline void *builtin_prod_action_quote(void *action_ctx,
+static inline void *builtin_prod_action_quote(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2302,7 +2302,7 @@ static inline void *builtin_prod_action_quote(void *action_ctx,
     return add_header(c, nodes, "quote", line);
 }
 
-static inline void *builtin_prod_action_unquote(void *action_ctx,
+static inline void *builtin_prod_action_unquote(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2313,7 +2313,7 @@ static inline void *builtin_prod_action_unquote(void *action_ctx,
     return add_header(c, nodes, "unquote", line);
 }
 
-static inline void *builtin_prod_action_qsquote(void *action_ctx,
+static inline void *builtin_prod_action_qsquote(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2324,7 +2324,7 @@ static inline void *builtin_prod_action_qsquote(void *action_ctx,
     return add_header(c, nodes, "qsquote", line);
 }
 
-static inline void *builtin_prod_action_unqtesp(void *action_ctx,
+static inline void *builtin_prod_action_unqtesp(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2335,7 +2335,7 @@ static inline void *builtin_prod_action_unqtesp(void *action_ctx,
     return add_header(c, nodes, "unqtesp", line);
 }
 
-static inline void *builtin_prod_action_hasheq(void *action_ctx,
+static inline void *builtin_prod_action_hasheq(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2349,7 +2349,7 @@ static inline void *builtin_prod_action_hasheq(void *action_ctx,
     return codegen_create_hash(c, FKL_HASH_EQ, list, line);
 }
 
-static inline void *builtin_prod_action_hasheqv(void *action_ctx,
+static inline void *builtin_prod_action_hasheqv(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2363,7 +2363,7 @@ static inline void *builtin_prod_action_hasheqv(void *action_ctx,
     return codegen_create_hash(c, FKL_HASH_EQV, list, line);
 }
 
-static inline void *builtin_prod_action_hashequal(void *action_ctx,
+static inline void *builtin_prod_action_hashequal(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2377,7 +2377,7 @@ static inline void *builtin_prod_action_hashequal(void *action_ctx,
     return codegen_create_hash(c, FKL_HASH_EQUAL, list, line);
 }
 
-static inline void *builtin_prod_action_bytevector(void *action_ctx,
+static inline void *builtin_prod_action_bytes(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
@@ -2414,7 +2414,7 @@ static struct CstrIdProdAction {
     {"hasheq",    builtin_prod_action_hasheq     },
     {"hasheqv",   builtin_prod_action_hasheqv    },
     {"hashequal", builtin_prod_action_hashequal  },
-    {"bytes",     builtin_prod_action_bytevector },
+    {"bytes",     builtin_prod_action_bytes },
     // clang-format on
 };
 

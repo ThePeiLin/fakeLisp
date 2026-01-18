@@ -12,7 +12,7 @@
 #define ACTION_FILE_PATH "action.c"
 #endif
 
-static void *action_nil(void *args,
+static void *action_nil(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,
@@ -21,7 +21,7 @@ static void *action_nil(void *args,
     return fklVMvalueTerminalCreate("()", strlen("()"), line, ctx);
 }
 
-static void *action_not_allow_ignore(void *args,
+static void *action_not_allow_ignore(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,
@@ -30,7 +30,7 @@ static void *action_not_allow_ignore(void *args,
     return fklVMvalueTerminalCreate("#()", strlen("#()"), line, ctx);
 }
 
-static void *action_start_with_ignore(void *args,
+static void *action_start_with_ignore(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,
@@ -39,7 +39,7 @@ static void *action_start_with_ignore(void *args,
     return fklVMvalueTerminalCreate("# ()", strlen("# ()"), line, ctx);
 }
 
-static void *action_first(void *args,
+static void *action_first(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol asts[],
         size_t count,

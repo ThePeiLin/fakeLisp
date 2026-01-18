@@ -31,15 +31,16 @@ typedef struct {
     struct FklVMvalue *id;
     struct FklVMvalue *fid;
     struct FklVMvalueCgEnv *env;
+    uint8_t has_weak_ref;
     uint32_t scope;
     uint32_t idx;
     uint32_t assign;
     uint64_t line;
-} FklUnReSymbolRef;
+} FklUnbound;
 
-// FklUnReSymbolRefVector
-#define FKL_VECTOR_ELM_TYPE FklUnReSymbolRef
-#define FKL_VECTOR_ELM_TYPE_NAME UnReSymbolRef
+// FklUnboundVector
+#define FKL_VECTOR_ELM_TYPE FklUnbound
+#define FKL_VECTOR_ELM_TYPE_NAME Unbound
 #include "cont/vector.h"
 
 static inline uintptr_t fklSymDefHashv(const FklSidScope *k) {

@@ -615,7 +615,7 @@ typedef struct {
     FklVMvalueWeakHashEq *weak_var_refs;
 } ResolveRefArgs;
 
-static inline FklVMvalue *resolve_var_ref_for_repl(FklVM *vm,
+static inline void resolve_var_ref_for_repl(FklVM *vm,
         const ResolveRefArgs *s,
         ResolveRefArg *cur) {
     FklVMvalue **loc = s->loc;
@@ -626,15 +626,18 @@ static inline FklVMvalue *resolve_var_ref_for_repl(FklVM *vm,
 
     FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->def->k.id);
     FKL_ASSERT(pref);
-    FklVMvalue *ref = FKL_VM_CDR(*pref);
+    FklVMvalue *ref = *pref;
 
+    if (ref == FKL_VM_NIL)
+        return;
     if (!fklIsClosedVMvalueVarRef(ref))
-        return ref;
+        return;
 
     FKL_VM_VAR_REF(ref)->idx = def->v.idx;
     FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
     insert_local_ref(vm, f, ref, def->v.idx);
-    return ref;
+    *pref = FKL_VM_NIL;
+    return;
 }
 
 static inline void resolve_ref_work_func(FklVM *exe, const ResolveRefArgs *s) {
@@ -856,7 +859,7 @@ static inline ReplCtx *create_repl_ctx_impl(void) {
 }
 static void collect_resolvable_ref_cb(const FklVarRefDef *ref,
         const FklSymDefHashMapElm *def,
-        const FklUnReSymbolRef *uref,
+        const FklUnbound *uref,
         FklVMvalueProto *proto,
         void *vargs) {
     FklResolveRefArgVector *resolvable_refs =

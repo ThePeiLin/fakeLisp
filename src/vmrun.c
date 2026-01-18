@@ -162,23 +162,30 @@ static inline void insert_to_VM_chain(FklVM *cur, FklVM *prev, FklVM *next) {
         next->prev = cur;
 }
 
+static inline FklVMvalue *
+fetch_main_env_ref(FklVM *exe, uint32_t i, uint32_t cidx, FklVarRefDef *refs) {
+    if (cidx < FKL_BUILTIN_SYMBOL_NUM)
+        return exe->gc->builtin_refs[cidx];
+    if (FKL_IS_VAR_REF(refs[i].is_local)) {
+        FklVMvalue *ref = refs[i].is_local;
+        refs[i].is_local = FKL_VM_NIL;
+        return ref;
+    }
+    return fklCreateClosedVMvalueVarRef(exe, NULL);
+}
+
 static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
-    FklVMgc *gc = exe->gc;
     FklVMvalueProc *proc = FKL_VM_PROC(proc_obj);
     FklVMvalueProto *pt = proc->proto;
 
     proc->ref_count = pt->ref_count;
     FklVMvalue **closure = proc->closure;
 
-    const FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
+    FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
 
     for (uint32_t i = 0; i < proc->ref_count; i++) {
         uint32_t cidx = FKL_GET_FIX(refs[i].cidx);
-        closure[i] = cidx < FKL_BUILTIN_SYMBOL_NUM //
-                           ? gc->builtin_refs[cidx]
-                           : FKL_IS_VAR_REF(refs[i].is_local)
-                                     ? refs[i].is_local
-                                     : fklCreateClosedVMvalueVarRef(exe, NULL);
+        closure[i] = fetch_main_env_ref(exe, i, cidx, refs);
     }
 }
 
@@ -268,7 +275,7 @@ static inline void close_var_ref(FklVMvalue *ref) {
 void fklCloseVMvalueVarRef(FklVMvalue *ref) { close_var_ref(ref); }
 
 int fklIsClosedVMvalueVarRef(FklVMvalue *ref) {
-	FKL_ASSERT(FKL_IS_VAR_REF(ref));
+    FKL_ASSERT(FKL_IS_VAR_REF(ref));
     FklVMvalue **p = FKL_VM_VAR_REF_GET(ref);
     return p == &FKL_VM_VAR_REF(ref)->v;
 }

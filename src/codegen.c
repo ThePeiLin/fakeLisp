@@ -3024,13 +3024,13 @@ static void codegen_define(const CgCbArgs *args) {
             actions);
 }
 
-static inline FklUnReSymbolRef *get_resolvable_assign_ref(FklVMvalue *id,
+static inline FklUnbound *get_resolvable_assign_ref(FklVMvalue *id,
         uint32_t scope,
         FklVMvalueCgEnv *env) {
-    FklUnReSymbolRef *urefs = env->uref.base;
+    FklUnbound *urefs = env->uref.base;
     uint32_t top = env->uref.size;
     for (uint32_t i = 0; i < top; i++) {
-        FklUnReSymbolRef *cur = &urefs[i];
+        FklUnbound *cur = &urefs[i];
         if (cur->id == id && cur->scope == scope && cur->assign)
             return cur;
     }
@@ -3050,7 +3050,7 @@ static FklVMvalue *_def_const_exp_bc_process(const FklCgActCbArgs *args) {
     FklCgErrorState *error_state = ctx->error_state;
 
     DefineVarContext *var_ctx = FKL_TYPE_CAST(DefineVarContext *, data);
-    FklUnReSymbolRef *assign_uref =
+    FklUnbound *assign_uref =
             get_resolvable_assign_ref(var_ctx->id, var_ctx->scope, env);
     if (assign_uref) {
         error_state->error = make_assign_const_error(vm, var_ctx->id);

@@ -67,7 +67,7 @@ struct FklVMvalueCgEnv;
 typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgEnv *, void *);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
-    FklUnReSymbolRefVector uref;
+    FklUnboundVector uref;
     uint8_t *slot_flags;
     FklCgEnvScope *scopes;
     uint32_t lcount;
@@ -91,12 +91,12 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
 
     void *work_ctx;
     FklCgInfoEnvWorkCb env_work_cb;
-	FklVMvalueProto* proto;
+    FklVMvalueProto *proto;
 });
 
 typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
         const FklSymDefHashMapElm *def,
-        const FklUnReSymbolRef *uref,
+        const FklUnbound *uref,
         FklVMvalueProto *,
         void *args);
 

@@ -570,6 +570,7 @@ typedef struct {
 
     FklVMvalue *stdinVal;
     FklVMvalue *main_proc;
+    FklVMvalueWeakHashEq *weak_var_refs;
     FklStrBuf buf;
     FklVMvalue *lrefl;
     FklVMvalue *lref;
@@ -598,88 +599,70 @@ insert_local_ref(FklVM *vm, FklVMframe *f, FklVMvalue *ref, uint32_t cidx) {
     return ref;
 }
 
-struct ResolveRefArg {
+typedef struct {
     const FklSymDefHashMapElm *def;
-    FklVMvalueProto *proto;
-    uint32_t idx;
-};
+} ResolveRefArg;
 
 // FklResolveRefArgVector
-#define FKL_VECTOR_ELM_TYPE struct ResolveRefArg
+#define FKL_VECTOR_ELM_TYPE ResolveRefArg
 #define FKL_VECTOR_ELM_TYPE_NAME ResolveRefArg
 #include <fakeLisp/cont/vector.h>
 
-struct ResolveRefArgs {
+typedef struct {
     FklVMvalue **loc;
     FklVMframe *f;
     FklResolveRefArgVector *resolvable_refs;
-};
+    FklVMvalueWeakHashEq *weak_var_refs;
+} ResolveRefArgs;
 
-static inline FklVMvalue *fetch_var_ref_for_repl(FklVM *vm,
-        FklVMvalueProc *proc,
-        const struct ResolveRefArgs *s,
-        struct ResolveRefArg *cur) {
+static inline FklVMvalue *resolve_var_ref_for_repl(FklVM *vm,
+        const ResolveRefArgs *s,
+        ResolveRefArg *cur) {
     FklVMvalue **loc = s->loc;
     FklVMframe *f = s->f;
     const FklSymDefHashMapElm *def = cur->def;
-    uint32_t idx = cur->idx;
-    FklVMvalue *ref = FKL_VM_VEC(f->lref)->base[def->v.idx];
-    if (ref != NULL)
+
+    FklVMvalueWeakHashEq *weak_var_refs = s->weak_var_refs;
+
+    FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->def->k.id);
+    FKL_ASSERT(pref);
+    FklVMvalue *ref = FKL_VM_CDR(*pref);
+
+    if (!fklIsClosedVMvalueVarRef(ref))
         return ref;
 
-    ref = proc->closure[idx];
     FKL_VM_VAR_REF(ref)->idx = def->v.idx;
     FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
     insert_local_ref(vm, f, ref, def->v.idx);
     return ref;
 }
 
-static inline void resolve_ref_work_func(FklVM *exe,
-        const struct ResolveRefArgs *s) {
+static inline void resolve_ref_work_func(FklVM *exe, const ResolveRefArgs *s) {
     const FklResolveRefArgVector *unresolve_refs = s->resolvable_refs;
-    struct ResolveRefArg *cur = unresolve_refs->base;
-    const struct ResolveRefArg *const end = &cur[unresolve_refs->size];
+    ResolveRefArg *cur = unresolve_refs->base;
+    const ResolveRefArg *const end = &cur[unresolve_refs->size];
 
     for (; cur < end; cur++) {
-        FklVMvalueProto *proto = cur->proto;
-        uint32_t idx = cur->idx;
-        for (FklVMvalue *v = exe->gc->head; v; v = v->next_)
-            if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->proto == proto) {
-                FklVMvalueProc *proc = FKL_VM_PROC(v);
-                proc->closure[idx] = fetch_var_ref_for_repl(exe, proc, s, cur);
-            }
-
-        for (FklVMvalue *v = exe->obj_head; v; v = v->next_)
-            if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->proto == proto) {
-                FklVMvalueProc *proc = FKL_VM_PROC(v);
-                proc->closure[idx] = fetch_var_ref_for_repl(exe, proc, s, cur);
-            }
-
-        for (FklVM *cur_vm = exe->next; cur_vm != exe; cur_vm = cur_vm->next) {
-            for (FklVMvalue *v = cur_vm->obj_head; v; v = v->next_)
-                if (FKL_IS_PROC(v) && FKL_VM_PROC(v)->proto == proto) {
-                    FklVMvalueProc *proc = FKL_VM_PROC(v);
-                    proc->closure[idx] =
-                            fetch_var_ref_for_repl(exe, proc, s, cur);
-                }
-        }
+        resolve_var_ref_for_repl(exe, s, cur);
     }
 }
 
 static void resolve_ref_cb(FklVM *exe, void *arg) {
-    const struct ResolveRefArgs *aarg = (struct ResolveRefArgs *)arg;
+    const ResolveRefArgs *aarg = (ResolveRefArgs *)arg;
     resolve_ref_work_func(exe, aarg);
 }
 
 static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
         FklVMvalueCgEnv *top_env,
+        FklVMvalueWeakHashEq *weak_var_refs,
         FklVM *exe,
         FklVMframe *mainframe,
         FklResolveRefArgVector *resolvable_refs) {
 
     if (resolvable_refs->size) {
-        struct ResolveRefArgs resolve_ref_args = {
+        ResolveRefArgs resolve_ref_args = {
             .f = mainframe,
+            .weak_var_refs = weak_var_refs,
             .loc = &FKL_VM_GET_ARG(exe, mainframe, 0),
             .resolvable_refs = resolvable_refs,
         };
@@ -878,14 +861,9 @@ static void collect_resolvable_ref_cb(const FklVarRefDef *ref,
         void *vargs) {
     FklResolveRefArgVector *resolvable_refs =
             FKL_TYPE_CAST(FklResolveRefArgVector *, vargs);
-    uint32_t idx = uref->idx;
 
     fklResolveRefArgVectorPushBack(resolvable_refs,
-            &(struct ResolveRefArg){
-                .def = def,
-                .proto = proto,
-                .idx = idx,
-            });
+            &(ResolveRefArg){ .def = def });
 }
 
 static inline void
@@ -898,11 +876,14 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
 
     FklVMvalueProto *pt = FKL_CREATE_VMVALUE_PROTO(exe,
             fctx->main_env,
+            .vm = exe,
+            .weak_refs = fctx->weak_var_refs,
             .top_env = fctx->info->global_env,
             .no_refs_to_builtins = 1,
             .resolve_ref_to_def_cb = collect_resolvable_ref_cb,
             .resolve_ref_to_def_cb_args = (void *)&resolvable_refs);
 
+    fctx->main_env->child_proc_protos.size = 0;
     FklVMvalue *main_proc = fklCreateVMvalueProc(exe, main_bc, pt);
     fklInitMainProcRefs(exe, main_proc);
     fctx->main_proc = main_proc;
@@ -926,6 +907,7 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
 
     resolve_ref_for_repl(fctx->main_env,
             fctx->info->global_env,
+            fctx->weak_var_refs,
             exe,
             f,
             &resolvable_refs);
@@ -1021,6 +1003,7 @@ repl_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {}
 static void repl_frame_atomic(void *data, FklVMgc *gc) {
     ReplFrameCtx *ctx = FKL_TYPE_CAST(ReplFrameCtx *, data);
     ReplCtx *fctx = ctx->c;
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, fctx->weak_var_refs), gc);
     fklVMgcToGray(fctx->stdinVal, gc);
     fklVMgcToGray(fctx->main_proc, gc);
     fklVMgcToGray(fctx->lrefl, gc);
@@ -1197,6 +1180,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     c->exe = exe;
     c->main_proc = FKL_VM_NIL;
 
+    c->weak_var_refs = fklCreateVMvalueWeakHashEq(exe);
     c->stdinVal = FKL_VM_VAR_REF(gc->builtin_refs[FKL_VM_STDIN_IDX])->v;
     c->info = codegen;
     c->main_env = main_env;

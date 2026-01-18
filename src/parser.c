@@ -334,19 +334,16 @@ static FKL_ALWAYS_INLINE FklVMvalueLnt *as_lnt(const FklVMvalue *v) {
 }
 
 static int lnt_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
-    // fklLineNumHashMapUninit(ht);
     fklLineNumHashMapUninit(&as_lnt(ud)->ht);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(ht, FklLineNumHashMap, ud);
     FklLineNumHashMap *ht = &as_lnt(ud)->ht;
     const FklLineNumHashMapNode *cur = ht->first;
     while (cur) {
         const FklLineNumHashMapNode *next = cur->next;
-        if (cur->k->mark_ == FKL_MARK_W) {
+        if (cur == NULL || !FKL_IS_PTR(cur) || cur->k->mark_ == FKL_MARK_W) {
             fklLineNumHashMapDel2(ht, cur->k);
         }
         cur = next;
@@ -354,7 +351,6 @@ static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static FklVMudMetaTable const LntUserDataMetaTable = {
-    // .size = sizeof(FklVMvalueIdHashMap),
     .size = sizeof(FklVMvalueLnt),
     .prin1 = lnt_ud_print,
     .princ = lnt_ud_print,
@@ -372,6 +368,8 @@ FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *vm) {
 }
 
 void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line) {
+    // 行号表不应该储存那些不会被垃圾回收的对象
+    FKL_ASSERT(v != NULL && FKL_IS_PTR(v) && !FKL_IS_SYM(v));
     fklLineNumHashMapPut2(&ht->ht, v, line);
 }
 

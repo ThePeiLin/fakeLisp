@@ -30,9 +30,9 @@ typedef struct FklSymDef {
 typedef struct {
     struct FklVMvalue *id;
     struct FklVMvalue *fid;
+    struct FklVMvalueCgEnv *env;
     uint32_t scope;
     uint32_t idx;
-    uint32_t prototypeId;
     uint32_t assign;
     uint64_t line;
 } FklUnReSymbolRef;

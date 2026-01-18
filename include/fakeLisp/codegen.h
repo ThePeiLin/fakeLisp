@@ -91,6 +91,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
 
     void *work_ctx;
     FklCgInfoEnvWorkCb env_work_cb;
+	FklVMvalueProto* proto;
 });
 
 typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
@@ -100,10 +101,12 @@ typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
         void *args);
 
 typedef struct {
+    FklVM *vm;
     FklVMvalueCgEnv *top_env;
     int no_refs_to_builtins;
     FklResolveRefToDefCb resolve_ref_to_def_cb;
     void *resolve_ref_to_def_cb_args;
+    FklVMvalueWeakHashEq *weak_refs;
 } FklResolveRefArgs;
 
 FKL_NODISCARD

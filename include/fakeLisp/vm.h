@@ -413,8 +413,15 @@ typedef struct {
 #include "cont/vector.h"
 
 // FklValueHashSet
-#define FKL_HASH_KEY_TYPE FklVMvalue const *
+#define FKL_HASH_KEY_TYPE FklVMvalue const*
 #define FKL_HASH_ELM_NAME Value
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
+#include "cont/hash.h"
+
+// FklValueEqHashMap
+#define FKL_HASH_KEY_TYPE FklVMvalue *
+#define FKL_HASH_VAL_TYPE FklVMvalue *
+#define FKL_HASH_ELM_NAME ValueEq
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
 
@@ -424,8 +431,7 @@ typedef uint32_t FklValueId;
 #define FKL_HASH_KEY_TYPE FklVMvalue const *
 #define FKL_HASH_VAL_TYPE FklValueId
 #define FKL_HASH_ELM_NAME ValueId
-#define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)));
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv((*pk));
 #include "cont/hash.h"
 
 typedef struct {
@@ -667,6 +673,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
     FklVMvalue *pd;
     uv_lib_t dll;
 });
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueWeakHashEq, { FklValueEqHashMap ht; });
 
 void fklPopVMframe(FklVM *);
 void fklPopVMframe2(FklVM *, FklVMframe *const bottom_frame);
@@ -1126,6 +1134,20 @@ FklVMvalue *fklCreateVMvalueHashEq(FklVM *);
 FklVMvalue *fklCreateVMvalueHashEqv(FklVM *);
 
 FklVMvalue *fklCreateVMvalueHashEqual(FklVM *);
+
+int fklIsVMvalueWeakHashEq(const FklVMvalue *v);
+
+static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *fklVMvalueWeakHashEq(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueWeakHashEq(v));
+    return FKL_TYPE_CAST(FklVMvalueWeakHashEq *, v);
+}
+
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *exe);
+FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k);
+
+FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,
+        FklVMvalue *k);
 
 FklVMvalue *fklCreateVMvalueChanl(FklVM *, uint32_t);
 int fklIsVMvalueChanl(const FklVMvalue *v);

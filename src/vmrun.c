@@ -174,9 +174,11 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
 
     for (uint32_t i = 0; i < proc->ref_count; i++) {
         uint32_t cidx = FKL_GET_FIX(refs[i].cidx);
-        closure[i] = cidx < FKL_BUILTIN_SYMBOL_NUM
+        closure[i] = cidx < FKL_BUILTIN_SYMBOL_NUM //
                            ? gc->builtin_refs[cidx]
-                           : fklCreateClosedVMvalueVarRef(exe, NULL);
+                           : FKL_IS_VAR_REF(refs[i].is_local)
+                                     ? refs[i].is_local
+                                     : fklCreateClosedVMvalueVarRef(exe, NULL);
     }
 }
 
@@ -266,6 +268,7 @@ static inline void close_var_ref(FklVMvalue *ref) {
 void fklCloseVMvalueVarRef(FklVMvalue *ref) { close_var_ref(ref); }
 
 int fklIsClosedVMvalueVarRef(FklVMvalue *ref) {
+	FKL_ASSERT(FKL_IS_VAR_REF(ref));
     FklVMvalue **p = FKL_VM_VAR_REF_GET(ref);
     return p == &FKL_VM_VAR_REF(ref)->v;
 }

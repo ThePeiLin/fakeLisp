@@ -199,18 +199,18 @@ static inline int is_ref_solved(FklSymDefHashMapElm *ref,
     return 1;
 }
 
-static inline void initUnReSymbolRef(FklUnReSymbolRef *r,
+static inline void init_unbound(FklUnReSymbolRef *r,
         FklVMvalue *id,
         uint32_t idx,
         uint32_t scope,
-        uint32_t prototypeId,
+        FklVMvalueCgEnv *env,
         uint32_t assign,
         FklVMvalue *fid,
         uint64_t line) {
     r->id = id;
     r->idx = idx;
     r->scope = scope;
-    r->prototypeId = prototypeId;
+    r->env = env;
     r->assign = assign;
     r->fid = fid;
     r->line = line;
@@ -381,12 +381,12 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
                             (FklSymDef){ .idx = idx, .cidx = idx });
                     ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
 
-                    initUnReSymbolRef(
+                    init_unbound(
                             fklUnReSymbolRefVectorPushBack(&prev->uref, NULL),
                             id,
                             idx,
                             env->parent_scope,
-                            env->proto_id,
+                            env,
                             assign,
                             fid,
                             line);
@@ -398,11 +398,11 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
                     (FklSymDef){ .idx = idx, .cidx = idx });
             ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
             idx = ret->v.idx;
-            initUnReSymbolRef(fklUnReSymbolRefVectorPushBack(&env->uref, NULL),
+            init_unbound(fklUnReSymbolRefVectorPushBack(&env->uref, NULL),
                     id,
                     idx,
                     0,
-                    env->proto_id,
+                    env,
                     assign,
                     fid,
                     line);
@@ -468,9 +468,9 @@ void fklResolveRef(FklVMvalueCgEnv *env,
     FklResolveRefToDefCb resolve_ref_to_def_cb =
             args ? args->resolve_ref_to_def_cb : NULL;
     FklVMvalueCgEnv *top_env = args ? args->top_env : NULL;
+    FklVMvalueWeakHashEq *weak_refs = args ? args->weak_refs : NULL;
 
     FklUnReSymbolRefVector *urefs = &env->uref;
-    const FklValueVector *child_proc_protos = &env->child_proc_protos;
     FklUnReSymbolRefVector urefs1;
     uint32_t count = urefs->size;
 
@@ -483,10 +483,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
             continue;
         }
 
-        FklVMvalue *pt_v = child_proc_protos->base[uref->prototypeId];
-        FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
-        FklVMvalueProto *pt = fklVMvalueProto(pt_v);
-
+        FklVMvalueProto *pt = uref->env->proto;
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
         const FklSymDefHashMapElm *def = fklFindSymbolDefByIdAndScope(uref->id,
                 uref->scope,
@@ -521,10 +518,46 @@ void fklResolveRef(FklVMvalueCgEnv *env,
             fklUnReSymbolRefVectorPushBack(&urefs1, uref);
         }
     }
+
     urefs->size = 0;
-    while (!fklUnReSymbolRefVectorIsEmpty(&urefs1))
-        fklUnReSymbolRefVectorPushBack(urefs,
-                fklUnReSymbolRefVectorPopBackNonNull(&urefs1));
+
+    if (weak_refs) {
+        uint32_t cidx = env->refs.count;
+        for (const FklValueEqHashMapNode *cur = weak_refs->ht.first; cur;
+                cur = cur->next) {
+            FklVMvalue *p = cur->v;
+            FKL_ASSERT(FKL_IS_PAIR(p));
+            FKL_VM_CAR(p) = FKL_MAKE_VM_FIX(cidx);
+            ++cidx;
+        }
+    }
+
+    while (!fklUnReSymbolRefVectorIsEmpty(&urefs1)) {
+        const FklUnReSymbolRef *uref =
+                fklUnReSymbolRefVectorPopBackNonNull(&urefs1);
+
+        fklUnReSymbolRefVectorPushBack(urefs, uref);
+        if (weak_refs == NULL) {
+            continue;
+        }
+
+        FklVMvalueProto *pt = uref->env->proto;
+
+        FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
+        FklValueEqHashMapElm *i = fklVMvalueWeakHashEqInsert(weak_refs, //
+                uref->id);
+        FklVMvalue *cidx_v = NULL;
+        if (i->v == NULL) {
+            uint32_t cidx = (weak_refs->ht.count - 1) + env->refs.count;
+            cidx_v = FKL_MAKE_VM_FIX(cidx);
+            FklVMvalue *ref = fklCreateClosedVMvalueVarRef(args->vm, NULL);
+            i->v = fklCreateVMvaluePair(args->vm, cidx_v, ref);
+        } else {
+            cidx_v = FKL_VM_CAR(i->v);
+        }
+        ref->cidx = cidx_v;
+    }
+
     fklUnReSymbolRefVectorUninit(&urefs1);
 }
 
@@ -1111,6 +1144,7 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     for (size_t i = 0; i < e->uref.size; ++i) {
         fklVMgcToGray(e->uref.base[i].fid, gc);
         fklVMgcToGray(e->uref.base[i].id, gc);
+        fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->uref.base[i].env), gc);
     }
 
     for (const FklValueIdHashMapNode *cur = e->konsts.ht.first; cur;
@@ -2713,7 +2747,10 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     FKL_ASSERT(env->pdef.count == 0);
     fklResolveRef(env, 1, args);
 
-    uint32_t ref_count = env->refs.count;
+    FklVMvalueWeakHashEq *tmp_var_refs = args ? args->weak_refs : NULL;
+    uint32_t ref_count = (tmp_var_refs == NULL ? 0 : tmp_var_refs->ht.count)
+                       + env->refs.count;
+
     uint32_t ref_offset = 0; // 固定等于 0
 
     uint32_t local_count = env->lcount;
@@ -2793,6 +2830,20 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     }
 
     update_parent_env_proto(env, FKL_VM_VAL(proto));
+
+    env->proto = proto;
+    if (tmp_var_refs == NULL)
+        return proto;
+
+    uint32_t i = env->refs.count;
+    for (const FklValueEqHashMapNode *cur = tmp_var_refs->ht.first; cur;
+            cur = cur->next) {
+        FklVarRefDef *c_ref = &refs[i];
+        c_ref->sid = cur->k;
+        c_ref->cidx = FKL_MAKE_VM_FIX(FKL_VAR_REF_INVALID_CIDX);
+        c_ref->is_local = FKL_VM_CDR(cur->v);
+    }
+
     return proto;
 }
 

@@ -1709,3 +1709,67 @@ FklVMvalueLib *fklCreateVMvalueLib(FklVM *exe, uint32_t count) {
 void fklLockVMlib(FklVMvalueLib *libs) { uv_mutex_lock(&libs->lock); }
 
 void fklUnlockVMlib(FklVMvalueLib *libs) { uv_mutex_unlock(&libs->lock); }
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(weak_hash_eq_print, "chanl");
+
+static void weak_hash_eq_atomic(const FklVMvalue *v, FklVMgc *gc) {
+    FklVMvalueWeakHashEq *h_v = fklVMvalueWeakHashEq(v);
+    for (const FklValueEqHashMapNode *cur = h_v->ht.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
+}
+
+static void weak_hash_eq_update_weak_ref(const FklVMvalue *v, FklVMgc *gc) {
+    FklValueEqHashMap *ht = &fklVMvalueWeakHashEq(v)->ht;
+    const FklValueEqHashMapNode *cur = ht->first;
+    while (cur) {
+        const FklValueEqHashMapNode *next = cur->next;
+        if (cur == NULL || !FKL_IS_PTR(cur) || cur->k->mark_ == FKL_MARK_W) {
+            fklValueEqHashMapDel2(ht, cur->k);
+        }
+        cur = next;
+    }
+}
+
+static int weak_hash_eq_finalize(FklVMvalue *ud, FklVMgc *gc) {
+    fklValueEqHashMapUninit(&fklVMvalueWeakHashEq(ud)->ht);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static size_t weak_hash_eq_length(const FklVMvalue *v) {
+    return fklVMvalueWeakHashEq(v)->ht.count;
+}
+
+static FklVMudMetaTable const WeakHashEqUserDataMetaTable = {
+    .size = sizeof(FklVMvalueWeakHashEq),
+    .princ = weak_hash_eq_print,
+    .prin1 = weak_hash_eq_print,
+    .atomic = weak_hash_eq_atomic,
+    .finalize = weak_hash_eq_finalize,
+    .update_weak_ref = weak_hash_eq_update_weak_ref,
+    .length = weak_hash_eq_length,
+};
+
+int fklIsVMvalueWeakHashEq(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->mt_ == &WeakHashEqUserDataMetaTable;
+}
+
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *vm) {
+    FklVMvalueWeakHashEq *r = (FklVMvalueWeakHashEq *)fklCreateVMvalueUd(vm,
+            &WeakHashEqUserDataMetaTable,
+            NULL);
+
+    fklValueEqHashMapInit(&r->ht);
+    return r;
+}
+
+FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k) {
+    return fklValueEqHashMapGet2(&h->ht, k);
+}
+
+FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,
+        FklVMvalue *k) {
+    return fklValueEqHashMapInsert(&h->ht, &k, NULL);
+}

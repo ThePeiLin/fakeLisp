@@ -2849,6 +2849,7 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
         c_ref->sid = cur->k;
         c_ref->cidx = FKL_MAKE_VM_FIX(FKL_VAR_REF_INVALID_CIDX);
         c_ref->is_local = cur->v;
+        ++i;
     }
 
     return proto;

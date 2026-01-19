@@ -183,7 +183,7 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
 
     FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
 
-    for (uint32_t i = 0; i < proc->ref_count; i++) {
+    for (uint32_t i = 0; i < proc->ref_count; ++i) {
         uint32_t cidx = FKL_GET_FIX(refs[i].cidx);
         closure[i] = fetch_main_env_ref(exe, i, cidx, refs);
     }

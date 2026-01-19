@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
 
             fklZfree(rp);
 
-            fklVMclearExtraMarkFunc(gc);
+            fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
 
             fclose(fp);
 

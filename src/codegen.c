@@ -9113,7 +9113,7 @@ static void mark_match_hash_map(const FklPmatchHashMap *ht, FklVMgc *gc) {
     }
 }
 
-static void codegen_ctx_extra_mark_func(FklVMgc *gc, void *c) {
+static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     FklCgCtx *ctx = FKL_TYPE_CAST(FklCgCtx *, c);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_info), gc);
@@ -9177,7 +9177,10 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
 
     ctx->vm = vm;
 
-    fklVMpushExtraMarkFunc(vm->gc, codegen_ctx_extra_mark_func, NULL, ctx);
+    fklVMregisterExtraMarkFunc(vm->gc,
+            FKL_TYPE_CAST(FklVMextraMarkArgs *, ctx),
+            codegen_ctx_extra_mark_func,
+            NULL);
 
     fklInitBuiltinGrammer(&ctx->builtin_g, vm);
 
@@ -9233,6 +9236,8 @@ void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *gc) {
 }
 
 void fklUninitCgCtx(FklCgCtx *ctx) {
+    fklVMunregisterExtraMarkFunc(ctx->vm->gc, (FklVMextraMarkArgs *)ctx);
+
     fklUninitGrammer(&ctx->builtin_g);
     ctx->vm = NULL;
     ctx->lnt = NULL;

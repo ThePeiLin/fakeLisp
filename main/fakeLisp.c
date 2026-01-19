@@ -66,7 +66,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
 
     fklZfree(rp);
     FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.global_env);
-    fklVMclearExtraMarkFunc(gc);
+    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
 
     if (bc == NULL) {
         fklUninitCgCtx(&ctx);
@@ -139,7 +139,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     fklZfree(rp);
 
-    fklVMclearExtraMarkFunc(gc);
+    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
 
     fclose(fp);
 
@@ -545,9 +545,9 @@ static int run_repl(const char *eval_expression, int8_t interactive) {
 
     int err = fklRunVMidleLoop(vm);
 
+    fklUninitCgCtx(&ctx);
     fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);
-    fklUninitCgCtx(&ctx);
     return err;
 }
 
@@ -885,6 +885,11 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
             .no_refs_to_builtins = 1,
             .resolve_ref_to_def_cb = collect_resolvable_ref_cb,
             .resolve_ref_to_def_cb_args = (void *)&resolvable_refs);
+
+    fklValueVectorShrinkToFit(&fctx->main_env->child_proc_protos);
+    fklUnboundVectorShrinkToFit(&fctx->main_env->uref);
+    fklPredefHashMapShrink(&fctx->main_env->pdef);
+    fklValueTableClear(&fctx->main_env->konsts);
 
     fctx->main_env->child_proc_protos.size = 0;
     FklVMvalue *main_proc = fklCreateVMvalueProc(exe, main_bc, pt);

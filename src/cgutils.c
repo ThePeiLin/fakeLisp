@@ -281,7 +281,7 @@ void fklResolveCgPreDef(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
     fklPreDefRefVectorInit(&ref_pdef1, count);
     uint8_t pdef_isconst;
     FklSidScope key = { id, scope };
-    fklPredefHashMapEarase(&env->pdef, &key, &pdef_isconst, NULL);
+    fklPredefHashMapErase(&env->pdef, &key, &pdef_isconst, NULL);
     FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env->scopes);
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {

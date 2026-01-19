@@ -2242,6 +2242,11 @@ FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v) {
     return *n;
 }
 
+void fklValueTableClear(FklValueTable *t) {
+    fklValueIdHashMapShrink(&t->ht);
+    fklValueIdHashMapClear(&t->ht);
+}
+
 struct TraverseSerializableArgs {
     FklValueVector *leafs;
     FklValueVector *non_leafs;

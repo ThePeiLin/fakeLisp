@@ -246,6 +246,7 @@ static inline void METHOD(Grow)(NAME *self) {
 
 static inline void METHOD(Shrink)(NAME *self) {
     // compute next pow 2
+    uint32_t old_capacity = self->capacity;
     if (self->count == 0) {
         self->capacity = (1 << FKL_HASH_DEFAULT_CAPACITY_SHIFT);
     } else {
@@ -257,6 +258,9 @@ static inline void METHOD(Shrink)(NAME *self) {
         self->capacity |= self->capacity >> 16;
         self->capacity += 1;
     }
+
+    if (old_capacity <= self->capacity)
+        return;
 
     self->mask = self->capacity - 1;
 
@@ -429,7 +433,7 @@ static inline FKL_HASH_VAL_TYPE *METHOD(Add)(NAME *self,
     for (NODE_NAME *pn = *pp; pn; pn = pn->bkt_next) {
         if (FKL_HASH_KEY_EQUAL(k, &pn->k)) {
             if (v) {
-				FKL_HASH_VAL_UNINIT(&pn->v);
+                FKL_HASH_VAL_UNINIT(&pn->v);
                 FKL_HASH_VAL_INIT(&pn->v, v);
             }
             return &pn->v;
@@ -479,7 +483,7 @@ static inline ELM_NAME *METHOD(
     return METHOD(Insert)(self, &k, &v);
 }
 
-static inline int METHOD(Earase)(NAME *self,
+static inline int METHOD(Erase)(NAME *self,
         FKL_HASH_KEY_TYPE const *k,
         FKL_HASH_VAL_TYPE *pv,
         FKL_HASH_KEY_TYPE *pk) {
@@ -515,11 +519,11 @@ static inline int METHOD(Earase)(NAME *self,
     return 0;
 }
 
-static inline int METHOD(Earase2)(NAME *self,
+static inline int METHOD(Erase2)(NAME *self,
         FKL_HASH_KEY_TYPE k,
         FKL_HASH_VAL_TYPE *pv,
         FKL_HASH_KEY_TYPE *pk) {
-    return METHOD(Earase)(self, &k, pv, pk);
+    return METHOD(Erase)(self, &k, pv, pk);
 }
 #else
 static inline int METHOD(Has)(NAME const *self, FKL_HASH_KEY_TYPE const *k) {

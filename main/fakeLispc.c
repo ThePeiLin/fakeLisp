@@ -104,10 +104,9 @@ static inline int pre_compile(const char *main_file_name,
     fclose(outfp);
 
 pre_compile_exit:
-    fklVMclearExtraMarkFunc(gc);
-    fklDestroyVMgc(gc);
     fklUninitCgCtx(&ctx);
 
+    fklDestroyVMgc(gc);
     fklZfree(outputname);
     return r;
 }
@@ -147,7 +146,7 @@ static inline int compile(const char *filename,
             fp,
             codegen,
             ctx.global_env);
-    fklVMclearExtraMarkFunc(gc);
+    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
 
     if (co == NULL) {
         fklZfree(rp);

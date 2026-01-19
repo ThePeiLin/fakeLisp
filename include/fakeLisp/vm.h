@@ -413,7 +413,7 @@ typedef struct {
 #include "cont/vector.h"
 
 // FklValueHashSet
-#define FKL_HASH_KEY_TYPE FklVMvalue const*
+#define FKL_HASH_KEY_TYPE FklVMvalue const *
 #define FKL_HASH_ELM_NAME Value
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include "cont/hash.h"
@@ -543,12 +543,26 @@ typedef enum {
     FKL_INT_NEXT,
 } FklVMinterruptResult;
 
+typedef struct FklVMextraMarkArgs FklVMextraMarkArgs;
+
 typedef FklVMinterruptResult (*FklVMinterruptHandler)(FklVM *exe,
         FklVMvalue *value,
         FklVMvalue **pvalue,
         void *);
 
-typedef void (*FklVMextraMarkFunc)(FklVMgc *, void *arg);
+typedef void (*FklVMextraMarkFunc)(FklVMgc *, FklVMextraMarkArgs *arg);
+
+typedef struct {
+    FklVMextraMarkFunc func;
+    void (*finalizer)(FklVMextraMarkArgs *);
+} FklVMextraMarkItem;
+
+// FklVMextraMarkHashMap
+#define FKL_HASH_KEY_TYPE FklVMextraMarkArgs *
+#define FKL_HASH_VAL_TYPE FklVMextraMarkItem
+#define FKL_HASH_ELM_NAME VMextraMark
+#define FKL_HASH_KEY_HASH return fklPtrHashv(*pk);
+#include "cont/hash.h"
 
 typedef struct FklVMgc {
     _Atomic(FklGCstate) volatile running;
@@ -598,17 +612,13 @@ typedef struct FklVMgc {
         struct FklVMinterruptHandleList *next;
         FklVMinterruptHandler int_handler;
         FklVMextraMarkFunc mark;
-        void (*finalizer)(void *);
-        void *int_handle_arg;
+        void (*finalizer)(FklVMextraMarkArgs *);
+        FklVMextraMarkArgs *int_handle_arg;
     } *int_list;
 
     uv_mutex_t extra_mark_lock;
-    struct FklVMextraMarkObjList {
-        struct FklVMextraMarkObjList *next;
-        FklVMextraMarkFunc func;
-        void (*finalizer)(void *);
-        void *arg;
-    } *extra_mark_list;
+
+    FklVMextraMarkHashMap extra_marks;
 
     FklVMvalue **builtin_refs;
 
@@ -726,18 +736,20 @@ void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList *l);
 void fklVMpushInterruptHandler(FklVMgc *,
         FklVMinterruptHandler,
         FklVMextraMarkFunc,
-        void (*finalizer)(void *),
-        void *);
+        void (*finalizer)(FklVMextraMarkArgs *),
+        FklVMextraMarkArgs *);
 void fklVMpushInterruptHandlerLocal(FklVM *,
         FklVMinterruptHandler,
         FklVMextraMarkFunc,
-        void (*finalizer)(void *),
-        void *);
+        void (*finalizer)(FklVMextraMarkArgs *),
+        FklVMextraMarkArgs *);
 
-void fklVMpushExtraMarkFunc(FklVMgc *,
+void fklVMregisterExtraMarkFunc(FklVMgc *,
+        FklVMextraMarkArgs *,
         FklVMextraMarkFunc,
-        void (*finalizer)(void *),
-        void *);
+        void (*finalizer)(FklVMextraMarkArgs *));
+
+void fklVMunregisterExtraMarkFunc(FklVMgc *, FklVMextraMarkArgs *);
 
 void fklVMclearExtraMarkFunc(FklVMgc *gc);
 
@@ -838,6 +850,7 @@ void fklInitValueTable(FklValueTable *t);
 void fklUninitValueTable(FklValueTable *t);
 FklValueId fklValueTableAdd(FklValueTable *t, const FklVMvalue *v);
 FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v);
+void fklValueTableClear(FklValueTable *t);
 void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v);
 
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
@@ -1739,7 +1752,7 @@ fklVMframeSetBp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
     fklVMframeSetSp(exe, frame, lcount);
 }
 
-static inline void fklSetBp(FklVM *s) {
+static FKL_ALWAYS_INLINE void fklSetBp(FklVM *s) {
     FKL_VM_PUSH_VALUE(s, FKL_MAKE_VM_FIX(s->bp));
     s->bp = s->tp;
 }
@@ -1752,25 +1765,27 @@ static FKL_ALWAYS_INLINE int fklIsVMnumber(const FklVMvalue *p) {
     return FKL_IS_FIX(p) || FKL_IS_BIGINT(p) || FKL_IS_F64(p);
 }
 
-static inline uintptr_t fklVMintegerHashv(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE uintptr_t fklVMintegerHashv(const FklVMvalue *v) {
     if (FKL_IS_FIX(v))
         return FKL_GET_FIX(v);
     else
         return fklVMbigIntHash(FKL_VM_BI(v));
 }
 
-static inline uintptr_t fklVMvalueEqvHashv(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE uintptr_t fklVMvalueEqvHashv(const FklVMvalue *v) {
     if (fklIsVMint(v))
         return fklVMintegerHashv(v);
     else
         return fklVMvalueEqHashv(v);
 }
 
-static inline int fklVMvalueEq(const FklVMvalue *fir, const FklVMvalue *sec) {
+static FKL_ALWAYS_INLINE int fklVMvalueEq(const FklVMvalue *fir,
+        const FklVMvalue *sec) {
     return fir == sec;
 }
 
-static inline int fklVMvalueEqv(const FklVMvalue *fir, const FklVMvalue *sec) {
+static FKL_ALWAYS_INLINE int fklVMvalueEqv(const FklVMvalue *fir,
+        const FklVMvalue *sec) {
     if (FKL_IS_BIGINT(fir) && FKL_IS_BIGINT(sec))
         return fklVMbigIntEqual(FKL_VM_BI(fir), FKL_VM_BI(sec));
     else

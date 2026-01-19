@@ -194,11 +194,12 @@ fklBigIntToString(const FklBigInt *a, uint8_t radix, FklBigIntFmtFlags flags);
 int fklIsBigIntGtLtFix(const FklBigInt *a);
 int fklIsBigIntAddkInFixIntRange(const FklBigInt *a, int8_t k);
 
-static inline uintptr_t fklHashCombine(uintptr_t seed, uintptr_t hash) {
+static FKL_ALWAYS_INLINE uintptr_t fklHashCombine(uintptr_t seed,
+        uintptr_t hash) {
     return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
 
-static inline uint32_t fklNextPow2(uint32_t n) {
+static FKL_ALWAYS_INLINE uint32_t fklNextPow2(uint32_t n) {
     n--;
     n |= n >> 1;
     n |= n >> 2;
@@ -209,7 +210,7 @@ static inline uint32_t fklNextPow2(uint32_t n) {
 }
 
 // Thomas Wang's 32 Bit / 64 Bit Mix Function
-static inline uintptr_t fklHash32Shift(uint32_t k) {
+static FKL_ALWAYS_INLINE uintptr_t fklHash32Shift(uint32_t k) {
     k = ~k + (k << 15);
     k = k ^ (k >> 12);
     k = k + (k << 2);
@@ -219,7 +220,7 @@ static inline uintptr_t fklHash32Shift(uint32_t k) {
     return k;
 }
 
-static inline uintptr_t fklHash64Shift(uint64_t key) {
+static FKL_ALWAYS_INLINE uintptr_t fklHash64Shift(uint64_t key) {
     key = (~key) + (key << 21); // key = (key << 21) - key - 1;
     key = key ^ (key >> 24);
     key = (key + (key << 3)) + (key << 8); // key * 265
@@ -228,6 +229,10 @@ static inline uintptr_t fklHash64Shift(uint64_t key) {
     key = key ^ (key >> 28);
     key = key + (key << 31);
     return key;
+}
+
+static FKL_ALWAYS_INLINE uintptr_t fklPtrHashv(const void *key) {
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, key));
 }
 
 void fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp, const char *indent_str);

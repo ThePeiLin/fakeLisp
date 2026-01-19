@@ -25,7 +25,7 @@ static inline void mark_interrupt_handler(FklVMgc *gc,
         struct FklVMinterruptHandleList *l) {
     for (; l; l = l->next)
         if (l->mark)
-            l->mark(l->int_handle_arg, gc);
+            l->mark(gc, l->int_handle_arg);
 }
 
 static inline void remove_closed_var_ref_from_list(FklVMvalue **ll) {
@@ -143,8 +143,10 @@ void fklVMgcMarkGrammer(FklVMgc *gc,
 }
 
 static inline void gc_extra_mark(FklVMgc *gc) {
-    for (struct FklVMextraMarkObjList *l = gc->extra_mark_list; l; l = l->next)
-        l->func(gc, l->arg);
+    for (struct FklVMextraMarkHashMapNode *cur = gc->extra_marks.first; cur;
+            cur = cur->next)
+        cur->v.func(gc, cur->k);
+
     mark_obarray(gc, gc->obarray);
 
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
@@ -398,6 +400,7 @@ void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_mutex_init(&gc->extra_mark_lock);
+    fklVMextraMarkHashMapInit(&gc->extra_marks);
     uv_mutex_init_recursive(&gc->print_backtrace_lock);
     gc->obarray = obarray;
     init_idle_work_queue(gc);
@@ -581,20 +584,19 @@ static inline void destroy_interrupt_handle_list(
     }
 }
 
-static inline void destroy_extra_mark_list(struct FklVMextraMarkObjList *l) {
-    while (l) {
-        struct FklVMextraMarkObjList *c = l;
-        if (l->finalizer)
-            l->finalizer(l->arg);
-        l = l->next;
-        fklZfree(c);
+static inline void destroy_all_extra_mark_item(FklVMextraMarkHashMap *ht) {
+    for (const FklVMextraMarkHashMapNode *cur = ht->first; cur;
+            cur = cur->next) {
+        if (cur->v.finalizer) {
+            cur->v.finalizer(cur->k);
+        }
     }
+    fklVMextraMarkHashMapClear(ht);
 }
 
 void fklVMclearExtraMarkFunc(FklVMgc *gc) {
     uv_mutex_lock(&gc->extra_mark_lock);
-    destroy_extra_mark_list(gc->extra_mark_list);
-    gc->extra_mark_list = NULL;
+    destroy_all_extra_mark_item(&gc->extra_marks);
     uv_mutex_unlock(&gc->extra_mark_lock);
 }
 
@@ -606,7 +608,9 @@ void fklUninitVMgc(FklVMgc *gc) {
     uv_mutex_destroy(&gc->extra_mark_lock);
     uv_mutex_destroy(&gc->print_backtrace_lock);
     destroy_interrupt_handle_list(gc->int_list);
-    destroy_extra_mark_list(gc->extra_mark_list);
+
+    fklVMextraMarkHashMapUninit(&gc->extra_marks);
+
     destroy_argv(gc);
     destroy_all_locv_cache(gc);
     fklVMgcSweep(gc, gc->head);
@@ -752,8 +756,8 @@ fklVMinterrupt(FklVM *vm, FklVMvalue *ev, FklVMvalue **pv) {
 void fklVMpushInterruptHandler(FklVMgc *gc,
         FklVMinterruptHandler func,
         FklVMextraMarkFunc mark,
-        void (*finalizer)(void *),
-        void *arg) {
+        void (*finalizer)(FklVMextraMarkArgs *),
+        FklVMextraMarkArgs *arg) {
     struct FklVMinterruptHandleList *l =
             (struct FklVMinterruptHandleList *)fklZmalloc(
                     sizeof(struct FklVMinterruptHandleList));
@@ -769,8 +773,8 @@ void fklVMpushInterruptHandler(FklVMgc *gc,
 void fklVMpushInterruptHandlerLocal(FklVM *exe,
         FklVMinterruptHandler func,
         FklVMextraMarkFunc mark,
-        void (*finalizer)(void *),
-        void *arg) {
+        void (*finalizer)(FklVMextraMarkArgs *),
+        FklVMextraMarkArgs *arg) {
     struct FklVMinterruptHandleList *l =
             (struct FklVMinterruptHandleList *)fklZmalloc(
                     sizeof(struct FklVMinterruptHandleList));
@@ -783,19 +787,33 @@ void fklVMpushInterruptHandlerLocal(FklVM *exe,
     exe->int_list = l;
 }
 
-void fklVMpushExtraMarkFunc(FklVMgc *gc,
-        FklVMextraMarkFunc func,
-        void (*finalizer)(void *),
-        void *arg) {
-    struct FklVMextraMarkObjList *l =
-            (struct FklVMextraMarkObjList *)fklZmalloc(
-                    sizeof(struct FklVMextraMarkObjList));
-    FKL_ASSERT(l);
-    l->func = func;
-    l->arg = arg;
-    l->finalizer = finalizer;
+void fklVMregisterExtraMarkFunc(FklVMgc *gc,
+        FklVMextraMarkArgs *ptr,
+        FklVMextraMarkFunc mark_func,
+        void (*finalizer)(FklVMextraMarkArgs *)) {
     uv_mutex_lock(&gc->extra_mark_lock);
-    l->next = gc->extra_mark_list;
-    gc->extra_mark_list = l;
+
+    FklVMextraMarkHashMapElm *elm = NULL;
+    elm = fklVMextraMarkHashMapInsert(&gc->extra_marks, &ptr, NULL);
+    if (elm->v.func == NULL) {
+        elm->v.func = mark_func;
+        elm->v.finalizer = finalizer;
+    }
+
+    uv_mutex_unlock(&gc->extra_mark_lock);
+}
+
+void fklVMunregisterExtraMarkFunc(FklVMgc *gc, FklVMextraMarkArgs *ptr) {
+    uv_mutex_lock(&gc->extra_mark_lock);
+
+    FklVMextraMarkItem v = { 0 };
+
+    if (fklVMextraMarkHashMapErase2(&gc->extra_marks, ptr, &v, NULL)
+            && v.finalizer) {
+        v.finalizer(ptr);
+    }
+
+    fklVMextraMarkHashMapShrink(&gc->extra_marks);
+
     uv_mutex_unlock(&gc->extra_mark_lock);
 }

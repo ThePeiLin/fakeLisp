@@ -787,7 +787,7 @@ static uint32_t put_loc_drop_predicate(const FklByteCodeBuffer *buf,
         return 0;
     FklIns ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
     uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
-    if (i < k && (ins[0].op >= FKL_OP_PUT_LOC && ins[0].op <= FKL_OP_PUT_LOC_X)
+    if (i < k && ins[0].op == FKL_OP_PUT_LOC
             && peephole[i].ins.op == FKL_OP_DROP)
         return i + 1;
     return 0;
@@ -825,7 +825,7 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
     uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
     if (i >= k)
         return 0;
-    if (ins[0].op < FKL_OP_POP_LOC || ins[0].op > FKL_OP_POP_LOC_X)
+    if (ins[0].op != FKL_OP_POP_LOC)
         return 0;
 
     fklGetInsOpArg(ins, &arg);

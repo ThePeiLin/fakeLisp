@@ -134,8 +134,6 @@ extern "C" {
     X(FKL_OP_EXPORT_TO_X,       "export-to-x",       FKL_OP_MODE_IuC     )\
     X(FKL_OP_EXPORT_TO_XX,      "export-to-xx",      FKL_OP_MODE_IuBB    )\
     X(FKL_OP_POP_LOC,           "pop-loc",           FKL_OP_MODE_IuB     )\
-    X(FKL_OP_POP_LOC_C,         "pop-loc-c",         FKL_OP_MODE_IuC     )\
-    X(FKL_OP_POP_LOC_X,         "pop-loc-x",         FKL_OP_MODE_IuBB    )\
     X(FKL_OP_MOV_LOC,           "mov-loc",           FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_MOV_VAR_REF,       "mov-var-ref",       FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_EXTRA_ARG,         "extra-arg",         FKL_OP_MODE_IxAxB   )

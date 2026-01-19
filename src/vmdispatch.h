@@ -1176,17 +1176,8 @@ void fklVMexecuteInstruction(FklVM *exe,
         FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
     } break;
     case FKL_OP_POP_LOC:
-        idx = ins->bu;
-        goto pop_loc;
-    case FKL_OP_POP_LOC_C:
-        idx = FKL_GET_INS_UC(ins);
-        goto pop_loc;
-    case FKL_OP_POP_LOC_X:
-        idx = GET_INS_UX(ins, frame);
-    pop_loc: {
-        FklVMvalue *v = FKL_VM_POP_TOP_VALUE(exe);
-        FKL_VM_GET_ARG(exe, frame, idx) = v;
-    } break;
+        FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_POP_TOP_VALUE(exe);
+        break;
     case FKL_OP_MOV_LOC:
         FKL_VM_PUSH_VALUE(exe,
                 (FKL_VM_GET_ARG(exe, frame, ins->bu) =

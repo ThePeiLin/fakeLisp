@@ -679,10 +679,6 @@ FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
     uv_mutex_unlock(&gc->obarray->lock);
 
     return r;
-    // uv_rwlock_wrlock(&gc->st_lock);
-    // FklSid_t r = fklAddSymbolCharBuf(str, size, gc->st);
-    // uv_rwlock_wrunlock(&gc->st_lock);
-    // return r;
 }
 
 static inline FklVMvalue *add_symbol_value_unlock(FklStrValueHashMap *ht,

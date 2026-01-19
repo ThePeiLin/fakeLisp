@@ -294,7 +294,6 @@ fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
 
 static int
 fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
-    // FklVMud *ud = FKL_VM_UD(obj);
     FklVMudAppendCb append = FKL_VM_UD(obj)->mt_->append;
     if (append)
         return append(obj, argc, base);
@@ -1759,19 +1758,14 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print, "parser");
 
 static int custom_parser_finalize(FklVMvalue *p, FklVMgc *gc) {
     fklUninitGrammer(&as_gra(p)->g);
-    // FKL_DECL_UD_DATA(grammer, FklGrammer, p);
-    // fklUninitGrammer(grammer);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static void custom_parser_atomic(const FklVMvalue *p, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(g, FklGrammer, p);
-    // fklVMgcMarkGrammer(gc, g, NULL);
     fklVMgcMarkGrammer(gc, &as_gra(p)->g, NULL);
 }
 
 static const FklVMudMetaTable CustomParserMetaTable = {
-    // .size = sizeof(FklGrammer),
     .size = sizeof(FklVMvalueGra),
     .princ = custom_parser_print,
     .prin1 = custom_parser_print,
@@ -1783,7 +1777,6 @@ static inline void push_state0_of_custom_parser(FklVMvalue *parser,
         FklParseStateVector *stack) {
 
     FklGrammer *g = &as_gra(parser)->g;
-    // FKL_DECL_VM_UD_DATA(g, FklGrammer, parser);
     fklParseStateVectorPushBack2(stack,
             (FklParseState){ .state = &g->aTable.states[0] });
 }
@@ -1909,7 +1902,6 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
     }
 
     FklGrammer *g = &as_gra(rctx->parser)->g;
-    // FKL_DECL_VM_UD_DATA(g, FklGrammer, rctx->parser);
 
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(exe, NULL);
 
@@ -2329,7 +2321,6 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(start, FKL_IS_SYM, exe);
     FklVMvalue *retval = fklCreateVMvalueUd(exe, &CustomParserMetaTable, NULL);
     FklGrammer *grammer = &as_gra(retval)->g;
-    // FKL_DECL_VM_UD_DATA(grammer, FklGrammer, retval);
 
     fklInitEmptyGrammer(grammer, exe);
 
@@ -2510,7 +2501,6 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
     }
 
     FklGrammer *g = &as_gra(parse_ctx->parser)->g;
-    // FKL_DECL_VM_UD_DATA(g, FklGrammer, parse_ctx->parser);
     FklString *str = FKL_VM_STR(parse_ctx->str);
     int err = 0;
     size_t output_line = 0;

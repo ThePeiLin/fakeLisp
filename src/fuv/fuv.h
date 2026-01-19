@@ -264,29 +264,17 @@ static inline int isFuvReqCanceled(const FuvValueReq *req) {
 static inline FuvValueReq *FUV_REQ(const FklVMvalue *v) {
     FKL_ASSERT(isFuvReq(v));
     return FKL_TYPE_CAST(FuvValueReq *, v);
-    // FKL_DECL_VM_UD_DATA(req, FuvReq, v);
-    // return req;
 }
 
 static inline FuvValueHandle *FUV_HANDLE(const FklVMvalue *v) {
     FKL_ASSERT(isFuvHandle(v));
     return FKL_TYPE_CAST(FuvValueHandle *, v);
-    // FKL_DECL_VM_UD_DATA(handle, FuvHandle, v);
-    // return handle;
 }
 
 typedef enum FuvFsReqCleanUpOption {
     FUV_FS_REQ_CLEANUP_IN_FINALIZING = 0,
     FUV_FS_REQ_CLEANUP_NOT_IN_FINALIZING,
 } FuvFsReqCleanUpOption;
-
-// static inline FklVMvalue *fuvReqValueOf(FuvReq *req) {
-//     return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
-// }
-//
-// static inline FklVMvalue *fuvHandleValueOf(FuvHandle *req) {
-//     return FKL_VM_VALUE_OF(FKL_VM_UDATA_OF(req));
-// }
 
 void fuvLoopAddHandleRef(FklVMvalue *loop, FuvValueHandle *handle);
 void fuvLoopAddReqRef(FklVMvalue *loop, FuvValueReq *handle);

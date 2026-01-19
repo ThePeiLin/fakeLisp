@@ -231,17 +231,6 @@ static int fs_fwrite(FKL_CPROC_ARGL) {
         if (fklWriteVMvalue(r, &b)) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
         }
-
-        // if (FKL_IS_STR(r)) {
-        //     FklString *str = FKL_VM_STR(r);
-        //     fwrite(str->str, str->size, 1, fp);
-        // } else if (FKL_IS_BYTEVECTOR(r)) {
-        //     FklBytevector *bvec = FKL_VM_BVEC(r);
-        //     fwrite(bvec->ptr, bvec->size, 1, fp);
-        // } else if (FKL_IS_USERDATA(r) && fklIsWritableUd(FKL_VM_UD(r))) {
-        //     fklWriteVMud(FKL_VM_UD(r), &b);
-        // } else
-        //     FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;

@@ -1,13 +1,7 @@
 #include "fuv.h"
 #include <uv.h>
 
-// static FKL_ALWAYS_INLINE FuvValueHandle *as_handle(const FklVMvalue *v) {
-//     FKL_ASSERT(isFuvHandle(v));
-//     return FKL_TYPE_CAST(FuvValueHandle *, v);
-// }
-
 static void fuv_handle_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(handle, FuvHandle, ud);
     FuvValueHandle *handle = FUV_HANDLE(ud);
     fklVMgcToGray(handle->data.loop, gc);
     fklVMgcToGray(handle->data.callbacks[0], gc);
@@ -15,7 +9,6 @@ static void fuv_handle_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static int fuv_handle_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(handle, FuvHandle, ud);
     FuvValueHandle *handle = FUV_HANDLE(ud);
     FuvHandleData *handle_data = &handle->data;
     if (handle_data->loop) {
@@ -52,7 +45,6 @@ static FKL_ALWAYS_INLINE FuvValueProcess *as_process(const FklVMvalue *v) {
 
 static void fuv_process_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    // FKL_DECL_UD_DATA(handle, FuvProcess, ud);
     FuvValueProcess *handle = as_process(ud);
     fklVMgcToGray(handle->env_obj, gc);
     fklVMgcToGray(handle->args_obj, gc);
@@ -67,8 +59,6 @@ static FKL_ALWAYS_INLINE FuvValuePipe *as_pipe(const FklVMvalue *v) {
 
 static void fuv_pipe_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    // FuvValuePipe *handle = as_pipe(ud);
-    // FKL_DECL_UD_DATA(handle, FuvPipe, ud);
     fklVMgcToGray(as_pipe(ud)->fp, gc);
 }
 
@@ -79,8 +69,6 @@ static FKL_ALWAYS_INLINE FuvValuePoll *as_poll(const FklVMvalue *v) {
 
 static void fuv_poll_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    // FuvPoll *handle = &as_poll(ud)->h;
-    // FKL_DECL_UD_DATA(handle, FuvPoll, ud);
     fklVMgcToGray(as_poll(ud)->fp, gc);
 }
 
@@ -97,8 +85,6 @@ static FKL_ALWAYS_INLINE FuvValueTty *as_tty(const FklVMvalue *v) {
 
 static void fuv_tty_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fuv_handle_ud_atomic(ud, gc);
-    // FuvTty *handle = &as_tty(ud)->h;
-    // FKL_DECL_UD_DATA(handle, FuvTty, ud);
     fklVMgcToGray(as_tty(ud)->fp, gc);
 }
 
@@ -109,7 +95,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_ASYNC] =
         {
-            // .size = sizeof(FuvAsync),
 			.size = sizeof(FuvValueAsync),
             .prin1 = fuv_async_print,
             .princ = fuv_async_print,
@@ -119,7 +104,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_CHECK] =
         {
-            // .size = sizeof(FuvCheck),
             .size = sizeof(FuvValueCheck),
             .prin1 = fuv_check_print,
             .princ = fuv_check_print,
@@ -129,7 +113,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_EVENT] =
         {
-            // .size = sizeof(FuvFsEvent),
 			.size = sizeof(FuvValueFsEvent),
             .prin1 = fuv_fs_event_print,
             .princ = fuv_fs_event_print,
@@ -139,7 +122,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_POLL] =
         {
-            // .size = sizeof(FuvFsPoll),
 			.size = sizeof(FuvValueFsPoll),
             .prin1 = fuv_fs_poll_print,
             .princ = fuv_fs_poll_print,
@@ -151,7 +133,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_IDLE] =
         {
-            // .size = sizeof(FuvIdle),
 			.size = sizeof(FuvValueIdle),
             .prin1 = fuv_idle_print,
             .princ = fuv_idle_print,
@@ -161,7 +142,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_NAMED_PIPE] =
         {
-            // .size = sizeof(FuvPipe),
 			.size = sizeof(FuvValuePipe),
             .prin1 = fuv_pipe_print,
             .princ = fuv_pipe_print,
@@ -171,7 +151,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_POLL] =
         {
-            // .size = sizeof(FuvPoll),
             .size = sizeof(FuvValuePoll),
             .prin1 = fuv_poll_print,
             .princ = fuv_poll_print,
@@ -181,7 +160,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PREPARE] =
         {
-            // .size = sizeof(FuvPrepare),
             .size = sizeof(FuvValuePrepare),
             .prin1 = fuv_prepare_print,
             .princ = fuv_prepare_print,
@@ -191,7 +169,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PROCESS] =
         {
-            // .size = sizeof(FuvProcess),
 			.size = sizeof(FuvValueProcess),
             .prin1 = fuv_process_print,
             .princ = fuv_process_print,
@@ -203,7 +180,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TCP] =
         {
-            // .size = sizeof(FuvTcp),
 			.size = sizeof(FuvValueTcp),
             .prin1 = fuv_tcp_print,
             .princ = fuv_tcp_print,
@@ -213,7 +189,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TIMER] =
         {
-            // .size = sizeof(FuvTimer),
             .size = sizeof(FuvValueTimer),
             .prin1 = fuv_timer_print,
             .princ = fuv_timer_print,
@@ -223,7 +198,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TTY] =
         {
-            // .size = sizeof(FuvTty),
             .size = sizeof(FuvValueTty),
             .prin1 = fuv_tty_print,
             .princ = fuv_tty_print,
@@ -233,7 +207,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_UDP] =
         {
-            // .size = sizeof(FuvUdp),
             .size = sizeof(FuvValueUdp),
             .prin1 = fuv_udp_print,
             .princ = fuv_udp_print,
@@ -243,7 +216,6 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_SIGNAL] =
         {
-            // .size = sizeof(FuvSignal),
             .size = sizeof(FuvValueSignal),
             .prin1 = fuv_signal_print,
             .princ = fuv_signal_print,
@@ -386,8 +358,6 @@ FklVMvalue *createFuvAsync(FklVM *vm,
         FklVMvalue *proc_obj,
         int *err) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_ASYNC], dll);
-    // FKL_DECL_VM_UD_DATA(handle, FuvAsync, v);
-    // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueAsync *handle = FKL_TYPE_CAST(FuvValueAsync *, v);
     FuvValueLoop *loop = FKL_TYPE_CAST(FuvValueLoop *, loop_obj);
     handle->extra = NULL;
@@ -414,7 +384,6 @@ uv_process_t *createFuvProcess(FklVM *vm,
         FklVMvalue *stdio_obj,
         FklVMvalue *cwd_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_PROCESS], dll);
-    // FKL_DECL_VM_UD_DATA(handle, FuvProcess, v);
     FuvValueProcess *handle = FKL_TYPE_CAST(FuvValueProcess *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->data.callbacks[0] = proc_obj;
@@ -480,7 +449,6 @@ uv_udp_t *createFuvUdp(FklVM *vm,
         FklVMvalue *loop_obj,
         int64_t mmsg_num_msgs) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_UDP], dll);
-    // FKL_DECL_VM_UD_DATA(handle, FuvUdp, v);
     FuvValueUdp *handle = FKL_TYPE_CAST(FuvValueUdp *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->mmsg_num_msgs = mmsg_num_msgs;
@@ -502,7 +470,6 @@ uv_poll_t *createFuvPoll(FklVM *vm,
         FklVMvalue *loop_obj,
         FklVMvalue *fp_obj) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_POLL], dll);
-    // FKL_DECL_VM_UD_DATA(handle, FuvPoll, v);
     FuvValuePoll *handle = FKL_TYPE_CAST(FuvValuePoll *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->fp = fp_obj;

@@ -5,11 +5,6 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
-// static FKL_ALWAYS_INLINE FuvValueLoop *as_loop(const FklVMvalue *v) {
-//     FKL_ASSERT(isFuvLoop(v));
-//     return FKL_TYPE_CAST(FuvValueLoop *, v);
-// }
-
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_loop_print, "loop");
 
 static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
@@ -25,7 +20,6 @@ static inline FklVMvalue *get_obj_next(FklVMvalue *v) {
 }
 
 static void fuv_loop_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
     FuvValueLoop *l = FUV_LOOP(ud);
 
     for (FklVMvalue *ref = l->data.refs; ref; ref = get_obj_next(ref))
@@ -52,7 +46,6 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
 }
 
 static int fuv_loop_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(fuv_loop, FuvLoop, ud);
     FuvValueLoop *l = FUV_LOOP(ud);
     if (fuvLoopIsClosed(l))
         goto closed;
@@ -69,7 +62,6 @@ closed:
 }
 
 static FklVMudMetaTable const FuvLoopMetaTable = {
-    // .size = sizeof(FuvLoop),
     .size = sizeof(FuvValueLoop),
     .prin1 = fuv_loop_print,
     .princ = fuv_loop_print,
@@ -79,7 +71,6 @@ static FklVMudMetaTable const FuvLoopMetaTable = {
 
 FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, dll);
-    // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, v);
     FuvValueLoop *l = FUV_LOOP(v);
     l->data.mode = -1;
     l->data.is_closed = 0;
@@ -105,7 +96,6 @@ int isFuvLoop(const FklVMvalue *v) {
 void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {
     FKL_ASSERT(isFuvLoop(loop_obj));
     fuv_loop_remove_obj_ref(v);
-    // FKL_DECL_VM_UD_DATA(fuv_loop, FuvLoop, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     v->next_ = l->data.gclist;
     l->data.gclist = v;
@@ -135,10 +125,9 @@ static inline void set_obj_next(FklVMvalue *v, FklVMvalue *next) {
 
 void fuvLoopAddHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
     FKL_ASSERT(isFuvLoop(loop_obj));
-    // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
-    FklVMvalue *v = FKL_VM_VAL(h); // fuvHandleValueOf(h);
+    FklVMvalue *v = FKL_VM_VAL(h);
 
     h->data.next = loop->data.refs;
 
@@ -150,10 +139,9 @@ void fuvLoopAddHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
 
 void fuvLoopAddReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
     FKL_ASSERT(isFuvLoop(loop_obj));
-    // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
-    FklVMvalue *v = FKL_VM_VAL(r); // fuvReqValueOf(r);
+    FklVMvalue *v = FKL_VM_VAL(r);
 
     r->data.next = loop->data.refs;
 
@@ -165,7 +153,6 @@ void fuvLoopAddReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
 
 void fuvLoopRemoveHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
     FKL_ASSERT(isFuvLoop(loop_obj));
-    // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
     if (h->data.prev)
@@ -184,7 +171,6 @@ void fuvLoopRemoveHandleRef(FklVMvalue *loop_obj, FuvValueHandle *h) {
 
 void fuvLoopRemoveReqRef(FklVMvalue *loop_obj, FuvValueReq *r) {
     FKL_ASSERT(isFuvLoop(loop_obj));
-    // FKL_DECL_VM_UD_DATA(loop, FuvLoop, loop_obj);
     FuvValueLoop *loop = FUV_LOOP(loop_obj);
 
     if (r->data.prev)

@@ -1370,25 +1370,11 @@ static uint32_t push_const_not_pred(const FklByteCodeBuffer *buf,
     case FKL_OP_PUSH_I8:
     case FKL_OP_PUSH_I16:
     case FKL_OP_PUSH_I24:
-    case FKL_OP_PUSH_CONST:
-        // case FKL_OP_PUSH_I64B:
-        // case FKL_OP_PUSH_I64B_C:
-        // case FKL_OP_PUSH_I64B_X:
-        // case FKL_OP_PUSH_F64:
-        // case FKL_OP_PUSH_F64_C:
-        // case FKL_OP_PUSH_F64_X:
-        // case FKL_OP_PUSH_BI:
-        // case FKL_OP_PUSH_BI_C:
-        // case FKL_OP_PUSH_BI_X:
-        // case FKL_OP_PUSH_SYM:
-        // case FKL_OP_PUSH_SYM_C:
-        // case FKL_OP_PUSH_SYM_X:
-        {
-            uint32_t i = fklGetOpcodeModeLen(peephole[0].ins.op);
-            if (k > i && peephole[i].ins.op == FKL_OP_NOT)
-                return i + 1;
-        }
-        break;
+    case FKL_OP_PUSH_CONST: {
+        uint32_t i = fklGetOpcodeModeLen(peephole[0].ins.op);
+        if (k > i && peephole[i].ins.op == FKL_OP_NOT)
+            return i + 1;
+    } break;
     default:
         return 0;
     }

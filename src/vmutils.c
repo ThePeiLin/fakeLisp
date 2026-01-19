@@ -774,7 +774,6 @@ static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb princ = NULL;
-    // void (*as_princ)(const FklVMud *, FklCodeBuilder *, FklVM *) = NULL;
     princ = t->princ ? t->princ : t->prin1;
     if (princ) {
         princ(v, build, exe);
@@ -864,7 +863,6 @@ static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = ud->mt_;
     FklVMudPrintCb prin1 = NULL;
-    // void (*as_prin1)(const FklVMvalue *, FklCodeBuilder *, FklVM *) = NULL;
     prin1 = t->prin1 ? t->prin1 : t->princ;
     if (prin1) {
         prin1(v, build, exe);

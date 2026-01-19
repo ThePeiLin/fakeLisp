@@ -4,13 +4,7 @@
 
 #include "fuv.h"
 
-// static FKL_ALWAYS_INLINE FuvValueReq *as_req(const FklVMvalue *v) {
-//     FKL_ASSERT(isFuvReq(v));
-//     return FKL_TYPE_CAST(FuvValueReq *, v);
-// }
-
 static void fuv_req_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, FuvReq, ud);
     FuvValueReq *req = FUV_REQ(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
@@ -45,7 +39,6 @@ void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
 }
 
 static inline int fuv_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, FuvReq, ud);
     FuvValueReq *req = FUV_REQ(ud);
     if (req->data.loop) {
         fuvLoopAddGcObj(req->data.loop, ud);
@@ -61,7 +54,6 @@ static FKL_ALWAYS_INLINE FuvValueFsReq *as_fs_req(const FklVMvalue *v) {
 }
 
 static int fuv_fs_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, FuvFsReq, ud);
     if (fuv_req_ud_finalize(ud, gc))
         return FKL_VM_UD_FINALIZE_DELAY;
     fuvFsReqCleanUp(as_fs_req(ud), FUV_FS_REQ_CLEANUP_IN_FINALIZING);
@@ -83,7 +75,6 @@ static FKL_ALWAYS_INLINE FuvValueWrite *as_write(const FklVMvalue *v) {
 }
 
 static void fuv_write_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, struct FuvWrite, ud);
     FuvValueWrite *req = as_write(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
@@ -98,7 +89,6 @@ static FKL_ALWAYS_INLINE FuvValueUdpSend *as_udp_send(const FklVMvalue *v) {
 }
 
 static void fuv_udp_send_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, struct FuvUdpSend, ud);
     FuvValueUdpSend *req = as_udp_send(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
@@ -108,7 +98,6 @@ static void fuv_udp_send_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static void fuv_fs_req_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    // FKL_DECL_UD_DATA(req, struct FuvFsReq, ud);
     FuvValueFsReq *req = as_fs_req(ud);
     fklVMgcToGray(req->data.loop, gc);
     fklVMgcToGray(req->data.callback, gc);
@@ -124,7 +113,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_CONNECT] =
         {
-            // .size = sizeof(struct FuvConnect),
 			.size = sizeof(FuvValueConnect),
             .prin1 = fuv_connect_print,
             .princ = fuv_connect_print,
@@ -134,7 +122,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_WRITE] =
         {
-            // .size = sizeof(struct FuvWrite),
 			.size = sizeof(FuvValueWrite),
             .prin1 = fuv_write_print,
             .princ = fuv_write_print,
@@ -144,7 +131,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_SHUTDOWN] =
         {
-            // .size = sizeof(struct FuvShutdown),
             .size = sizeof(FuvValueShutdown),
             .prin1 = fuv_shutdown_print,
             .princ = fuv_shutdown_print,
@@ -154,7 +140,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_UDP_SEND] =
         {
-            // .size = sizeof(struct FuvUdpSend),
             .size = sizeof(FuvValueUdpSend),
             .prin1 = fuv_udp_send_print,
             .princ = fuv_udp_send_print,
@@ -164,7 +149,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_FS] =
         {
-            // .size = sizeof(struct FuvFsReq),
             .size = sizeof(FuvValueFsReq),
             .prin1 = fuv_fs_req_print,
             .princ = fuv_fs_req_print,
@@ -176,7 +160,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_GETADDRINFO] =
         {
-            // .size = sizeof(struct FuvGetaddrinfo),
             .size = sizeof(FuvValueGetaddrinfo),
             .prin1 = fuv_getaddrinfo_print,
             .princ = fuv_getaddrinfo_print,
@@ -186,7 +169,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_GETNAMEINFO] =
         {
-            // .size = sizeof(struct FuvGetnameinfo),
             .size = sizeof(FuvValueGetnameinfo),
             .prin1 = fuv_getnameinfo_print,
             .princ = fuv_getnameinfo_print,
@@ -196,7 +178,6 @@ static const FklVMudMetaTable ReqMetaTables[UV_REQ_TYPE_MAX] = {
 
     [UV_RANDOM] =
         {
-            // .size = sizeof(struct FuvRandom),
             .size = sizeof(FuvValueRandom),
             .prin1 = fuv_random_print,
             .princ = fuv_random_print,
@@ -261,7 +242,6 @@ uv_write_t *createFuvWrite(FklVM *exe,
             &ReqMetaTables[UV_WRITE],
             count * sizeof(FklVMvalue *),
             dll);
-    // FKL_DECL_VM_UD_DATA(req, FuvWrite, v);
     FuvValueWrite *req = FKL_TYPE_CAST(FuvValueWrite *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
@@ -288,7 +268,6 @@ uv_udp_send_t *createFuvUdpSend(FklVM *exe,
             &ReqMetaTables[UV_UDP_SEND],
             count * sizeof(FklVMvalue *),
             dll);
-    // FKL_DECL_VM_UD_DATA(req, FuvUdpSend, v);
     FuvValueUdpSend *req = FKL_TYPE_CAST(FuvValueUdpSend *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;
@@ -312,7 +291,6 @@ FuvValueFsReq *createFuvFsReq(FklVM *exe,
             &ReqMetaTables[UV_FS],
             len * sizeof(char),
             dll);
-    // FKL_DECL_VM_UD_DATA(req, FuvFsReq, v);
     FuvValueFsReq *req = FKL_TYPE_CAST(FuvValueFsReq *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     req->buf = uv_buf_init(req->base, len);
@@ -337,7 +315,6 @@ FuvValueRandom *createFuvRandom(FklVM *exe,
             &ReqMetaTables[UV_RANDOM],
             len * sizeof(uint8_t),
             dll);
-    // FKL_DECL_VM_UD_DATA(req, FuvRandom, v);
     FuvValueRandom *req = FKL_TYPE_CAST(FuvValueRandom *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
     *ret = v;

@@ -66,7 +66,8 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
 
     fklZfree(rp);
     FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.global_env);
-    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
+
+    fklUnregisterCgCtx(&ctx);
 
     if (bc == NULL) {
         fklUninitCgCtx(&ctx);
@@ -139,7 +140,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     fklZfree(rp);
 
-    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
+    fklUnregisterCgCtx(&ctx);
 
     fclose(fp);
 

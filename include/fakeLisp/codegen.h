@@ -462,8 +462,11 @@ typedef struct FklCgAct {
 void fklInitProdActionList(FklCgCtx *ctx);
 
 void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
+
+void fklRegisterCgCtx(FklCgCtx* ctx);
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
 
+void fklUnregisterCgCtx(FklCgCtx* ctx);
 void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {

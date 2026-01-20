@@ -9170,6 +9170,13 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->macro_libraries), gc);
 }
 
+void fklRegisterCgCtx(FklCgCtx *ctx) {
+    fklVMregisterExtraMarkFunc(ctx->vm->gc,
+            FKL_TYPE_CAST(FklVMextraMarkArgs *, ctx),
+            codegen_ctx_extra_mark_func,
+            NULL);
+}
+
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     memset(ctx, 0, sizeof(FklCgCtx));
     ctx->libraries = fklCreateVMvalueCgLibs(vm);
@@ -9177,10 +9184,7 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
 
     ctx->vm = vm;
 
-    fklVMregisterExtraMarkFunc(vm->gc,
-            FKL_TYPE_CAST(FklVMextraMarkArgs *, ctx),
-            codegen_ctx_extra_mark_func,
-            NULL);
+    fklRegisterCgCtx(ctx);
 
     fklInitBuiltinGrammer(&ctx->builtin_g, vm);
 
@@ -9235,8 +9239,12 @@ void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *gc) {
     init_builtin_replacements(ctx);
 }
 
-void fklUninitCgCtx(FklCgCtx *ctx) {
+void fklUnregisterCgCtx(FklCgCtx *ctx) {
     fklVMunregisterExtraMarkFunc(ctx->vm->gc, (FklVMextraMarkArgs *)ctx);
+}
+
+void fklUninitCgCtx(FklCgCtx *ctx) {
+    fklUnregisterCgCtx(ctx);
 
     fklUninitGrammer(&ctx->builtin_g);
     ctx->vm = NULL;

@@ -146,7 +146,8 @@ static inline int compile(const char *filename,
             fp,
             codegen,
             ctx.global_env);
-    fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
+
+    fklUnregisterCgCtx(&ctx);
 
     if (co == NULL) {
         fklZfree(rp);

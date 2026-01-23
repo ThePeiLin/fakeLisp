@@ -100,7 +100,7 @@ FklSymDefHashMapElm *fklAddCgBuiltinRefBySid(FklVMvalue *id,
     FklSymDefHashMap *ht = &env->refs;
     uint32_t idx = ht->count;
     return fklSymDefHashMapInsert2(ht,
-            (FklSidScope){ .id = id, .scope = env->parent_scope },
+            (FklSidScope){ .sid = id, .scope = env->parent_scope },
             (FklSymDef){ .idx = idx, .cidx = idx, .isLocal = 0, .isConst = 0 });
 }
 
@@ -141,13 +141,13 @@ static inline FklSymDefHashMapElm *add_ref_to_all_penv(FklVMvalue *id,
         FklSymDefHashMapElm **new_ref) {
     uint32_t idx = cur->refs.count;
     FklSymDefHashMapElm *cel = fklSymDefHashMapInsert2(&cur->refs,
-            (FklSidScope){ .id = id, .scope = cur->parent_scope },
+            (FklSidScope){ .sid = id, .scope = cur->parent_scope },
             (FklSymDef){ .idx = idx,
                 .cidx = idx,
                 .isConst = isConst,
                 .isLocal = 0 });
     *new_ref = cel;
-    FklSidScope key = { .id = id, .scope = cur->parent_scope };
+    FklSidScope key = { .sid = id, .scope = cur->parent_scope };
     FklSymDef def;
     for (cur = cur->prev; cur != targetEnv; cur = cur->prev) {
         uint32_t idx = cur->refs.count;
@@ -192,7 +192,7 @@ static inline int is_ref_solved(FklSymDefHashMapElm *ref,
         FklUnbound *refs = env->uref.base;
         for (uint32_t i = 0; i < top; i++) {
             FklUnbound *cur = &refs[i];
-            if (cur->id == ref->k.id && cur->scope == ref->k.scope)
+            if (cur->sid == ref->k.sid && cur->scope == ref->k.scope)
                 return 0;
         }
     }
@@ -207,7 +207,7 @@ static inline void init_unbound(FklUnbound *r,
         uint32_t assign,
         FklVMvalue *fid,
         uint64_t line) {
-    r->id = id;
+    r->sid = id;
     r->idx = idx;
     r->scope = scope;
     r->env = env;
@@ -239,7 +239,7 @@ has_resolvable_ref(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env) {
     uint32_t top = env->uref.size;
     for (uint32_t i = 0; i < top; i++) {
         FklUnbound *cur = &urefs[i];
-        if (cur->id == id && cur->scope == scope)
+        if (cur->sid == id && cur->scope == scope)
             return cur;
     }
     return NULL;
@@ -377,7 +377,7 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
                             &ret);
                 else {
                     ret = fklSymDefHashMapInsert2(refs,
-                            (FklSidScope){ .id = id,
+                            (FklSidScope){ .sid = id,
                                 .scope = env->parent_scope },
                             (FklSymDef){ .idx = idx, .cidx = idx });
                     ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
@@ -394,7 +394,7 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
             }
         } else {
             ret = fklSymDefHashMapInsert2(refs,
-                    (FklSidScope){ .id = id, .scope = 0 },
+                    (FklSidScope){ .sid = id, .scope = 0 },
                     (FklSymDef){ .idx = idx, .cidx = idx });
             ret->v.cidx = FKL_VAR_REF_INVALID_CIDX;
             idx = ret->v.idx;
@@ -485,7 +485,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
 
         FklVMvalueProto *pt = uref->env->proto;
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
-        const FklSymDefHashMapElm *def = fklFindSymbolDefByIdAndScope(uref->id,
+        const FklSymDefHashMapElm *def = fklFindSymbolDefByIdAndScope(uref->sid,
                 uref->scope,
                 env->scopes);
 
@@ -505,7 +505,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
             uref->scope = env->scopes[uref->scope - 1].p;
             fklUnboundVectorPushBack(&urefs1, uref);
         } else if (env->prev != top_env) {
-            uint32_t cidx = fklAddCgRefBySidRetIndex(uref->id,
+            uint32_t cidx = fklAddCgRefBySidRetIndex(uref->sid,
                     env,
                     uref->fid,
                     uref->line,
@@ -513,12 +513,12 @@ void fklResolveRef(FklVMvalueCgEnv *env,
             ref->cidx = FKL_MAKE_VM_FIX(cidx);
         } else {
             if (!no_refs_to_builtins) {
-                fklAddCgBuiltinRefBySid(uref->id, env);
+                fklAddCgBuiltinRefBySid(uref->sid, env);
             }
 
             if (!uref->has_weak_ref //
                     || weak_refs == NULL
-                    || fklVMvalueWeakHashEqGet(weak_refs, uref->id) != NULL) {
+                    || fklVMvalueWeakHashEqGet(weak_refs, uref->sid) != NULL) {
                 fklUnboundVectorPushBack(&urefs1, uref);
             }
         }
@@ -547,7 +547,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
 
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
         FklValueEqHashMapElm *i = fklVMvalueWeakHashEqInsert(weak_refs, //
-                uref->id);
+                uref->sid);
         FklVMvalue *cidx_v = NULL;
         if (i->v == NULL) {
             uint32_t cidx = (weak_refs->ht.count - 1) + env->refs.count;
@@ -584,7 +584,7 @@ void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
     for (uint32_t i = urefs->size; i > 0; i--) {
         FklUnbound *ref = &urefs->base[i - 1];
         fklCodeBuilderPuts(cb, "warning: Symbol ");
-        fklPrintSymbolLiteral2(FKL_VM_SYM(ref->id), cb);
+        fklPrintSymbolLiteral2(FKL_VM_SYM(ref->sid), cb);
         fklCodeBuilderFmt(cb, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
             fklCodeBuilderPuts(cb, " of ");
@@ -1150,7 +1150,7 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
     for (size_t i = 0; i < e->uref.size; ++i) {
         fklVMgcToGray(e->uref.base[i].fid, gc);
-        fklVMgcToGray(e->uref.base[i].id, gc);
+        fklVMgcToGray(e->uref.base[i].sid, gc);
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->uref.base[i].env), gc);
     }
 
@@ -1167,6 +1167,8 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
             cur = cur->next) {
         fklVMgcToGray(FKL_VM_VAL(cur->v.lib), gc);
     }
+
+    fklVMgcToGray(FKL_VM_VAL(e->proto_env_map), gc);
 }
 
 static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1253,6 +1255,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
         r->env_work_cb = prev_env->env_work_cb;
     }
 
+    r->proto_env_map = c->proto_env_map;
     insert_proto_to_parent(r);
     return r;
 }
@@ -1463,7 +1466,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
     r->libraries = libs;
 
-    if (args->inherit_grammer && prev) {
+    if (args && args->inherit_grammer && prev) {
         r->g = &prev->self_g;
         r->prod_groups = &prev->self_prod_groups;
     } else {
@@ -2806,7 +2809,7 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     for (const FklSymDefHashMapNode *l = env->refs.first; l; l = l->next) {
         FklVMvalue *sid = NULL;
         if (env->is_debugging || l->v.cidx == FKL_VAR_REF_INVALID_CIDX) {
-            sid = l->k.id;
+            sid = l->k.sid;
         }
 
         FklVarRefDef *cur = &refs[l->v.idx];
@@ -2839,6 +2842,7 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     update_parent_env_proto(env, FKL_VM_VAL(proto));
 
     env->proto = proto;
+    fklVMvalueCgEnvWeakMapInsert(env->proto_env_map, proto, env);
     if (tmp_var_refs == NULL)
         return proto;
 
@@ -2857,4 +2861,32 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
 
 FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
     return fklCreateVMvalueProto3(exe, env, NULL);
+}
+
+FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm) {
+    FklVMvalueWeakHashEq *weak_map = fklCreateVMvalueWeakHashEq2(vm, 1);
+    return (FklVMvalueCgEnvWeakMap *)weak_map;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *as_weak_map(
+        const FklVMvalueCgEnvWeakMap *hp) {
+    FklVMvalue *v = FKL_VM_VAL(hp);
+    FKL_ASSERT(fklIsVMvalueWeakHashEq(v));
+    return (FklVMvalueWeakHashEq *)hp;
+}
+
+FklVMvalueCgEnv *fklVMvalueCgEnvWeakMapGet(const FklVMvalueCgEnvWeakMap *hp,
+        const FklVMvalueProto *p) {
+    FklVMvalue **pv = fklVMvalueWeakHashEqGet(as_weak_map(hp), (FklVMvalue *)p);
+    if (pv == NULL)
+        return NULL;
+    return as_env(*pv);
+}
+
+void fklVMvalueCgEnvWeakMapInsert(FklVMvalueCgEnvWeakMap *hp,
+        const FklVMvalueProto *k,
+        const FklVMvalueCgEnv *v) {
+    FklValueEqHashMapElm *elm = fklVMvalueWeakHashEqInsert(as_weak_map(hp), //
+            (FklVMvalue *)k);
+    elm->v = (FklVMvalue *)v;
 }

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    struct FklVMvalue *id;
+    struct FklVMvalue *sid;
     uint32_t scope;
 } FklSidScope;
 
@@ -28,7 +28,7 @@ typedef struct FklSymDef {
 
 // unresolved symbol ref
 typedef struct {
-    struct FklVMvalue *id;
+    struct FklVMvalue *sid;
     struct FklVMvalue *fid;
     struct FklVMvalueCgEnv *env;
     uint8_t has_weak_ref;
@@ -44,7 +44,7 @@ typedef struct {
 #include "cont/vector.h"
 
 static inline uintptr_t fklSymDefHashv(const FklSidScope *k) {
-    return fklHashCombine(fklHash64Shift(FKL_TYPE_CAST(uintptr_t, k->id)),
+    return fklHashCombine(fklHash64Shift(FKL_TYPE_CAST(uintptr_t, k->sid)),
             k->scope);
 }
 
@@ -53,7 +53,8 @@ static inline uintptr_t fklSymDefHashv(const FklSidScope *k) {
 #define FKL_HASH_VAL_TYPE FklSymDef
 #define FKL_HASH_ELM_NAME SymDef
 #define FKL_HASH_KEY_HASH return fklSymDefHashv(pk);
-#define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    (A)->sid == (B)->sid && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
 typedef struct {

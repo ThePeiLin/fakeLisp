@@ -44,8 +44,9 @@ typedef struct {
 #define FKL_HASH_VAL_TYPE uint8_t
 #define FKL_HASH_ELM_NAME Predef
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHashCombine(fklVMvalueEqHashv((pk)->id), (pk)->scope);
-#define FKL_HASH_KEY_EQUAL(A, B) (A)->id == (B)->id && (A)->scope == (B)->scope
+    return fklHashCombine(fklVMvalueEqHashv((pk)->sid), (pk)->scope);
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    (A)->sid == (B)->sid && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
 typedef struct {
@@ -64,7 +65,12 @@ typedef struct {
 #include "cont/hash.h"
 
 struct FklVMvalueCgEnv;
+
+FKL_DEPRECATED
 typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgEnv *, void *);
+
+// 实际上是 FklVMvalueWeakHashEq 的别名
+typedef struct FklVMvalueCgEnvWeakMap FklVMvalueCgEnvWeakMap;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnboundVector uref;
@@ -92,6 +98,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     void *work_ctx;
     FklCgInfoEnvWorkCb env_work_cb;
     FklVMvalueProto *proto;
+    FklVMvalueCgEnvWeakMap *proto_env_map;
 });
 
 typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
@@ -351,6 +358,8 @@ typedef struct FklCgCtx {
 
     FklVMvalueLnt *lnt;
 
+    FklVMvalueCgEnvWeakMap *proto_env_map;
+
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
     FklVMvalue *builtin_pattern_node[FKL_CODEGEN_PATTERN_NUM];
@@ -361,6 +370,7 @@ typedef struct FklCgCtx {
 
 } FklCgCtx;
 
+FKL_DEPRECATED
 typedef void (*FklCgInfoWorkCb)(struct FklVMvalueCgInfo *self, void *);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
@@ -463,10 +473,10 @@ void fklInitProdActionList(FklCgCtx *ctx);
 
 void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
 
-void fklRegisterCgCtx(FklCgCtx* ctx);
+void fklRegisterCgCtx(FklCgCtx *ctx);
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
 
-void fklUnregisterCgCtx(FklCgCtx* ctx);
+void fklUnregisterCgCtx(FklCgCtx *ctx);
 void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {
@@ -509,6 +519,13 @@ FklCgLib *fklVMvalueCgLibsIter(const FklVMvalueCgLibs *v);
 
 FklCgLib *fklCgLibNext(const FklCgLib *c);
 const char *fklCgLibRp(const FklCgLib *c);
+
+FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
+FklVMvalueCgEnv *fklVMvalueCgEnvWeakMapGet(const FklVMvalueCgEnvWeakMap *,
+        const FklVMvalueProto *p);
+void fklVMvalueCgEnvWeakMapInsert(FklVMvalueCgEnvWeakMap *,
+        const FklVMvalueProto *,
+        const FklVMvalueCgEnv *env);
 
 int fklIsVMvalueCgInfo(const FklVMvalue *v);
 FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,

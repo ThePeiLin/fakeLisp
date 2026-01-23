@@ -1714,6 +1714,8 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(weak_hash_eq_print, "chanl");
 
 static void weak_hash_eq_atomic(const FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueWeakHashEq *h_v = fklVMvalueWeakHashEq(v);
+    if (h_v->is_key_weak)
+        return;
     for (const FklValueEqHashMapNode *cur = h_v->ht.first; cur;
             cur = cur->next) {
         fklVMgcToGray(cur->k, gc);
@@ -1721,11 +1723,18 @@ static void weak_hash_eq_atomic(const FklVMvalue *v, FklVMgc *gc) {
 }
 
 static void weak_hash_eq_update_weak_ref(const FklVMvalue *v, FklVMgc *gc) {
-    FklValueEqHashMap *ht = &fklVMvalueWeakHashEq(v)->ht;
+    FklVMvalueWeakHashEq *h_v = fklVMvalueWeakHashEq(v);
+    FklValueEqHashMap *ht = &h_v->ht;
     const FklValueEqHashMapNode *cur = ht->first;
     while (cur) {
         const FklValueEqHashMapNode *next = cur->next;
-        if (cur == NULL || !FKL_IS_PTR(cur) || cur->k->mark_ == FKL_MARK_W) {
+
+        if (h_v->is_key_weak
+                && (cur->k == NULL || !FKL_IS_PTR(cur->k)
+                        || cur->k->mark_ == FKL_MARK_W)) {
+            fklValueEqHashMapDel2(ht, cur->k);
+        } else if (cur->v == NULL || !FKL_IS_PTR(cur->v)
+                   || cur->v->mark_ == FKL_MARK_W) {
             fklValueEqHashMapDel2(ht, cur->k);
         }
         cur = next;
@@ -1757,10 +1766,15 @@ int fklIsVMvalueWeakHashEq(const FklVMvalue *v) {
 }
 
 FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *vm) {
+    return fklCreateVMvalueWeakHashEq2(vm, 0);
+}
+
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *vm, int is_key_weak) {
     FklVMvalueWeakHashEq *r = (FklVMvalueWeakHashEq *)fklCreateVMvalueUd(vm,
             &WeakHashEqUserDataMetaTable,
             NULL);
 
+    r->is_key_weak = is_key_weak;
     fklValueEqHashMapInit(&r->ht);
     return r;
 }

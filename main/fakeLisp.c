@@ -625,7 +625,7 @@ static inline void resolve_var_ref_for_repl(FklVM *vm,
 
     FklVMvalueWeakHashEq *weak_var_refs = s->weak_var_refs;
 
-    FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->def->k.id);
+    FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->def->k.sid);
     FKL_ASSERT(pref);
     FklVMvalue *ref = *pref;
 

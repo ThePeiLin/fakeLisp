@@ -684,7 +684,10 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
     uv_lib_t dll;
 });
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueWeakHashEq, { FklValueEqHashMap ht; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueWeakHashEq, {
+    FklValueEqHashMap ht;
+    int is_key_weak;
+});
 
 void fklPopVMframe(FklVM *);
 void fklPopVMframe2(FklVM *, FklVMframe *const bottom_frame);
@@ -1157,6 +1160,7 @@ static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *fklVMvalueWeakHashEq(
 }
 
 FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *exe);
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *exe, int is_key_weak);
 FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k);
 
 FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,

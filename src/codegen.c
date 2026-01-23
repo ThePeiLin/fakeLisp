@@ -2271,7 +2271,7 @@ static inline FklVMvalue *
 get_sid_with_idx(FklCgEnvScope *sc, uint32_t idx, FklCgCtx *ctx) {
     for (FklSymDefHashMapNode *l = sc->defs.first; l; l = l->next) {
         if (l->v.idx == idx)
-            return l->k.id;
+            return l->k.sid;
     }
     return 0;
 }
@@ -2280,7 +2280,7 @@ static inline FklVMvalue *
 get_sid_with_ref_idx(FklSymDefHashMap *refs, uint32_t idx, FklCgCtx *ctx) {
     for (FklSymDefHashMapNode *l = refs->first; l; l = l->next) {
         if (l->v.idx == idx)
-            return l->k.id;
+            return l->k.sid;
     }
     return 0;
 }
@@ -3031,7 +3031,7 @@ static inline FklUnbound *get_resolvable_assign_ref(FklVMvalue *id,
     uint32_t top = env->uref.size;
     for (uint32_t i = 0; i < top; i++) {
         FklUnbound *cur = &urefs[i];
-        if (cur->id == id && cur->scope == scope && cur->assign)
+        if (cur->sid == id && cur->scope == scope && cur->assign)
             return cur;
     }
     return NULL;
@@ -5456,8 +5456,8 @@ static void codegen_load(const CgCbArgs *args) {
                 actions);
     }
 
-    const FklString *filenameStr = FKL_VM_STR(filename->value);
-    if (!fklIsAccessibleRegFile(filenameStr->str)) {
+    const FklString *filename_str = FKL_VM_STR(filename->value);
+    if (!fklIsAccessibleRegFile(filename_str->str)) {
         error_state->error = make_file_failure_error(vm, filename->value);
         error_state->line = CURLINE(filename->container);
         return;
@@ -5465,7 +5465,7 @@ static void codegen_load(const CgCbArgs *args) {
 
     FklVMvalueCgInfo *next_info = fklCreateVMvalueCgInfo(ctx,
             info,
-            filenameStr->str,
+            filename_str->str,
             &(FklCgInfoArgs){ .inherit_grammer = 1 });
 
     if (hasLoadSameFile(next_info->realpath, info)) {
@@ -5474,7 +5474,7 @@ static void codegen_load(const CgCbArgs *args) {
         return;
     }
 
-    FILE *fp = fopen(filenameStr->str, "r");
+    FILE *fp = fopen(filename_str->str, "r");
     if (!fp) {
         error_state->error = make_file_failure_error(vm, filename->value);
         error_state->line = CURLINE(filename->container);
@@ -9119,6 +9119,7 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_info), gc);
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
+    fklVMgcToGray(FKL_VM_VAL(ctx->proto_env_map), gc);
 
     fklVMgcToGray(ctx->cur_exp.value, gc);
     fklVMgcToGray(ctx->cur_exp.container, gc);
@@ -9189,6 +9190,7 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     fklInitBuiltinGrammer(&ctx->builtin_g, vm);
 
     ctx->lnt = fklCreateVMvalueLnt(vm);
+    ctx->proto_env_map = fklCreateVMvalueCgEnvWeakMap(vm);
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

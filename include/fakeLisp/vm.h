@@ -684,9 +684,16 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
     uv_lib_t dll;
 });
 
+typedef enum {
+    FKL_WEAK_MAP_V = 1,
+    FKL_WEAK_MAP_K = 2,
+
+    FKL_WEAK_MAP_KV = (FKL_WEAK_MAP_K | FKL_WEAK_MAP_V),
+} FklWeakMapMode;
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueWeakHashEq, {
     FklValueEqHashMap ht;
-    int is_key_weak;
+    FklWeakMapMode weak_mode;
 });
 
 void fklPopVMframe(FklVM *);
@@ -762,6 +769,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMframe *frame);
 
 // check and gc in single thread
+
 void fklVMgcCheck(FklVM *exe, int forced);
 
 static FKL_ALWAYS_INLINE void fklVMgcStateSet(FklVMgc *gc, FklGCstate state) {
@@ -1160,7 +1168,8 @@ static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *fklVMvalueWeakHashEq(
 }
 
 FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *exe);
-FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *exe, int is_key_weak);
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *exe,
+        FklWeakMapMode mode);
 FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k);
 
 FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,
@@ -1550,6 +1559,8 @@ static FKL_ALWAYS_INLINE FklVMvalueLib *fklVMvalueLib(const FklVMvalue *v) {
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklVMgc *);
 
+uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
+
 noreturn static FKL_ALWAYS_INLINE void
 FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
     FklVMvalue *errorMessage = fklGenErrorMessage(error_type, exe);
@@ -1796,9 +1807,11 @@ static FKL_ALWAYS_INLINE int fklVMvalueEqv(const FklVMvalue *fir,
         return fir == sec;
 }
 
-static FKL_ALWAYS_INLINE void fklVMvalueTerminalDestroy(void *v) {}
+static FKL_ALWAYS_INLINE int fklVMgcIsMarked(const FklVMvalue *v) {
+    return v != NULL && FKL_IS_PTR(v) && v->mark_ != FKL_MARK_W;
+}
 
-uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
+static FKL_ALWAYS_INLINE void fklVMvalueTerminalDestroy(void *v) {}
 
 #ifdef __cplusplus
 }

@@ -1714,11 +1714,14 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(weak_hash_eq_print, "chanl");
 
 static void weak_hash_eq_atomic(const FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueWeakHashEq *h_v = fklVMvalueWeakHashEq(v);
-    if (h_v->is_key_weak)
+    if ((h_v->weak_mode & FKL_WEAK_MAP_V) && h_v->weak_mode & FKL_WEAK_MAP_K)
         return;
     for (const FklValueEqHashMapNode *cur = h_v->ht.first; cur;
             cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
+        if (!(h_v->weak_mode & FKL_WEAK_MAP_K))
+            fklVMgcToGray(cur->k, gc);
+        if (!(h_v->weak_mode & FKL_WEAK_MAP_V))
+            fklVMgcToGray(cur->v, gc);
     }
 }
 
@@ -1729,12 +1732,11 @@ static void weak_hash_eq_update_weak_ref(const FklVMvalue *v, FklVMgc *gc) {
     while (cur) {
         const FklValueEqHashMapNode *next = cur->next;
 
-        if (h_v->is_key_weak
-                && (cur->k == NULL || !FKL_IS_PTR(cur->k)
-                        || cur->k->mark_ == FKL_MARK_W)) {
+        if ((h_v->weak_mode & FKL_WEAK_MAP_K) && !fklVMgcIsMarked(cur->k)) {
             fklValueEqHashMapDel2(ht, cur->k);
-        } else if (cur->v == NULL || !FKL_IS_PTR(cur->v)
-                   || cur->v->mark_ == FKL_MARK_W) {
+        }
+
+        if ((h_v->weak_mode & FKL_WEAK_MAP_V) && !fklVMgcIsMarked(cur->k)) {
             fklValueEqHashMapDel2(ht, cur->k);
         }
         cur = next;
@@ -1766,15 +1768,16 @@ int fklIsVMvalueWeakHashEq(const FklVMvalue *v) {
 }
 
 FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *vm) {
-    return fklCreateVMvalueWeakHashEq2(vm, 0);
+    return fklCreateVMvalueWeakHashEq2(vm, FKL_WEAK_MAP_V);
 }
 
-FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *vm, int is_key_weak) {
+FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *vm,
+        FklWeakMapMode weak_mode) {
     FklVMvalueWeakHashEq *r = (FklVMvalueWeakHashEq *)fklCreateVMvalueUd(vm,
             &WeakHashEqUserDataMetaTable,
             NULL);
 
-    r->is_key_weak = is_key_weak;
+    r->weak_mode = weak_mode;
     fklValueEqHashMapInit(&r->ht);
     return r;
 }

@@ -51,9 +51,8 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     char *rp = fklRealpath(filename);
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklVM *vm = &gc->gcvm;
 
-    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
@@ -67,6 +66,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     fklZfree(rp);
     FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.global_env);
 
+    fklChdir(ctx.cwd);
     fklUnregisterCgCtx(&ctx);
 
     if (bc == NULL) {
@@ -78,18 +78,17 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
 
-    FklVM *anotherVM = fklCreateVMwithByteCode(bc, gc, proto, 0);
+    FklVM *vm = fklCreateVMwithByteCode(bc, gc, proto, 0);
 
-    fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
-    fklVMgcCheck(anotherVM, 1);
+    fklVMgcCheck(&gc->gcvm, 1);
     fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
-    int r = fklRunVMidleLoop(anotherVM);
-    fklDestroyAllVMs(anotherVM);
+    int r = fklRunVMidleLoop(vm);
+    fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);
     return r;
 }

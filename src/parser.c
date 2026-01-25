@@ -343,7 +343,7 @@ static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
     const FklLineNumHashMapNode *cur = ht->first;
     while (cur) {
         const FklLineNumHashMapNode *next = cur->next;
-        if (cur == NULL || !FKL_IS_PTR(cur) || cur->k->mark_ == FKL_MARK_W) {
+        if (!fklVMgcIsMarked(cur->k)) {
             fklLineNumHashMapDel2(ht, cur->k);
         }
         cur = next;

@@ -1204,8 +1204,8 @@ static FklVMudMetaTable const EnvUserDataMetaTable = {
 };
 
 static inline void insert_proto_to_parent(FklVMvalueCgEnv *env) {
-    if (env->env_work_cb)
-        env->env_work_cb(env, env->work_ctx);
+    // if (env->env_work_cb)
+    //     env->env_work_cb(env, env->work_ctx);
 
     FklVMvalueCgEnv *parent_env = env->prev;
     if (parent_env == NULL)
@@ -1250,10 +1250,10 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     fklValueVectorInit(&r->child_proc_protos, 4);
     fklLibIdHashMapInit(&r->used_libraries);
 
-    if (prev_env) {
-        r->work_ctx = prev_env->work_ctx;
-        r->env_work_cb = prev_env->env_work_cb;
-    }
+    // if (prev_env) {
+    //     r->work_ctx = prev_env->work_ctx;
+    //     r->env_work_cb = prev_env->env_work_cb;
+    // }
 
     r->proto_env_map = c->proto_env_map;
     insert_proto_to_parent(r);
@@ -1401,16 +1401,16 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     int is_macro = args == NULL ? 0 : args->is_macro;
     int is_global = args == NULL ? 0 : args->is_global;
 
-    FklCgInfoWorkCb work_cb = args ? args->work_cb
-                            : prev ? prev->work_cb
-                                   : NULL;
-
-    FklCgInfoEnvWorkCb env_work_cb = args ? args->env_work_cb
-                                   : prev ? prev->global_env->env_work_cb
-                                          : NULL;
-    void *work_ctx = args ? args->work_ctx //
-                   : prev ? prev->work_ctx
-                          : NULL;
+    // FklCgInfoWorkCb work_cb = args ? args->work_cb
+    //                         : prev ? prev->work_cb
+    //                                : NULL;
+    //
+    // FklCgInfoEnvWorkCb env_work_cb = args ? args->env_work_cb
+    //                                : prev ? prev->global_env->env_work_cb
+    //                                       : NULL;
+    // void *work_ctx = args ? args->work_ctx //
+    //                : prev ? prev->work_ctx
+    //                       : NULL;
 
     FKL_ASSERT(prev == NULL || fklIsVMvalueCgInfo((FklVMvalue *)prev));
 
@@ -1461,8 +1461,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     else
         r->exports.buckets = NULL;
 
-    r->work_cb = work_cb;
-    r->work_ctx = work_ctx;
+    // r->work_cb = work_cb;
+    // r->work_ctx = work_ctx;
 
     r->libraries = libs;
 
@@ -1489,11 +1489,11 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         fklInitGlobCgEnv(r->global_env, ctx->vm, args->is_precompile);
     }
 
-    r->global_env->work_ctx = work_ctx;
-    r->global_env->env_work_cb = env_work_cb;
-
-    if (r->work_cb)
-        r->work_cb(r, r->work_ctx);
+    // r->global_env->work_ctx = work_ctx;
+    // r->global_env->env_work_cb = env_work_cb;
+    //
+    // if (r->work_cb)
+    //     r->work_cb(r, r->work_ctx);
 
     FklVMvalueCgEnv *main_env = NULL;
     if (is_global) {
@@ -2864,8 +2864,8 @@ FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env) {
 }
 
 FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm) {
-    FklVMvalueWeakHashEq *weak_map = fklCreateVMvalueWeakHashEq2(vm, 1);
-    return (FklVMvalueCgEnvWeakMap *)weak_map;
+    FklVMvalueWeakHashEq *m = fklCreateVMvalueWeakHashEq2(vm, FKL_WEAK_MAP_K);
+    return (FklVMvalueCgEnvWeakMap *)m;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *as_weak_map(

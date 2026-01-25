@@ -95,8 +95,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklLibIdHashMap used_libraries;
     int is_debugging;
 
-    void *work_ctx;
-    FklCgInfoEnvWorkCb env_work_cb;
     FklVMvalueProto *proto;
     FklVMvalueCgEnvWeakMap *proto_env_map;
 });
@@ -370,9 +368,6 @@ typedef struct FklCgCtx {
 
 } FklCgCtx;
 
-FKL_DEPRECATED
-typedef void (*FklCgInfoWorkCb)(struct FklVMvalueCgInfo *self, void *);
-
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueLnt *lnt;
     struct FklVMvalueCgInfo *prev;
@@ -398,10 +393,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueCgLibs *libraries;
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
-    struct {
-        void *work_ctx;
-        FklCgInfoWorkCb work_cb;
-    };
 });
 
 typedef struct {
@@ -482,10 +473,6 @@ void fklUninitCgCtx(FklCgCtx *ctx);
 typedef struct {
     FklVMvalueCgLibs *libraries;
     FklVMvalueCgMacroScope *macro_scope;
-
-    void *work_ctx;
-    FklCgInfoWorkCb work_cb;
-    FklCgInfoEnvWorkCb env_work_cb;
 
     int8_t is_lib;
     int8_t is_macro;

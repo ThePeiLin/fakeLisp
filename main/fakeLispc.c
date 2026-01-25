@@ -54,6 +54,8 @@ static inline int pre_compile(const char *main_file_name,
             codegen,
             ctx.global_env);
 
+    fklChdir(ctx.cwd);
+
     char *outputname = NULL;
     if (co == NULL) {
         fklZfree(rp);
@@ -83,8 +85,6 @@ static inline int pre_compile(const char *main_file_name,
     }
 
     fklZfree(rp);
-
-    fklChdir(ctx.cwd);
 
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
@@ -147,6 +147,7 @@ static inline int compile(const char *filename,
             codegen,
             ctx.global_env);
 
+    fklChdir(ctx.cwd);
     fklUnregisterCgCtx(&ctx);
 
     if (co == NULL) {
@@ -170,8 +171,6 @@ static inline int compile(const char *filename,
         strcat(outputname, FKL_BYTECODE_FKL_SUFFIX_STR);
     }
     fklZfree(rp);
-
-    fklChdir(ctx.cwd);
 
     FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);

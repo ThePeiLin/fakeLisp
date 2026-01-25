@@ -330,8 +330,8 @@ typedef struct FklPmatchStorage {
 
 typedef struct FklCgCtx {
     struct FklCgActVector *action_vector;
-    struct FklVMvalueCgEnv *global_env;
-    struct FklVMvalueCgInfo *global_info;
+    struct FklVMvalueCgEnv *main_env;
+    struct FklVMvalueCgInfo *main_info;
     struct FklCgErrorState *error_state;
     FklPmatchStorage *ht_storage;
     FklPmatchRes cur_exp;
@@ -474,6 +474,7 @@ typedef struct {
     FklVMvalueCgLibs *libraries;
     FklVMvalueCgMacroScope *macro_scope;
 
+    int8_t is_debugging;
     int8_t is_lib;
     int8_t is_macro;
     int8_t is_global;

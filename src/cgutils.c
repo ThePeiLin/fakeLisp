@@ -1219,6 +1219,7 @@ static inline void insert_proto_to_parent(FklVMvalueCgEnv *env) {
 
 FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
         const FklCgEnvCreateArgs *args) {
+    FKL_ASSERT(args);
     FklVMvalueCgEnv *prev_env = args->prev_env;
     FklVMvalueCgMacroScope *prev_ms = args->prev_ms;
     FKL_ASSERT((prev_env == NULL || fklIsVMvalueCgEnv((FklVMvalue *)prev_env)));
@@ -1240,7 +1241,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->prev = prev_env;
     r->lcount = 0;
     r->slot_flags = NULL;
-    r->is_debugging = 0;
+    r->is_debugging = prev_env ? prev_env->is_debugging : 0;
     fklSymDefHashMapInit(&r->refs);
     fklUnboundVectorInit(&r->uref, 8);
     fklPredefHashMapInit(&r->pdef);
@@ -1400,6 +1401,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     int is_lib = args == NULL ? 0 : args->is_lib;
     int is_macro = args == NULL ? 0 : args->is_macro;
     int is_global = args == NULL ? 0 : args->is_global;
+    int is_debugging = args == NULL ? 0 : args->is_debugging;
 
     // FklCgInfoWorkCb work_cb = args ? args->work_cb
     //                         : prev ? prev->work_cb
@@ -1486,6 +1488,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .name = FKL_VM_NIL,
                     .line = r->curline,
                 });
+        r->global_env->is_debugging = is_debugging;
         fklInitGlobCgEnv(r->global_env, ctx->vm, args->is_precompile);
     }
 
@@ -1508,8 +1511,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .name = FKL_VM_NIL,
                     .line = r->curline,
                 });
-        ctx->global_env = main_env;
-        ctx->global_info = r;
+        ctx->main_env = main_env;
+        ctx->main_info = r;
     }
 
     return r;

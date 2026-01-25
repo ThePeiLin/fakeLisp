@@ -9115,8 +9115,8 @@ static void mark_match_hash_map(const FklPmatchHashMap *ht, FklVMgc *gc) {
 
 static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     FklCgCtx *ctx = FKL_TYPE_CAST(FklCgCtx *, c);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_env), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->global_info), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->main_env), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->main_info), gc);
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
     fklVMgcToGray(FKL_VM_VAL(ctx->proto_env_map), gc);

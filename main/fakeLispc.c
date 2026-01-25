@@ -52,7 +52,7 @@ static inline int pre_compile(const char *main_file_name,
     FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(&ctx,
             fp,
             codegen,
-            ctx.global_env);
+            ctx.main_env);
 
     fklChdir(ctx.cwd);
 
@@ -63,8 +63,8 @@ static inline int pre_compile(const char *main_file_name,
         goto pre_compile_exit;
     }
 
-    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.main_env);
+    fklPrintUndefinedRef(ctx.main_env->prev, &gc->err_out);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, proto);
 
     outputname = (char *)fklZmalloc(sizeof(char) * (strlen(rp) + 2));
@@ -145,7 +145,7 @@ static inline int compile(const char *filename,
     FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, //
             fp,
             codegen,
-            ctx.global_env);
+            ctx.main_env);
 
     fklChdir(ctx.cwd);
     fklUnregisterCgCtx(&ctx);
@@ -156,8 +156,8 @@ static inline int compile(const char *filename,
         goto compile_exit;
     }
 
-    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.main_env);
+    fklPrintUndefinedRef(ctx.main_env->prev, &gc->err_out);
     (void)proto;
 
     if (output) {
@@ -172,7 +172,7 @@ static inline int compile(const char *filename,
     }
     fklZfree(rp);
 
-    FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
+    FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.main_env);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);
     anotherVM = fklCreateVM(proc, gc);
 

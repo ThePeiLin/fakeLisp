@@ -64,7 +64,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
             });
 
     fklZfree(rp);
-    FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.global_env);
+    FklVMvalue *bc = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.main_env);
 
     fklChdir(ctx.cwd);
     fklUnregisterCgCtx(&ctx);
@@ -75,8 +75,8 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
         return FKL_EXIT_FAILURE;
     }
 
-    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.global_env);
-    fklPrintUndefinedRef(ctx.global_env->prev, &gc->err_out);
+    FklVMvalueProto *proto = fklCreateVMvalueProto2(&gc->gcvm, ctx.main_env);
+    fklPrintUndefinedRef(ctx.main_env->prev, &gc->err_out);
 
     FklVM *vm = fklCreateVMwithByteCode(bc, gc, proto, 0);
 
@@ -533,7 +533,7 @@ static int run_repl(const char *eval_expression, int8_t interactive) {
                 .is_global = 1,
             });
 
-    FklVMvalueCgEnv *main_env = ctx.global_env;
+    FklVMvalueCgEnv *main_env = ctx.main_env;
 
     init_frame_to_repl_frame(vm,
             &ctx,

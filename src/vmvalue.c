@@ -1,3 +1,5 @@
+#include <fakeLisp/base.h>
+#include <fakeLisp/bigint.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/symbol.h>
@@ -1213,6 +1215,7 @@ FklVMvalue *fklCreateVMvalueBigInt(FklVM *exe, size_t size) {
 }
 
 FklVMvalue *fklCreateVMvalueBigInt2(FklVM *exe, const FklBigInt *bi) {
+    FKL_ASSERT(fklIsBigIntGtLtFix(bi));
     FklVMvalue *r = fklCreateVMvalueBigInt(exe, fklAbs(bi->num));
     FklVMvalueBigInt *b = FKL_VM_BI(r);
     FklBigInt t = {
@@ -1238,6 +1241,7 @@ fklCreateVMvalueBigInt3(FklVM *exe, const FklBigInt *bi, size_t size) {
         .const_size = 1,
     };
     fklSetBigInt(&t, bi);
+    FKL_ASSERT(fklIsBigIntGtLtFix(&t));
     b->num = t.num;
     return r;
 }
@@ -1251,6 +1255,7 @@ FklVMvalue *fklCreateVMvalueBigIntWithI64(FklVM *exe, int64_t i) {
         .const_size = 1,
     };
     fklSetBigIntI(&bi, i);
+    FKL_ASSERT(fklIsBigIntGtLtFix(&bi));
     return fklCreateVMvalueBigInt2(exe, &bi);
 }
 
@@ -1263,6 +1268,7 @@ FklVMvalue *fklCreateVMvalueBigIntWithU64(FklVM *exe, uint64_t u) {
         .const_size = 1,
     };
     fklSetBigIntU(&bi, u);
+    FKL_ASSERT(fklIsBigIntGtLtFix(&bi));
     return fklCreateVMvalueBigInt2(exe, &bi);
 }
 
@@ -1275,6 +1281,7 @@ FklVMvalue *fklCreateVMvalueBigIntWithF64(FklVM *exe, double d) {
         .const_size = 1,
     };
     fklSetBigIntD(&bi, d);
+    FKL_ASSERT(fklIsBigIntGtLtFix(&bi));
     return fklCreateVMvalueBigInt2(exe, &bi);
 }
 

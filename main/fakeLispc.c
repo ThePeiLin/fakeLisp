@@ -44,7 +44,7 @@ static inline int pre_compile(const char *main_file_name,
             NULL,
             rp,
             &(FklCgInfoArgs){
-                .is_global = 1,
+                .is_main = 1,
                 .is_lib = 1,
                 .is_precompile = 1,
             });
@@ -127,9 +127,8 @@ static inline int compile(const char *filename,
     FklCgCtx ctx;
 
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklVM *vm = &gc->gcvm;
 
-    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
@@ -137,11 +136,11 @@ static inline int compile(const char *filename,
             rp,
             &(FklCgInfoArgs){
                 .is_lib = 1,
-                .is_global = 1,
+                .is_main = 1,
             });
 
     char *outputname = NULL;
-    FklVM *anotherVM = NULL;
+    FklVM *vm = NULL;
     FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, //
             fp,
             codegen,
@@ -174,9 +173,9 @@ static inline int compile(const char *filename,
 
     FklVMvalueProto *pt = fklCreateVMvalueProto2(&gc->gcvm, ctx.main_env);
     FklVMvalue *proc = fklCreateVMvalueProc(&gc->gcvm, co, pt);
-    anotherVM = fklCreateVM(proc, gc);
+    vm = fklCreateVM(proc, gc);
 
-    FKL_ASSERT(anotherVM->top_frame->type == FKL_FRAME_COMPOUND);
+    FKL_ASSERT(vm->top_frame->type == FKL_FRAME_COMPOUND);
 
     FILE *outfp = fopen(outputname, "wb");
     if (!outfp) {
@@ -186,7 +185,7 @@ static inline int compile(const char *filename,
     }
 
     fklVMclearSymbol(gc);
-    fklVMgcCheck(anotherVM, 1);
+    fklVMgcCheck(vm, 1);
     fklVMrestoreSymbol(gc);
 
     fklWriteCodeFile(outfp, FKL_VM_PROC(proc));
@@ -195,7 +194,7 @@ static inline int compile(const char *filename,
 compile_exit:
     fklUninitCgCtx(&ctx);
 
-    fklDestroyAllVMs(anotherVM);
+    fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);
 
     fklZfree(outputname);

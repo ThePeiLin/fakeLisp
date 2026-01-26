@@ -1400,7 +1400,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         const FklCgInfoArgs *args) {
     int is_lib = args == NULL ? 0 : args->is_lib;
     int is_macro = args == NULL ? 0 : args->is_macro;
-    int is_global = args == NULL ? 0 : args->is_global;
+    int is_main = args == NULL ? 0 : args->is_main;
     int is_debugging = args == NULL ? 0 : args->is_debugging;
 
     // FklCgInfoWorkCb work_cb = args ? args->work_cb
@@ -1499,7 +1499,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     //     r->work_cb(r, r->work_ctx);
 
     FklVMvalueCgEnv *main_env = NULL;
-    if (is_global) {
+    if (is_main) {
         FklVMvalueCgMacroScope *macros = r->global_env->macros;
 
         main_env = fklCreateVMvalueCgEnv(ctx,

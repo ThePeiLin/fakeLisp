@@ -477,7 +477,7 @@ typedef struct {
     int8_t is_debugging;
     int8_t is_lib;
     int8_t is_macro;
-    int8_t is_global;
+    int8_t is_main;
     int8_t is_precompile;
     int8_t inherit_grammer;
 } FklCgInfoArgs;

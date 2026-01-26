@@ -60,7 +60,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
             rp,
             &(FklCgInfoArgs){
                 .is_lib = 1,
-                .is_global = 1,
+                .is_main = 1,
             });
 
     fklZfree(rp);
@@ -83,7 +83,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
-    fklVMgcCheck(&gc->gcvm, 1);
+    fklVMgcCheck(vm, 1);
     fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
@@ -124,11 +124,10 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         return FKL_EXIT_FAILURE;
     }
     FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
-    FklVM *vm = &gc->gcvm;
 
     FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
-    fklInitCgCtx(&ctx, fklGetDir(rp), vm);
+    fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
@@ -155,18 +154,18 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         return 1;
     }
 
-    FklVM *anotherVM = fklCreateVM(cg_lib->lib->proc, gc);
+    FklVM *vm = fklCreateVM(cg_lib->lib->proc, gc);
 
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
 
     fklVMclearSymbol(gc);
-    fklVMgcCheck(anotherVM, 1);
+    fklVMgcCheck(vm, 1);
     fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
-    int r = fklRunVMidleLoop(anotherVM);
-    fklDestroyAllVMs(anotherVM);
+    int r = fklRunVMidleLoop(vm);
+    fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);
     return r;
 }
@@ -530,7 +529,7 @@ static int run_repl(const char *eval_expression, int8_t interactive) {
             NULL,
             &(FklCgInfoArgs){
                 .is_lib = 1,
-                .is_global = 1,
+                .is_main = 1,
             });
 
     FklVMvalueCgEnv *main_env = ctx.main_env;

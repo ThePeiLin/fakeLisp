@@ -365,7 +365,6 @@ typedef struct FklCgCtx {
 
     FklVMvalue *builtin_prod_action_id[FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM];
     FklVMvalue *simple_prod_action_id[FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM];
-
 } FklCgCtx;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {

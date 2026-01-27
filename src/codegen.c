@@ -9190,7 +9190,7 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     fklInitBuiltinGrammer(&ctx->builtin_g, vm);
 
     ctx->lnt = fklCreateVMvalueLnt(vm);
-    ctx->proto_env_map = fklCreateVMvalueCgEnvWeakMap(vm);
+    ctx->proto_env_map = (FklVMvalueCgEnvWeakMap *)FKL_VM_NIL;
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

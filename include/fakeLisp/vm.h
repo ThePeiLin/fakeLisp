@@ -1254,12 +1254,9 @@ FklVMvalue *fklVMvalueEof(void);
 #define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) (P)
 
-#define FKL_IS_NIL(P) ((P) == FKL_VM_NIL)
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)
 #define FKL_IS_CHR(P) (FKL_GET_TAG(P) == FKL_TAG_CHR)
 #define FKL_IS_PTR(P) (FKL_GET_TAG(P) == FKL_TAG_PTR)
-
-#define FKL_IS_TRUE(P) ((P) != FKL_VM_NIL)
 
 #define X(A, B)                                                                \
     static FKL_ALWAYS_INLINE int FKL_IS_##B(const FklVMvalue *p) {             \
@@ -1269,7 +1266,7 @@ FKL_VM_TYPE_X
 #undef X
 
 static FKL_ALWAYS_INLINE FklVMvalue *FKL_VM_VAL(const void *c) {
-    FKL_ASSERT(c != NULL && FKL_IS_PTR(c));
+    FKL_ASSERT(c != NULL);
     return FKL_TYPE_CAST(FklVMvalue *, c);
 }
 
@@ -1638,6 +1635,16 @@ HASH_P(EQV);
 HASH_P(EQUAL);
 
 #undef HASH_P
+
+static FKL_ALWAYS_INLINE int FKL_IS_TRUE(const void *P) {
+    FKL_ASSERT(P != NULL);
+    return (P) != FKL_VM_NIL;
+}
+
+static FKL_ALWAYS_INLINE int FKL_IS_NIL(const void *P) {
+    FKL_ASSERT(P != NULL);
+    return (P) == FKL_VM_NIL;
+}
 
 #define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME, DATA_TYPE_NAME)                   \
     static void NAME(const FklVMvalue *ud,                                     \

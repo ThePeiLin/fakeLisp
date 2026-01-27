@@ -1403,18 +1403,10 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     int is_main = args == NULL ? 0 : args->is_main;
     int is_debugging = args == NULL ? 0 : args->is_debugging;
 
-    // FklCgInfoWorkCb work_cb = args ? args->work_cb
-    //                         : prev ? prev->work_cb
-    //                                : NULL;
-    //
-    // FklCgInfoEnvWorkCb env_work_cb = args ? args->env_work_cb
-    //                                : prev ? prev->global_env->env_work_cb
-    //                                       : NULL;
-    // void *work_ctx = args ? args->work_ctx //
-    //                : prev ? prev->work_ctx
-    //                       : NULL;
-
     FKL_ASSERT(prev == NULL || fklIsVMvalueCgInfo((FklVMvalue *)prev));
+
+    if (is_main && is_debugging)
+        ctx->proto_env_map = fklCreateVMvalueCgEnvWeakMap(ctx->vm);
 
     FklVMvalueCgInfo *r = (FklVMvalueCgInfo *)fklCreateVMvalueUd(ctx->vm,
             &InfoUserDataMetaTable,
@@ -2845,7 +2837,10 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     update_parent_env_proto(env, FKL_VM_VAL(proto));
 
     env->proto = proto;
-    fklVMvalueCgEnvWeakMapInsert(env->proto_env_map, proto, env);
+
+    if (!FKL_IS_NIL(env->proto_env_map))
+        fklVMvalueCgEnvWeakMapInsert(env->proto_env_map, proto, env);
+
     if (tmp_var_refs == NULL)
         return proto;
 

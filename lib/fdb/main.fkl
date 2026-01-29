@@ -85,18 +85,18 @@
              rest)
     (print-general-help-doc)))
 
-(define file-prefix "> ")
-(define line-prefix "-> ")
+(define file-prefix ">")
+(define line-prefix "->")
 
 (define (print-cur-line ctx file-prefix line-prefix,print-ins?)
   (define cur-file-line (debug-ctx-get-curline ctx))
   (cond
     [cur-file-line
-      (println file-prefix
-               (vector-ref cur-file-line 0)
-               ":"
-               (vector-ref cur-file-line 1))
-      (print line-prefix (vector-ref cur-file-line 2))]
+      (printf "%s %s: %s\n"
+              file-prefix
+              (vector-ref cur-file-line 0)
+              (vector-ref cur-file-line 1))
+      (printf "%s %s" line-prefix (vector-ref cur-file-line 2))]
     [(or (not print-ins?) (car print-ins?))
      (if (define cur-ins (debug-ctx-get-cur-ins ctx))
        (print-single-ins cur-ins))]))
@@ -117,7 +117,7 @@
 
   (define cond-exp (vector-ref breakpoint 3))
   (if cond-exp
-    (printf "\tstop only if %S\n" (unbox cond-exp)))
+    (printf "\tstop only if %s\n" cond-exp))
 
   (define count (vector-ref breakpoint 4))
   (if (> count 0)
@@ -132,15 +132,32 @@
     [(debug-ctx-done? ctx)
      (debug-restart ctx)]
     [1
-     (define bp (debug-ctx-continue ctx))
-     (when bp
-       (print "reached ")
-       (print-break-point-brief bp))
+     (define r (debug-ctx-continue ctx))
+     (cond
+       [(vector? r)
+        (print "reached ")
+        (print-break-point-brief r)]
+       [(eq r 'done)
+        (println "*** The program finishied and will restart ***")]
+       [(eq r 'error)
+        (define l (debug-ctx-backtrace ctx))
+        (println (debug-ctx-error-info ctx))
+        (print-backtrace-info-list l)
+        (println "*** Unhandled error occured. The program will restart ***")])
      (print-cur-line ctx file-prefix line-prefix print-ins?)]))
 
 (define (debug-breakpoint ctx,rest)
   (cond
     [rest
+      (define file-or-line (car rest))
+      (define rest-len (length rest))
+      (define rest-last (-1+ rest-len))
+      (define has-exp (or (and (string? file-or-line) (> rest-len 2))
+                        (and (symbol? file-or-line) (> rest-len 1))))
+      (if has-exp
+        (nth-set! rest-last
+                  rest
+                  (stringify (nth rest-last rest))))
       (define breakpoint (apply debug-ctx-set-break
                                 ctx
                                 nil
@@ -223,19 +240,20 @@
 (define default-list-line-num 11)
 
 (define (print-ins x number-len line-prefix not-curline-prefix)
-  (printf "%*s %s%s"
+  (define prefix (if (vector-ref x 1)
+                    line-prefix
+                    not-curline-prefix))
+  (printf "%*s %s %s"
           number-len
           (vector-ref x 0)
-          (if (vector-ref x 1)
-            line-prefix
-            not-curline-prefix)
+          prefix
           (vector-ref x 2))
   (define len (length x))
   (cond
     [(> len 4)
-     (printf " %S, %S" (vector-ref x 3) (vector-ref x 4))]
+     (printf " %s, %s" (vector-ref x 3) (vector-ref x 4))]
     [(> len 3)
-     (printf " %S" (vector-ref x 3))])
+     (printf " %s" (vector-ref x 3))])
   (newline))
 
 (define (print-single-ins ins)
@@ -412,14 +430,46 @@
   (apply debug-ctx-set-until ctx rest)
   (debug-continue ctx 1))
 
+(define (print-frame-info cur? s)
+  (define len (length line-prefix))
+  (if cur?
+    (printf "%s at %s\n" line-prefix s)
+    (printf "%* cat %s\n" len #\\s s)))
+
+(define (print-backtrace-info-list l)
+  (foreach (lambda (x) (print-frame-info (car x) (cdr x)))
+           l))
+
+(define (print-thread-info-list l)
+  (define len  (length line-prefix))
+  (foreach (lambda (x)
+             (define top-frame
+               (if (vector-last x)
+                 (format "at %s" (cdr (car (vector-last x))))
+                 "exited"))
+
+             (if (vector-first x)
+               (printf "%s thread %i %s\n" line-prefix (vector-ref x 1) top-frame)
+               (printf "%*c thread %i %s\n" len #\\s (vector-ref x 1) top-frame)))
+           l))
+
 (define (debug-where ctx)
-  (debug-ctx-back-trace ctx line-prefix))
+  (define l (debug-ctx-backtrace ctx))
+  (print-backtrace-info-list l))
+
+(define (print-cur-frame ctx)
+  (define l (debug-ctx-backtrace ctx))
+  (define cur-frame (filter car l))
+  (print-frame-info (car (car cur-frame)) (cdr (car cur-frame))))
 
 (define (debug-thread ctx,rest)
-  (if rest
-    (if (debug-ctx-switch-thread ctx (car rest))
-      (debug-ctx-print-cur-frame ctx line-prefix))
-    (debug-ctx-list-thread ctx line-prefix)))
+  (cond
+    [rest
+      (when (and rest (debug-ctx-switch-thread ctx (car rest)))
+        (print-cur-frame ctx))]
+    [1
+     (define l (debug-ctx-list-thread ctx line-prefix))
+     (print-thread-info-list l)]))
 
 (define (debug-up ctx,rest)
   (define count (if (and rest (> (car rest) 0)) (car rest) 1))
@@ -430,7 +480,7 @@
               (setq last-result cur-result))))])
 
   (when last-result
-    (debug-ctx-print-cur-frame ctx line-prefix)))
+    (print-cur-frame ctx)))
 
 (define (debug-down ctx,rest)
   (define count (if (and rest (> (car rest) 0)) (car rest) 1))
@@ -441,7 +491,16 @@
               (setq last-result cur-result))))])
 
   (when last-result
-    (debug-ctx-print-cur-frame ctx line-prefix)))
+    (print-cur-frame ctx)))
+
+(define (debug-eval ctx exp)
+  (define r (debug-ctx-eval ctx (stringify exp)))
+  (cond
+    [(eq r 'error)
+     (print-backtrace-info-list (debug-ctx-eval-backtrace ctx))
+     (throw 'call-error (format "Failed to evaluate expression: %S" exp))]
+    [1
+     (printf ";=> %s\n" r)]))
 
 (define debug-cmd-func
   (make-hash
@@ -460,7 +519,7 @@
     'next-ins debug-next-ins
     'step debug-step
     'return debug-return
-    'eval debug-ctx-eval
+    'eval debug-eval
     'until debug-until
     'where debug-where
     'up debug-up
@@ -472,7 +531,7 @@
   (print-cur-line ctx file-prefix line-prefix)
   (do []
     [(debug-ctx-exit? ctx)]
-    (define cmd-or-err (pcall debug-ctx-repl ctx prompt))
+    (define cmd-or-err (pcall debug-ctx-readline ctx prompt))
     (if (box? cmd-or-err)
       (begin
         (define cmd (unbox cmd-or-err))

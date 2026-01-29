@@ -10,13 +10,6 @@ extern "C" {
 
 enum { DBG_INTERRUPTED = 1, DBG_ERROR_OCCUR };
 
-typedef struct {
-    FklStringBuffer buf;
-    FklAnalysisSymbolVector symbolStack;
-    FklUintVector lineStack;
-    FklParseStateVector stateStack;
-} CmdReadCtx;
-
 struct BdbBpInsHashMapElm;
 
 // BdbFrameVector
@@ -33,6 +26,42 @@ struct BdbBpInsHashMapElm;
 #define FKL_VECTOR_ELM_TYPE_NAME Thread
 #include <fakeLisp/cont/vector.h>
 
+typedef struct {
+    const FklString *str;
+    const FklString *filename;
+    uint32_t line;
+} BdbPos;
+
+// 用于区分宿主的值和调试器的值
+typedef struct {
+    FklVMvalue *v;
+} BdbWrapper;
+
+#define BDB_NONE                                                               \
+    (BdbWrapper) { .v = NULL }
+
+static FKL_ALWAYS_INLINE BdbWrapper bdbWrap(FklVMvalue *v) {
+    return (BdbWrapper){ .v = v };
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *bdbUnwrap(BdbWrapper const v) {
+    return v.v;
+}
+
+static FKL_ALWAYS_INLINE const FklString *bdbSymbol(BdbWrapper const v) {
+    return FKL_VM_SYM(bdbUnwrap(v));
+}
+
+static FKL_ALWAYS_INLINE uintptr_t bdbEqHashv(BdbWrapper const v) {
+    return fklVMvalueEqHashv(bdbUnwrap(v));
+}
+
+static FKL_ALWAYS_INLINE int bdbEq(BdbWrapper const a, BdbWrapper const b) {
+    return bdbUnwrap(a) == bdbUnwrap(b);
+}
+
+static FKL_ALWAYS_INLINE int bdbHas(BdbWrapper const v) { return v.v != NULL; }
+
 typedef struct Breakpoint {
     struct Breakpoint **pnext;
     struct Breakpoint *next;
@@ -41,36 +70,31 @@ typedef struct Breakpoint {
     atomic_uint reached_count;
     uint32_t idx;
     uint32_t count;
-
-    FklSid_t fid;
     uint32_t line;
 
-    uint8_t is_compiled;
+    uint8_t is_errored;
     uint8_t is_temporary;
     uint8_t is_deleted;
     uint8_t is_disabled;
 
     struct BdbBpInsHashMapElm *item;
 
-    FklVMvalue *cond_exp_obj;
-    union {
-        FklNastNode *cond_exp;
-        FklVMvalue *proc;
-    };
+    BdbWrapper filename;
+    BdbWrapper cond_exp;
+    BdbWrapper cond_proc;
 } Breakpoint;
 
 typedef struct {
-    FklInstruction origin_ins;
+    FklIns origin_ins;
     Breakpoint *bp;
 } BdbCodepoint;
 
 // BdbBpInsHashMap
 #define FKL_HASH_TYPE_PREFIX Bdb
 #define FKL_HASH_METHOD_PREFIX bdb
-#define FKL_HASH_KEY_TYPE FklInstruction *
+#define FKL_HASH_KEY_TYPE const FklIns *
 #define FKL_HASH_KEY_HASH                                                      \
-    return fklHash64Shift(                                                     \
-            FKL_TYPE_CAST(uintptr_t, (*pk)) / alignof(FklInstruction));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, (*pk)) / alignof(FklIns));
 #define FKL_HASH_VAL_TYPE BdbCodepoint
 #define FKL_HASH_ELM_NAME BpIns
 #include <fakeLisp/cont/hash.h>
@@ -87,16 +111,26 @@ typedef struct {
     BdbBpInsHashMap ins_ht;
     BdbBpIdxHashMap idx_ht;
     Breakpoint *deleted_breakpoints;
-    FklUintVector unused_prototype_id_for_cond_bp;
     uint32_t next_idx;
 } BreakpointTable;
+
+static void bdb_source_vector_move(FklStringVector *to,
+        const FklStringVector *from) {
+    *to = *from;
+    FklStringVector *f = FKL_TYPE_CAST(FklStringVector *, from);
+    f->capacity = 0;
+    f->base = NULL;
+    f->size = 0;
+}
 
 // BdbSourceCodeHashMap
 #define FKL_HASH_TYPE_PREFIX Bdb
 #define FKL_HASH_METHOD_PREFIX bdb
-#define FKL_HASH_KEY_TYPE FklSid_t
+#define FKL_HASH_KEY_TYPE BdbWrapper
+#define FKL_HASH_KEY_HASH return bdbEqHashv(*pk);
+#define FKL_HASH_KEY_EQUAL(A, B) bdbEq(*(A), *(B))
 #define FKL_HASH_VAL_TYPE FklStringVector
-#define FKL_HASH_VAL_INIT(V, X)
+#define FKL_HASH_VAL_INIT(V, X) bdb_source_vector_move((V), (X))
 #define FKL_HASH_VAL_UNINIT(V)                                                 \
     {                                                                          \
         FklString **c = (V)->base;                                             \
@@ -108,71 +142,71 @@ typedef struct {
 #define FKL_HASH_ELM_NAME SourceCode
 #include <fakeLisp/cont/hash.h>
 
-// BdbEnvHashMap
-#define FKL_HASH_TYPE_PREFIX Bdb
-#define FKL_HASH_METHOD_PREFIX bdb
-#define FKL_HASH_KEY_TYPE uint32_t
-#define FKL_HASH_VAL_TYPE FklVMvalueCodegenEnv *
-#define FKL_HASH_ELM_NAME Env
-#include <fakeLisp/cont/hash.h>
-
 #define BDB_STEPPING_TARGET_INS_COUNT (2)
 
-typedef struct DebugCtx {
-    CmdReadCtx read_ctx;
-    FklVMvalueCodegenEnv *glob_env;
-    FklVMvalueCodegenEnv *eval_env;
-    FklVMvalueCodegenInfo *eval_info;
-    FklCodegenCtx codegen_ctx;
+typedef struct {
+    FklStrBuf buf;
+    FklAnalysisSymbolVector symbols;
+    FklParseStateVector states;
+} BdbCmdReadCtx;
 
-    FklSidHashSet file_sid_set;
-    FklSymbolTable *st;
-    FklConstTable *kt;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
+    FklVMvalue *backtrace_list;
+    FklValueHashSet file_sid_set;
+    BdbCmdReadCtx read_ctx;
 
     int8_t inited;
     int8_t exit;
     int8_t running;
     int8_t done;
 
-    uint64_t curlist_ins_pc;
-    FklVMvalue *curlist_bytecode;
-
     uint32_t curlist_line;
     uint32_t curline;
-    FklSid_t curline_file;
+
+    uint64_t cur_ins_pc;
+
     const FklString *curline_str;
-    const FklStringVector *curfile_lines;
+    const BdbSourceCodeHashMapElm *curfile_lines;
 
     BdbSourceCodeHashMap source_code_table;
-    BdbEnvHashMap envs;
-
-    FklVMvalue *main_proc;
-    FklVMvalueVector code_objs;
 
     jmp_buf *jmpb;
     FklVM *reached_thread;
 
     BdbFrameVector reached_thread_frames;
     uint32_t curframe_idx;
-    uint32_t temp_proc_prototype_id;
 
     BdbThreadVector threads;
     uint32_t curthread_idx;
 
     const Breakpoint *reached_breakpoint;
 
-    BreakpointTable bt;
-
     struct SteppingCtx {
         FklVM *vm;
-        const FklLineNumberTableItem *ln;
+        const FklLntItem *ln;
 
-        FklInstruction ins[BDB_STEPPING_TARGET_INS_COUNT];
-        FklInstruction *target_ins[BDB_STEPPING_TARGET_INS_COUNT];
+        FklIns ins[BDB_STEPPING_TARGET_INS_COUNT];
+        const FklIns *target_ins[BDB_STEPPING_TARGET_INS_COUNT];
     } stepping_ctx;
 
+    // 下面的成员由 `DbgCtx` 的GC标记
+    // 所以下面的对象引用成员不使用 `BdbWrapper`
     FklVMgc gc;
-} DebugCtx;
+    BreakpointTable bt;
+    FklCgCtx cg_ctx;
+    FklVMvalueCgEnv *glob_env;
+
+    FklVMvalueCgEnv *eval_env;
+    FklVMvalueCgInfo *eval_info;
+
+    FklVMvalueProc *cur_proc;
+    FklVMvalueProc *main_proc;
+    FklValueVector code_objs;
+
+    BdbWrapper error;
+});
+
+typedef FklVMvalueDebugCtx DebugCtx;
 
 typedef enum {
     PUT_BP_AT_END_OF_FILE = 1,
@@ -182,9 +216,9 @@ typedef enum {
 
 typedef struct {
     Breakpoint *bp;
-    const FklLineNumberTableItem *ln;
+    const FklLntItem *ln;
     DebugCtx *ctx;
-    int err;
+    BdbWrapper error;
 } DbgInterruptArg;
 
 extern const alignas(8) FklVMvalueUd BdbStepBreak;
@@ -195,54 +229,62 @@ int initDebugCtx(DebugCtx *,
         FklVM *exe,
         const char *filename,
         FklVMvalue *argv);
-DebugCtx *createDebugCtx(FklVM *exe, const char *filename, FklVMvalue *argv);
 void exitDebugCtx(DebugCtx *);
 void uninitDebugCtx(DebugCtx *);
-const FklString *getCurLineStr(DebugCtx *ctx, FklSid_t fid, uint32_t line);
-const FklLineNumberTableItem *
-getCurLineNumberItemWithCp(const FklInstruction *cp, FklByteCodelnt *code);
 
 void initBreakpointTable(BreakpointTable *);
 void uninitBreakpointTable(BreakpointTable *);
-void putEnv(DebugCtx *ctx, FklVMvalueCodegenEnv *env);
-FklVMvalueCodegenEnv *getEnv(DebugCtx *, uint32_t id);
 
-void markBreakpointCondExpObj(DebugCtx *ctx, FklVMgc *gc);
+const FklStringVector *getSource(DebugCtx *dctx, const FklString *filename);
 
-const FklStringVector *getSourceWithFid(DebugCtx *dctx, FklSid_t fid);
+BdbWrapper bdbAddSymbol(DebugCtx *dctx, const FklString *s);
+BdbWrapper bdbAddSymbol1(DebugCtx *dctx, const char *s);
+BdbWrapper bdbParse(DebugCtx *dctx, const FklString *s);
 
-Breakpoint *
-createBreakpoint(FklSid_t, uint32_t, FklInstruction *ins, DebugCtx *);
-BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklInstruction *ins);
+BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklIns *ins);
 
-FklInstruction *getInsWithFileAndLine(DebugCtx *ctx,
-        FklSid_t fid,
+const FklIns *getIns2(DebugCtx *ctx,
+        const FklString *filename,
         uint32_t line,
         PutBreakpointErrorType *);
 
-Breakpoint *putBreakpointWithFileAndLine(DebugCtx *ctx,
-        FklSid_t fid,
+Breakpoint *putBreakpoint(DebugCtx *ctx,
+        const FklString *filename,
         uint32_t line,
         PutBreakpointErrorType *);
-Breakpoint *putBreakpointForProcedure(DebugCtx *ctx, FklSid_t name_sid);
 
-typedef struct {
-    Breakpoint *bp;
-} BreakpointWrapper;
+Breakpoint *putBreakpoint1(DebugCtx *ctx, const FklString *func_name);
 
-FklVMvalue *createBreakpointWrapper(FklVM *exe, Breakpoint *bp);
-int isBreakpointWrapper(FklVMvalue *v);
-Breakpoint *getBreakpointFromWrapper(FklVMvalue *v);
+FKL_VM_DEF_UD_STRUCT(FklVMvalueBpWrapper, { Breakpoint *bp; });
+
+FklVMvalueBpWrapper *createBpWrapper(FklVM *exe, Breakpoint *bp);
+int isBpWrapper(const FklVMvalue *v);
+Breakpoint *getBp(const FklVMvalue *v);
 
 const char *getPutBreakpointErrorInfo(PutBreakpointErrorType t);
 
-Breakpoint *getBreakpointWithIdx(DebugCtx *ctx, uint32_t idx);
+Breakpoint *getBreakpoint(DebugCtx *ctx, uint32_t idx);
 Breakpoint *disBreakpoint(DebugCtx *ctx, uint32_t idx);
 Breakpoint *enableBreakpoint(DebugCtx *ctx, uint32_t idx);
 Breakpoint *delBreakpoint(DebugCtx *ctx, uint32_t idx);
 void clearDeletedBreakpoint(DebugCtx *dctx);
 
-const FklLineNumberTableItem *getCurFrameLineNumber(const FklVMframe *);
+BdbPos bdbBpPos(const Breakpoint *bp);
+
+int getCurLine(DebugCtx *dctx, BdbPos *line);
+
+BdbWrapper getCurProcInsAndReset(DebugCtx *ctx, uint64_t *ppc);
+static FKL_ALWAYS_INLINE const FklByteCodelnt *bdbBcl(BdbWrapper const proc) {
+    return FKL_VM_CO(FKL_VM_PROC(bdbUnwrap(proc))->bcl);
+}
+
+static FKL_ALWAYS_INLINE int bdbIsError(BdbWrapper const v) {
+    return fklIsVMvalueError(bdbUnwrap(v));
+}
+
+static FKL_ALWAYS_INLINE int bdbIsBox(BdbWrapper const v) {
+    return FKL_IS_BOX(bdbUnwrap(v));
+}
 
 void unsetStepping(DebugCtx *);
 
@@ -275,43 +317,78 @@ void setStepIns(DebugCtx *,
         SteppingMode,
         SteppingType type);
 
-void dbgInterrupt(FklVM *, DbgInterruptArg *arg);
-FklVMinterruptResult
-dbgInterruptHandler(FklVM *, FklVMvalue *ev, FklVMvalue **pv, void *arg);
 void setAllThreadReadyToExit(FklVM *head);
 void waitAllThreadExit(FklVM *head);
 void restartDebugging(DebugCtx *ctx);
 
 typedef enum {
-    EVAL_COMP_UNABLE = 1,
-    EVAL_COMP_IMPORT,
-} EvalCompileErr;
+    EVAL_ERR_UNABLE = 1,
+    EVAL_ERR_IMPORT,
+    EVAL_ERR_INVALID_EXP,
+} EvalErr;
 
-FklVMvalue *compileConditionExpression(DebugCtx *ctx,
+BdbWrapper compileEvalExpression(DebugCtx *ctx,
         FklVM *,
-        FklNastNode *exp,
-        FklVMframe *cur_frame,
-        EvalCompileErr *is_complie_unabled);
-FklVMvalue *compileEvalExpression(DebugCtx *ctx,
-        FklVM *,
-        FklNastNode *v,
+        const FklString *exp,
         FklVMframe *frame,
-        EvalCompileErr *is_complie_unabled);
-FklVMvalue *
-callEvalProc(DebugCtx *ctx, FklVM *, FklVMvalue *proc, FklVMframe *frame);
+        EvalErr *is_complie_unabled);
+
+BdbWrapper compileEvalExpression1(DebugCtx *ctx,
+        FklVM *,
+        BdbWrapper exp,
+        FklVMframe *frame,
+        EvalErr *is_complie_unabled);
+
+BdbWrapper callEvalProc(DebugCtx *ctx,
+        FklVM *host_vm,
+        FklVM *reached_thread,
+        BdbWrapper proc,
+        FklVMframe *frame);
 
 void setReachedThread(DebugCtx *ctx, FklVM *);
-void printBacktrace(DebugCtx *ctx, const FklString *prefix, FILE *fp);
-void printCurFrame(DebugCtx *ctx, const FklString *prefix, FILE *fp);
+
+FklVMvalue *getCurBacktrace(DebugCtx *ctx, FklVM *host_vm);
+FklVMvalue *bdbErrInfo(DebugCtx *ctx, FklVM *host_Vm);
+
+FKL_DEPRECATED
+void printCurFrame(DebugCtx *ctx,
+        const FklString *prefix,
+        FklCodeBuilder *build);
 FklVMframe *getCurrentFrame(DebugCtx *ctx);
 
 FklVM *getCurThread(DebugCtx *ctx);
 void switchCurThread(DebugCtx *ctx, uint32_t idx);
-void listThreads(DebugCtx *ctx, const FklString *prefix, FILE *fp);
-void printThreadAlreadyExited(DebugCtx *ctx, FILE *fp);
-void printThreadCantEvaluate(DebugCtx *ctx, FILE *fp);
-void printUnableToCompile(FILE *fp);
-void printNotAllowImport(FILE *fp);
+FklVMvalue *listThreads(DebugCtx *ctx, FklVM *host_vm);
+
+int bdbHasSymbol(DebugCtx *ctx, const FklString *s);
+
+static FKL_ALWAYS_INLINE const FklIns *assign_ins(const FklIns *to,
+        const FklIns *from) {
+    if (from != NULL)
+        *(FklIns *)to = *from;
+    else
+        memset((FklIns *)to, 0, sizeof(*to));
+    return to;
+}
+
+FKL_DEPRECATED
+void printThreadAlreadyExited(DebugCtx *ctx, FklCodeBuilder *build);
+FKL_DEPRECATED
+void printThreadCantEvaluate(DebugCtx *ctx, FklCodeBuilder *build);
+FKL_DEPRECATED
+void printUnableToCompile(FklCodeBuilder *build);
+FKL_DEPRECATED
+void printNotAllowImport(FklCodeBuilder *build);
+
+FklVMvalue *bdbCreateInsVec(FklVM *exe,
+        DebugCtx *dctx,
+        int is_cur_pc,
+        uint64_t ins_pc,
+        BdbWrapper proc);
+
+FklVMvalue *bdbBoxStringify(FklVM *exe, BdbWrapper const v);
+
+FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp);
 
 #ifdef __cplusplus
 }

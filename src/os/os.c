@@ -160,7 +160,7 @@ static int os_chdir(FKL_CPROC_ARGL) {
 static int os_getcwd(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     char *cwd = fklSysgetcwd();
-    FklVMvalue *s = fklCreateVMvalueStrFromCstr(exe, cwd);
+    FklVMvalue *s = fklCreateVMvalueStr1(exe, cwd);
     fklZfree(cwd);
     FKL_CPROC_RETURN(exe, ctx, s);
     return 0;
@@ -174,7 +174,7 @@ static int os_getenv(FKL_CPROC_ARGL) {
     const char *env_var = getenv(name_str->str);
     FKL_CPROC_RETURN(exe,
             ctx,
-            env_var ? fklCreateVMvalueStrFromCstr(exe, env_var) : FKL_VM_NIL);
+            env_var ? fklCreateVMvalueStr1(exe, env_var) : FKL_VM_NIL);
     return 0;
 }
 

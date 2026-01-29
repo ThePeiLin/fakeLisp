@@ -43,7 +43,7 @@ create_uv_error(int err_id, FklVM *exe, FklVMvalueSyncPd *pd) {
     }
     return fklCreateVMvalueError(exe,
             id,
-            fklCreateVMvalueStrFromCstr(exe, uv_strerror(err_id)));
+            fklCreateVMvalueStr1(exe, uv_strerror(err_id)));
 #undef XX
 }
 

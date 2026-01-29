@@ -259,8 +259,10 @@ static inline void METHOD(Shrink)(NAME *self) {
         self->capacity += 1;
     }
 
-    if (old_capacity <= self->capacity)
+    if (old_capacity <= self->capacity) {
+        self->capacity = old_capacity;
         return;
+    }
 
     self->mask = self->capacity - 1;
 

@@ -194,11 +194,13 @@ typedef struct FklCprocFrameContext {
     } c[3];
 } FklCprocFrameContext;
 
+typedef void (*FklBacktraceCb)(void *data, FklCodeBuilder *build, FklVM *);
+
 typedef struct {
     int (*step)(void *data, FklVM *);
-    void (*print_backtrace)(void *data, FklCodeBuilder *build, FklVMgc *);
     void (*atomic)(void *data, FklVMgc *);
     void (*finalizer)(void *data);
+    FklBacktraceCb print_backtrace;
 } FklVMframeContextMethodTable;
 
 struct FklVMframe;
@@ -854,6 +856,11 @@ FklVMvalue *fklVMaddSymbol(FklVM *, const FklString *str);
 FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
 FklVMvalue *fklVMaddSymbolCharBuf(FklVM *, const char *str, size_t);
 FklVMvalue *fklVMaddSymbolValue(FklVM *, FklVMvalue *s);
+
+int fklVMhasSymbol(FklVM *v, const FklString *str);
+int fklVMhasSymbol1(FklVM *v, const char *str);
+int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
+
 void fklVMclearSymbol(FklVMgc *);
 void fklVMrestoreSymbol(FklVMgc *);
 
@@ -1022,7 +1029,8 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
 
 void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
-void fklPrintFrame(FklVMframe *cur, FklVM *exe, FklCodeBuilder *fp);
+void fklPrintIntruptInfo(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+void fklPrintFrame(const FklVMframe *cur, FklVM *exe, FklCodeBuilder *fp);
 void fklPrintBacktrace(FklVM *, FklCodeBuilder *fp);
 
 void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
@@ -1068,8 +1076,7 @@ FklVMvalue *fklCreateVMvaluePairNil(FklVM *);
 
 FklVMvalue *fklCreateVMvalueStr(FklVM *, const FklString *str);
 FklVMvalue *fklCreateVMvalueStr2(FklVM *, size_t size, const char *str);
-static inline FklVMvalue *fklCreateVMvalueStrFromCstr(FklVM *exe,
-        const char *str) {
+static inline FklVMvalue *fklCreateVMvalueStr1(FklVM *exe, const char *str) {
     return fklCreateVMvalueStr2(exe, strlen(str), str);
 }
 
@@ -1097,6 +1104,8 @@ FklVMvalue *fklCreateVMvalueVecExt(FklVM *, size_t, ...);
     })
 
 FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
+
+uint32_t fklVMfetchVarRef(FklVM *exe, FklVMvalueProc *proc, FklVMframe *f);
 
 FklVMvalue *
 fklCreateVMvalueProc(FklVM *, FklVMvalue *codeObj, FklVMvalueProto *pt);
@@ -1143,9 +1152,7 @@ FklVMvalue *fklCreateVMvalueCproc(FklVM *,
         FklVMvalue *pd,
         const char *name);
 
-void fklPrintCprocBacktrace(const char *name,
-        FklCodeBuilder *build,
-        FklVMgc *gc);
+void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build);
 
 void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
@@ -1355,7 +1362,10 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_BOX(const FklVMvalue *V) {
             (O),                                                               \
             (N)))
 
-#define FKL_VM_VAR_REF(V) ((FklVMvalueVarRef *)(V))
+static FKL_ALWAYS_INLINE FklVMvalueVarRef *FKL_VM_VAR_REF(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_VAR_REF(V));
+    return FKL_TYPE_CAST(FklVMvalueVarRef *, V);
+}
 
 static FKL_ALWAYS_INLINE FklVMvalueError *FKL_VM_ERR(const FklVMvalue *V) {
     FKL_ASSERT(fklIsVMvalueError(V));

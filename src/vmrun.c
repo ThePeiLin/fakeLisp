@@ -79,22 +79,20 @@ void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *fp, FklVM *exe) {
     fklCodeBuilderPutc(fp, '\n');
 }
 
-void fklPrintCprocBacktrace(const char *name,
-        FklCodeBuilder *build,
-        FklVMgc *gc) {
+void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build) {
     if (name) {
-        fklCodeBuilderPuts(build, "at cproc: ");
+        fklCodeBuilderPuts(build, "cproc: ");
         fklPrintSymLiteral2(name, build);
-        fklCodeBuilderPutc(build, '\n');
-    } else
-        fklCodeBuilderPuts(build, "at <cproc>\n");
+    } else {
+        fklCodeBuilderPuts(build, "<cproc>");
+    }
 }
 
 static void
-cproc_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {
+cproc_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVM *vm) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
-    fklPrintCprocBacktrace(cproc->name, fp, gc);
+    fklPrintCprocBacktrace(cproc->name, fp);
 }
 
 static void cproc_frame_atomic(void *data, FklVMgc *gc) {
@@ -149,7 +147,7 @@ static inline void call_cproc(FklVM *exe, FklVMvalue *cproc) {
 static inline void B_dummy(FklVM *exe, const FklIns *ins) {
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[FKL_ERR_INVALIDACCESS],
-            fklCreateVMvalueStrFromCstr(exe, "reach invalid opcode: `dummy`"));
+            fklCreateVMvalueStr1(exe, "reach invalid opcode: `dummy`"));
     fklRaiseVMerror(err, exe);
 }
 
@@ -317,7 +315,7 @@ static void raise_error_frame_atomic(void *data, FklVMgc *gc) {
 }
 
 static void
-raise_error_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {
+raise_error_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVM *vm) {
     FKL_UNREACHABLE();
     return;
 }
@@ -1074,7 +1072,7 @@ void fklVMidleLoop(FklVMgc *gc) {
                     fklChanlSend(FKL_VM_CHANL(exe->chan),
                             fklCreateVMvalueError(exe,
                                     gc->builtinErrorTypeId[FKL_ERR_THREADERROR],
-                                    fklCreateVMvalueStrFromCstr(exe,
+                                    fklCreateVMvalueStr1(exe,
                                             "Failed to create thread")),
                             exe);
                     fklThreadQueueDestroyNode(n);
@@ -1228,6 +1226,28 @@ fetch_var_ref(FklVM *exe, const FklVarRefDef *c, FklVMframe *f) {
     }
 }
 
+static FKL_ALWAYS_INLINE uint32_t fetch_var_refs(FklVM *exe,
+        FklVMvalueProc *proc,
+        FklVMframe *f) {
+    FklVMvalueProto *pt = proc->proto;
+    uint32_t count = pt->ref_count;
+    if (count > 0) {
+        const FklVarRefDef *refs = fklVMvalueProtoVarRefs(pt);
+        FklVMvalue **closure = proc->closure;
+        for (uint32_t i = 0; i < count; i++) {
+
+            if (closure[i] != NULL)
+                continue;
+            closure[i] = fetch_var_ref(exe, &refs[i], f);
+        }
+    }
+    return count;
+}
+
+uint32_t fklVMfetchVarRef(FklVM *exe, FklVMvalueProc *proc, FklVMframe *f) {
+    return fetch_var_refs(exe, proc, f);
+}
+
 FklVMvalue *fklCreateVMvalueProc3(FklVM *exe,
         FklVMframe *f,
         size_t cpc,
@@ -1235,11 +1255,7 @@ FklVMvalue *fklCreateVMvalueProc3(FklVM *exe,
         const FklVMvalueProto *parent_proto) {
     FklVMvalue *co = get_compound_frame_code_obj(f);
     FklVMvalueProto *pt = fklVMvalueProtoChildren(parent_proto)[pid];
-    FklVMvalue *r = fklCreateVMvalueProc2(exe, //
-            f->pc,
-            cpc,
-            co,
-            pt);
+    FklVMvalue *r = fklCreateVMvalueProc2(exe, f->pc, cpc, co, pt);
 
     uint32_t count = pt->ref_count;
     FklVMvalueProc *proc = FKL_VM_PROC(r);

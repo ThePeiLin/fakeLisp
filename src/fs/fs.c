@@ -69,7 +69,7 @@ static int fs_realpath(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(filename, FKL_IS_STR, exe);
     char *rp = fklRealpath(FKL_VM_STR(filename)->str);
     if (rp) {
-        FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStrFromCstr(exe, rp));
+        FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr1(exe, rp));
         fklZfree(rp);
     } else
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -103,9 +103,7 @@ static int fs_relpath(FKL_CPROC_ARGL) {
                     path_rp ? path_rp : FKL_VM_STR(path)->str);
 
     if (relpath_cstr) {
-        FKL_CPROC_RETURN(exe,
-                ctx,
-                fklCreateVMvalueStrFromCstr(exe, relpath_cstr));
+        FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueStr1(exe, relpath_cstr));
         fklZfree(relpath_cstr);
     } else
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);

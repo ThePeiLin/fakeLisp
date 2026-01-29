@@ -507,7 +507,9 @@ static void sub_test3(void) {
         FklStrBuf buf;
         FklBigInt a;
         FklString *str = NULL;
+        fklInitBigInt0(&a);
         fklSetBigIntI(&a, 1145141919);
+		fklInitStrBuf(&buf);
 
         // hex
 

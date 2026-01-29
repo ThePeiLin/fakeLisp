@@ -9,8 +9,16 @@
 
 #include <string.h>
 
+FklVMvalue *fklCreateAst(FklVM *vm, const FklString *s, FklVMvalueLnt *ln) {
+    return fklCreateAst2(vm, s->size, s->str, ln);
+}
+
+FklVMvalue *fklCreateAst1(FklVM *vm, const char *cstr, FklVMvalueLnt *ln) {
+    return fklCreateAst2(vm, strlen(cstr), cstr, ln);
+}
+
 FklVMvalue *
-fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklVMvalueLnt *ln) {
+fklCreateAst2(FklVM *vm, size_t len, const char *buf, FklVMvalueLnt *ln) {
     FklParseStateVector stateStack;
     FklAnalysisSymbolVector symbolStack;
     fklParseStateVectorInit(&stateStack, 16);
@@ -20,7 +28,10 @@ fklCreateNastNodeFromCstr(FklVM *vm, const char *cStr, FklVMvalueLnt *ln) {
     FklParseError err = 0;
     size_t output_line = 0;
     FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, ln);
-    FklVMvalue *node = fklDefaultParseForCstr(cStr,
+    size_t rest_len = 0;
+    FklVMvalue *node = fklDefaultParseForCharBuf(buf,
+            len,
+            &rest_len,
             &ctx,
             &err,
             &output_line,

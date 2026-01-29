@@ -685,6 +685,30 @@ FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
     return r;
 }
 
+int fklVMhasSymbol(FklVM *vm, const FklString *str) {
+    return fklVMhasSymbol2(vm, str->str, str->size);
+}
+
+int fklVMhasSymbol1(FklVM *vm, const char *str) {
+    return fklVMhasSymbol2(vm, str, strlen(str));
+}
+
+int fklVMhasSymbol2(FklVM *vm, const char *buf, size_t len) {
+    FklVMgc *gc = vm->gc;
+    uv_mutex_lock(&gc->obarray->lock);
+
+    int r = 0;
+
+    uintptr_t hashv = 0;
+    FklStrValueHashMap *ht = &gc->obarray->map;
+    FklStrValueHashMapNode *const *bkt = get_btk(ht, &hashv, buf, len);
+    r = (*bkt) != NULL;
+
+    uv_mutex_unlock(&gc->obarray->lock);
+
+    return r;
+}
+
 static inline FklVMvalue *add_symbol_value_unlock(FklStrValueHashMap *ht,
         FklVMvalue *v) {
     FklVMvalue *r = NULL;

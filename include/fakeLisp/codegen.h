@@ -537,9 +537,8 @@ FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
         FklVMvalueCgInfo *codegen,
         FklVMvalueCgEnv *cur_env);
 
-FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklVMvalue *id,
-        uint32_t scope,
-        const FklCgEnvScope *scopes);
+FklSymDefHashMapElm *
+fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklCgEnvScope *scopes);
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
         const FklCgEnvScope *scopes);

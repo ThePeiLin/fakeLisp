@@ -1005,7 +1005,9 @@ static int repl_frame_step(void *data, FklVM *exe) {
 }
 
 static void
-repl_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVMgc *gc) {}
+repl_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVM *vm) {
+    fklCodeBuilderPuts(fp, "<repl>");
+}
 
 static void repl_frame_atomic(void *data, FklVMgc *gc) {
     ReplFrameCtx *ctx = FKL_TYPE_CAST(ReplFrameCtx *, data);

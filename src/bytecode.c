@@ -240,30 +240,6 @@ int fklGetNextIns(const FklIns *c, const FklIns *ins[2]) {
     return r;
 }
 
-int fklGetNextIns2(FklIns *c, FklIns *ins[2]) {
-    int r = 1;
-    ins[0] = NULL;
-    ins[1] = NULL;
-
-    FklInsArg arg = { 0 };
-    int8_t l = fklGetInsOpArg(c, &arg);
-    if (c->op == FKL_OP_DUMMY || fklIsCallIns(c) || fklIsRetIns(c)
-            || fklIsLoadLibIns(c)) {
-        r = 0;
-    } else if (fklIsPushProcIns(c)) {
-        ins[0] = c + l + arg.uy;
-    } else if (fklIsCondJmpIns(c)) {
-        ins[0] = c + l;
-        ins[1] = ins[0] + arg.ix;
-        r = 2;
-    } else if (fklIsJmpIns(c)) {
-        ins[0] = c + l + arg.ix;
-    } else {
-        ins[0] = c + l;
-    }
-    return r;
-}
-
 static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
     uint64_t size = bc->len;
     FklIns *code = bc->code;
@@ -362,9 +338,7 @@ int fklGetInsOpArg(const FklIns *ins, FklInsArg *a) {
     return get_ins_op_with_op(ins->op, ins, a);
 }
 
-int fklGetInsOpArgWithOp(FklOpcode op,
-        const FklIns *ins,
-        FklInsArg *a) {
+int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *a) {
     return get_ins_op_with_op(op, ins, a);
 }
 

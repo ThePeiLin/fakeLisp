@@ -44,6 +44,10 @@ static inline uint32_t fklStrBufLen(FklStrBuf *b) { return b->index; }
 
 static inline char *fklStrBufBody(FklStrBuf *b) { return b->buf; }
 
+static inline void fklStrBufPuts(FklStrBuf *b, const char *s) {
+    fklStrBufBincpy(b, s, strlen(s));
+}
+
 static inline void fklStrBufConcatWithCstr(FklStrBuf *b, const char *s) {
     fklStrBufBincpy(b, s, strlen(s));
 }

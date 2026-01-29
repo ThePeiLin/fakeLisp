@@ -1,105 +1,7 @@
 #include "bdb.h"
-#include "fakeLisp/bytecode.h"
 
-static void interrupt_queue_work_cb(FklVM *vm, void *a) {
-    DbgInterruptArg *arg = (DbgInterruptArg *)a;
-    DebugCtx *ctx = arg->ctx;
-    if (ctx->reached_thread)
-        return;
-    if (arg->bp) {
-        Breakpoint *bp = arg->bp;
-        atomic_fetch_sub(&bp->reached_count, 1);
-        for (; bp; bp = bp->next) {
-            if (bp->is_deleted || bp->is_disabled)
-                continue;
-            if (bp->cond_exp_obj) {
-                if (!bp->is_compiled) {
-                    EvalCompileErr err;
-                    bp->is_compiled = 1;
-                    FklVMvalue *proc = compileConditionExpression(ctx,
-                            vm,
-                            bp->cond_exp,
-                            vm->top_frame,
-                            &err);
-                    bp->cond_exp = NULL;
-                    bp->proc = proc;
-                    switch (err) {
-                    case EVAL_COMP_UNABLE:
-                        printUnableToCompile(stderr);
-                        break;
-                    case EVAL_COMP_IMPORT:
-                        printNotAllowImport(stderr);
-                        break;
-                    }
-                }
-                if (bp->proc) {
-                    FklVMvalue *value =
-                            callEvalProc(ctx, vm, bp->proc, vm->top_frame);
-                    if (value == FKL_VM_NIL)
-                        continue;
-                }
-            }
-            ctx->reached_breakpoint = bp;
-            setReachedThread(ctx, vm);
-            getCurLineStr(ctx, bp->fid, bp->line);
-            bp->count++;
-            if (bp->is_temporary)
-                delBreakpoint(ctx, bp->idx);
-            longjmp(*ctx->jmpb, DBG_INTERRUPTED);
-        }
-    } else if (arg->ln) {
-        setReachedThread(ctx, vm);
-        getCurLineStr(ctx, arg->ln->fid, arg->ln->line);
-        longjmp(*ctx->jmpb, DBG_INTERRUPTED);
-    } else {
-        setReachedThread(ctx, vm);
-        if (arg->err)
-            longjmp(*ctx->jmpb, DBG_ERROR_OCCUR);
-        else
-            longjmp(*ctx->jmpb, DBG_INTERRUPTED);
-    }
-}
-
-void dbgInterrupt(FklVM *exe, DbgInterruptArg *arg) {
-    fklQueueWorkInIdleThread(exe, interrupt_queue_work_cb, arg);
-}
-
-FklVMinterruptResult dbgInterruptHandler(FklVM *exe,
-        FklVMvalue *int_val,
-        FklVMvalue **pv,
-        void *arg) {
-    FKL_ASSERT(int_val);
-
-    DebugCtx *ctx = (DebugCtx *)arg;
-    if (isBreakpointWrapper(int_val)) {
-        Breakpoint *bp = getBreakpointFromWrapper(int_val);
-        DbgInterruptArg arg = {
-            .bp = bp,
-            .ctx = ctx,
-        };
-        dbgInterrupt(exe, &arg);
-    } else if (int_val == BDB_STEP_BREAK) {
-        DbgInterruptArg arg = {
-            .ctx = ctx,
-        };
-        unsetStepping(ctx);
-        dbgInterrupt(exe, &arg);
-    } else if (fklIsVMvalueError(int_val)) {
-        if (exe->is_single_thread)
-            return FKL_INT_NEXT;
-        else {
-            fklPrintErrBacktrace(int_val, exe, stdout);
-            DbgInterruptArg arg = {
-                .err = 1,
-                .ctx = ctx,
-            };
-            unsetStepping(ctx);
-            dbgInterrupt(exe, &arg);
-        }
-    } else
-        return FKL_INT_NEXT;
-    return FKL_INT_DONE;
-}
+#include <fakeLisp/bytecode.h>
+#include <fakeLisp/symbol.h>
 
 typedef struct {
     size_t i;
@@ -107,17 +9,16 @@ typedef struct {
 } SetSteppingArgs;
 
 static inline void set_stepping_target(struct SteppingCtx *stepping_ctx,
-        FklInstruction *target,
+        const FklIns *target,
         const SetSteppingArgs *args) {
     stepping_ctx->ins[args->i] = *target;
     stepping_ctx->target_ins[args->i] = target;
     FklOpcode op = target->op;
-    memset(target, 0, sizeof(FklInstruction));
-    target->op = FKL_OP_DUMMY;
-    target->au = args->flags;
-
+    uint8_t flags = args->flags;
     if (op == FKL_OP_DUMMY)
-        target->au |= INT3_STEP_AT_BP;
+        flags |= INT3_STEP_AT_BP;
+
+    assign_ins(target, &(FklIns){ .op = FKL_OP_DUMMY, .au = flags });
 }
 
 static inline void set_step_ins(DebugCtx *ctx,
@@ -135,46 +36,48 @@ static inline void set_step_ins(DebugCtx *ctx,
     if (f == NULL)
         return;
     int r = 0;
-    FklInstruction *ins[2] = { NULL, NULL };
+    const FklIns *ins[2] = { NULL, NULL };
     if (placing_type == STEP_INS_CUR) {
-        ins[0] = f->c.pc;
+        ins[0] = f->pc;
         r = 1;
         goto set_target;
     }
 
-    r = fklGetNextIns2(f->c.pc, ins);
+    r = fklGetNextIns(f->pc, ins);
     if (r != 0)
         goto set_target;
 
     r = 1;
-    if (fklIsCallIns(f->c.pc)) {
+    if (fklIsCallIns(f->pc)) {
         FklVMvalue *proc = exe->base[exe->bp];
         if (mode == STEP_INTO && FKL_IS_PROC(proc)) {
-            FklVMproc *p = FKL_VM_PROC(proc);
+            FklVMvalueProc *p = FKL_VM_PROC(proc);
             ins[0] = p->spc;
         } else {
-            FklInstructionArg arg = { 0 };
-            int8_t l = fklGetInsOpArg(f->c.pc, &arg);
-            ins[0] = f->c.pc + l;
+            FklInsArg arg = { 0 };
+            int8_t l = fklGetInsOpArg(f->pc, &arg);
+            ins[0] = f->pc + l;
         }
 
-    } else if (fklIsLoadLibIns(f->c.pc)) {
-        FklInstructionArg arg = { 0 };
-        int8_t l = fklGetInsOpArg(f->c.pc, &arg);
-        FklVMlib *plib = &exe->gc->libs[arg.ux];
-        int state = atomic_load(&plib->import_state);
+    } else if (fklIsLoadLibIns(f->pc)) {
+        FklInsArg arg = { 0 };
+        int8_t l = fklGetInsOpArg(f->pc, &arg);
+        FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
+        FklVMvalueLib *lib = fklVMvalueProtoUsedLibs(proto)[arg.ux];
+
+        int state = atomic_load(&lib->import_state);
         if (mode == STEP_INTO && state == FKL_VM_LIB_NONE) {
-            FklVMproc *p = FKL_VM_PROC(plib->proc);
+            FklVMvalueProc *p = FKL_VM_PROC(lib->proc);
             ins[0] = p->spc;
         } else {
-            ins[0] = f->c.pc + l;
+            ins[0] = f->pc + l;
         }
-    } else if (f->retCallBack == NULL) {
-        switch (f->c.mark) {
+    } else if (f->ret_cb == NULL) {
+        switch (f->mark) {
         case FKL_VM_COMPOUND_FRAME_MARK_RET:
             for (f = f->prev; f; f = f->prev) {
                 if (f->type == FKL_FRAME_COMPOUND) {
-                    ins[0] = f->c.pc;
+                    ins[0] = f->pc;
                     break;
                 }
             }
@@ -182,12 +85,12 @@ static inline void set_step_ins(DebugCtx *ctx,
                 r = 0;
             break;
         case FKL_VM_COMPOUND_FRAME_MARK_CALL:
-            ins[0] = f->c.spc;
+            ins[0] = f->spc;
             break;
         }
     } else {
         int3_flags |= INT3_GET_NEXT_INS;
-        ins[0] = f->c.pc;
+        ins[0] = f->pc;
     }
 
 set_target:
@@ -220,11 +123,11 @@ static inline void set_step_line(DebugCtx *ctx,
         return;
 
     int r = 0;
-    FklInstruction *ins[2] = { NULL, NULL };
-    FklInstruction *cur_ins = f->c.pc;
+    const FklIns *ins[2] = { NULL, NULL };
+    const FklIns *cur_ins = f->pc;
 
-    const FklLineNumberTableItem *ln = getCurLineNumberItemWithCp(cur_ins,
-            FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
+    FklByteCodelnt *bcl = FKL_VM_CO(FKL_VM_PROC(f->proc)->bcl);
+    const FklLntItem *ln = fklGetLntItem(bcl, cur_ins);
 
     if (placing_type == STEP_INS_CUR) {
         FKL_ASSERT(sctx->ln);
@@ -240,26 +143,25 @@ static inline void set_step_line(DebugCtx *ctx,
     sctx->ln = ln;
 
     for (;;) {
-        r = fklGetNextIns2(cur_ins, ins);
+        r = fklGetNextIns(cur_ins, ins);
         if (r != 1)
             break;
     get_next_line_ins:
-        ln = getCurLineNumberItemWithCp(ins[0],
-                FKL_VM_CO(FKL_VM_PROC(f->c.proc)->codeObj));
+        ln = fklGetLntItem(FKL_VM_CO(FKL_VM_PROC(f->proc)->bcl), ins[0]);
         if (sctx->ln->line != ln->line || sctx->ln->fid != ln->fid) {
             goto set_target;
         }
         cur_ins = ins[0];
     }
 
-    FklInstruction tmp_ins = *cur_ins;
+    FklIns tmp_ins = *cur_ins;
 
     if (cur_ins->op == FKL_OP_DUMMY) {
-        const FklInstruction *oins =
-                &getBreakpointHashItem(ctx, cur_ins)->origin_ins;
-        *cur_ins = *oins;
-        r = fklGetNextIns2(cur_ins, ins);
-        *cur_ins = tmp_ins;
+        const FklIns *oins = &getBreakpointHashItem(ctx, cur_ins)->origin_ins;
+        assign_ins(cur_ins, oins);
+
+        r = fklGetNextIns(cur_ins, ins);
+        assign_ins(cur_ins, &tmp_ins);
 
         if (r == 1) {
             cur_ins = ins[0];
@@ -278,37 +180,39 @@ static inline void set_step_line(DebugCtx *ctx,
     r = 1;
     if (fklIsCallIns(&tmp_ins)) {
         FklVMvalue *proc = exe->base[exe->bp];
-        if (cur_ins != f->c.pc) {
+        if (cur_ins != f->pc) {
             ins[0] = cur_ins;
             int3_flags |= INT3_GET_NEXT_INS;
             int3_flags |= INT3_STEP_LINE;
             goto set_target;
         }
         if (mode == STEP_INTO && FKL_IS_PROC(proc)) {
-            FklVMproc *p = FKL_VM_PROC(proc);
+            FklVMvalueProc *p = FKL_VM_PROC(proc);
             ins[0] = p->spc;
             goto set_target;
         }
 
-        FklInstructionArg arg = { 0 };
+        FklInsArg arg = { 0 };
         int8_t l = fklGetInsOpArg(cur_ins, &arg);
         ins[0] = cur_ins + l;
         cur_ins = ins[0];
         goto get_next_line_ins;
 
     } else if (fklIsLoadLibIns(&tmp_ins)) {
-        FklInstructionArg arg = { 0 };
+        FklInsArg arg = { 0 };
         int8_t l = fklGetInsOpArg(cur_ins, &arg);
-        FklVMlib *plib = &exe->gc->libs[arg.ux];
-        int state = atomic_load(&plib->import_state);
-        if (cur_ins != f->c.pc) {
+        FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
+        FklVMvalueLib *lib = fklVMvalueProtoUsedLibs(proto)[arg.ux];
+
+        int state = atomic_load(&lib->import_state);
+        if (cur_ins != f->pc) {
             ins[0] = cur_ins;
             int3_flags |= INT3_GET_NEXT_INS;
             int3_flags |= INT3_STEP_LINE;
             goto set_target;
         }
         if (mode == STEP_INTO && state == FKL_VM_LIB_NONE) {
-            FklVMproc *p = FKL_VM_PROC(plib->proc);
+            FklVMvalueProc *p = FKL_VM_PROC(lib->proc);
             ins[0] = p->spc;
             goto set_target;
         }
@@ -316,12 +220,12 @@ static inline void set_step_line(DebugCtx *ctx,
         cur_ins = ins[0];
         goto get_next_line_ins;
 
-    } else if (f->retCallBack == NULL) {
-        switch (f->c.mark) {
+    } else if (f->ret_cb == NULL) {
+        switch (f->mark) {
         case FKL_VM_COMPOUND_FRAME_MARK_RET:
             for (f = f->prev; f; f = f->prev) {
                 if (f->type == FKL_FRAME_COMPOUND) {
-                    ins[0] = f->c.pc;
+                    ins[0] = f->pc;
                     break;
                 }
             }
@@ -329,7 +233,7 @@ static inline void set_step_line(DebugCtx *ctx,
                 r = 0;
             break;
         case FKL_VM_COMPOUND_FRAME_MARK_CALL:
-            ins[0] = f->c.spc;
+            ins[0] = f->spc;
             break;
         }
     } else {
@@ -385,7 +289,7 @@ void setStepOut(DebugCtx *ctx) {
     if (f == NULL)
         return;
 
-    FklInstruction *ins = f->c.pc;
+    const FklIns *ins = f->pc;
 
     set_stepping_target(&ctx->stepping_ctx,
             ins,
@@ -400,8 +304,8 @@ void setStepUntil(DebugCtx *ctx, uint32_t target_line) {
 
     ctx->stepping_ctx.vm = exe;
     PutBreakpointErrorType err = 0;
-    FklInstruction *target =
-            getInsWithFileAndLine(ctx, ctx->curline_file, target_line, &err);
+    const FklString *s = bdbSymbol(ctx->curfile_lines->k);
+    const FklIns *target = getIns2(ctx, s, target_line, &err);
     if (target == NULL)
         return;
 
@@ -415,7 +319,7 @@ void unsetStepping(DebugCtx *ctx) {
     sctx->ln = NULL;
     for (size_t i = 0; i < BDB_STEPPING_TARGET_INS_COUNT; ++i) {
         if (sctx->target_ins[i]) {
-            *(sctx->target_ins[i]) = sctx->ins[i];
+            assign_ins(sctx->target_ins[i], &sctx->ins[i]);
             sctx->target_ins[i] = NULL;
         }
     }

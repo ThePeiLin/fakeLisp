@@ -49,12 +49,11 @@ static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
     return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
-FklSymDefHashMapElm *fklFindSymbolDefByIdAndScope(FklVMvalue *id,
-        uint32_t scope,
-        const FklCgEnvScope *scopes) {
+FklSymDefHashMapElm *
+fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklCgEnvScope *scopes) {
+    FklSymDefHashMapElm *r = NULL;
     for (; scope; scope = scopes[scope - 1].p) {
-        FklSymDefHashMapElm *r =
-                get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
+        r = get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
         if (r)
             return r;
     }
@@ -116,8 +115,7 @@ static inline void *has_outer_pdef_or_def(FklVMvalueCgEnv *cur,
             *is_pdef = 1;
             return key;
         }
-        FklSymDefHashMapElm *def =
-                fklFindSymbolDefByIdAndScope(id, scope, cur->scopes);
+        FklSymDefHashMapElm *def = fklFindSymbolDef(id, scope, cur->scopes);
         if (def) {
             *targetEnv = cur;
             return def;
@@ -485,9 +483,8 @@ void fklResolveRef(FklVMvalueCgEnv *env,
 
         FklVMvalueProto *pt = uref->env->proto;
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
-        const FklSymDefHashMapElm *def = fklFindSymbolDefByIdAndScope(uref->sid,
-                uref->scope,
-                env->scopes);
+        const FklSymDefHashMapElm *def;
+        def = fklFindSymbolDef(uref->sid, uref->scope, env->scopes);
 
         if (def) {
             env->slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
@@ -991,8 +988,8 @@ static void macro_expand_frame_atomic(void *data, FklVMgc *gc) {
 }
 
 static void
-macro_expand_frame_backtrace(void *data, FklCodeBuilder *build, FklVMgc *gc) {
-    fklCodeBuilderPuts(build, "at <macroexpand>\n");
+macro_expand_frame_backtrace(void *data, FklCodeBuilder *build, FklVM *vm) {
+    fklCodeBuilderPuts(build, "<macroexpand>");
 }
 
 static const FklVMframeContextMethodTable MacroExpandMethodTable = {
@@ -1204,9 +1201,6 @@ static FklVMudMetaTable const EnvUserDataMetaTable = {
 };
 
 static inline void insert_proto_to_parent(FklVMvalueCgEnv *env) {
-    // if (env->env_work_cb)
-    //     env->env_work_cb(env, env->work_ctx);
-
     FklVMvalueCgEnv *parent_env = env->prev;
     if (parent_env == NULL)
         return;
@@ -1250,11 +1244,6 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     fklInitValueTable(&r->konsts);
     fklValueVectorInit(&r->child_proc_protos, 4);
     fklLibIdHashMapInit(&r->used_libraries);
-
-    // if (prev_env) {
-    //     r->work_ctx = prev_env->work_ctx;
-    //     r->env_work_cb = prev_env->env_work_cb;
-    // }
 
     r->proto_env_map = c->proto_env_map;
     insert_proto_to_parent(r);
@@ -1402,6 +1391,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     int is_macro = args == NULL ? 0 : args->is_macro;
     int is_main = args == NULL ? 0 : args->is_main;
     int is_debugging = args == NULL ? 0 : args->is_debugging;
+    int is_precompile = args == NULL ? 0 : args->is_precompile;
 
     FKL_ASSERT(prev == NULL || fklIsVMvalueCgInfo((FklVMvalue *)prev));
 
@@ -1481,7 +1471,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .line = r->curline,
                 });
         r->global_env->is_debugging = is_debugging;
-        fklInitGlobCgEnv(r->global_env, ctx->vm, args->is_precompile);
+        fklInitGlobCgEnv(r->global_env, ctx->vm, is_precompile);
     }
 
     // r->global_env->work_ctx = work_ctx;

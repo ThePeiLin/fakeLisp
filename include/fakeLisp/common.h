@@ -101,6 +101,15 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
     } while (0)
 #endif
 
+#define FKL_UNTEST()                                                           \
+    do {                                                                       \
+        fprintf(stderr,                                                        \
+                "[%s: %d] %s is untested!\n",                                  \
+                __REL_FILE__,                                                  \
+                __LINE__,                                                      \
+                __func__);                                                     \
+    } while (0)
+
 #define FKL_TODO()                                                             \
     do {                                                                       \
         fprintf(stderr,                                                        \

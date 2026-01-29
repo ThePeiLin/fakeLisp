@@ -38,7 +38,7 @@ int main() {
 
     fputs("parse with builtin parser\n", stderr);
     for (const char **pexp = &expressions[0]; *pexp; ++pexp) {
-        FklVMvalue *node = fklCreateNastNodeFromCstr(vm, *pexp, NULL);
+        FklVMvalue *node = fklCreateAst1(vm, *pexp, NULL);
         FKL_ASSERT(node);
         fklPrin1VMvalue(node, stderr, vm);
         fputc('\n', stderr);

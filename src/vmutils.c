@@ -106,25 +106,21 @@ double fklVMgetDouble(const FklVMvalue *p) {
                               : FKL_VM_F64(p);
 }
 
-static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
-    return FKL_VM_PROC(frame->proc)->bcl;
-}
-
 static inline void
-print_back_trace(FklVMframe *f, FklCodeBuilder *build, FklVMgc *gc) {
-    void (*backtrace)(void *data, FklCodeBuilder *, FklVMgc *) =
-            f->t->print_backtrace;
-    if (backtrace)
-        backtrace(f->data, build, gc);
-    else
-        fklCodeBuilderPuts(build, "at callable-obj\n");
+print_back_trace(const FklVMframe *f, FklCodeBuilder *build, FklVM *vm) {
+    FklBacktraceCb backtrace = f->t->print_backtrace;
+    if (backtrace != NULL) {
+        backtrace((void *)f->data, build, vm);
+    } else {
+        fklCodeBuilderPuts(build, "<callable-obj>");
+    }
 }
 
-void fklPrintFrame(FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
+void fklPrintFrame(const FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
     if (f->type == FKL_FRAME_COMPOUND) {
         FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
         if (proc->name != FKL_VM_NIL) {
-            fklCodeBuilderPuts(build, "at proc: ");
+            fklCodeBuilderPuts(build, "proc: ");
             fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
         } else if (f->prev) {
             FklVMvalueProto *pt = FKL_VM_PROC(f->proc)->proto;
@@ -134,10 +130,10 @@ void fklPrintFrame(FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
             }
 
             if (pt->name != FKL_VM_NIL) {
-                fklCodeBuilderPuts(build, "at proc: ");
+                fklCodeBuilderPuts(build, "proc: ");
                 fklPrintSymbolLiteral2(FKL_VM_SYM(pt->name), build);
             } else {
-                fklCodeBuilderPuts(build, "at proc: <");
+                fklCodeBuilderPuts(build, "proc: <");
                 if (pt->file != FKL_VM_NIL) {
                     fklPrintStringLiteral2(FKL_VM_SYM(pt->file), build);
                 } else {
@@ -146,25 +142,41 @@ void fklPrintFrame(FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
                 fklCodeBuilderFmt(build, ": %" PRIu64 ">", pt->line);
             }
         } else {
-            fklCodeBuilderPuts(build, "at <top>");
+            fklCodeBuilderPuts(build, "<top>");
         }
-        FklByteCodelnt *co = FKL_VM_CO(get_compound_frame_code_obj(f));
+        FklByteCodelnt *co = FKL_VM_CO(FKL_VM_PROC(f->proc)->bcl);
         uint64_t const pc_idx = f->pc - co->bc.code - 1;
         const FklLntItem *node = fklFindLntItem(pc_idx, co->ls, co->l);
         if (node->fid != FKL_VM_NIL) {
             fklCodeBuilderFmt(build, " (%" PRIu32 ": ", node->line);
             fklPrintString2(FKL_VM_SYM(node->fid), build);
-            fklCodeBuilderPuts(build, ")\n");
+            fklCodeBuilderPuts(build, ")");
         } else {
-            fklCodeBuilderFmt(build, " (%" PRIu32 ")\n", node->line);
+            fklCodeBuilderFmt(build, " (%" PRIu32 ")", node->line);
         }
-    } else
-        print_back_trace(f, build, exe->gc);
+    } else {
+        print_back_trace(f, build, exe);
+    }
 }
 
 void fklPrintBacktrace(FklVM *exe, FklCodeBuilder *build) {
-    for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
+    for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev) {
+        fklCodeBuilderPuts(build, "at ");
         fklPrintFrame(cur, exe, build);
+        fklCodeBuilderPutc(build, '\n');
+    }
+}
+
+void fklPrintIntruptInfo(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build) {
+    if (fklIsVMvalueError(ev)) {
+        FklVMvalueError *err = FKL_VM_ERR(ev);
+        fklPrintSymbolLiteral2(FKL_VM_SYM(err->type), build);
+        fklCodeBuilderPuts(build, ": ");
+        fklPrincVMvalue2(err->message, build, exe);
+    } else {
+        fklCodeBuilderPuts(build, "interrupt with value: ");
+        fklPrin1VMvalue2(ev, build, exe);
+    }
 }
 
 void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
@@ -176,19 +188,9 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
         build = build_;
     }
 
-    if (fklIsVMvalueError(ev)) {
-        FklVMvalueError *err = FKL_VM_ERR(ev);
-        fklPrintSymbolLiteral2(FKL_VM_SYM(err->type), build);
-        fklCodeBuilderPuts(build, ": ");
-        fklPrincVMvalue2(err->message, build, exe);
-        fklCodeBuilderPutc(build, '\n');
-        fklPrintBacktrace(exe, build);
-    } else {
-        fklCodeBuilderPuts(build, "interrupt with value: ");
-        fklPrin1VMvalue2(ev, build, exe);
-        fklCodeBuilderPutc(build, '\n');
-        fklPrintBacktrace(exe, build);
-    }
+    fklPrintIntruptInfo(ev, exe, build);
+    fklCodeBuilderPutc(build, '\n');
+    fklPrintBacktrace(exe, build);
 
     if (build_ == NULL) {
         uv_mutex_unlock(&exe->gc->print_backtrace_lock);
@@ -319,7 +321,7 @@ FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe) {
     };
     const char *s = builtinErrorMessages[type];
     FKL_ASSERT(s);
-    return fklCreateVMvalueStrFromCstr(exe, s);
+    return fklCreateVMvalueStr1(exe, s);
 }
 
 typedef enum PrintingState {
@@ -1920,9 +1922,9 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         }
     break_loop:
         width = 0;
-        if (isdigit(*fmt))
+        if (isdigit(*fmt)) {
             width = strtol(fmt, (char **)&fmt, 10);
-        else if (*fmt == '*') {
+        } else if (*fmt == '*') {
             if (cur_val >= val_end) {
                 err = FKL_ERR_TOOFEWARG;
                 goto exit;
@@ -1933,8 +1935,9 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
                 if (w < 0) {
                     flags |= FLAGS_LEFT;
                     width = -w;
-                } else
+                } else {
                     width = w;
+                }
             } else {
                 err = FKL_ERR_INCORRECT_TYPE_VALUE;
                 goto exit;
@@ -2245,6 +2248,7 @@ FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v) {
 void fklValueTableClear(FklValueTable *t) {
     fklValueIdHashMapShrink(&t->ht);
     fklValueIdHashMapClear(&t->ht);
+    t->next_id = 1;
 }
 
 struct TraverseSerializableArgs {

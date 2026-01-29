@@ -38,9 +38,10 @@ void fklStrBufReserve(FklStrBuf *b, size_t s) {
 }
 
 void fklStrBufShrinkTo(FklStrBuf *b, size_t s) {
+    if (s < (b->index + 1))
+        s = (b->index + 1);
     char *t = (char *)fklZrealloc(b->buf, s);
     FKL_ASSERT(t);
-    t[s - 1] = '\0';
     b->buf = t;
     b->size = s;
 }
@@ -154,7 +155,7 @@ static int strbuf_cb_printf(void *ctx, const char *fmt, va_list ap) {
 
 static int strbuf_cb_puts(void *ctx, const char *fmt) {
     FklStrBuf *buf = FKL_TYPE_CAST(FklStrBuf *, ctx);
-    fklStrBufConcatWithCstr(buf, fmt);
+    fklStrBufPuts(buf, fmt);
     return 0;
 }
 

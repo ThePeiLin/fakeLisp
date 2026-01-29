@@ -40,7 +40,9 @@ typedef struct {
         },                                                                     \
     }
 
-FklVMvalue *fklCreateNastNodeFromCstr(FklVM *, const char *, FklVMvalueLnt *ln);
+FklVMvalue *fklCreateAst(FklVM *, const FklString *s, FklVMvalueLnt *ln);
+FklVMvalue *fklCreateAst1(FklVM *, const char *, FklVMvalueLnt *ln);
+FklVMvalue *fklCreateAst2(FklVM *, size_t len, const char *, FklVMvalueLnt *ln);
 
 int fklIsVMvalueLnt(const FklVMvalue *v);
 FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *v);

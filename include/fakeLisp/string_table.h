@@ -7,17 +7,12 @@
 extern "C" {
 #endif
 
-void fklStrKeyFree(FklString *s);
-
 // FklStrHashSet
 #define FKL_HASH_KEY_TYPE FklString *
 #define FKL_HASH_ELM_NAME Str
 #define FKL_HASH_KEY_HASH return fklStringHash(*pk);
 #define FKL_HASH_KEY_EQUAL(A, B) fklStringEqual(*(A), *(B))
-#define FKL_HASH_KEY_UNINIT(K)                                                 \
-    {                                                                          \
-        fklStrKeyFree(*(K));                                                   \
-    }
+#define FKL_HASH_KEY_UNINIT(K) fklZfree(*(K))
 #include "cont/hash.h"
 
 typedef FklStrHashSet FklStringTable;

@@ -319,10 +319,10 @@ add_fkl_native_module(fs
 	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 #bdb.so
-# file(GLOB BDB_SOURCE "src/bdb/*.c")
-# add_fkl_native_module(bdb
-#	 SRC ${BDB_SOURCE}
-#	 OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+file(GLOB BDB_SOURCE "src/bdb/*.c")
+add_fkl_native_module(bdb
+	 SRC ${BDB_SOURCE}
+	 OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
 
 # fuv-header
 set(FUV_HEADER fuv-header)

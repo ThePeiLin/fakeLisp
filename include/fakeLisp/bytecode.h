@@ -126,6 +126,11 @@ void fklInitLineNumTabNode(FklLntItem *,
 
 const FklLntItem *fklFindLntItem(uint64_t cp, size_t ls, const FklLntItem *l);
 
+static FKL_ALWAYS_INLINE const FklLntItem *
+fklGetLntItem(const FklByteCodelnt *code, const FklIns *cp) {
+    return fklFindLntItem(cp - code->bc.code, code->ls, code->l);
+}
+
 typedef struct {
     int64_t ix;
     uint64_t ux;
@@ -136,7 +141,6 @@ int fklGetInsOpArg(const FklIns *ins, FklInsArg *arg);
 int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *arg);
 
 int fklGetNextIns(const FklIns *cur_ins, const FklIns *ins[2]);
-int fklGetNextIns2(FklIns *cur_ins, FklIns *ins[2]);
 
 static inline int fklIsJmpIns(const FklIns *ins) {
     return ins->op >= FKL_OP_JMP && ins->op <= FKL_OP_JMP_XX;

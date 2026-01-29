@@ -1069,7 +1069,7 @@ make_file_failure_error2(FklVM *exe, const char *msg2, FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_FILEFAILURE,
             exe,
             "%s %S",
-            fklCreateVMvalueStrFromCstr(exe, msg2),
+            fklCreateVMvalueStr1(exe, msg2),
             place);
 }
 
@@ -1079,13 +1079,13 @@ make_import_reader_macro_error(FklVM *exe, const char *msg, FklVMvalue *place) {
         return FKL_MAKE_VM_ERR(FKL_ERR_IMPORT_READER_MACRO_ERROR,
                 exe,
                 "%s %S",
-                fklCreateVMvalueStrFromCstr(exe, msg),
+                fklCreateVMvalueStr1(exe, msg),
                 place);
     }
     return FKL_MAKE_VM_ERR(FKL_ERR_IMPORT_READER_MACRO_ERROR,
             exe,
             "%S",
-            fklCreateVMvalueStrFromCstr(exe, msg));
+            fklCreateVMvalueStr1(exe, msg));
 }
 
 static inline FklVMvalue *make_import_missing_error(FklVM *exe,
@@ -1117,7 +1117,7 @@ make_import_failed_error2(FklVM *exe, const char *str, FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
             exe,
             "%s %S",
-            fklCreateVMvalueStrFromCstr(exe, str),
+            fklCreateVMvalueStr1(exe, str),
             place);
 }
 
@@ -1133,12 +1133,12 @@ make_grammer_create_error2(FklVM *exe, const char *s, FklVMvalue *place) {
         return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
                 exe,
                 "%s",
-                fklCreateVMvalueStrFromCstr(exe, s));
+                fklCreateVMvalueStr1(exe, s));
     } else {
         return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
                 exe,
                 "%s %S",
-                fklCreateVMvalueStrFromCstr(exe, s),
+                fklCreateVMvalueStr1(exe, s),
                 place);
     }
 }
@@ -3294,8 +3294,8 @@ static void codegen_setq(const CgCbArgs *args) {
     }
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush(queue, value);
-    FklSymDefHashMapElm *def =
-            fklFindSymbolDefByIdAndScope(name->value, scope, env->scopes);
+    FklSymDefHashMapElm *def;
+    def = fklFindSymbolDef(name->value, scope, env->scopes);
     FklCgAct *cur = create_cg_action(_set_var_exp_bc_process,
             createDefaultStackContext(),
             createMustHasRetvalQueueNextExpression(queue),
@@ -3645,8 +3645,7 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
         error_state->line = CURLINE(exp->container);
         return 0;
     }
-    return fklFindSymbolDefByIdAndScope(value->value, scope, env->scopes)
-        != NULL;
+    return fklFindSymbolDef(value->value, scope, env->scopes) != NULL;
 }
 
 static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
@@ -6740,7 +6739,7 @@ static inline int import_pre_compiler_impl(const CgCbArgs *args,
     FklVMvalue *rp_v = NULL;
     {
         char *rp = fklRealpath(filename);
-        rp_v = fklCreateVMvalueStrFromCstr(vm, rp);
+        rp_v = fklCreateVMvalueStr1(vm, rp);
         fklZfree(rp);
     }
 
@@ -6811,7 +6810,7 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
     FklVMvalue *rp_v = NULL;
     {
         char *rp = fklRealpath(filename);
-        rp_v = fklCreateVMvalueStrFromCstr(vm, rp);
+        rp_v = fklCreateVMvalueStr1(vm, rp);
         fklZfree(rp);
     }
     const char *rp = FKL_VM_STR(rp_v)->str;
@@ -7541,7 +7540,7 @@ static FklVMvalue *b_platform_replacement(const FklCgCtx *ctx,
 #elif __APPLE__
     static const char *platform = "apple";
 #endif
-    return fklCreateVMvalueStrFromCstr(ctx->vm, platform);
+    return fklCreateVMvalueStr1(ctx->vm, platform);
 }
 
 static FklVMvalue *b_file_dir_replacement(const FklCgCtx *ctx,
@@ -7568,7 +7567,7 @@ static FklVMvalue *b_file_replacement(const FklCgCtx *ctx,
         const FklVMvalueCgInfo *info) {
     return info->filename == NULL
                  ? FKL_VM_NIL
-                 : fklCreateVMvalueStrFromCstr(ctx->vm, info->filename);
+                 : fklCreateVMvalueStr1(ctx->vm, info->filename);
 }
 
 static FklVMvalue *b_file_rp_replacement(const FklCgCtx *ctx,
@@ -7577,7 +7576,7 @@ static FklVMvalue *b_file_rp_replacement(const FklCgCtx *ctx,
         const FklVMvalueCgInfo *info) {
     return info->realpath == NULL
                  ? FKL_VM_NIL
-                 : fklCreateVMvalueStrFromCstr(ctx->vm, info->realpath);
+                 : fklCreateVMvalueStr1(ctx->vm, info->realpath);
 }
 
 static FklVMvalue *b_line_replacement(const FklCgCtx *ctx,
@@ -9197,9 +9196,8 @@ static inline void init_builtin_patterns(FklCgCtx *ctx) {
     FklVM *vm = ctx->vm;
     FklVMvalue **const builtin_pattern_node = ctx->builtin_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_PATTERN_NUM; i++) {
-        FklVMvalue *node = fklCreateNastNodeFromCstr(vm,
-                builtin_pattern_cstr_func[i].ps,
-                NULL);
+        const char *str = builtin_pattern_cstr_func[i].ps;
+        FklVMvalue *node = fklCreateAst1(vm, str, NULL);
         builtin_pattern_node[i] = fklCreatePattern(vm, node, NULL);
     }
 }
@@ -9217,8 +9215,7 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     FklVM *vm = ctx->vm;
     FklVMvalue **const builtin_sub_pattern_node = ctx->builtin_sub_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_SUB_PATTERN_NUM; i++) {
-        FklVMvalue *node =
-                fklCreateNastNodeFromCstr(vm, builtInSubPattern[i], NULL);
+        FklVMvalue *node = fklCreateAst1(vm, builtInSubPattern[i], NULL);
         builtin_sub_pattern_node[i] = fklCreatePattern(vm, node, NULL);
     }
 }
@@ -9412,11 +9409,10 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                         goto skip;
                     } else {
                         FklVMvalue *bcl = NULL;
-                        FklSymDefHashMapElm *def =
-                                fklFindSymbolDefByIdAndScope(exp.value,
-                                        cur_action->scope,
-                                        env->scopes);
-                        if (def)
+                        FklSymDefHashMapElm *def = fklFindSymbolDef(exp.value,
+                                cur_action->scope,
+                                env->scopes);
+                        if (def) {
                             bcl = append_get_loc_ins(vm,
                                     INS_APPEND_BACK,
                                     NULL,
@@ -9424,7 +9420,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                                     info->fid,
                                     CURLINE(exp.container),
                                     cur_action->scope);
-                        else {
+                        } else {
                             uint32_t idx = fklAddCgRefBySidRetIndex(exp.value,
                                     env,
                                     info->fid,

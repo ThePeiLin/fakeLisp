@@ -73,9 +73,9 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
         EXIT;
         FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue **plist = arg_base + 1;
-        if (plist[0] == FKL_VM_NIL)
+        if (plist[0] == FKL_VM_NIL) {
             FKL_CPROC_RETURN(exe, ctx, r);
-        else {
+        } else {
             FklVMvalue *proc = arg_base[0];
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, proc);

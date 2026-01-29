@@ -1474,7 +1474,7 @@ fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
     }
     uv_lib_t lib;
     if (uv_dlopen(real_dll_name, &lib)) {
-        *errorStr = fklCreateVMvalueStrFromCstr(exe, uv_dlerror(&lib));
+        *errorStr = fklCreateVMvalueStr1(exe, uv_dlerror(&lib));
         uv_dlclose(&lib);
         goto err;
     }

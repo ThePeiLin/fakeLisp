@@ -1731,8 +1731,8 @@ static int read_frame_step(void *d, FklVM *exe) {
 }
 
 static void
-read_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVMgc *gc) {
-    fklPrintCprocBacktrace(((ReadCtx *)d)->name, build, gc);
+read_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVM *vm) {
+    fklPrintCprocBacktrace(((ReadCtx *)d)->name, build);
 }
 
 static const FklVMframeContextMethodTable ReadContextMethodTable = {
@@ -2564,10 +2564,9 @@ static inline void init_custom_parse_ctx(void *data,
     ctx->state = PARSE_CONTINUE;
 }
 
-static inline void custom_parse_frame_print_backtrace(void *d,
-        FklCodeBuilder *build,
-        FklVMgc *gc) {
-    fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, build, gc);
+static inline void
+custom_parse_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVM *vm) {
+    fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, build);
 }
 
 static const FklVMframeContextMethodTable CustomParseContextMethodTable = {
@@ -2716,10 +2715,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, node);
         if (box) {
             uint64_t offset = ss->size - restLen;
-            if (offset > FKL_FIX_INT_MAX)
-                FKL_VM_BOX(box) = fklCreateVMvalueBigIntWithU64(exe, offset);
-            else
-                FKL_VM_BOX(box) = FKL_MAKE_VM_FIX(offset);
+            FKL_VM_BOX(box) = fklMakeVMuint(offset, exe);
         }
         return 0;
     }
@@ -3013,8 +3009,7 @@ static int builtin_argv(FKL_CPROC_ARGL) {
     int gc_argc = exe->gc->argc;
     char *const *const argv = exe->gc->argv;
     for (int i = 0; i < gc_argc; i++, tmp = &FKL_VM_CDR(*tmp))
-        *tmp = fklCreateVMvaluePair1(exe,
-                fklCreateVMvalueStrFromCstr(exe, argv[i]));
+        *tmp = fklCreateVMvaluePair1(exe, fklCreateVMvalueStr1(exe, argv[i]));
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
@@ -3392,16 +3387,10 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
 static void error_handler_frame_print_backtrace(void *data,
         FklCodeBuilder *build,
-        FklVMgc *gc) {
+        FklVM *vm) {
     EhFrameContext *c = (EhFrameContext *)data;
     FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
-    if (cproc->name) {
-        fklCodeBuilderPuts(build, "at cproc: ");
-        fklPrintStrLiteral2(cproc->name, build);
-        fklCodeBuilderPutc(build, '\n');
-    } else {
-        fklCodeBuilderPuts(build, "at <cproc>\n");
-    }
+    fklPrintCprocBacktrace(cproc->name, build);
 }
 
 static void error_handler_frame_atomic(void *data, FklVMgc *gc) {
@@ -3888,11 +3877,11 @@ static int builtin_filter(FKL_CPROC_ARGL) {
 #define MODIFY_EXTRA_VALUE                                                     \
     {                                                                          \
         FklVMvalue **arg_pair = &FKL_CPROC_GET_ARG(exe, ctx, arg_num + 2);     \
+        FklVMvalue **rlist = &FKL_CPROC_GET_ARG(exe, ctx, arg_num);            \
         if (r != FKL_VM_NIL) {                                                 \
-            FklVMvalue **rlist = &FKL_CPROC_GET_ARG(exe, ctx, arg_num);        \
             FklVMvalue **cur_pair = &FKL_CPROC_GET_ARG(exe, ctx, arg_num + 1); \
-            FklVMvalue *new_pair =                                             \
-                    fklCreateVMvaluePair1(exe, FKL_VM_CAR(*arg_pair));         \
+            FklVMvalue *car = FKL_VM_CAR(*arg_pair);                           \
+            FklVMvalue *new_pair = fklCreateVMvaluePair1(exe, car);            \
             if (*rlist == FKL_VM_NIL) {                                        \
                 *rlist = new_pair;                                             \
                 *cur_pair = new_pair;                                          \
@@ -3900,8 +3889,8 @@ static int builtin_filter(FKL_CPROC_ARGL) {
                 FKL_VM_CDR(*cur_pair) = new_pair;                              \
                 *cur_pair = new_pair;                                          \
             }                                                                  \
-            r = *rlist;                                                        \
         }                                                                      \
+        r = *rlist;                                                            \
         *arg_pair = FKL_VM_CDR(*arg_pair);                                     \
     }
 
@@ -5274,9 +5263,8 @@ void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm, int is_precompile) {
     for (const struct SymbolFuncStruct *list = builtInSymbolList;
             list->name != NULL;
             list++) {
-        FklSymDefHashMapElm *ref =
-                fklAddCgBuiltinRefBySid(fklVMaddSymbolCstr(vm, list->name),
-                        curEnv);
+        FklVMvalue *s = fklVMaddSymbolCstr(vm, list->name);
+        FklSymDefHashMapElm *ref = fklAddCgBuiltinRefBySid(s, curEnv);
         ref->v.isConst = 1;
     }
     if (is_precompile)
@@ -5298,8 +5286,7 @@ static void init_builtin_refs_once_cb(void) {
     for (size_t i = 0; i < FKL_BUILTIN_SYMBOL_NUM; i++) {
         FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, builtInSymbolList[i].v);
         fklInitClosedVMvalueVarRef(&builtin_symbol_var_refs[i], v);
-        builtin_refs[i] =
-                FKL_TYPE_CAST(FklVMvalue *, &builtin_symbol_var_refs[i]);
+        builtin_refs[i] = FKL_VM_VAL(&builtin_symbol_var_refs[i]);
     }
 }
 

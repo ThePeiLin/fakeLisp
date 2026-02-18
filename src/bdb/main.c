@@ -345,7 +345,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             dctx->done = 0;
             if (dctx->reached_breakpoint) {
                 unsetStepping(dctx);
-                const Breakpoint *reached_bp = dctx->reached_breakpoint;
+                const BdbBp *reached_bp = dctx->reached_breakpoint;
                 retval = bdbCreateBpVec(exe, dctx, reached_bp);
             }
         } else if (r == DBG_ERROR_OCCUR) {
@@ -393,8 +393,8 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
 
     FklVMvalue *filename = NULL;
     uint32_t line = 0;
-    PutBreakpointErrorType err = 0;
-    Breakpoint *item = NULL;
+    BdbPutBpErrorType err = 0;
+    BdbBp *item = NULL;
 
     uint32_t cond_exp_obj_idx = 3 + FKL_IS_STR(name_obj);
 
@@ -472,7 +472,7 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL) {
     FklVMvalue **pr = &r;
     for (BdbBpIdxHashMapNode *list = dctx->bt.idx_ht.first; list;
             list = list->next) {
-        Breakpoint *item = list->v;
+        BdbBp *item = list->v;
 
         FklVMvalue *car = bdbCreateBpVec(exe, dctx, item);
         *pr = fklCreateVMvaluePair1(exe, car);
@@ -497,7 +497,7 @@ static int bdb_debug_ctx_delete_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    Breakpoint *item = delBreakpoint(dctx, num);
+    BdbBp *item = delBreakpoint(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -518,7 +518,7 @@ static int bdb_debug_ctx_disable_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    Breakpoint *item = disBreakpoint(dctx, num);
+    BdbBp *item = disBreakpoint(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -539,7 +539,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    Breakpoint *item = enableBreakpoint(dctx, num);
+    BdbBp *item = enableBreakpoint(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -563,7 +563,6 @@ static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL) {
     return 0;
 }
 
-// XXX: 需要优化
 static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);

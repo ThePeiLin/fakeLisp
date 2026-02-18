@@ -231,7 +231,7 @@ static FKL_ALWAYS_INLINE uintptr_t fklHash64Shift(uint64_t key) {
     return key;
 }
 
-static FKL_ALWAYS_INLINE uintptr_t fklPtrHashv(const void *key) {
+static FKL_ALWAYS_INLINE uintptr_t fklPtrHash(const void *key) {
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, key));
 }
 

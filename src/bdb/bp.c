@@ -4,15 +4,14 @@
 #include <fakeLisp/zmalloc.h>
 #include <string.h>
 
-void initBreakpointTable(BreakpointTable *bt) {
+void initBreakpointTable(BdbBpTable *bt) {
     bdbBpInsHashMapInit(&bt->ins_ht);
     bdbBpIdxHashMapInit(&bt->idx_ht);
     bt->next_idx = 1;
     bt->deleted_breakpoints = NULL;
 }
 
-static inline void mark_breakpoint_deleted(Breakpoint *bp,
-        BreakpointTable *bt) {
+static inline void mark_breakpoint_deleted(BdbBp *bp, BdbBpTable *bt) {
     bp->cond_exp = BDB_NONE;
     bp->cond_proc = BDB_NONE;
     bp->filename = BDB_NONE;
@@ -24,7 +23,7 @@ static inline void mark_breakpoint_deleted(Breakpoint *bp,
     bt->deleted_breakpoints = bp;
 }
 
-static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
+static inline void remove_breakpoint(BdbBp *bp, BdbBpTable *bt) {
     BdbBpInsHashMapElm *ins_item = bp->item;
     *(bp->pnext) = bp->next;
     if (bp->next)
@@ -39,18 +38,18 @@ static inline void remove_breakpoint(Breakpoint *bp, BreakpointTable *bt) {
     }
 }
 
-static inline void clear_breakpoint(BreakpointTable *bt) {
+static inline void clear_breakpoint(BdbBpTable *bt) {
     for (BdbBpIdxHashMapNode *l = bt->idx_ht.first; l; l = l->next) {
-        Breakpoint *bp = l->v;
+        BdbBp *bp = l->v;
         mark_breakpoint_deleted(bp, bt);
         remove_breakpoint(bp, bt);
     }
 }
 
-static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
-    Breakpoint *bp = bt->deleted_breakpoints;
+static inline void destroy_all_deleted_breakpoint(BdbBpTable *bt) {
+    BdbBp *bp = bt->deleted_breakpoints;
     while (bp) {
-        Breakpoint *cur = bp;
+        BdbBp *cur = bp;
         bp = bp->next_del;
         cur->cond_exp = BDB_NONE;
         cur->cond_proc = BDB_NONE;
@@ -60,7 +59,7 @@ static inline void destroy_all_deleted_breakpoint(BreakpointTable *bt) {
     bt->deleted_breakpoints = NULL;
 }
 
-void uninitBreakpointTable(BreakpointTable *bt) {
+void uninitBreakpointTable(BdbBpTable *bt) {
     clear_breakpoint(bt);
     bdbBpInsHashMapUninit(&bt->ins_ht);
     bdbBpIdxHashMapUninit(&bt->idx_ht);
@@ -77,7 +76,7 @@ static FklVMudMetaTable BreakpointWrapperMetaTable = {
     .princ = bp_wrapper_print,
 };
 
-FklVMvalueBpWrapper *createBpWrapper(FklVM *vm, Breakpoint *bp) {
+FklVMvalueBpWrapper *createBpWrapper(FklVM *vm, BdbBp *bp) {
     FklVMvalueBpWrapper *r = (FklVMvalueBpWrapper *)fklCreateVMvalueUd(vm,
             &BreakpointWrapperMetaTable,
             NULL);
@@ -97,17 +96,17 @@ static FKL_ALWAYS_INLINE FklVMvalueBpWrapper *as_bp_wrapper(
     return (FklVMvalueBpWrapper *)v;
 }
 
-Breakpoint *getBp(const FklVMvalue *v) { return as_bp_wrapper(v)->bp; }
+BdbBp *getBp(const FklVMvalue *v) { return as_bp_wrapper(v)->bp; }
 
-Breakpoint *getBreakpoint(DebugCtx *dctx, uint32_t idx) {
-    Breakpoint **i = bdbBpIdxHashMapGet2(&dctx->bt.idx_ht, idx);
+BdbBp *getBreakpoint(DebugCtx *dctx, uint32_t idx) {
+    BdbBp **i = bdbBpIdxHashMapGet2(&dctx->bt.idx_ht, idx);
     if (i)
         return *i;
     return NULL;
 }
 
-Breakpoint *disBreakpoint(DebugCtx *dctx, uint32_t idx) {
-    Breakpoint *bp = getBreakpoint(dctx, idx);
+BdbBp *disBreakpoint(DebugCtx *dctx, uint32_t idx) {
+    BdbBp *bp = getBreakpoint(dctx, idx);
     if (bp) {
         bp->is_disabled = 1;
         return bp;
@@ -115,8 +114,8 @@ Breakpoint *disBreakpoint(DebugCtx *dctx, uint32_t idx) {
     return NULL;
 }
 
-Breakpoint *enableBreakpoint(DebugCtx *dctx, uint32_t idx) {
-    Breakpoint *bp = getBreakpoint(dctx, idx);
+BdbBp *enableBreakpoint(DebugCtx *dctx, uint32_t idx) {
+    BdbBp *bp = getBreakpoint(dctx, idx);
     if (bp) {
         bp->is_disabled = 0;
         return bp;
@@ -125,10 +124,10 @@ Breakpoint *enableBreakpoint(DebugCtx *dctx, uint32_t idx) {
 }
 
 void clearDeletedBreakpoint(DebugCtx *dctx) {
-    BreakpointTable *bt = &dctx->bt;
-    Breakpoint **phead = &bt->deleted_breakpoints;
+    BdbBpTable *bt = &dctx->bt;
+    BdbBp **phead = &bt->deleted_breakpoints;
     while (*phead) {
-        Breakpoint *cur = *phead;
+        BdbBp *cur = *phead;
         if (atomic_load(&cur->reached_count))
             phead = &cur->next_del;
         else {
@@ -142,9 +141,9 @@ void clearDeletedBreakpoint(DebugCtx *dctx) {
     }
 }
 
-Breakpoint *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
-    Breakpoint *bp = NULL;
-    BreakpointTable *bt = &dctx->bt;
+BdbBp *delBreakpoint(DebugCtx *dctx, uint32_t idx) {
+    BdbBp *bp = NULL;
+    BdbBpTable *bt = &dctx->bt;
     if (bdbBpIdxHashMapErase(&bt->idx_ht, &idx, &bp, NULL)) {
         mark_breakpoint_deleted(bp, bt);
         return bp;
@@ -156,7 +155,7 @@ BdbCodepoint *getBreakpointHashItem(DebugCtx *dctx, const FklIns *ins) {
     return bdbBpInsHashMapGet2(&dctx->bt.ins_ht, FKL_TYPE_CAST(FklIns *, ins));
 }
 
-FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp) {
+FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const BdbBp *bp) {
     BdbPos pos = bdbBpPos(bp);
     FklVMvalue *filename = fklCreateVMvalueStr(exe, pos.filename);
     FklVMvalue *line = FKL_MAKE_VM_FIX(pos.line);
@@ -186,11 +185,11 @@ FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const Breakpoint *bp) {
     return r;
 }
 
-BdbPos bdbBpPos(const Breakpoint *bp) {
+BdbPos bdbBpPos(const BdbBp *bp) {
     BdbPos pos = { 0 };
     pos.filename = FKL_VM_SYM(bdbUnwrap(bp->filename));
     pos.line = bp->line;
     pos.str = NULL;
 
-	return pos;
+    return pos;
 }

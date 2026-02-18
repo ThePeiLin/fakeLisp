@@ -303,7 +303,7 @@ void setStepUntil(DebugCtx *ctx, uint32_t target_line) {
         return;
 
     ctx->stepping_ctx.vm = exe;
-    PutBreakpointErrorType err = 0;
+    BdbPutBpErrorType err = 0;
     const FklString *s = bdbSymbol(ctx->curfile_lines->k);
     const FklIns *target = getIns2(ctx, s, target_line, &err);
     if (target == NULL)

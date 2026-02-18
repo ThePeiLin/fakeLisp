@@ -139,13 +139,13 @@ static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, FklVMextraMarkArgs *arg) {
         fklVMgcToGray(*base, gc);
 
     for (BdbBpIdxHashMapNode *l = ctx->bt.idx_ht.first; l; l = l->next) {
-        Breakpoint *i = l->v;
+        BdbBp *i = l->v;
         fklVMgcToGray(bdbUnwrap(i->cond_proc), gc);
         fklVMgcToGray(bdbUnwrap(i->cond_exp), gc);
         fklVMgcToGray(bdbUnwrap(i->filename), gc);
     }
 
-    for (Breakpoint *bp = ctx->bt.deleted_breakpoints; bp; bp = bp->next) {
+    for (BdbBp *bp = ctx->bt.deleted_breakpoints; bp; bp = bp->next) {
         fklVMgcToGray(bdbUnwrap(bp->cond_exp), gc);
         fklVMgcToGray(bdbUnwrap(bp->cond_proc), gc);
         fklVMgcToGray(bdbUnwrap(bp->filename), gc);
@@ -178,6 +178,14 @@ static inline int load_source_code(FklStringVector *lines, const char *rp) {
     fklUninitStrBuf(&buffer);
     fclose(fp);
     return 0;
+}
+
+static void src_vec_move(FklStringVector *to, const FklStringVector *from) {
+    *to = *from;
+    FklStringVector *f = FKL_TYPE_CAST(FklStringVector *, from);
+    f->capacity = 0;
+    f->base = NULL;
+    f->size = 0;
 }
 
 static inline const FklString *
@@ -216,11 +224,16 @@ source_not_loaded:
             return NULL;
         }
 
-        // lines will be moved in `bdbSourceCodeHashMapInsert`
+        // lines will be moved
         BdbWrapper key = bdbWrap(file_sym);
-        item = bdbSourceCodeHashMapInsert(&ctx->source_code_table,
-                &key,
-                &lines);
+
+        {
+            FklStringVector to = { 0 };
+            src_vec_move(&to, &lines);
+            item = bdbSourceCodeHashMapInsert(&ctx->source_code_table,
+                    &key,
+                    &to);
+        }
 
         fklUninitStrBuf(&full_path_buf);
     }
@@ -261,7 +274,7 @@ static inline void clear_var_ref(const DebugCtx *dctx, BdbWrapper const v) {
 
 static inline int compile_and_call_cond_exp(DebugCtx *ctx, //
         FklVM *vm,
-        Breakpoint *bp) {
+        BdbBp *bp) {
     if (!bdbHas(bp->cond_proc)) {
         EvalErr err;
         bp->is_errored = 0;
@@ -307,12 +320,12 @@ compile_done:
 }
 
 static void interrupt_queue_work_cb(FklVM *vm, void *a) {
-    DbgInterruptArg *arg = (DbgInterruptArg *)a;
+    const BdbInterruptArg *arg = (const BdbInterruptArg *)a;
     DebugCtx *ctx = arg->ctx;
     if (ctx->reached_thread)
         return;
     if (arg->bp) {
-        Breakpoint *bp = arg->bp;
+        BdbBp *bp = arg->bp;
         atomic_fetch_sub(&bp->reached_count, 1);
         for (; bp; bp = bp->next) {
             if (bp->is_deleted || bp->is_disabled)
@@ -351,7 +364,7 @@ static void interrupt_queue_work_cb(FklVM *vm, void *a) {
     }
 }
 
-static inline void dbg_interrupt(FklVM *exe, DbgInterruptArg *arg) {
+static inline void dbg_interrupt(FklVM *exe, BdbInterruptArg *arg) {
     fklQueueWorkInIdleThread(exe, interrupt_queue_work_cb, arg);
 }
 
@@ -363,14 +376,14 @@ static FklVMinterruptResult dbg_interrupt_handler(FklVM *exe,
 
     DebugCtx *ctx = (DebugCtx *)arg;
     if (isBpWrapper(int_val)) {
-        Breakpoint *bp = getBp(int_val);
-        DbgInterruptArg arg = {
+        BdbBp *bp = getBp(int_val);
+        BdbInterruptArg arg = {
             .bp = bp,
             .ctx = ctx,
         };
         dbg_interrupt(exe, &arg);
     } else if (int_val == BDB_STEP_BREAK) {
-        DbgInterruptArg arg = {
+        BdbInterruptArg arg = {
             .ctx = ctx,
         };
         unsetStepping(ctx);
@@ -379,7 +392,7 @@ static FklVMinterruptResult dbg_interrupt_handler(FklVM *exe,
         if (exe->is_single_thread) {
             return FKL_INT_NEXT;
         } else {
-            DbgInterruptArg arg = {
+            BdbInterruptArg arg = {
                 .error = bdbWrap(int_val),
                 .ctx = ctx,
             };
@@ -600,7 +613,7 @@ const FklStringVector *getSource(DebugCtx *dctx, const FklString *filename) {
 const FklIns *getIns2(DebugCtx *ctx,
         const FklString *filename,
         uint32_t line,
-        PutBreakpointErrorType *err) {
+        BdbPutBpErrorType *err) {
     const FklStringVector *sc_item = getSource(ctx, filename);
     if (!sc_item) {
         *err = PUT_BP_FILE_INVALID;
@@ -637,11 +650,11 @@ break_loop:
     return NULL;
 }
 
-static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
-        BreakpointTable *bt,
+static inline BdbBp *make_breakpoint(BdbBpInsHashMapElm *item,
+        BdbBpTable *bt,
         FklVMvalue *fid,
         uint32_t line) {
-    Breakpoint *bp = (Breakpoint *)fklZcalloc(1, sizeof(Breakpoint));
+    BdbBp *bp = (BdbBp *)fklZcalloc(1, sizeof(BdbBp));
     FKL_ASSERT(bp);
     bp->filename = bdbWrap(fid);
     bp->line = line;
@@ -656,13 +669,13 @@ static inline Breakpoint *make_breakpoint(BdbBpInsHashMapElm *item,
     return bp;
 }
 
-static inline Breakpoint *create_bp(DebugCtx *ctx,
+static inline BdbBp *create_bp(DebugCtx *ctx,
         const FklString *filename,
         uint32_t line,
         const FklIns *ins) {
     FKL_ASSERT(bdbHasSymbol(ctx, filename));
     FklVMvalue *s = fklVMaddSymbol(&ctx->gc.gcvm, filename);
-    BreakpointTable *bt = &ctx->bt;
+    BdbBpTable *bt = &ctx->bt;
     BdbBpInsHashMapElm *item = bdbBpInsHashMapInsert2(&bt->ins_ht,
             ins,
             (BdbCodepoint){ .origin_ins = *ins, .bp = NULL });
@@ -671,17 +684,17 @@ static inline Breakpoint *create_bp(DebugCtx *ctx,
     return item->v.bp;
 }
 
-Breakpoint *putBreakpoint(DebugCtx *ctx,
+BdbBp *putBreakpoint(DebugCtx *ctx,
         const FklString *filename,
         uint32_t line,
-        PutBreakpointErrorType *err) {
+        BdbPutBpErrorType *err) {
     const FklIns *ins = getIns2(ctx, filename, line, err);
     if (ins == NULL)
         return NULL;
     return create_bp(ctx, filename, line, ins);
 }
 
-const char *getPutBreakpointErrorInfo(PutBreakpointErrorType t) {
+const char *getPutBreakpointErrorInfo(BdbPutBpErrorType t) {
     static const char *msgs[] = {
         NULL,
         "end of file",
@@ -752,7 +765,7 @@ static inline const FklLntItem *get_proc_start_line_number(
     return fklFindLntItem(proc->spc - code->bc.code, code->ls, code->l);
 }
 
-static inline Breakpoint *put_breakpoint_with_pc(DebugCtx *ctx,
+static inline BdbBp *put_breakpoint_with_pc(DebugCtx *ctx,
         uint64_t pc,
         const FklIns *ins,
         const FklLntItem *ln) {
@@ -766,7 +779,7 @@ int bdbHasSymbol(DebugCtx *ctx, const FklString *s) {
     return fklVMhasSymbol(&ctx->gc.gcvm, s);
 }
 
-Breakpoint *putBreakpoint1(DebugCtx *ctx, const FklString *func_name) {
+BdbBp *putBreakpoint1(DebugCtx *ctx, const FklString *func_name) {
     if (!bdbHasSymbol(ctx, func_name))
         return NULL;
 
@@ -852,19 +865,6 @@ FklVMframe *getCurrentFrame(DebugCtx *ctx) {
     return NULL;
 }
 
-void printCurFrame(DebugCtx *ctx,
-        const FklString *prefix,
-        FklCodeBuilder *build) {
-    if (ctx->reached_thread_frames.size) {
-        FklVM *vm = ctx->reached_thread;
-        FklVMframe *cur = getCurrentFrame(ctx);
-        fklPrintString2(prefix, build);
-        fklPrintFrame(cur, vm, build);
-    } else {
-        printThreadAlreadyExited(ctx, build);
-    }
-}
-
 void setReachedThread(DebugCtx *ctx, FklVM *vm) {
     ctx->reached_thread = vm;
     ctx->curframe_idx = 1;
@@ -904,28 +904,6 @@ FklVM *getCurThread(DebugCtx *ctx) {
     if (ctx->threads.size)
         return (FklVM *)ctx->threads.base[ctx->curthread_idx - 1];
     return NULL;
-}
-
-void printThreadAlreadyExited(DebugCtx *ctx, FklCodeBuilder *build) {
-    fklCodeBuilderFmt(build,
-            "*** thread %u already exited ***\n",
-            ctx->curthread_idx);
-}
-
-void printThreadCantEvaluate(DebugCtx *ctx, FklCodeBuilder *build) {
-    fklCodeBuilderFmt(build,
-            "*** can't evaluate expression in thread %u ***\n",
-            ctx->curthread_idx);
-}
-
-void printUnableToCompile(FklCodeBuilder *build) {
-    fklCodeBuilderPuts(build,
-            "*** can't compile expression in current frame ***\n");
-}
-
-void printNotAllowImport(FklCodeBuilder *build) {
-    fklCodeBuilderPuts(build,
-            "*** not allow to import lib in debug evaluation ***\n");
 }
 
 void setAllThreadReadyToExit(FklVM *head) {

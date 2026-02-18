@@ -563,7 +563,7 @@ typedef struct {
 #define FKL_HASH_KEY_TYPE FklVMextraMarkArgs *
 #define FKL_HASH_VAL_TYPE FklVMextraMarkItem
 #define FKL_HASH_ELM_NAME VMextraMark
-#define FKL_HASH_KEY_HASH return fklPtrHashv(*pk);
+#define FKL_HASH_KEY_HASH return fklPtrHash(*pk);
 #include "cont/hash.h"
 
 typedef struct FklVMgc {

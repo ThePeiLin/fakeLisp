@@ -1,9 +1,9 @@
 #include "bdb.h"
-#include "fakeLisp/str_buf.h"
 
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/readline.h>
+#include <fakeLisp/str_buf.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <string.h>
@@ -64,7 +64,7 @@ static int debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
                 __LINE__);
         abort();
     }
-    uninitDebugCtx(ctx);
+    bdbUninitDbgCtx(ctx);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -100,7 +100,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
 
     int r = 0;
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
-        r = initDebugCtx(dctx, exe, valid_filename, argv_obj);
+        r = bdbInitDbgCtx(dctx, exe, valid_filename, argv_obj);
     }
 
     fklZfree(valid_filename);
@@ -140,7 +140,7 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
     DebugCtx *dctx = as_dbg_ctx(obj);
-    exitDebugCtx(dctx);
+    bdbExitDbgCtx(dctx);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
 }
@@ -285,7 +285,7 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(debug_ctx_obj);
 
     BdbPos curline = { 0 };
-    if (!getCurLine(dctx, &curline)) {
+    if (!bdbGetCurLine(dctx, &curline)) {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
         return 0;
     }
@@ -311,14 +311,14 @@ static inline int debug_restart(DebugCtx *dctx, FklVM *exe) {
 
     if (dctx->reached_thread) {
         FKL_VM_UNLOCK_BLOCK(exe, flag) {
-            setAllThreadReadyToExit(dctx->reached_thread);
-            waitAllThreadExit(dctx->reached_thread);
+            bdbSetAllThreadReadyToExit(dctx->reached_thread);
+            bdbWaitAllThreadExit(dctx->reached_thread);
         }
     } else if (dctx->gc.main_thread) {
         fklDestroyAllVMs(dctx->gc.main_thread);
         dctx->gc.main_thread = NULL;
     }
-    restartDebugging(dctx);
+    bdbRestartDebugging(dctx);
     return 1;
 }
 
@@ -328,7 +328,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
-    clearDeletedBreakpoint(dctx);
+    bdbClearDeletedBp(dctx);
     if (dctx->done) {
         debug_restart(dctx, exe);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -344,7 +344,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
         if (r == DBG_INTERRUPTED) {
             dctx->done = 0;
             if (dctx->reached_breakpoint) {
-                unsetStepping(dctx);
+                bdbUnsetStepping(dctx);
                 const BdbBp *reached_bp = dctx->reached_breakpoint;
                 retval = bdbCreateBpVec(exe, dctx, reached_bp);
             }
@@ -403,7 +403,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
 
     if (FKL_IS_SYM(name_obj)) {
         const FklString *function_name = FKL_VM_SYM(name_obj);
-        item = putBreakpoint1(dctx, function_name);
+        item = bdbPutBp1(dctx, function_name);
         if (item != NULL)
             goto done;
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,
@@ -431,7 +431,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
-    item = putBreakpoint(dctx, FKL_VM_STR(filename), line, &err);
+    item = bdbPutBp(dctx, FKL_VM_STR(filename), line, &err);
     FklVMvalue *cond_exp_obj = NULL;
 
 done:
@@ -454,7 +454,7 @@ done:
     return_bp_vec:
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     } else {
-        const char *err_msg = getPutBreakpointErrorInfo(err);
+        const char *err_msg = bdbGetPutBpErrorMsg(err);
         FklVMvalue *str_v = fklCreateVMvalueStr1(exe, err_msg);
         FKL_CPROC_RETURN(exe, ctx, str_v);
     }
@@ -497,7 +497,7 @@ static int bdb_debug_ctx_delete_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    BdbBp *item = delBreakpoint(dctx, num);
+    BdbBp *item = bdbDeleteBp(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -518,7 +518,7 @@ static int bdb_debug_ctx_disable_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    BdbBp *item = disBreakpoint(dctx, num);
+    BdbBp *item = bdbDisableBp(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -539,7 +539,7 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
-    BdbBp *item = enableBreakpoint(dctx, num);
+    BdbBp *item = bdbEnableBp(dctx, num);
     if (item)
         FKL_CPROC_RETURN(exe, ctx, bdbCreateBpVec(exe, dctx, item));
     else
@@ -627,7 +627,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     const FklString *filename = FKL_VM_STR(filename_obj);
-    const FklStringVector *item = getSource(dctx, filename);
+    const FklStringVector *item = bdbGetSource(dctx, filename);
     int64_t line_num = FKL_GET_FIX(line_num_obj);
     if (line_num <= 0) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,
@@ -678,11 +678,11 @@ static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL) {
     int8_t done = dctx->done;
     if (done)
         debug_restart(dctx, exe);
-    setStepIns(dctx,
+    bdbSetStepIns(dctx,
             dctx->reached_thread,
-            done ? STEP_INS_CUR : STEP_INS_NEXT,
-            STEP_INTO,
-            STEP_LINE);
+            done ? BDB_STEP_INS_CUR : BDB_STEP_INS_NEXT,
+            BDB_STEP_MODE_INTO,
+            BDB_STEP_TYPE_LINE);
     FKL_CPROC_RETURN(exe, ctx, dctx_obj);
     return 0;
 }
@@ -696,11 +696,11 @@ static int bdb_debug_ctx_set_step_over(FKL_CPROC_ARGL) {
     int8_t done = dctx->done;
     if (done)
         debug_restart(dctx, exe);
-    setStepIns(dctx,
+    bdbSetStepIns(dctx,
             dctx->reached_thread,
-            done ? STEP_INS_CUR : STEP_INS_NEXT,
-            STEP_OVER,
-            STEP_LINE);
+            done ? BDB_STEP_INS_CUR : BDB_STEP_INS_NEXT,
+            BDB_STEP_MODE_OVER,
+            BDB_STEP_TYPE_LINE);
     FKL_CPROC_RETURN(exe, ctx, dctx_obj);
     return 0;
 }
@@ -713,7 +713,7 @@ static int bdb_debug_ctx_set_step_out(FKL_CPROC_ARGL) {
 
     if (dctx->done)
         debug_restart(dctx, exe);
-    setStepOut(dctx);
+    bdbSetStepOut(dctx);
     FKL_CPROC_RETURN(exe, ctx, dctx_obj);
     return 0;
 }
@@ -730,17 +730,17 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL) {
     if (done)
         debug_restart(dctx, exe);
     if (lineno_obj == NULL)
-        setStepIns(dctx,
+        bdbSetStepIns(dctx,
                 dctx->reached_thread,
-                done ? STEP_INS_CUR : STEP_INS_NEXT,
-                STEP_OVER,
-                STEP_LINE);
+                done ? BDB_STEP_INS_CUR : BDB_STEP_INS_NEXT,
+                BDB_STEP_MODE_OVER,
+                BDB_STEP_TYPE_LINE);
     else {
         FKL_CHECK_TYPE(lineno_obj, FKL_IS_FIX, exe);
         int64_t line = FKL_GET_FIX(lineno_obj);
         if (line < ((int64_t)dctx->curline))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-        setStepUntil(dctx, line);
+        bdbSetStepUntil(dctx, line);
     }
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
@@ -755,7 +755,7 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t cur_pc = 0;
-    BdbWrapper proc = getCurProcInsAndReset(dctx, &cur_pc);
+    BdbWrapper proc = bdbUpdateCurProc(dctx, &cur_pc);
     if (!bdbHas(proc)) {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
         return 0;
@@ -798,7 +798,7 @@ static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL) {
 
     FKL_CHECK_TYPE(pc_num_obj, fklIsVMint, exe);
 
-    BdbWrapper proc = getCurProcInsAndReset(dctx, NULL);
+    BdbWrapper proc = bdbUpdateCurProc(dctx, NULL);
 
     if (bdbHas(proc) && !fklIsVMnumberLt0(pc_num_obj)) {
         uint64_t ins_pc = fklVMgetUint(pc_num_obj);
@@ -816,7 +816,7 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     uint64_t cur_pc = 0;
-    BdbWrapper proc = getCurProcInsAndReset(dctx, &cur_pc);
+    BdbWrapper proc = bdbUpdateCurProc(dctx, &cur_pc);
 
     if (bdbHas(proc)) {
         const FklByteCode *const bc = &bdbBcl(proc)->bc;
@@ -838,7 +838,11 @@ static int bdb_debug_ctx_set_step_ins(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
-    setStepIns(dctx, dctx->reached_thread, STEP_INS_NEXT, STEP_INTO, STEP_INS);
+    bdbSetStepIns(dctx,
+            dctx->reached_thread,
+            BDB_STEP_INS_NEXT,
+            BDB_STEP_MODE_INTO,
+            BDB_STEP_TYPE_INS);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
@@ -849,7 +853,11 @@ static int bdb_debug_ctx_set_next_ins(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
-    setStepIns(dctx, dctx->reached_thread, STEP_INS_NEXT, STEP_OVER, STEP_INS);
+    bdbSetStepIns(dctx,
+            dctx->reached_thread,
+            BDB_STEP_INS_NEXT,
+            BDB_STEP_MODE_OVER,
+            BDB_STEP_TYPE_INS);
     FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     return 0;
 }
@@ -867,31 +875,31 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
                 exe,
                 "Program is already finishied");
     } else {
-        FklVMframe *cur_frame = getCurrentFrame(dctx);
+        FklVMframe *cur_frame = bdbGetCurrentFrame(dctx);
         for (; cur_frame && cur_frame->type == FKL_FRAME_OTHEROBJ;
                 cur_frame = cur_frame->prev)
             ;
 
         if (cur_frame) {
-            EvalErr err = 0;
-            BdbWrapper p = compileEvalExpression(dctx,
+            BdbEvalErr err = 0;
+            BdbWrapper p = bdbCompileEvalExpression(dctx,
                     dctx->reached_thread,
                     FKL_VM_STR(expression_obj),
                     cur_frame,
                     &err);
             switch (err) {
-            case EVAL_ERR_UNABLE:
+            case BDB_EVAL_ERR_UNABLE:
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYNTAXERROR,
                         exe,
                         "Unable to evaluate in this context");
                 break;
                 break;
-            case EVAL_ERR_IMPORT:
+            case BDB_EVAL_ERR_IMPORT:
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYNTAXERROR,
                         exe,
                         "Import module in evaluation is not allow");
                 break;
-            case EVAL_ERR_INVALID_EXP:
+            case BDB_EVAL_ERR_INVALID_EXP:
                 FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALIDEXPR,
                         exe,
                         "Invalid evaluation expression: %s",
@@ -903,7 +911,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
             FklVM *reached_thread = dctx->reached_thread;
 
             BdbWrapper ret;
-            ret = callEvalProc(dctx, exe, reached_thread, p, cur_frame);
+            ret = bdbCallEvalProc(dctx, exe, reached_thread, p, cur_frame);
 
             FklVMvalue *retval = NULL;
             if (bdbIsError(ret)) {
@@ -929,7 +937,7 @@ static int bdb_debug_ctx_backtrace(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
     DebugCtx *dctx = as_dbg_ctx(obj);
 
-    FklVMvalue *l = getCurBacktrace(dctx, exe);
+    FklVMvalue *l = bdbGetCurBacktrace(dctx, exe);
     if (l == NULL) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALIDACCESS,
                 exe,
@@ -1000,7 +1008,7 @@ static int bdb_debug_ctx_list_thread(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(prefix_obj, FKL_IS_STR, exe);
     DebugCtx *dctx = as_dbg_ctx(obj);
 
-    FklVMvalue *l = listThreads(dctx, exe);
+    FklVMvalue *l = bdbListThreads(dctx, exe);
     FKL_CPROC_RETURN(exe, ctx, l);
     return 0;
 }
@@ -1015,7 +1023,7 @@ static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL) {
 
     int64_t id = FKL_GET_FIX(id_obj);
     if (id > 0 && id <= (int64_t)dctx->threads.size) {
-        switchCurThread(dctx, FKL_GET_FIX(id_obj));
+        bdbSwitchCurThread(dctx, FKL_GET_FIX(id_obj));
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_TRUE);
     } else {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);

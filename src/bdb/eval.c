@@ -86,7 +86,7 @@ typedef struct {
     FklVM *vm;
     FklVMframe *cur_frame;
 
-    EvalErr *err;
+    BdbEvalErr *err;
 } CompEvalExpArgs;
 
 static inline FklVMvalueProc *compile_eval_expression(DebugCtx *ctx,
@@ -98,7 +98,7 @@ static inline FklVMvalueProc *compile_eval_expression(DebugCtx *ctx,
 
     FklVM *vm = args->vm;
     FklVMframe *cur_frame = args->cur_frame;
-    EvalErr *err = args->err;
+    BdbEvalErr *err = args->err;
 
     FklCgCtx *cg_ctx = &ctx->cg_ctx;
     FklVMvalue *code = fklGenExpressionCode(cg_ctx, exp, exp_env, info);
@@ -107,7 +107,7 @@ static inline FklVMvalueProc *compile_eval_expression(DebugCtx *ctx,
     FklVMvalueProc *ret = NULL;
     if (code) {
         if (has_import_op_code(FKL_VM_CO(code))) {
-            *err = EVAL_ERR_IMPORT;
+            *err = BDB_EVAL_ERR_IMPORT;
             return NULL;
         }
         FklVMvalueProto *proto = fklCreateVMvalueProto2(vm, exp_env);
@@ -145,24 +145,24 @@ static inline FklVMvalueProc *compile_eval_expression(DebugCtx *ctx,
     return ret;
 }
 
-BdbWrapper compileEvalExpression(DebugCtx *ctx,
+BdbWrapper bdbCompileEvalExpression(DebugCtx *ctx,
         FklVM *vm,
         const FklString *exp,
         FklVMframe *cur_frame,
-        EvalErr *err) {
+        BdbEvalErr *err) {
     FklVMvalue *v = fklCreateAst(vm, exp, NULL);
     if (v == NULL) {
-        *err = EVAL_ERR_INVALID_EXP;
+        *err = BDB_EVAL_ERR_INVALID_EXP;
         return BDB_NONE;
     }
-    return compileEvalExpression1(ctx, vm, bdbWrap(v), cur_frame, err);
+    return bdbCompileEvalExpression1(ctx, vm, bdbWrap(v), cur_frame, err);
 }
 
-BdbWrapper compileEvalExpression1(DebugCtx *ctx,
+BdbWrapper bdbCompileEvalExpression1(DebugCtx *ctx,
         FklVM *vm,
         BdbWrapper exp,
         FklVMframe *cur_frame,
-        EvalErr *err) {
+        BdbEvalErr *err) {
     FKL_ASSERT(bdbHas(exp));
     FklVMvalue *v = bdbUnwrap(exp);
 
@@ -170,7 +170,7 @@ BdbWrapper compileEvalExpression1(DebugCtx *ctx,
     FklVMvalueCgEnv *exp_env;
     exp_env = init_eval_codegen_info(ctx, &out_env, cur_frame);
     if (exp_env == NULL) {
-        *err = EVAL_ERR_UNABLE;
+        *err = BDB_EVAL_ERR_UNABLE;
         return BDB_NONE;
     }
     *err = 0;
@@ -221,7 +221,7 @@ static inline FklVMvalue *get_backtrace_info(FklVM *host_vm,
     return retval;
 }
 
-BdbWrapper callEvalProc(DebugCtx *ctx,
+BdbWrapper bdbCallEvalProc(DebugCtx *ctx,
         FklVM *host_vm,
         FklVM *reached_thread,
         BdbWrapper proc,
@@ -254,7 +254,7 @@ BdbWrapper callEvalProc(DebugCtx *ctx,
     return ret;
 }
 
-FklVMvalue *listThreads(DebugCtx *ctx, FklVM *host_vm) {
+FklVMvalue *bdbListThreads(DebugCtx *ctx, FklVM *host_vm) {
     FklVMvalue *retval = FKL_VM_NIL;
     FklVMvalue **ppcdr = &retval;
     FklVM **base = (FklVM **)ctx->threads.base;

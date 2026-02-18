@@ -198,12 +198,14 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
     BdbWrapper error;
 });
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueBpWrapper, { BdbBp *bp; });
+
 typedef FklVMvalueDebugCtx DebugCtx;
 
 typedef enum {
-    PUT_BP_AT_END_OF_FILE = 1,
-    PUT_BP_FILE_INVALID,
-    PUT_BP_NOT_A_PROC,
+    BDB_PUT_BP_AT_END_OF_FILE = 1,
+    BDB_PUT_BP_FILE_INVALID,
+    BDB_PUT_BP_NOT_A_PROC,
 } BdbPutBpErrorType;
 
 typedef struct {
@@ -211,61 +213,55 @@ typedef struct {
     const FklLntItem *ln;
     DebugCtx *ctx;
     BdbWrapper error;
-} BdbInterruptArg;
+} BdbIntArg;
 
-extern const alignas(8) FklVMvalueUd BdbStepBreak;
-
-#define BDB_STEP_BREAK ((FklVMptr) & BdbStepBreak)
-
-int initDebugCtx(DebugCtx *,
+int bdbInitDbgCtx(DebugCtx *,
         FklVM *exe,
         const char *filename,
         FklVMvalue *argv);
-void exitDebugCtx(DebugCtx *);
-void uninitDebugCtx(DebugCtx *);
+void bdbExitDbgCtx(DebugCtx *);
+void bdbUninitDbgCtx(DebugCtx *);
 
-void initBreakpointTable(BdbBpTable *);
-void uninitBreakpointTable(BdbBpTable *);
+void bdbInitBpTable(BdbBpTable *);
+void bdbUninitBpTable(BdbBpTable *);
 
-const FklStringVector *getSource(DebugCtx *dctx, const FklString *filename);
+const FklStringVector *bdbGetSource(DebugCtx *dctx, const FklString *filename);
 
 BdbWrapper bdbAddSymbol(DebugCtx *dctx, const FklString *s);
 BdbWrapper bdbAddSymbol1(DebugCtx *dctx, const char *s);
 BdbWrapper bdbParse(DebugCtx *dctx, const FklString *s);
 
-BdbCodepoint *getBreakpointHashItem(DebugCtx *, const FklIns *ins);
+BdbCodepoint *bdbGetCodepoint(DebugCtx *, const FklIns *ins);
 
-const FklIns *getIns2(DebugCtx *ctx,
+const FklIns *bdbGetIns(DebugCtx *ctx,
         const FklString *filename,
         uint32_t line,
         BdbPutBpErrorType *);
 
-BdbBp *putBreakpoint(DebugCtx *ctx,
+BdbBp *bdbPutBp(DebugCtx *ctx,
         const FklString *filename,
         uint32_t line,
         BdbPutBpErrorType *);
 
-BdbBp *putBreakpoint1(DebugCtx *ctx, const FklString *func_name);
+BdbBp *bdbPutBp1(DebugCtx *ctx, const FklString *func_name);
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueBpWrapper, { BdbBp *bp; });
+FklVMvalueBpWrapper *bdbCreateBpWrapper(FklVM *exe, BdbBp *bp);
+int bdbIsBpWrapper(const FklVMvalue *v);
+BdbBp *bdbGetBp(const FklVMvalue *v);
 
-FklVMvalueBpWrapper *createBpWrapper(FklVM *exe, BdbBp *bp);
-int isBpWrapper(const FklVMvalue *v);
-BdbBp *getBp(const FklVMvalue *v);
+const char *bdbGetPutBpErrorMsg(BdbPutBpErrorType t);
 
-const char *getPutBreakpointErrorInfo(BdbPutBpErrorType t);
-
-BdbBp *getBreakpoint(DebugCtx *ctx, uint32_t idx);
-BdbBp *disBreakpoint(DebugCtx *ctx, uint32_t idx);
-BdbBp *enableBreakpoint(DebugCtx *ctx, uint32_t idx);
-BdbBp *delBreakpoint(DebugCtx *ctx, uint32_t idx);
-void clearDeletedBreakpoint(DebugCtx *dctx);
+BdbBp *bdbDisableBp(DebugCtx *ctx, uint32_t idx);
+BdbBp *bdbEnableBp(DebugCtx *ctx, uint32_t idx);
+BdbBp *bdbDeleteBp(DebugCtx *ctx, uint32_t idx);
+void bdbClearDeletedBp(DebugCtx *dctx);
 
 BdbPos bdbBpPos(const BdbBp *bp);
 
-int getCurLine(DebugCtx *dctx, BdbPos *line);
+int bdbGetCurLine(DebugCtx *dctx, BdbPos *line);
 
-BdbWrapper getCurProcInsAndReset(DebugCtx *ctx, uint64_t *ppc);
+BdbWrapper bdbUpdateCurProc(DebugCtx *ctx, uint64_t *ppc);
+
 static FKL_ALWAYS_INLINE const FklByteCodelnt *bdbBcl(BdbWrapper const proc) {
     return FKL_VM_CO(FKL_VM_PROC(bdbUnwrap(proc))->bcl);
 }
@@ -278,86 +274,77 @@ static FKL_ALWAYS_INLINE int bdbIsBox(BdbWrapper const v) {
     return FKL_IS_BOX(bdbUnwrap(v));
 }
 
-void unsetStepping(DebugCtx *);
+void bdbUnsetStepping(DebugCtx *);
 
-void setStepOut(DebugCtx *);
+void bdbSetStepOut(DebugCtx *);
 
-void setStepUntil(DebugCtx *, uint32_t line);
-
-typedef enum {
-    STEP_INS_NEXT = 0,
-    STEP_INS_CUR,
-} StepTargetPlacingType;
-
-typedef enum { STEP_INS = 0, STEP_LINE } SteppingType;
+void bdbSetStepUntil(DebugCtx *, uint32_t line);
 
 typedef enum {
-    STEP_INTO,
-    STEP_OVER,
-} SteppingMode;
+    BDB_STEP_INS_NEXT = 0,
+    BDB_STEP_INS_CUR,
+} BdbStepTargetPlacingType;
+
+typedef enum { BDB_STEP_TYPE_INS = 0, BDB_STEP_TYPE_LINE } BdbSteppingType;
 
 typedef enum {
-    INT3_STEPPING = 0x1,
-    INT3_STEP_AT_BP = 0x2,
-    INT3_GET_NEXT_INS = 0x4,
-    INT3_STEP_LINE = 0x8,
-} Int3Flags;
+    BDB_STEP_MODE_INTO,
+    BDB_STEP_MODE_OVER,
+} BdbSteppingMode;
 
-void setStepIns(DebugCtx *,
+typedef enum {
+    BDB_INT3_STEPPING = 0x1,
+    BDB_INT3_STEP_AT_BP = 0x2,
+    BDB_INT3_GET_NEXT_INS = 0x4,
+    BDB_INT3_STEP_LINE = 0x8,
+} BdbInt3Flags;
+
+void bdbSetStepIns(DebugCtx *,
         FklVM *exe,
-        StepTargetPlacingType,
-        SteppingMode,
-        SteppingType type);
+        BdbStepTargetPlacingType,
+        BdbSteppingMode,
+        BdbSteppingType type);
 
-void setAllThreadReadyToExit(FklVM *head);
-void waitAllThreadExit(FklVM *head);
-void restartDebugging(DebugCtx *ctx);
+void bdbSetAllThreadReadyToExit(FklVM *head);
+void bdbWaitAllThreadExit(FklVM *head);
+void bdbRestartDebugging(DebugCtx *ctx);
 
 typedef enum {
-    EVAL_ERR_UNABLE = 1,
-    EVAL_ERR_IMPORT,
-    EVAL_ERR_INVALID_EXP,
-} EvalErr;
+    BDB_EVAL_ERR_UNABLE = 1,
+    BDB_EVAL_ERR_IMPORT,
+    BDB_EVAL_ERR_INVALID_EXP,
+} BdbEvalErr;
 
-BdbWrapper compileEvalExpression(DebugCtx *ctx,
+BdbWrapper bdbCompileEvalExpression(DebugCtx *ctx,
         FklVM *,
         const FklString *exp,
         FklVMframe *frame,
-        EvalErr *is_complie_unabled);
+        BdbEvalErr *is_complie_unabled);
 
-BdbWrapper compileEvalExpression1(DebugCtx *ctx,
+BdbWrapper bdbCompileEvalExpression1(DebugCtx *ctx,
         FklVM *,
         BdbWrapper exp,
         FklVMframe *frame,
-        EvalErr *is_complie_unabled);
+        BdbEvalErr *is_complie_unabled);
 
-BdbWrapper callEvalProc(DebugCtx *ctx,
+BdbWrapper bdbCallEvalProc(DebugCtx *ctx,
         FklVM *host_vm,
         FklVM *reached_thread,
         BdbWrapper proc,
         FklVMframe *frame);
 
-void setReachedThread(DebugCtx *ctx, FklVM *);
+void bdbSetReachedThread(DebugCtx *ctx, FklVM *);
 
-FklVMvalue *getCurBacktrace(DebugCtx *ctx, FklVM *host_vm);
+FklVMvalue *bdbGetCurBacktrace(DebugCtx *ctx, FklVM *host_vm);
 FklVMvalue *bdbErrInfo(DebugCtx *ctx, FklVM *host_Vm);
 
-FklVMframe *getCurrentFrame(DebugCtx *ctx);
+FklVMframe *bdbGetCurrentFrame(DebugCtx *ctx);
 
-FklVM *getCurThread(DebugCtx *ctx);
-void switchCurThread(DebugCtx *ctx, uint32_t idx);
-FklVMvalue *listThreads(DebugCtx *ctx, FklVM *host_vm);
+FklVM *bdbGetCurThread(DebugCtx *ctx);
+void bdbSwitchCurThread(DebugCtx *ctx, uint32_t idx);
+FklVMvalue *bdbListThreads(DebugCtx *ctx, FklVM *host_vm);
 
 int bdbHasSymbol(DebugCtx *ctx, const FklString *s);
-
-static FKL_ALWAYS_INLINE const FklIns *assign_ins(const FklIns *to,
-        const FklIns *from) {
-    if (from != NULL)
-        *(FklIns *)to = *from;
-    else
-        memset((FklIns *)to, 0, sizeof(*to));
-    return to;
-}
 
 FklVMvalue *bdbCreateInsVec(FklVM *exe,
         DebugCtx *dctx,

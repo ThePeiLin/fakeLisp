@@ -1237,8 +1237,7 @@ static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
         FklCgEnvScope *sc,
         uint32_t scope,
         FklVMvalueCgEnv *env,
-        uint32_t *start,
-        uint32_t *end) {
+        uint32_t *start) {
     fklResolveRef(env, scope, NULL);
     int r = 0;
     uint32_t last = sc->start + sc->end;
@@ -1252,14 +1251,12 @@ static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
             break;
         }
     }
-    uint32_t e = i;
+
     for (; i < last; i++) {
-        if (flags[i] == FKL_CODEGEN_ENV_SLOT_REF)
-            e = i;
         flags[i] = 0;
     }
+
     *start = s;
-    *end = e + 1;
     return r;
 }
 
@@ -1267,16 +1264,14 @@ static inline FklVMvalue *append_close_ref_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *retval,
         uint32_t s,
-        uint32_t e,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(exe,
+    return set_and_append_ins_with_unsigned_imm(exe,
             m,
             retval,
             FKL_OP_CLOSE_REF,
             s,
-            e,
             fid,
             line,
             scope);
@@ -1290,18 +1285,15 @@ static inline void check_and_close_ref(FklVM *exe,
         uint32_t line) {
     FklCgEnvScope *cur = &env->scopes[scope - 1];
     uint32_t start = cur->start;
-    uint32_t end = start + 1;
     if (reset_flag_and_check_var_be_refed(env->slot_flags,
                 cur,
                 scope,
                 env,
-                &start,
-                &end))
+                &start))
         append_close_ref_ins(exe,
                 INS_APPEND_BACK,
                 retval,
                 start,
-                end,
                 fid,
                 line,
                 scope);

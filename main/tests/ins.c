@@ -182,7 +182,7 @@ int main() {
     // IuCAuBB
     ux = 0x12345678;
     uy = 0x9ABCDEF0;
-    ins[0].op = FKL_OP_CLOSE_REF_XX;
+    ins[0].op = FKL_OP_PUSH_PROC_XX;
     set_ins_uc(&ins[0], ux & I64_L24_MASK);
     ins[1].op = FKL_OP_EXTRA_ARG;
     ins[1].au = ux >> FKL_I24_WIDTH;

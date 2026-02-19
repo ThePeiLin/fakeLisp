@@ -127,9 +127,9 @@ extern "C" {
     X(FKL_OP_BVEC,              "bvec",              FKL_OP_MODE_IsA     )\
     X(FKL_OP_BOX,               "box",               FKL_OP_MODE_IsA     )\
     X(FKL_OP_HASH,              "hash",              FKL_OP_MODE_IsA     )\
-    X(FKL_OP_CLOSE_REF,         "close-ref",         FKL_OP_MODE_IuAuB   )\
-    X(FKL_OP_CLOSE_REF_X,       "close-ref-x",       FKL_OP_MODE_IuCuC   )\
-    X(FKL_OP_CLOSE_REF_XX,      "close-ref-xx",      FKL_OP_MODE_IuCAuBB )\
+    X(FKL_OP_CLOSE_REF,         "close-ref",         FKL_OP_MODE_IuB     )\
+    X(FKL_OP_CLOSE_REF_C,       "close-ref-x",       FKL_OP_MODE_IuC     )\
+    X(FKL_OP_CLOSE_REF_X,       "close-ref-xx",      FKL_OP_MODE_IuBB    )\
     X(FKL_OP_POP_LOC,           "pop-loc",           FKL_OP_MODE_IuB     )\
     X(FKL_OP_MOV_LOC,           "mov-loc",           FKL_OP_MODE_IuAuB   )\
     X(FKL_OP_MOV_VAR_REF,       "mov-var-ref",       FKL_OP_MODE_IuAuB   )\

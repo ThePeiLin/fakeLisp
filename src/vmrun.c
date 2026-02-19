@@ -282,6 +282,7 @@ static inline void close_all_var_ref(FklVMframe *f) {
     for (FklVMvalue *l = f->lrefl; FKL_IS_PAIR(l); l = FKL_VM_CDR(l)) {
         close_var_ref(FKL_VM_CAR(l));
     }
+    f->lrefl = FKL_VM_NIL;
 }
 
 static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *f) {
@@ -630,16 +631,21 @@ static inline FklImportDllInitFunc getImportInit(uv_lib_t *handle) {
     return (FklImportDllInitFunc)fklGetAddress("_fklImportInit", handle);
 }
 
-static inline void
-close_var_ref_between(FklVMvalue *lref_v, uint32_t sIdx, uint32_t eIdx) {
-    if (FKL_IS_VECTOR(lref_v)) {
-        FklVMvalueVec *lref = FKL_VM_VEC(lref_v);
-        for (; sIdx < eIdx; sIdx++) {
-            FklVMvalue *ref = lref->base[sIdx];
-            if (ref) {
-                close_var_ref(ref);
-                lref->base[sIdx] = NULL;
-            }
+static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
+    if (!FKL_IS_VECTOR(f->lref))
+        return;
+    FklVMvalueVec *lref = FKL_VM_VEC(f->lref);
+
+    FklVMvalue **pcdr = &f->lrefl;
+    while (FKL_IS_PAIR(*pcdr)) {
+        FklVMvalue *ref_v = FKL_VM_CAR(*pcdr);
+        FklVMvalueVarRef *ref = FKL_VM_VAR_REF(ref_v);
+        if (ref->idx >= start) {
+            close_var_ref(ref_v);
+            lref->base[ref->idx] = NULL;
+            *pcdr = FKL_VM_CDR(*pcdr);
+        } else {
+            pcdr = &FKL_VM_CDR(*pcdr);
         }
     }
 }

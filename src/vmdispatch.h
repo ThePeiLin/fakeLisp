@@ -304,10 +304,10 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_GET_LOC_C:
         FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, FKL_GET_INS_UC(ins)));
         break;
-    case FKL_OP_GET_LOC_X:
-        FKL_VM_PUSH_VALUE(exe,
-                FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame)));
-        break;
+    case FKL_OP_GET_LOC_X: {
+        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, GET_INS_UX(ins, frame));
+        FKL_VM_PUSH_VALUE(exe, v);
+    } break;
     case FKL_OP_PUT_LOC:
         FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_GET_TOP_VALUE(exe);
         break;
@@ -1143,20 +1143,15 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_CLOSE_REF:
-        idx = ins->au;
-        idx1 = ins->bu;
+        idx = ins->bu;
+        goto close_ref;
+    case FKL_OP_CLOSE_REF_C:
+        idx = FKL_GET_INS_UC(ins);
         goto close_ref;
     case FKL_OP_CLOSE_REF_X:
-        idx = FKL_GET_INS_UC(ins);
-        ins = frame->pc++;
-        idx1 = FKL_GET_INS_UC(ins);
-        goto close_ref;
-    case FKL_OP_CLOSE_REF_XX:
-        idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->pc += 2;
+        idx = GET_INS_UX(ins, frame);
     close_ref:
-        close_var_ref_between(frame->lref, idx, idx1);
+        close_var_ref_from(frame, idx);
         break;
     case FKL_OP_POP_LOC:
         FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_POP_TOP_VALUE(exe);

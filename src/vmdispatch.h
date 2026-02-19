@@ -364,7 +364,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_EXPORT_X:
         idx = GET_INS_UX(ins, frame);
         export : {
-            FklVMvalueLib *lib = exe->importing_lib;
+            FklVMvalueLib *lib = fklVMvalueLib(FKL_VM_GET_ARG(exe, frame, -1));
             lib->values[exporting_idx++] = FKL_VM_GET_ARG(exe, frame, idx);
         }
         break;
@@ -402,8 +402,8 @@ void fklVMexecuteInstruction(FklVM *exe,
             exe->importing_lib = plib;
             int r = fklRunVM(exe, exit_frame);
 
-            atomic_store(&plib->import_state,
-                    r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED);
+            int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
+            atomic_store(&plib->import_state, import_state);
             fklUnlockVMlib(plib);
 
             if (r) {
@@ -1158,31 +1158,14 @@ void fklVMexecuteInstruction(FklVM *exe,
     close_ref:
         close_var_ref_between(frame->lref, idx, idx1);
         break;
-    case FKL_OP_EXPORT_TO:
-        idx = ins->au;
-        goto export_to;
-    case FKL_OP_EXPORT_TO_X:
-        idx = FKL_GET_INS_UC(ins);
-        goto export_to;
-    case FKL_OP_EXPORT_TO_XX:
-        idx = GET_INS_UX(ins, frame);
-    export_to: {
-        exporting_idx = 0;
-        FklVMvalueLib *lib = fklVMvalueLib(FKL_VM_GET_ARG(exe, frame, -1));
-        // pop all values in stack
-        // module should only return nil
-        exe->tp = frame->sp;
-        exe->importing_lib = lib;
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-    } break;
     case FKL_OP_POP_LOC:
         FKL_VM_GET_ARG(exe, frame, ins->bu) = FKL_VM_POP_TOP_VALUE(exe);
         break;
-    case FKL_OP_MOV_LOC:
-        FKL_VM_PUSH_VALUE(exe,
-                (FKL_VM_GET_ARG(exe, frame, ins->bu) =
-                                FKL_VM_GET_ARG(exe, frame, ins->au)));
-        break;
+    case FKL_OP_MOV_LOC: {
+        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, ins->au);
+        FKL_VM_GET_ARG(exe, frame, ins->bu) = v;
+        FKL_VM_PUSH_VALUE(exe, v);
+    } break;
     case FKL_OP_MOV_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
         FklVMvalue *v = get_var_val(frame, ins->au, &name);

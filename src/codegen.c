@@ -707,23 +707,6 @@ static inline FklVMvalue *append_load_dll_ins(FklVM *exe,
             scope);
 }
 
-static inline FklVMvalue *append_export_to_ins(FklVM *exe,
-        InsAppendMode m,
-        FklVMvalue *bcl,
-        uint32_t num,
-        FklVMvalue *fid,
-        uint32_t line,
-        uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(exe,
-            m,
-            bcl,
-            FKL_OP_EXPORT_TO,
-            num,
-            fid,
-            line,
-            scope);
-}
-
 static inline FklVMvalue *append_export_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
@@ -6303,13 +6286,6 @@ static inline void process_export_bc(FklCgCtx *ctx,
     FklVM *vm = ctx->vm;
     info->epc = FKL_VM_CO(lib_bc)->bc.len;
 
-    append_export_to_ins(vm,
-            INS_APPEND_BACK,
-            lib_bc,
-            info->exports.count,
-            fid,
-            line,
-            scope);
     for (const FklCgExportSidIdxHashMapNode *l = info->exports.first; l;
             l = l->next) {
         append_export_ins(vm,

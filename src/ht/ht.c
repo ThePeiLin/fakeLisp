@@ -102,7 +102,8 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FklVMvalue *equal = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, NULL);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, dll);
     FklVMvalueHt *ht = as_ht(ud);
     ht->hash_func = hashv;
     ht->eq_func = equal;
@@ -566,7 +567,15 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        FklVMvalue *r = NULL;
+        const FklVMvalue *v = exports_and_func[i].v;
+        if (FKL_IS_CPROC(v)) {
+            const FklVMvalueCproc *from = FKL_VM_CPROC(v);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+        }
+        FKL_ASSERT(r);
+
+        values[i] = r;
     }
     return 0;
 }

@@ -207,8 +207,8 @@ static int export_make_dvec_with_capacity(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(size))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
-    FklVMvalue *r =
-            create_dvec_with_capacity(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *r = create_dvec_with_capacity(exe, len, dll);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -298,10 +298,8 @@ static int export_subdvec(FKL_CPROC_ARGL) {
     if (start > size || end < start || end > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     size = end - start;
-    FklVMvalue *r = create_dvec2(exe,
-            size,
-            vec->base + start,
-            FKL_VM_CPROC(ctx->proc)->dll);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *r = create_dvec2(exe, size, vec->base + start, dll);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -322,10 +320,8 @@ static int export_sub_dvec(FKL_CPROC_ARGL) {
     size_t osize = fklVMgetUint(vsize);
     if (start + osize > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-    FklVMvalue *r = create_dvec2(exe,
-            osize,
-            vec->base + start,
-            FKL_VM_CPROC(ctx->proc)->dll);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *r = create_dvec2(exe, osize, vec->base + start, dll);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -716,12 +712,9 @@ static int export_vector_to_dvec(FKL_CPROC_ARGL) {
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, FKL_IS_VECTOR, exe);
     FklVMvalueVec *vec = FKL_VM_VEC(obj);
-    FKL_CPROC_RETURN(exe,
-            ctx,
-            create_dvec2(exe,
-                    vec->size,
-                    vec->base,
-                    FKL_VM_CPROC(ctx->proc)->dll));
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *r = create_dvec2(exe, vec->size, vec->base, dll);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
@@ -812,7 +805,15 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        FklVMvalue *r = NULL;
+        const FklVMvalue *v = exports_and_func[i].v;
+        if (FKL_IS_CPROC(v)) {
+            const FklVMvalueCproc *from = FKL_VM_CPROC(v);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+        }
+        FKL_ASSERT(r);
+
+        values[i] = r;
     }
     return 0;
 }

@@ -443,7 +443,19 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
     size_t i = 0;
     for (; i < EXPORT_NUM; i++) {
-        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        const FklVMvalue *v = exports_and_func[i].v;
+        FklVMvalue *r = NULL;
+        if (FKL_IS_CPROC(v)) {
+            const FklVMvalueCproc *from = FKL_VM_CPROC(v);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+        } else if (FKL_IS_F64(v)) {
+            r = fklCreateVMvalueF64(exe, FKL_VM_F64(v));
+        } else {
+            FKL_UNREACHABLE();
+        }
+        FKL_ASSERT(r);
+
+        values[i] = r;
     }
 
     return 0;

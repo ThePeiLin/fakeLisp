@@ -498,12 +498,9 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                spd,
-                exports_and_func[i].sym);
-        values[i] = dlproc;
+        const char *name = exports_and_func[i].sym;
+        FklVMvalue *cproc = fklCreateVMvalueCproc(exe, func, dll, spd, name);
+        values[i] = cproc;
     }
     return 0;
 }

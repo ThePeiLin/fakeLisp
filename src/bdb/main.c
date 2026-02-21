@@ -8,6 +8,34 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueBdbPd, {
+    FklVMvalue *done_sym;
+    FklVMvalue *err_sym;
+});
+
+static FklVMudMetaTable const BdbPublicDataMetaTable;
+
+static FKL_ALWAYS_INLINE FklVMvalueBdbPd *as_bdb_pd(const FklVMvalue *v) {
+    FKL_ASSERT(FKL_VM_UD(v)->mt_ == &BdbPublicDataMetaTable);
+    return FKL_TYPE_CAST(FklVMvalueBdbPd *, v);
+}
+
+static void bdb_public_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueBdbPd *pd = as_bdb_pd(ud);
+    fklVMgcToGray(pd->done_sym, gc);
+    fklVMgcToGray(pd->err_sym, gc);
+}
+
+static void init_bdb_public_data(FklVMvalueBdbPd *pd, FklVM *exe) {
+    pd->done_sym = fklVMaddSymbolCstr(exe, "done");
+    pd->err_sym = fklVMaddSymbolCstr(exe, "error");
+}
+
+static FklVMudMetaTable const BdbPublicDataMetaTable = {
+    .size = sizeof(FklVMvalueBdbPd),
+    .atomic = bdb_public_ud_atomic,
+};
+
 FKL_VM_USER_DATA_DEFAULT_PRINT(debug_ctx_print, "debug-ctx");
 
 static inline char *get_valid_file_name(const char *filename) {
@@ -95,7 +123,8 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
                 exe,
                 "Failed for file: %s",
                 filename_obj);
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, NULL);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, dll);
     DebugCtx *dctx = as_dbg_ctx(ud);
 
     int r = 0;
@@ -350,7 +379,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             }
         } else if (r == DBG_ERROR_OCCUR) {
             dctx->done = 1;
-            retval = fklVMaddSymbolCstr(exe, "error");
+            retval = as_bdb_pd(ctx->pd)->err_sym;
         } else {
             if (dctx->running) {
                 dctx->reached_breakpoint = NULL;
@@ -361,7 +390,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             dctx->running = 1;
             fklVMidleLoop(&dctx->gc);
             dctx->done = 1;
-            retval = fklVMaddSymbolCstr(exe, "done");
+            retval = as_bdb_pd(ctx->pd)->done_sym;
         }
         dctx->jmpb = NULL;
     }
@@ -915,7 +944,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
 
             FklVMvalue *retval = NULL;
             if (bdbIsError(ret)) {
-                retval = fklVMaddSymbolCstr(exe, "error");
+                retval = as_bdb_pd(ctx->pd)->err_sym;
             } else {
                 retval = bdbBoxStringify(exe, ret);
             }
@@ -1096,8 +1125,21 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
+
+    FklVMvalue *pd = fklCreateVMvalueUd(exe, &BdbPublicDataMetaTable, dll);
+    init_bdb_public_data(as_bdb_pd(pd), exe);
+
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        const FklVMvalue *v = exports_and_func[i].v;
+
+        FklVMvalue *r = NULL;
+        if (FKL_IS_CPROC(v)) {
+            const FklVMvalueCproc *from = FKL_VM_CPROC(v);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, pd, from->name);
+        }
+
+        FKL_ASSERT(r);
+        values[i] = r;
     }
     return 0;
 }

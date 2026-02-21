@@ -247,7 +247,18 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
     for (size_t i = 0; i < EXPORT_NUM; i++) {
-        values[i] = FKL_TYPE_CAST(FklVMvalue *, exports_and_func[i].v);
+        FklVMvalue *r = NULL;
+        const FklVMvalue *v = exports_and_func[i].v;
+        if (FKL_IS_CPROC(v)) {
+            const FklVMvalueCproc *from = FKL_VM_CPROC(v);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+        }
+        FKL_ASSERT(r);
+
+        values[i] = r;
     }
     return 0;
 }
+
+FKL_CHECK_EXPORT_DLL_INIT_FUNC();
+FKL_CHECK_IMPORT_DLL_INIT_FUNC();

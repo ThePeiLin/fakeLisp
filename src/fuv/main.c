@@ -675,8 +675,8 @@ static int fuv_make_timer(FKL_CPROC_ARGL) {
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
-    FklVMvalue *timer_obj =
-            createFuvTimer(exe, FKL_VM_CPROC(ctx->proc)->dll, loop_obj, &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *timer_obj = createFuvTimer(exe, dll, loop_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, timer_obj, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, timer_obj);
     return 0;
@@ -788,8 +788,8 @@ static int fuv_make_prepare(FKL_CPROC_ARGL) {
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
-    FklVMvalue *prepare_obj =
-            createFuvPrepare(exe, FKL_VM_CPROC(ctx->proc)->dll, loop_obj, &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *prepare_obj = createFuvPrepare(exe, dll, loop_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, prepare_obj, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, prepare_obj);
     return 0;
@@ -839,8 +839,8 @@ static int fuv_make_idle(FKL_CPROC_ARGL) {
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
-    FklVMvalue *idle =
-            createFuvIdle(exe, FKL_VM_CPROC(ctx->proc)->dll, loop_obj, &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *idle = createFuvIdle(exe, dll, loop_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, idle, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, idle);
     return 0;
@@ -889,8 +889,8 @@ static int fuv_make_check(FKL_CPROC_ARGL) {
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
-    FklVMvalue *check =
-            createFuvCheck(exe, FKL_VM_CPROC(ctx->proc)->dll, loop_obj, &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *check = createFuvCheck(exe, dll, loop_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, check, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, check);
     return 0;
@@ -939,8 +939,8 @@ static int fuv_make_signal(FKL_CPROC_ARGL) {
     FklVMvalue *loop_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int r;
-    FklVMvalue *signal =
-            createFuvSignal(exe, FKL_VM_CPROC(ctx->proc)->dll, loop_obj, &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *signal = createFuvSignal(exe, dll, loop_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, signal, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, signal);
     return 0;
@@ -1080,11 +1080,8 @@ static int fuv_make_async(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(proc_obj, fklIsCallable, exe);
     int r;
-    FklVMvalue *async = createFuvAsync(exe,
-            FKL_VM_CPROC(ctx->proc)->dll,
-            loop_obj,
-            proc_obj,
-            &r);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *async = createFuvAsync(exe, dll, loop_obj, proc_obj, &r);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, async, loop_obj, exe, ctx->pd);
     FKL_CPROC_RETURN(exe, ctx, async);
     return 0;
@@ -1134,11 +1131,8 @@ static int fuv_make_poll(FKL_CPROC_ARGL) {
     } else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklVMvalue *retval = NULL;
-    uv_poll_t *poll = createFuvPoll(exe,
-            &retval,
-            FKL_VM_CPROC(ctx->proc)->dll,
-            loop_obj,
-            fp_obj);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    uv_poll_t *poll = createFuvPoll(exe, &retval, dll, loop_obj, fp_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     int r = uv_poll_init(&l->loop, poll, fd);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
@@ -1153,11 +1147,8 @@ static int fuv_make_socket_poll(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     FKL_CHECK_TYPE(sock_obj, FKL_IS_FIX, exe);
     FklVMvalue *retval = NULL;
-    uv_poll_t *poll = createFuvPoll(exe,
-            &retval,
-            FKL_VM_CPROC(ctx->proc)->dll,
-            loop_obj,
-            NULL);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    uv_poll_t *poll = createFuvPoll(exe, &retval, dll, loop_obj, NULL);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     int r = uv_poll_init_socket(&l->loop, poll, FKL_GET_FIX(sock_obj));
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
@@ -2579,8 +2570,8 @@ static int fuv_make_pipe(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(loop_obj, isFuvLoop, exe);
     int ipc = ipc_obj && ipc_obj != FKL_VM_NIL ? 1 : 0;
     FklVMvalue *retval = NULL;
-    uv_pipe_t *pipe =
-            createFuvPipe(exe, &retval, FKL_VM_CPROC(ctx->proc)->dll, loop_obj);
+    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    uv_pipe_t *pipe = createFuvPipe(exe, &retval, dll, loop_obj);
     FuvValueLoop *l = FUV_LOOP(loop_obj);
     int r = uv_pipe_init(&l->loop, pipe, ipc);
     CHECK_UV_RESULT_AND_CLEANUP_HANDLE(r, retval, loop_obj, exe, ctx->pd);
@@ -7424,11 +7415,8 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMcFunc func = exports_and_func[i].f;
-        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe,
-                func,
-                dll,
-                fpdv,
-                exports_and_func[i].sym);
+        const char *name = exports_and_func[i].sym;
+        FklVMvalue *dlproc = fklCreateVMvalueCproc(exe, func, dll, fpdv, name);
         values[i] = dlproc;
     }
     return 0;

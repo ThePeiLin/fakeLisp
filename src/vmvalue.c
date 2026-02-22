@@ -840,9 +840,20 @@ FklVMvalue *fklCreateVMvaluePairNil(FklVM *exe) {
     return r;
 }
 
+static const FklVMvalueVec ZeroLenVecSingleton = {
+    .next_ = NULL,
+    .gray_next_ = NULL,
+    .mark_ = FKL_MARK_B,
+    .type_ = FKL_TYPE_VECTOR,
+    .size = 0,
+};
+
 FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *));
+    if (size == 0)
+        return FKL_VM_VAL(&ZeroLenVecSingleton);
+
+    size_t total_size = sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_VECTOR;
     FklVMvalueVec *v = FKL_VM_VEC(r);
@@ -851,8 +862,10 @@ FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
     return r;
 }
 FklVMvalue *fklCreateVMvalueVecExt(FklVM *exe, size_t size, ...) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *));
+    if (size == 0)
+        return FKL_VM_VAL(&ZeroLenVecSingleton);
+    size_t total_size = sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_VECTOR;
     FklVMvalueVec *v = FKL_VM_VEC(r);
@@ -869,8 +882,12 @@ FklVMvalue *fklCreateVMvalueVecExt(FklVM *exe, size_t size, ...) {
 
 FklVMvalue *
 fklCreateVMvalueVec2(FklVM *exe, size_t size, FklVMvalue *const *ptr) {
+    if (size == 0)
+        return FKL_VM_VAL(&ZeroLenVecSingleton);
+
     size_t ss = size * sizeof(FklVMvalue *);
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, sizeof(FklVMvalueVec) + ss);
+    size_t total_size = sizeof(FklVMvalueVec) + ss;
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_VECTOR;
     FklVMvalueVec *v = FKL_VM_VEC(r);
@@ -907,9 +924,20 @@ FklVMvalue *fklCreateVMvalueF64(FklVM *exe, double d) {
     return r;
 }
 
+static const FklVMvalueStr ZeroLenStrSingleton = {
+    .next_ = NULL,
+    .gray_next_ = NULL,
+    .mark_ = FKL_MARK_B,
+    .type_ = FKL_TYPE_STR,
+    .str.size = 0,
+};
+
 FklVMvalue *fklCreateVMvalueStr(FklVM *exe, const FklString *s) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueStr) + s->size * sizeof(s->str[0]));
+    if (s->size == 0)
+        return FKL_VM_VAL(&ZeroLenStrSingleton);
+
+    size_t total_size = sizeof(FklVMvalueStr) + s->size * sizeof(s->str[0]);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_STR;
     FklString *rs = FKL_VM_STR(r);
@@ -920,8 +948,11 @@ FklVMvalue *fklCreateVMvalueStr(FklVM *exe, const FklString *s) {
 }
 
 FklVMvalue *fklCreateVMvalueStr2(FklVM *exe, size_t size, const char *str) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueStr) + size * sizeof(str[0]));
+    if (size == 0)
+        return FKL_VM_VAL(&ZeroLenStrSingleton);
+
+    size_t total_size = sizeof(FklVMvalueStr) + size * sizeof(str[0]);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_STR;
     FklString *rs = FKL_VM_STR(r);
@@ -957,9 +988,20 @@ FklVMvalue *fklCreateVMvalueSym2(FklVM *exe, size_t size, const char *str) {
     return r;
 }
 
+static const FklVMvalueBvec ZeroLenBvecSingleton = {
+    .next_ = NULL,
+    .gray_next_ = NULL,
+    .mark_ = FKL_MARK_B,
+    .type_ = FKL_TYPE_BYTEVECTOR,
+    .bvec.size = 0,
+};
+
 FklVMvalue *fklCreateVMvalueBvec(FklVM *exe, const FklBytevector *b) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueBvec) + b->size * sizeof(b->ptr[0]));
+    if (b->size == 0)
+        return FKL_VM_VAL(&ZeroLenBvecSingleton);
+
+    size_t total_size = sizeof(FklVMvalueBvec) + b->size * sizeof(b->ptr[0]);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_BYTEVECTOR;
     FklBytevector *bvec = FKL_VM_BVEC(r);
@@ -970,8 +1012,11 @@ FklVMvalue *fklCreateVMvalueBvec(FklVM *exe, const FklBytevector *b) {
 }
 
 FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
-    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1,
-            sizeof(FklVMvalueBvec) + size * sizeof(ptr[0]));
+    if (size == 0)
+        return FKL_VM_VAL(&ZeroLenBvecSingleton);
+
+    size_t total_size = sizeof(FklVMvalueBvec) + size * sizeof(ptr[0]);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_BYTEVECTOR;
     FklBytevector *bvec = FKL_VM_BVEC(r);

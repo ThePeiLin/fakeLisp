@@ -26,8 +26,17 @@ typedef struct FklCgEnvScope {
 #define FKL_VECTOR_ELM_TYPE_NAME CgEnvScope
 #include "cont/vector.h"
 
-#define FKL_CODEGEN_ENV_SLOT_OCC (1)
-#define FKL_CODEGEN_ENV_SLOT_REF (2)
+typedef enum {
+    FKL_CODEGEN_ENV_SLOT_NONE = 0,
+    FKL_CODEGEN_ENV_SLOT_OCC,
+    FKL_CODEGEN_ENV_SLOT_REF,
+} FklCgEnvSlot;
+
+// FklCgEnvSlotVector
+#define FKL_VECTOR_ELM_TYPE FklCgEnvSlot
+#define FKL_VECTOR_ELM_TYPE_NAME CgEnvSlot
+#include "cont/vector.h"
+
 #define FKL_TOP_ENV_PROTO_ID (UINT32_MAX)
 #define FKL_PRE_COMPILE_TOP_ENV_PROTO_ID (INT32_MAX)
 #define FKL_INVALID_LIB_ID (UINT32_MAX)
@@ -77,13 +86,9 @@ typedef struct FklVMvalueCgEnvWeakMap FklVMvalueCgEnvWeakMap;
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnboundVector uref;
 
-	// XXX: 将 slot_flags 改成一个 vector
-	FKL_DEPRECATED
-    uint8_t *slot_flags;
+    FklCgEnvSlotVector slots;
     FklCgEnvScopeVector scopes;
-    // FklCgEnvScope *scopes;
-    // uint32_t scope;
-    uint32_t lcount;
+
     uint32_t parent_scope;
     uint32_t proto_id;
 

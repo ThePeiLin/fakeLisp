@@ -1233,19 +1233,20 @@ static void codegen_begin(const CgCbArgs *args) {
             actions);
 }
 
-static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
-        const FklCgEnvScope *sc,
+static inline int reset_flag_and_check_var_be_refed(FklVMvalueCgEnv *env,
         uint32_t scope,
-        FklVMvalueCgEnv *env,
         uint32_t *start) {
+    FklCgEnvSlotVector *flags = &env->slots;
+    const FklCgEnvScope *sc = &env->scopes.base[scope - 1];
+    *start = sc->start;
     fklResolveRef(env, scope, NULL);
     int r = 0;
     uint32_t last = sc->start + sc->end;
     uint32_t i = sc->start;
     uint32_t s = i;
     for (; i < last; i++) {
-        r = flags[i] == FKL_CODEGEN_ENV_SLOT_REF;
-        flags[i] = 0;
+        r = flags->base[i] == FKL_CODEGEN_ENV_SLOT_REF;
+        flags->base[i] = FKL_CODEGEN_ENV_SLOT_NONE;
         if (r) {
             s = i;
             break;
@@ -1253,7 +1254,7 @@ static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
     }
 
     for (; i < last; i++) {
-        flags[i] = 0;
+        flags->base[i] = FKL_CODEGEN_ENV_SLOT_NONE;
     }
 
     *start = s;
@@ -1283,13 +1284,8 @@ static inline void check_and_close_ref(FklVM *exe,
         FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint32_t line) {
-    const FklCgEnvScope *cur = &env->scopes.base[scope - 1];
-    uint32_t start = cur->start;
-    if (reset_flag_and_check_var_be_refed(env->slot_flags,
-                cur,
-                scope,
-                env,
-                &start))
+    uint32_t start = 0;
+    if (reset_flag_and_check_var_be_refed(env, scope, &start)) {
         append_close_ref_ins(exe,
                 INS_APPEND_BACK,
                 retval,
@@ -1297,6 +1293,7 @@ static inline void check_and_close_ref(FklVM *exe,
                 fid,
                 line,
                 scope);
+    }
 }
 
 static FklVMvalue *_local_exp_bc_process(const FklCgActCbArgs *args) {

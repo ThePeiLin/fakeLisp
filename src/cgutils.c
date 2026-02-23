@@ -294,9 +294,10 @@ void fklResolveCgPreDef(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
             FklVMvalueProto *cpt = fklVMvalueProto(pt_v);
             FklVarRefDef *ref = &fklVMvalueProtoVarRefs(cpt)[pdef_ref->idx];
             ref->cidx = FKL_MAKE_VM_FIX(def->v.idx);
-            env->slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
-        } else
+            env->slots.base[def->v.cidx] = FKL_CODEGEN_ENV_SLOT_REF;
+        } else {
             fklPreDefRefVectorPushBack(&ref_pdef1, pdef_ref);
+        }
     }
     ref_pdef->size = 0;
     while (!fklPreDefRefVectorIsEmpty(&ref_pdef1))
@@ -364,7 +365,7 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
                             &ret);
                     cel->v.isLocal = 1;
                     cel->v.cidx = def->v.idx;
-                    uint8_t *slot_flags = targetEnv->slot_flags;
+                    FklCgEnvSlot *slot_flags = targetEnv->slots.base;
                     slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
                 }
             } else {
@@ -427,9 +428,11 @@ int fklIsSymbolDefined(FklVMvalue *id,
     return get_def_by_id_in_scope(id, scope_id, scope) != NULL;
 }
 
-static inline uint32_t
-get_next_empty(uint32_t empty, uint8_t *flags, uint32_t lcount) {
-    for (; empty < lcount && flags[empty]; empty++)
+static inline uint32_t get_next_empty(uint32_t empty,
+        const FklCgEnvSlotVector *flags) {
+    for (; empty < flags->size
+            && flags->base[empty] != FKL_CODEGEN_ENV_SLOT_NONE;
+            empty++)
         ;
     return empty;
 }
@@ -443,24 +446,23 @@ fklAddCgDefBySid(FklVMvalue *id, uint32_t scopeId, FklVMvalueCgEnv *env) {
     if (!el) {
         uint32_t idx = scope->empty;
         el = fklSymDefHashMapAdd(defs, &key, NULL);
-        if (idx < env->lcount && has_resolvable_ref(id, scopeId, env))
-            idx = env->lcount;
-        else
-            scope->empty = get_next_empty(scope->empty + 1,
-                    env->slot_flags,
-                    env->lcount);
+        if (idx < env->slots.size && has_resolvable_ref(id, scopeId, env)) {
+            idx = env->slots.size;
+        } else {
+            scope->empty = get_next_empty(scope->empty + 1, &env->slots);
+        }
         el->idx = idx;
         uint32_t end = (idx + 1) - scope->start;
         if (scope->end < end)
             scope->end = end;
-        if (idx >= env->lcount) {
-            env->lcount = idx + 1;
-            uint8_t *slotFlags = (uint8_t *)fklZrealloc(env->slot_flags,
-                    env->lcount * sizeof(uint8_t));
-            FKL_ASSERT(slotFlags);
-            env->slot_flags = slotFlags;
+        if (idx >= env->slots.size) {
+            size_t new_slots_count = (idx + 1) - env->slots.size;
+            for (size_t i = 0; i < new_slots_count; ++i) {
+                fklCgEnvSlotVectorPushBack2(&env->slots,
+                        FKL_CODEGEN_ENV_SLOT_NONE);
+            }
         }
-        env->slot_flags[idx] = FKL_CODEGEN_ENV_SLOT_OCC;
+        env->slots.base[idx] = FKL_CODEGEN_ENV_SLOT_OCC;
     }
     return el;
 }
@@ -493,7 +495,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
         def = fklFindSymbolDef(uref->sid, uref->scope, env);
 
         if (def) {
-            env->slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
+            env->slots.base[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
             ref->cidx = FKL_MAKE_VM_FIX(def->v.idx);
             ref->is_local = FKL_VM_TRUE;
 
@@ -1235,20 +1237,13 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgEnv *cur = as_env(ud);
-    // uint32_t sc = cur->scope;
-    // FklCgEnvScope *scopes = cur->scopes;
 
     for (size_t i = 0; i < cur->scopes.size; ++i) {
         fklSymDefHashMapUninit(&cur->scopes.base[i].defs);
     }
 
-    // for (uint32_t i = 0; i < sc; i++)
-    //     fklSymDefHashMapUninit(&scopes[i].defs);
-    // fklZfree(scopes);
     fklCgEnvScopeVectorUninit(&cur->scopes);
-    fklZfree(cur->slot_flags);
-    // cur->scopes = NULL;
-    cur->slot_flags = NULL;
+    fklCgEnvSlotVectorUninit(&cur->slots);
 
     fklSymDefHashMapUninit(&cur->refs);
     FklUnboundVector *unref = &cur->uref;
@@ -1300,15 +1295,11 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->line = args->line;
     r->parent_scope = args->parent_scope;
 
-    // r->scope = 0;
-    // r->scopes = NULL;
-
     fklCgEnvScopeVectorInit(&r->scopes, 8);
+    fklCgEnvSlotVectorInit(&r->slots, 8);
     enter_new_scope(0, r);
     r->proto_id = FKL_TOP_ENV_PROTO_ID;
     r->prev = prev_env;
-    r->lcount = 0;
-    r->slot_flags = NULL;
     r->is_debugging = prev_env ? prev_env->is_debugging : 0;
     fklSymDefHashMapInit(&r->refs);
     fklUnboundVectorInit(&r->uref, 8);
@@ -1494,9 +1485,6 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     else
         r->exports.buckets = NULL;
 
-    // r->work_cb = work_cb;
-    // r->work_ctx = work_ctx;
-
     r->libraries = libs;
 
     if (args && args->inherit_grammer && prev) {
@@ -1522,12 +1510,6 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         r->global_env->is_debugging = is_debugging;
         fklInitGlobCgEnv(r->global_env, ctx->vm, is_precompile);
     }
-
-    // r->global_env->work_ctx = work_ctx;
-    // r->global_env->env_work_cb = env_work_cb;
-    //
-    // if (r->work_cb)
-    //     r->work_cb(r, r->work_ctx);
 
     FklVMvalueCgEnv *main_env = NULL;
     if (is_main) {
@@ -2658,7 +2640,7 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
 
 static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, lib->lib), gc);
-	mark_export_sid_map(&lib->exports, gc);
+    mark_export_sid_map(&lib->exports, gc);
 
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
@@ -2776,7 +2758,7 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
 
     uint32_t ref_offset = 0; // 固定等于 0
 
-    uint32_t local_count = env->lcount;
+    uint32_t local_count = env->slots.size;
 
     uint32_t konsts_count = env->konsts.ht.count;
 

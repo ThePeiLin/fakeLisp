@@ -336,12 +336,6 @@ typedef void (*FklVMatExitMarkFunc)(void *, FklVMgc *);
     }
 #include "cont/hash.h"
 
-FKL_DEPRECATED
-typedef struct FklVMobarray {
-    uv_mutex_t lock;
-    FklStrValueHashMap map;
-} FklVMobarray;
-
 typedef struct FklVM {
     uv_thread_t tid;
     uv_mutex_t lock;
@@ -843,11 +837,6 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
         return 0;
 }
 
-void fklInitVMobarray(FklVMobarray *a);
-FklVMobarray *fklCreateVMobarray(void);
-void fklUninitVMobarray(FklVMobarray *a);
-void fklDestroyVMobarray(FklVMobarray *a);
-
 FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
 void fklInitVMgc(FklVMgc *);
@@ -867,11 +856,6 @@ FklVMvalue *fklVMaddSymbolValue(FklVM *, FklVMvalue *s);
 int fklVMhasSymbol(FklVM *v, const FklString *str);
 int fklVMhasSymbol1(FklVM *v, const char *str);
 int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
-
-FKL_DEPRECATED
-void fklVMclearSymbol(FklVMgc *);
-FKL_DEPRECATED
-void fklVMrestoreSymbol(FklVMgc *);
 
 void fklInitValueTable(FklValueTable *t);
 void fklUninitValueTable(FklValueTable *t);

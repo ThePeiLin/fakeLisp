@@ -74,15 +74,6 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     fklVMgcToGray(exe->chan, gc);
 }
 
-// static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
-//     uv_mutex_lock(&a->lock);
-//     for (const FklStrValueHashMapNode *cur = a->map.first; cur;
-//             cur = cur->next) {
-//         fklVMgcToGray(cur->v, gc);
-//     }
-//     uv_mutex_unlock(&a->lock);
-// }
-
 void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
     for (uint32_t i = 0; i < t->ls; ++i)
         fklVMgcToGray(t->l[i].fid, gc);
@@ -148,7 +139,6 @@ static inline void gc_extra_mark(FklVMgc *gc) {
         cur->v.func(gc, cur->k);
 
     fklVMgcToGray(FKL_VM_VAL(gc->obarray), gc);
-    // mark_obarray(gc, gc->obarray);
 
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
         fklVMgcToGray(gc->builtinErrorTypeId[i], gc);
@@ -404,12 +394,10 @@ void fklInitVMgc(FklVMgc *gc) {
     fklVMextraMarkHashMapInit(&gc->extra_marks);
     uv_mutex_init_recursive(&gc->print_backtrace_lock);
 
-    // gc->obarray = obarray;
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
     init_locv_cache(gc);
 
-    // gc->obarray = obarray;
     gc->gcvm.gc = gc;
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;
@@ -434,27 +422,6 @@ FklVMgc *fklCreateVMgc(void) {
     FKL_ASSERT(gc);
     fklInitVMgc(gc);
     return gc;
-}
-
-void fklInitVMobarray(FklVMobarray *obarray) {
-    uv_mutex_init(&obarray->lock);
-    fklStrValueHashMapInit(&obarray->map);
-}
-
-void fklUninitVMobarray(FklVMobarray *obarray) {
-    uv_mutex_destroy(&obarray->lock);
-    fklStrValueHashMapUninit(&obarray->map);
-}
-
-FklVMobarray *fklCreateVMobarray(void) {
-    FklVMobarray *obarray = (FklVMobarray *)fklZcalloc(1, sizeof(FklVMobarray));
-    fklInitVMobarray(obarray);
-    return obarray;
-}
-
-void fklDestroyVMobarray(FklVMobarray *obarray) {
-    fklUninitVMobarray(obarray);
-    fklZfree(obarray);
 }
 
 FklVMvalue **
@@ -606,8 +573,6 @@ void fklVMclearExtraMarkFunc(FklVMgc *gc) {
 void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
     gc->obarray = NULL;
-    // if (gc->obarray)
-    //     fklDestroyVMobarray(gc->obarray);
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
     uv_mutex_destroy(&gc->print_backtrace_lock);

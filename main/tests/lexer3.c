@@ -142,7 +142,7 @@ int main(int argc, const char *argv[]) {
     const char *ast_destroy_name = "fklVMvalueTerminalDestroy";
     const char *state_0_push_name = "fklVMvaluePushState0ToStack";
 
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
     FklGrammer *g;
     if (!strcmp(grammer_select, "op")) {

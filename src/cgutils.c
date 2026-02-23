@@ -49,11 +49,13 @@ static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
     return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
-FklSymDefHashMapElm *
-fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklCgEnvScope *scopes) {
+FklSymDefHashMapElm *fklFindSymbolDef(FklVMvalue *id,
+        uint32_t scope_id,
+        const FklVMvalueCgEnv *env) {
     FklSymDefHashMapElm *r = NULL;
-    for (; scope; scope = scopes[scope - 1].p) {
-        r = get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
+    const FklCgEnvScope *scopes = env->scopes.base;
+    for (; scope_id; scope_id = scopes[scope_id - 1].p) {
+        r = get_def_by_id_in_scope(id, scope_id, &scopes[scope_id - 1]);
         if (r)
             return r;
     }
@@ -61,9 +63,10 @@ fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklCgEnvScope *scopes) {
 }
 
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
-        uint32_t scope,
-        const FklCgEnvScope *scopes) {
-    return get_def_by_id_in_scope(id, scope, &scopes[scope - 1]);
+        uint32_t scope_id,
+        const FklVMvalueCgEnv *env) {
+    const FklCgEnvScope *scope = &env->scopes.base[scope_id - 1];
+    return get_def_by_id_in_scope(id, scope_id, scope);
 }
 
 void fklPrintCgError(FklCgCtx *ctx,
@@ -115,7 +118,7 @@ static inline void *has_outer_pdef_or_def(FklVMvalueCgEnv *cur,
             *is_pdef = 1;
             return key;
         }
-        FklSymDefHashMapElm *def = fklFindSymbolDef(id, scope, cur->scopes);
+        FklSymDefHashMapElm *def = fklFindSymbolDef(id, scope, cur);
         if (def) {
             *targetEnv = cur;
             return def;
@@ -280,7 +283,7 @@ void fklResolveCgPreDef(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
     uint8_t pdef_isconst;
     FklSidScope key = { id, scope };
     fklPredefHashMapErase(&env->pdef, &key, &pdef_isconst, NULL);
-    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env->scopes);
+    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env);
     FKL_ASSERT(def);
     for (uint32_t i = 0; i < count; i++) {
         const FklPreDefRef *pdef_ref = &ref_pdef->base[i];
@@ -417,8 +420,11 @@ uint32_t fklAddCgRefBySidRetIndex(FklVMvalue *id,
     return fklAddCgRefBySid(id, env, fid, line, assign)->v.idx;
 }
 
-int fklIsSymbolDefined(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
-    return get_def_by_id_in_scope(id, scope, &env->scopes[scope - 1]) != NULL;
+int fklIsSymbolDefined(FklVMvalue *id,
+        uint32_t scope_id,
+        const FklVMvalueCgEnv *env) {
+    const FklCgEnvScope *scope = &env->scopes.base[scope_id - 1];
+    return get_def_by_id_in_scope(id, scope_id, scope) != NULL;
 }
 
 static inline uint32_t
@@ -430,7 +436,7 @@ get_next_empty(uint32_t empty, uint8_t *flags, uint32_t lcount) {
 
 FklSymDef *
 fklAddCgDefBySid(FklVMvalue *id, uint32_t scopeId, FklVMvalueCgEnv *env) {
-    FklCgEnvScope *scope = &env->scopes[scopeId - 1];
+    FklCgEnvScope *scope = &env->scopes.base[scopeId - 1];
     FklSymDefHashMap *defs = &scope->defs;
     FklSidScope key = { id, scopeId };
     FklSymDef *el = fklSymDefHashMapGet(defs, &key);
@@ -484,7 +490,7 @@ void fklResolveRef(FklVMvalueCgEnv *env,
         FklVMvalueProto *pt = uref->env->proto;
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
         const FklSymDefHashMapElm *def;
-        def = fklFindSymbolDef(uref->sid, uref->scope, env->scopes);
+        def = fklFindSymbolDef(uref->sid, uref->scope, env);
 
         if (def) {
             env->slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
@@ -498,8 +504,8 @@ void fklResolveRef(FklVMvalueCgEnv *env,
                         pt,
                         args->resolve_ref_to_def_cb_args);
             }
-        } else if (env->scopes[uref->scope - 1].p) {
-            uref->scope = env->scopes[uref->scope - 1].p;
+        } else if (env->scopes.base[uref->scope - 1].p) {
+            uref->scope = env->scopes.base[uref->scope - 1].p;
             fklUnboundVectorPushBack(&urefs1, uref);
         } else if (env->prev != top_env) {
             uint32_t cidx = fklAddCgRefBySidRetIndex(uref->sid,
@@ -1071,23 +1077,33 @@ static FKL_ALWAYS_INLINE FklVMvalueCgMacroScope *as_macro_scope(
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(macro_scope_print, "macro-scope");
 
-static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ms->prev), gc);
-    for (const FklMacroHashMapNode *cur = ms->macros->first; cur;
+static FKL_ALWAYS_INLINE void
+mark_replacement_map(const FklReplacementHashMap *map, FklVMgc *gc) {
+    for (const FklReplacementHashMapNode *cur = map->first; cur;
             cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+        fklVMgcToGray(cur->v, gc);
+    }
+}
+
+static FKL_ALWAYS_INLINE void mark_macro_map(const FklMacroHashMap *map,
+        FklVMgc *gc) {
+    for (const FklMacroHashMapNode *cur = map->first; cur; cur = cur->next) {
         fklVMgcToGray(cur->k, gc);
         for (const FklCgMacro *m = cur->v; m; m = m->next) {
             fklVMgcToGray(m->pattern, gc);
             fklVMgcToGray(m->proc, gc);
         }
     }
+}
 
-    for (const FklReplacementHashMapNode *cur = ms->replacements->first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-        fklVMgcToGray(cur->v, gc);
-    }
+static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ms->prev), gc);
+
+    mark_macro_map(ms->macros, gc);
+
+    mark_replacement_map(ms->replacements, gc);
 }
 
 static int macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
@@ -1140,10 +1156,54 @@ static FKL_ALWAYS_INLINE FklVMvalueCgEnv *as_env(const FklVMvalue *r) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(env_print, "env");
 
+static FKL_ALWAYS_INLINE void mark_sym_def_hash_map(const FklSymDefHashMap *map,
+        FklVMgc *gc) {
+    for (const FklSymDefHashMapNode *cur = map->first; cur; cur = cur->next) {
+        fklVMgcToGray(cur->k.sid, gc);
+    }
+}
+
+static FKL_ALWAYS_INLINE void
+mark_export_sid_map(const FklCgExportSidIdxHashMap *map, FklVMgc *gc) {
+    for (const FklCgExportSidIdxHashMapNode *cur = map->first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+    }
+}
+
+static FKL_ALWAYS_INLINE void
+mark_gra_prod_group_map(const FklGraProdGroupHashMap *map, FklVMgc *gc) {
+    for (FklGraProdGroupHashMapNode *cur = map->first; cur; cur = cur->next) {
+        fklVMgcToGray(cur->k, gc);
+        fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
+    }
+}
+
 static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgEnv *e = as_env(ud);
+    for (size_t i = 0; i < e->uref.size; ++i) {
+        fklVMgcToGray(e->uref.base[i].sid, gc);
+        fklVMgcToGray(e->uref.base[i].fid, gc);
+        fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->uref.base[i].env), gc);
+    }
+
+    for (size_t i = 0; i < e->scopes.size; ++i) {
+        const FklCgEnvScope *scope = &e->scopes.base[i];
+        mark_sym_def_hash_map(&scope->defs, gc);
+    }
+
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->macros), gc);
+
+    fklVMgcToGray(e->filename, gc);
+    fklVMgcToGray(e->name, gc);
+
+    mark_sym_def_hash_map(&e->refs, gc);
+
+    for (const FklPredefHashMapNode *cur = e->pdef.first; cur;
+            cur = cur->next) {
+        fklVMgcToGray(cur->k.sid, gc);
+    }
 
     for (size_t i = 0; i < e->uref.size; ++i) {
         fklVMgcToGray(e->uref.base[i].fid, gc);
@@ -1156,6 +1216,10 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, cur->k), gc);
     }
 
+    for (size_t i = 0; i < e->ref_pdef.size; ++i) {
+        fklVMgcToGray(e->ref_pdef.base[i].sid, gc);
+    }
+
     for (size_t i = 0; i < e->child_proc_protos.size; ++i) {
         fklVMgcToGray(e->child_proc_protos.base[i], gc);
     }
@@ -1165,18 +1229,25 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(FKL_VM_VAL(cur->v.lib), gc);
     }
 
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->proto), gc);
     fklVMgcToGray(FKL_VM_VAL(e->proto_env_map), gc);
 }
 
 static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgEnv *cur = as_env(ud);
-    uint32_t sc = cur->scope;
-    FklCgEnvScope *scopes = cur->scopes;
-    for (uint32_t i = 0; i < sc; i++)
-        fklSymDefHashMapUninit(&scopes[i].defs);
-    fklZfree(scopes);
+    // uint32_t sc = cur->scope;
+    // FklCgEnvScope *scopes = cur->scopes;
+
+    for (size_t i = 0; i < cur->scopes.size; ++i) {
+        fklSymDefHashMapUninit(&cur->scopes.base[i].defs);
+    }
+
+    // for (uint32_t i = 0; i < sc; i++)
+    //     fklSymDefHashMapUninit(&scopes[i].defs);
+    // fklZfree(scopes);
+    fklCgEnvScopeVectorUninit(&cur->scopes);
     fklZfree(cur->slot_flags);
-    cur->scopes = NULL;
+    // cur->scopes = NULL;
     cur->slot_flags = NULL;
 
     fklSymDefHashMapUninit(&cur->refs);
@@ -1228,8 +1299,11 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->name = args->name;
     r->line = args->line;
     r->parent_scope = args->parent_scope;
-    r->scope = 0;
-    r->scopes = NULL;
+
+    // r->scope = 0;
+    // r->scopes = NULL;
+
+    fklCgEnvScopeVectorInit(&r->scopes, 8);
     enter_new_scope(0, r);
     r->proto_id = FKL_TOP_ENV_PROTO_ID;
     r->prev = prev_env;
@@ -1303,47 +1377,22 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(e->fid, gc);
 
     if (e->export_replacement) {
-        for (const FklReplacementHashMapNode *cur =
-                        e->export_replacement->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcToGray(cur->v, gc);
-        }
+        mark_replacement_map(e->export_replacement, gc);
     }
 
     if (e->export_macros) {
-        for (const FklMacroHashMapNode *cur = e->export_macros->first; cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            for (const FklCgMacro *m = cur->v; m; m = m->next) {
-                fklVMgcToGray(m->pattern, gc);
-                fklVMgcToGray(m->proc, gc);
-            }
-        }
+        mark_macro_map(e->export_macros, gc);
     }
 
     if (e->export_prod_groups) {
-        for (FklGraProdGroupHashMapNode *cur = e->export_prod_groups->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
-        }
+        mark_gra_prod_group_map(e->export_prod_groups, gc);
     }
 
     if (e->prod_groups == &e->self_prod_groups) {
-        for (FklGraProdGroupHashMapNode *cur = e->prod_groups->first; cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
-        }
+        mark_gra_prod_group_map(e->prod_groups, gc);
     }
 
-    for (const FklCgExportSidIdxHashMapNode *cur = e->exports.first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-    }
+    mark_export_sid_map(&e->exports, gc);
 }
 
 static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -2609,36 +2658,15 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
 
 static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, lib->lib), gc);
-    for (const FklCgExportSidIdxHashMapNode *cur = lib->exports.first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-    }
+	mark_export_sid_map(&lib->exports, gc);
 
     switch (lib->type) {
     case FKL_CODEGEN_LIB_SCRIPT:
-        for (const FklMacroHashMapNode *cur = lib->macros->first; cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            for (const FklCgMacro *m = cur->v; m; m = m->next) {
-                fklVMgcToGray(m->pattern, gc);
-                fklVMgcToGray(m->proc, gc);
-            }
-        }
+        mark_macro_map(lib->macros, gc);
 
-        for (const FklReplacementHashMapNode *cur = lib->replacements->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcToGray(cur->v, gc);
-        }
+        mark_replacement_map(lib->replacements, gc);
 
-        for (const FklGraProdGroupHashMapNode *cur =
-                        lib->named_prod_groups->first;
-                cur;
-                cur = cur->next) {
-            fklVMgcToGray(cur->k, gc);
-            fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
-        }
+        mark_gra_prod_group_map(lib->named_prod_groups, gc);
 
         break;
     case FKL_CODEGEN_LIB_DLL:

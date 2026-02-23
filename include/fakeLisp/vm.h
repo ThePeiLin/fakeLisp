@@ -336,6 +336,7 @@ typedef void (*FklVMatExitMarkFunc)(void *, FklVMgc *);
     }
 #include "cont/hash.h"
 
+FKL_DEPRECATED
 typedef struct FklVMobarray {
     uv_mutex_t lock;
     FklStrValueHashMap map;
@@ -592,7 +593,7 @@ typedef struct FklVMgc {
         } locv[FKL_VM_GC_LOCV_CACHE_NUM];
     } locv_cache[FKL_VM_GC_LOCV_CACHE_LEVEL_NUM];
 
-    FklVMobarray *obarray;
+    struct FklVMvalueObarray *obarray;
 
     FklVMvalue *builtinErrorTypeId[FKL_BUILTIN_ERR_NUM];
 
@@ -696,6 +697,11 @@ typedef enum {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueWeakHashEq, {
     FklValueEqHashMap ht;
     FklWeakMapMode weak_mode;
+});
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueObarray, {
+    uv_mutex_t lock;
+    FklStrValueHashMap map;
 });
 
 void fklPopVMframe(FklVM *);
@@ -842,9 +848,10 @@ FklVMobarray *fklCreateVMobarray(void);
 void fklUninitVMobarray(FklVMobarray *a);
 void fklDestroyVMobarray(FklVMobarray *a);
 
-void fklInitVMgc(FklVMgc *, FklVMobarray *obarray);
+FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
-FklVMgc *fklCreateVMgc(FklVMobarray *obarray);
+void fklInitVMgc(FklVMgc *);
+FklVMgc *fklCreateVMgc(void);
 
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
@@ -861,7 +868,9 @@ int fklVMhasSymbol(FklVM *v, const FklString *str);
 int fklVMhasSymbol1(FklVM *v, const char *str);
 int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
 
+FKL_DEPRECATED
 void fklVMclearSymbol(FklVMgc *);
+FKL_DEPRECATED
 void fklVMrestoreSymbol(FklVMgc *);
 
 void fklInitValueTable(FklValueTable *t);

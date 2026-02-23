@@ -1234,7 +1234,7 @@ static void codegen_begin(const CgCbArgs *args) {
 }
 
 static inline int reset_flag_and_check_var_be_refed(uint8_t *flags,
-        FklCgEnvScope *sc,
+        const FklCgEnvScope *sc,
         uint32_t scope,
         FklVMvalueCgEnv *env,
         uint32_t *start) {
@@ -1283,7 +1283,7 @@ static inline void check_and_close_ref(FklVM *exe,
         FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint32_t line) {
-    FklCgEnvScope *cur = &env->scopes[scope - 1];
+    const FklCgEnvScope *cur = &env->scopes.base[scope - 1];
     uint32_t start = cur->start;
     if (reset_flag_and_check_var_be_refed(env->slot_flags,
                 cur,
@@ -2243,7 +2243,7 @@ static void codegen_do1(const CgCbArgs *args) {
 }
 
 static inline FklVMvalue *
-get_sid_with_idx(FklCgEnvScope *sc, uint32_t idx, FklCgCtx *ctx) {
+get_sid_with_idx(const FklCgEnvScope *sc, uint32_t idx, FklCgCtx *ctx) {
     for (FklSymDefHashMapNode *l = sc->defs.first; l; l = l->next) {
         if (l->v.idx == idx)
             return l->k.sid;
@@ -2286,7 +2286,8 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
 
                 FklVMvalueProto *proto = fklVMvalueProto(pt_v);
                 if (proto->name == NULL) {
-                    proto->name = get_sid_with_idx(&env->scopes[scope - 1], //
+                    const FklCgEnvScopeVector *scopes = &env->scopes;
+                    proto->name = get_sid_with_idx(&scopes->base[scope - 1], //
                             idx,
                             ctx);
                 }
@@ -2948,13 +2949,13 @@ static void codegen_lambda(const CgCbArgs *args) {
 
 static inline int
 is_constant_defined(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
-    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env->scopes);
+    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env);
     return def && def->v.isConst;
 }
 
 static inline int
 is_variable_defined(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env) {
-    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env->scopes);
+    FklSymDefHashMapElm *def = fklGetCgDefByIdInScope(id, scope, env);
     return def != NULL;
 }
 
@@ -3270,7 +3271,7 @@ static void codegen_setq(const CgCbArgs *args) {
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush(queue, value);
     FklSymDefHashMapElm *def;
-    def = fklFindSymbolDef(name->value, scope, env->scopes);
+    def = fklFindSymbolDef(name->value, scope, env);
     FklCgAct *cur = create_cg_action(_set_var_exp_bc_process,
             createDefaultStackContext(),
             createMustHasRetvalQueueNextExpression(queue),
@@ -3620,7 +3621,7 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
         error_state->line = CURLINE(exp->container);
         return 0;
     }
-    return fklFindSymbolDef(value->value, scope, env->scopes) != NULL;
+    return fklFindSymbolDef(value->value, scope, env) != NULL;
 }
 
 static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
@@ -6576,8 +6577,7 @@ static FklVMvalue *_export_define_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     ExportDefineContext *exp_ctx = FKL_TYPE_CAST(ExportDefineContext *, data);
-    exp_ctx->item->oidx =
-            fklGetCgDefByIdInScope(exp_ctx->id, 1, env->scopes)->v.idx;
+    exp_ctx->item->oidx = fklGetCgDefByIdInScope(exp_ctx->id, 1, env)->v.idx;
     return sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
 }
 
@@ -9108,6 +9108,8 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
         }
     }
 
+    fklVMgcMarkGrammer(gc, &ctx->builtin_g, NULL);
+
     {
 #define XX(A) fklVMgcToGray(ctx->builtin_sym_##A, gc);
         FKL_CODEGEN_SYMBOL_MAP
@@ -9379,7 +9381,7 @@ FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
                         FklVMvalue *bcl = NULL;
                         FklSymDefHashMapElm *def = fklFindSymbolDef(exp.value,
                                 cur_action->scope,
-                                env->scopes);
+                                env);
                         if (def) {
                             bcl = append_get_loc_ins(vm,
                                     INS_APPEND_BACK,

@@ -1762,7 +1762,7 @@ void fklLockVMlib(FklVMvalueLib *libs) { uv_mutex_lock(&libs->lock); }
 
 void fklUnlockVMlib(FklVMvalueLib *libs) { uv_mutex_unlock(&libs->lock); }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(weak_hash_eq_print, "chanl");
+FKL_VM_USER_DATA_DEFAULT_PRINT(weak_hash_eq_print, "weak-hash");
 
 static void weak_hash_eq_atomic(const FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueWeakHashEq *h_v = fklVMvalueWeakHashEq(v);
@@ -1841,4 +1841,54 @@ FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k) {
 FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,
         FklVMvalue *k) {
     return fklValueEqHashMapInsert(&h->ht, &k, NULL);
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(obarray_print, "obarray");
+
+static FklVMudMetaTable const ObarrayUserDataMetaTable;
+
+static FKL_ALWAYS_INLINE int is_obarray(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ObarrayUserDataMetaTable;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueObarray *as_obarray(const FklVMvalue *v) {
+    FKL_ASSERT(is_obarray(v));
+    return FKL_TYPE_CAST(FklVMvalueObarray *, v);
+}
+
+static int obarray_finalize(FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueObarray *obarray = as_obarray(ud);
+    uv_mutex_destroy(&obarray->lock);
+    fklStrValueHashMapUninit(&obarray->map);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static void obarray_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
+    FklStrValueHashMap *ht = &as_obarray(ud)->map;
+    const FklStrValueHashMapNode *cur = ht->first;
+    while (cur) {
+        const FklStrValueHashMapNode *next = cur->next;
+        if (!fklVMgcIsMarked(cur->v)) {
+            fklStrValueHashMapDel2(ht, cur->k);
+        }
+        cur = next;
+    }
+}
+
+static FklVMudMetaTable const ObarrayUserDataMetaTable = {
+    .size = sizeof(FklVMvalueObarray),
+    .princ = obarray_print,
+    .prin1 = obarray_print,
+    .finalize = obarray_finalize,
+    .update_weak_ref = obarray_update_weak_ref,
+};
+
+FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *vm) {
+    FklVMvalueObarray *obarray = (FklVMvalueObarray *)fklCreateVMvalueUd(vm,
+            &ObarrayUserDataMetaTable,
+            NULL);
+    uv_mutex_init(&obarray->lock);
+    fklStrValueHashMapInit(&obarray->map);
+
+    return obarray;
 }

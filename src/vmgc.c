@@ -74,14 +74,14 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     fklVMgcToGray(exe->chan, gc);
 }
 
-static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
-    uv_mutex_lock(&a->lock);
-    for (const FklStrValueHashMapNode *cur = a->map.first; cur;
-            cur = cur->next) {
-        fklVMgcToGray(cur->v, gc);
-    }
-    uv_mutex_unlock(&a->lock);
-}
+// static inline void mark_obarray(FklVMgc *gc, FklVMobarray *a) {
+//     uv_mutex_lock(&a->lock);
+//     for (const FklStrValueHashMapNode *cur = a->map.first; cur;
+//             cur = cur->next) {
+//         fklVMgcToGray(cur->v, gc);
+//     }
+//     uv_mutex_unlock(&a->lock);
+// }
 
 void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
     for (uint32_t i = 0; i < t->ls; ++i)
@@ -147,7 +147,8 @@ static inline void gc_extra_mark(FklVMgc *gc) {
             cur = cur->next)
         cur->v.func(gc, cur->k);
 
-    mark_obarray(gc, gc->obarray);
+    fklVMgcToGray(FKL_VM_VAL(gc->obarray), gc);
+    // mark_obarray(gc, gc->obarray);
 
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
         fklVMgcToGray(gc->builtinErrorTypeId[i], gc);
@@ -396,21 +397,23 @@ static inline void init_idle_work_queue(FklVMgc *gc) {
     gc->workq.tail = &gc->workq.head;
 }
 
-void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
+void fklInitVMgc(FklVMgc *gc) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_mutex_init(&gc->extra_mark_lock);
     fklVMextraMarkHashMapInit(&gc->extra_marks);
     uv_mutex_init_recursive(&gc->print_backtrace_lock);
-    gc->obarray = obarray;
+
+    // gc->obarray = obarray;
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
     init_locv_cache(gc);
 
-    gc->obarray = obarray;
+    // gc->obarray = obarray;
     gc->gcvm.gc = gc;
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;
+    gc->obarray = fklCreateVMvalueObarray(&gc->gcvm);
 
     gc->seek_set = fklVMaddSymbolCstr(&gc->gcvm, "set");
     gc->seek_cur = fklVMaddSymbolCstr(&gc->gcvm, "cur");
@@ -426,10 +429,10 @@ void fklInitVMgc(FklVMgc *gc, FklVMobarray *obarray) {
     fklInitCodeBuilderFp(&gc->err_out, stderr, NULL);
 }
 
-FklVMgc *fklCreateVMgc(FklVMobarray *obarray) {
+FklVMgc *fklCreateVMgc(void) {
     FklVMgc *gc = (FklVMgc *)fklZmalloc(sizeof(FklVMgc));
     FKL_ASSERT(gc);
-    fklInitVMgc(gc, obarray);
+    fklInitVMgc(gc);
     return gc;
 }
 
@@ -602,8 +605,9 @@ void fklVMclearExtraMarkFunc(FklVMgc *gc) {
 
 void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
-    if (gc->obarray)
-        fklDestroyVMobarray(gc->obarray);
+    gc->obarray = NULL;
+    // if (gc->obarray)
+    //     fklDestroyVMobarray(gc->obarray);
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
     uv_mutex_destroy(&gc->print_backtrace_lock);

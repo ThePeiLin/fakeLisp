@@ -50,7 +50,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     FklCgCtx ctx;
     char *rp = fklRealpath(filename);
 
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
 
     fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
 
@@ -82,9 +82,9 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
 
     fklUninitCgCtx(&ctx);
 
-    fklVMclearSymbol(gc);
+    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    fklVMrestoreSymbol(gc);
+    // fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
     int r = fklRunVMidleLoop(vm);
@@ -100,7 +100,7 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
 
     FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, NULL);
@@ -123,7 +123,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
 
     FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
@@ -159,9 +159,9 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
 
-    fklVMclearSymbol(gc);
+    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    fklVMrestoreSymbol(gc);
+    // fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
     int r = fklRunVMidleLoop(vm);
@@ -516,7 +516,7 @@ exit:
 }
 
 static int run_repl(const char *eval_expression, int8_t interactive) {
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = fklCreateVM(NULL, gc);
     FklCgCtx ctx = { 0 };
     fklInitCgCtx(&ctx, NULL, vm);

@@ -32,7 +32,7 @@ static inline int pre_compile(const char *main_file_name,
     char *rp = fklRealpath(main_file_name);
     FklCgCtx ctx;
 
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
 
     fklInitCgCtx(&ctx, fklGetDir(rp), vm);
@@ -126,7 +126,7 @@ static inline int compile(const char *filename,
     char *rp = fklRealpath(filename);
     FklCgCtx ctx;
 
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
 
     fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
 
@@ -184,9 +184,9 @@ static inline int compile(const char *filename,
         goto compile_exit;
     }
 
-    fklVMclearSymbol(gc);
+    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    fklVMrestoreSymbol(gc);
+    // fklVMrestoreSymbol(gc);
 
     fklWriteCodeFile(outfp, FKL_VM_PROC(proc));
 

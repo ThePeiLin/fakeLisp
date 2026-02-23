@@ -499,7 +499,7 @@ int bdbInitDbgCtx(DebugCtx *ctx,
     ctx->backtrace_list = NULL;
     fklValueHashSetInit(&ctx->file_sid_set);
     FklVMgc *gc = &ctx->gc;
-    fklInitVMgc(gc, fklCreateVMobarray());
+    fklInitVMgc(gc);
     if (init_debug_compile_and_init_vm(ctx, filename)) {
         fklUninitVMgc(gc);
         fklValueHashSetUninit(&ctx->file_sid_set);
@@ -1290,7 +1290,7 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx,
         return NULL;
     FklVMvalue *id = fklVMaddSymbol(&ctx->gc.gcvm, func_name);
     const FklSymDefHashMapElm *def;
-    def = fklFindSymbolDef(id, scope, env->scopes);
+    def = fklFindSymbolDef(id, scope, env);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
     return NULL;

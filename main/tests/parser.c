@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
 
     fputc('\n', stdout);

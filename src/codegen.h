@@ -7,19 +7,24 @@
 #include <stdint.h>
 
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
-    uint32_t r = ++env->scope;
-    FklCgEnvScope *scopes = (FklCgEnvScope *)fklZrealloc(env->scopes,
-            r * sizeof(FklCgEnvScope));
-    FKL_ASSERT(scopes);
-    env->scopes = scopes;
-    FklCgEnvScope *newScope = &scopes[r - 1];
-    newScope->p = p;
-    fklSymDefHashMapInit(&newScope->defs);
-    newScope->start = 0;
-    newScope->end = 0;
-    if (p)
-        newScope->start = scopes[p - 1].start + scopes[p - 1].end;
-    newScope->empty = newScope->start;
+    FklCgEnvScopeVector *scopes = &env->scopes;
+    FklCgEnvScope *scope = fklCgEnvScopeVectorPushBack(scopes, NULL);
+    uint32_t r = env->scopes.size;
+    // uint32_t r = ++env->scope;
+    // size_t total_size = r * sizeof(FklCgEnvScope);
+    // FklCgEnvScope *scopes =
+    //         (FklCgEnvScope *)fklZrealloc(env->scopes, total_size);
+    // FKL_ASSERT(scopes);
+    // env->scopes = scopes;
+    // FklCgEnvScope *newScope = &scopes[r - 1];
+    scope->p = p;
+    fklSymDefHashMapInit(&scope->defs);
+    scope->start = 0;
+    scope->end = 0;
+    if (p != 0) {
+        scope->start = scopes->base[p - 1].start + scopes->base[p - 1].end;
+    }
+    scope->empty = scope->start;
     return r;
 }
 

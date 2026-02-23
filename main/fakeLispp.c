@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
                 exitState = EXIT_FAILURE;
                 goto exit;
             }
-            FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+            FklVMgc *gc = fklCreateVMgc();
             FklVM *vm = &gc->gcvm;
 
             FklLibTable lib_table = { 0 };
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
                 goto exit;
             }
 
-            FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+            FklVMgc *gc = fklCreateVMgc();
             FklVM *vm = &gc->gcvm;
 
             FklCgCtx ctx = { 0 };

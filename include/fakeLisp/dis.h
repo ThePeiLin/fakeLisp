@@ -9,7 +9,9 @@
 extern "C" {
 #endif
 
-void fklPrintObarray(FklVM *vm, const FklVMobarray *array, FklCodeBuilder *fp);
+void fklPrintObarray(FklVM *vm,
+        const FklVMvalueObarray *array,
+        FklCodeBuilder *fp);
 
 typedef struct {
     const char *indent_str;

@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     const char *ast_destroy_name = argv[4];
     const char *state_0_push_name = argv[5];
 
-    FklVMgc *gc = fklCreateVMgc(fklCreateVMobarray());
+    FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
     FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {

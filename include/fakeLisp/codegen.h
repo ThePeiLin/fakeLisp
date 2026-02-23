@@ -21,6 +21,11 @@ typedef struct FklCgEnvScope {
     FklSymDefHashMap defs;
 } FklCgEnvScope;
 
+// FklCgEnvScopeVector
+#define FKL_VECTOR_ELM_TYPE FklCgEnvScope
+#define FKL_VECTOR_ELM_TYPE_NAME CgEnvScope
+#include "cont/vector.h"
+
 #define FKL_CODEGEN_ENV_SLOT_OCC (1)
 #define FKL_CODEGEN_ENV_SLOT_REF (2)
 #define FKL_TOP_ENV_PROTO_ID (UINT32_MAX)
@@ -66,18 +71,19 @@ typedef struct {
 
 struct FklVMvalueCgEnv;
 
-FKL_DEPRECATED
-typedef void (*FklCgInfoEnvWorkCb)(struct FklVMvalueCgEnv *, void *);
-
 // 实际上是 FklVMvalueWeakHashEq 的别名
 typedef struct FklVMvalueCgEnvWeakMap FklVMvalueCgEnvWeakMap;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnboundVector uref;
+
+	// XXX: 将 slot_flags 改成一个 vector
+	FKL_DEPRECATED
     uint8_t *slot_flags;
-    FklCgEnvScope *scopes;
+    FklCgEnvScopeVector scopes;
+    // FklCgEnvScope *scopes;
+    // uint32_t scope;
     uint32_t lcount;
-    uint32_t scope;
     uint32_t parent_scope;
     uint32_t proto_id;
 
@@ -538,10 +544,10 @@ FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
         FklVMvalueCgEnv *cur_env);
 
 FklSymDefHashMapElm *
-fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklCgEnvScope *scopes);
+fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
-        const FklCgEnvScope *scopes);
+        const FklVMvalueCgEnv *env);
 
 void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
@@ -581,7 +587,9 @@ void fklAddCgRefToPreDef(FklVMvalue *id,
 void fklResolveCgPreDef(FklVMvalue *, uint32_t scope, FklVMvalueCgEnv *env);
 void fklClearCgPreDef(FklVMvalueCgEnv *env);
 
-int fklIsSymbolDefined(FklVMvalue *sid, uint32_t scope, FklVMvalueCgEnv *);
+int fklIsSymbolDefined(FklVMvalue *sid,
+        uint32_t scope,
+        const FklVMvalueCgEnv *);
 
 int fklIsReplacementDefined(FklVMvalue *sid, FklVMvalueCgEnv *);
 

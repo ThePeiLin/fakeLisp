@@ -248,7 +248,9 @@ void fklDisassembleProc(FklVM *vm,
     }
 }
 
-void fklPrintObarray(FklVM *vm, const FklVMobarray *a, FklCodeBuilder *build) {
+void fklPrintObarray(FklVM *vm,
+        const FklVMvalueObarray *a,
+        FklCodeBuilder *build) {
 
     int digits_count = compute_digits_count(a->map.count);
 

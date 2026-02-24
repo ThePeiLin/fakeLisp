@@ -49,15 +49,21 @@ static inline FklSymDefHashMapElm *get_def_by_id_in_scope(FklVMvalue *id,
     return fklSymDefHashMapAt(&scope->defs, &key);
 }
 
+FklCgEnvScope *fklCgEnvScopeGet(const FklVMvalueCgEnv *env, uint32_t scope_id) {
+    FKL_ASSERT(scope_id != 0);
+    return &env->scopes.base[scope_id - 1];
+}
+
 FklSymDefHashMapElm *fklFindSymbolDef(FklVMvalue *id,
         uint32_t scope_id,
         const FklVMvalueCgEnv *env) {
     FklSymDefHashMapElm *r = NULL;
-    const FklCgEnvScope *scopes = env->scopes.base;
-    for (; scope_id; scope_id = scopes[scope_id - 1].p) {
-        r = get_def_by_id_in_scope(id, scope_id, &scopes[scope_id - 1]);
-        if (r)
+    for (; scope_id; scope_id = fklCgEnvScopeGet(env, scope_id)->p) {
+        const FklCgEnvScope *scope = fklCgEnvScopeGet(env, scope_id);
+        r = get_def_by_id_in_scope(id, scope_id, scope);
+        if (r) {
             return r;
+        }
     }
     return NULL;
 }
@@ -65,7 +71,7 @@ FklSymDefHashMapElm *fklFindSymbolDef(FklVMvalue *id,
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope_id,
         const FklVMvalueCgEnv *env) {
-    const FklCgEnvScope *scope = &env->scopes.base[scope_id - 1];
+    const FklCgEnvScope *scope = fklCgEnvScopeGet(env, scope_id);
     return get_def_by_id_in_scope(id, scope_id, scope);
 }
 
@@ -424,7 +430,7 @@ uint32_t fklAddCgRefBySidRetIndex(FklVMvalue *id,
 int fklIsSymbolDefined(FklVMvalue *id,
         uint32_t scope_id,
         const FklVMvalueCgEnv *env) {
-    const FklCgEnvScope *scope = &env->scopes.base[scope_id - 1];
+    const FklCgEnvScope *scope = fklCgEnvScopeGet(env, scope_id);
     return get_def_by_id_in_scope(id, scope_id, scope) != NULL;
 }
 
@@ -438,15 +444,15 @@ static inline uint32_t get_next_empty(uint32_t empty,
 }
 
 FklSymDef *
-fklAddCgDefBySid(FklVMvalue *id, uint32_t scopeId, FklVMvalueCgEnv *env) {
-    FklCgEnvScope *scope = &env->scopes.base[scopeId - 1];
+fklAddCgDefBySid(FklVMvalue *id, uint32_t scope_id, FklVMvalueCgEnv *env) {
+    FklCgEnvScope *scope = fklCgEnvScopeGet(env, scope_id);
     FklSymDefHashMap *defs = &scope->defs;
-    FklSidScope key = { id, scopeId };
+    FklSidScope key = { id, scope_id };
     FklSymDef *el = fklSymDefHashMapGet(defs, &key);
     if (!el) {
         uint32_t idx = scope->empty;
         el = fklSymDefHashMapAdd(defs, &key, NULL);
-        if (idx < env->slots.size && has_resolvable_ref(id, scopeId, env)) {
+        if (idx < env->slots.size && has_resolvable_ref(id, scope_id, env)) {
             idx = env->slots.size;
         } else {
             scope->empty = get_next_empty(scope->empty + 1, &env->slots);
@@ -506,8 +512,8 @@ void fklResolveRef(FklVMvalueCgEnv *env,
                         pt,
                         args->resolve_ref_to_def_cb_args);
             }
-        } else if (env->scopes.base[uref->scope - 1].p) {
-            uref->scope = env->scopes.base[uref->scope - 1].p;
+        } else if (fklCgEnvScopeGet(env, uref->scope)->p != 0) {
+            uref->scope = fklCgEnvScopeGet(env, uref->scope)->p;
             fklUnboundVectorPushBack(&urefs1, uref);
         } else if (env->prev != top_env) {
             uint32_t cidx = fklAddCgRefBySidRetIndex(uref->sid,

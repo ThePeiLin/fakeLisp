@@ -554,6 +554,8 @@ FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
         const FklVMvalueCgEnv *env);
 
+FklCgEnvScope *fklCgEnvScopeGet(const FklVMvalueCgEnv *env, uint32_t scope_id);
+
 void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
         FklCodeBuilder *cb);

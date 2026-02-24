@@ -1234,12 +1234,12 @@ static void codegen_begin(const CgCbArgs *args) {
 }
 
 static inline int reset_flag_and_check_var_be_refed(FklVMvalueCgEnv *env,
-        uint32_t scope,
+        uint32_t scope_id,
         uint32_t *start) {
     FklCgEnvSlotVector *flags = &env->slots;
-    const FklCgEnvScope *sc = &env->scopes.base[scope - 1];
+    const FklCgEnvScope *sc = fklCgEnvScopeGet(env, scope_id);
     *start = sc->start;
-    fklResolveRef(env, scope, NULL);
+    fklResolveRef(env, scope_id, NULL);
     int r = 0;
     uint32_t last = sc->start + sc->end;
     uint32_t i = sc->start;
@@ -2261,7 +2261,7 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
         FklVMvalueCgInfo *info,
         FklCgCtx *ctx,
         FklVMvalueCgEnv *env,
-        uint32_t scope,
+        uint32_t scope_id,
         FklVMvalue *fid,
         uint32_t line) {
     if (stack->size >= 2) {
@@ -2283,12 +2283,9 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
 
                 FklVMvalueProto *proto = fklVMvalueProto(pt_v);
                 if (proto->name == NULL) {
-                    const FklCgEnvScopeVector *scopes = &env->scopes;
-                    proto->name = get_sid_with_idx(&scopes->base[scope - 1], //
-                            idx,
-                            ctx);
+                    const FklCgEnvScope *sc = fklCgEnvScopeGet(env, scope_id);
+                    proto->name = get_sid_with_idx(sc, idx, ctx);
                 }
-
             } else if (fklIsPutVarRefIns(popVar_ins)) {
                 FklInsArg arg;
                 fklGetInsOpArg(cur_ins, &arg);
@@ -2316,7 +2313,7 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
                 FKL_VM_CO(popVar),
                 fid,
                 line,
-                scope);
+                scope_id);
         return popVar;
     }
 }

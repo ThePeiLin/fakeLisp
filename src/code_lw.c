@@ -476,9 +476,16 @@ static int load_value_table(FILE *fp, FklLoadValueArgs *args) {
     FklVM *vm = args->vm;
     fread(&args->count, sizeof(args->count), 1, fp);
 
-    FklVMvalue **values =
-            (FklVMvalue **)fklZcalloc(args->count, sizeof(FklVMvalue *));
+    if (args->count == 0) {
+        args->values = NULL;
+        return 0;
+    }
+
+    size_t const total_size = args->count * sizeof(FklVMvalue *);
+    FklVMvalue **values = (FklVMvalue **)fklZmalloc(total_size);
     FKL_ASSERT(values);
+    memset(values, 0, total_size);
+
     args->values = values;
 
     for (uint32_t i = 0; i < args->count; ++i) {
@@ -577,11 +584,17 @@ static int load_proto_table(FILE *fp,
         FklLoadProtoArgs *args) {
     fread(&args->count, sizeof(args->count), 1, fp);
 
-    FklVMvalueProto **protos = (FklVMvalueProto **)fklZcalloc(args->count,
-            sizeof(FklVMvalueProto *));
-    FKL_ASSERT(protos);
-    args->protos = protos;
+    if (args->count == 0) {
+        args->protos = NULL;
+        return 0;
+    }
 
+    size_t const total_size = args->count * sizeof(FklVMvalueProto *);
+    FklVMvalueProto **protos = (FklVMvalueProto **)fklZmalloc(total_size);
+    FKL_ASSERT(protos);
+    memset(protos, 0, total_size);
+
+    args->protos = protos;
     for (FklValueId id = args->count; id > 0; --id) {
         args->protos[id - 1] = load_prototype(fp, values, args);
     }
@@ -593,9 +606,16 @@ static int load_lib_table(FILE *fp,
         const FklLoadProtoArgs *protos,
         FklLoadLibArgs *args) {
     fread(&args->count, sizeof(args->count), 1, fp);
-    FklVMvalueLib **libs = (FklVMvalueLib **)fklZcalloc(args->count, //
-            sizeof(FklVMvalueLib *));
+    if (args->count == 0) {
+        args->libs = NULL;
+        return 0;
+    }
+
+    size_t const total_size = args->count * sizeof(FklVMvalueLib *);
+    FklVMvalueLib **libs = (FklVMvalueLib **)fklZmalloc(total_size);
     FKL_ASSERT(libs);
+    memset(libs, 0, total_size);
+
     args->libs = libs;
     for (FklValueId id = args->count; id > 0; --id) {
         args->libs[id - 1] = load_vm_lib(fp, values, protos, args);
@@ -1504,8 +1524,8 @@ static inline void load_grammer_in_binary(FILE *fp,
             uint64_t prod_len;
             fread(&prod_len, sizeof(prod_len), 1, fp);
 
-            FklGrammerSym *syms = (FklGrammerSym *)fklZmalloc(
-                    prod_len * sizeof(FklGrammerSym));
+            size_t const total_size = prod_len * sizeof(FklGrammerSym);
+            FklGrammerSym *syms = (FklGrammerSym *)fklZmalloc(total_size);
             FKL_ASSERT(syms);
 
             for (size_t i = 0; i < prod_len; ++i) {

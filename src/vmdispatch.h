@@ -364,8 +364,12 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_EXPORT_X:
         idx = GET_INS_UX(ins, frame);
         export : {
-            FklVMvalueLib *lib = fklVMvalueLib(FKL_VM_GET_ARG(exe, frame, -1));
-            lib->values[exporting_idx++] = FKL_VM_GET_ARG(exe, frame, idx);
+            FklVMvalue *callee = FKL_VM_GET_ARG(exe, frame, -1);
+            if (!fklIsVMvalueLib(callee))
+                break;
+            FklVMvalueLib *lib = fklVMvalueLib(callee);
+            FklVMvalue *v = FKL_VM_GET_TOP_VALUE(exe);
+            lib->values[idx] = v;
         }
         break;
     case FKL_OP_LOAD_LIB:
@@ -398,7 +402,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(plib));
             call_compound_procedure(exe, FKL_VM_PROC(plib->proc));
 
-            exe->top_frame->ret_cb = import_frame_ret_callback;
+            // exe->top_frame->ret_cb = import_frame_ret_callback;
             exe->importing_lib = plib;
             int r = fklRunVM(exe, exit_frame);
 

@@ -87,7 +87,7 @@ static inline int isExportDefineExp(const FklVMvalue *c,
                 NULL);
 }
 
-static inline int isBeginExp(const FklVMvalue *c,
+static inline int is_begin_exp(const FklVMvalue *c,
         FklVMvalue *const *builtin_pattern_node) {
     return fklPatternMatch(builtin_pattern_node[FKL_CODEGEN_PATTERN_BEGIN],
             c,
@@ -702,6 +702,22 @@ static inline FklVMvalue *append_load_dll_ins(FklVM *exe,
             bcl,
             FKL_OP_LOAD_DLL,
             lib_id,
+            fid,
+            line,
+            scope);
+}
+
+static inline FklVMvalue *append_drop_one_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope) {
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
+            bcl,
+            FKL_OP_DROP,
+            0,
             fid,
             line,
             scope);
@@ -5499,6 +5515,23 @@ static inline void export_replacement(FklVMvalueCgMacroScope *macro_scope,
     }
 }
 
+static inline FklVMvalue *append_get_loc_ins(FklVM *exe,
+        InsAppendMode m,
+        FklVMvalue *bcl,
+        uint32_t idx,
+        FklVMvalue *fid,
+        uint32_t line,
+        uint32_t scope) {
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
+            bcl,
+            FKL_OP_GET_LOC,
+            idx,
+            fid,
+            line,
+            scope);
+}
+
 static inline void export_symbol(FklVM *exe,
         FklVMvalue *k,
         const FklCgExportIdx *v,
@@ -5519,8 +5552,8 @@ static inline void export_symbol(FklVM *exe,
             scope);
     if (lib_info == NULL)
         return;
-    FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, //
-            k);
+    FklCgExportIdx *item = NULL;
+    item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, k);
     if (item == NULL) {
         uint32_t idx = lib_info->exports.count;
         item = fklCgExportSidIdxHashMapAdd(&lib_info->exports,
@@ -5530,6 +5563,10 @@ static inline void export_symbol(FklVM *exe,
                     .oidx = target_idx,
                 });
     }
+
+    append_get_loc_ins(exe, INS_APPEND_BACK, bcl, target_idx, fid, line, scope);
+    append_export_ins(exe, INS_APPEND_BACK, bcl, item->idx, fid, line, scope);
+    append_drop_one_ins(exe, INS_APPEND_BACK, bcl, fid, line, scope);
 }
 
 static void add_symbol_to_local_env_in_array(FklVM *exe,
@@ -6264,12 +6301,14 @@ static inline int has_undefined_non_terminal(FklVMvalueCgInfo *info,
     return 0;
 }
 
+FKL_DEPRECATED
 static inline void process_export_bc(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalue *lib_bc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
+    return;
     FklVM *vm = ctx->vm;
     info->epc = FKL_VM_CO(lib_bc)->bc.len;
 
@@ -6570,9 +6609,20 @@ static FklVMvalue *_export_define_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *fid = args->fid;
     uint64_t line = args->line;
 
+    FKL_ASSERT(bcl_vec->size == 1);
+
     ExportDefineContext *exp_ctx = FKL_TYPE_CAST(ExportDefineContext *, data);
     exp_ctx->item->oidx = fklGetCgDefByIdInScope(exp_ctx->id, 1, env)->v.idx;
-    return sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
+    FklVMvalue *r = bcl_vec->base[0];
+
+    r = append_export_ins(vm,
+            INS_APPEND_BACK,
+            r,
+            exp_ctx->item->idx,
+            fid,
+            line,
+            scope);
+    return r;
 }
 
 typedef int (*ImportLibCbCheck)(const FklVMvalue *args);
@@ -8795,7 +8845,7 @@ static void codegen_export_single(const CgCbArgs *args) {
         return;
     }
 
-    if (isBeginExp(v.value, patterns)) {
+    if (is_begin_exp(v.value, patterns)) {
         FKL_VM_CAR(v.value) = FKL_VM_CAR(orig.value);
 
         queue = cgExpQueueCreate();
@@ -8829,8 +8879,8 @@ static void codegen_export_single(const CgCbArgs *args) {
         if (!check_export_symbol_interned(vm, name, 0, errors))
             goto error;
 
-        FklCgExportIdx *item =
-                fklCgExportSidIdxHashMapGet2(&lib_info->exports, name);
+        FklCgExportIdx *item = NULL;
+        item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, name);
         if (item == NULL) {
             uint32_t idx = lib_info->exports.count;
             item = fklCgExportSidIdxHashMapAdd(&lib_info->exports,
@@ -9257,23 +9307,6 @@ static inline int map_builtin_pattern(FklCgCtx *ctx,
         return 0;
     }
     return 1;
-}
-
-static inline FklVMvalue *append_get_loc_ins(FklVM *exe,
-        InsAppendMode m,
-        FklVMvalue *bcl,
-        uint32_t idx,
-        FklVMvalue *fid,
-        uint32_t line,
-        uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(exe,
-            m,
-            bcl,
-            FKL_OP_GET_LOC,
-            idx,
-            fid,
-            line,
-            scope);
 }
 
 static inline FklVMvalue *append_get_var_ref_ins(FklVM *exe,

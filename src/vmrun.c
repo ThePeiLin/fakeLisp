@@ -125,6 +125,7 @@ typedef struct ImportPostProcessContext {
     FklVM *exe;
 } ImportPostProcessContext;
 
+FKL_DEPRECATED
 static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
     f->ret_cb = NULL;
 

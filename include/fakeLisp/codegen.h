@@ -393,7 +393,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklGrammer **g;
     FklGraProdGroupHashMap *prod_groups;
     FklVMvalueCgEnv *global_env;
-    uint64_t epc;
     FklCgExportSidIdxHashMap exports;
 
     FklMacroHashMap *export_macros;
@@ -622,8 +621,7 @@ FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
         FklVMvalueCgInfo *codegen,
-        FklVMvalue *proc,
-        uint64_t epc);
+        FklVMvalue *proc);
 
 FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 

@@ -6301,32 +6301,6 @@ static inline int has_undefined_non_terminal(FklVMvalueCgInfo *info,
     return 0;
 }
 
-FKL_DEPRECATED
-static inline void process_export_bc(FklCgCtx *ctx,
-        FklVMvalueCgInfo *info,
-        FklVMvalue *lib_bc,
-        FklVMvalue *fid,
-        uint32_t line,
-        uint32_t scope) {
-    return;
-    FklVM *vm = ctx->vm;
-    info->epc = FKL_VM_CO(lib_bc)->bc.len;
-
-    for (const FklCgExportSidIdxHashMapNode *l = info->exports.first; l;
-            l = l->next) {
-        append_export_ins(vm,
-                INS_APPEND_BACK,
-                lib_bc,
-                l->v.oidx,
-                fid,
-                line,
-                scope);
-    }
-
-    FklIns ret = create_op_ins(FKL_OP_RET);
-    fklByteCodeLntPushBackIns(FKL_VM_CO(lib_bc), &ret, fid, line, scope);
-}
-
 static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklCgCtx *ctx = args->ctx;
@@ -6380,13 +6354,11 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     if (!env->is_debugging)
         fklPeepholeOptimize(FKL_VM_CO(co));
 
-    process_export_bc(ctx, info, co, fid, line, scope);
-
     FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, co, pt);
     fklInitMainProcRefs(ctx->vm, proc);
 
     FklCgLib *lib = fklVMvalueCgLibsAdd(info->libraries, info->realpath);
-    fklInitCgScriptLib(ctx, lib, info, proc, info->epc);
+    fklInitCgScriptLib(ctx, lib, info, proc);
 
     return d->import_cb(ctx,
             fklVMvalueCgEnvAddUsedLib(d->env, info->realpath, lib->lib)->id,
@@ -9525,9 +9497,6 @@ FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
         FILE *fp,
         FklVMvalueCgInfo *info,
         FklVMvalueCgEnv *env) {
-    static const uint32_t scope = 1;
-    static const uint64_t line = 1;
-
     FklCgAct *initialAction = create_cg_action(_begin_exp_bc_process,
             createDefaultStackContext(),
             createFpNextExpression(fp, info),
@@ -9541,8 +9510,6 @@ FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
     FklVMvalue *bcl = fklGenExpressionCodeWithAction(ctx, initialAction, info);
     if (bcl == NULL)
         return NULL;
-
-    process_export_bc(ctx, info, bcl, info->fid, line, scope);
 
     return bcl;
 }

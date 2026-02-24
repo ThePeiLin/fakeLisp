@@ -16,7 +16,6 @@ void fklVMexecuteInstruction(FklVM *exe,
     FklVMvalueLib *plib;
     uint32_t idx;
     uint32_t idx1;
-    uint32_t exporting_idx = 0;
     uint64_t size;
     int64_t offset;
     switch (op) {
@@ -395,17 +394,16 @@ void fklVMexecuteInstruction(FklVM *exe,
             atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
             FklVMrecoverArgs re = { 0 };
             fklVMsetRecover(exe, &re);
-            FKL_VM_PUSH_VALUE(exe, fklMakeVMuint(plib->epc, exe));
 
             FklVMframe *exit_frame = exe->top_frame;
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(plib));
             call_compound_procedure(exe, FKL_VM_PROC(plib->proc));
 
-            // exe->top_frame->ret_cb = import_frame_ret_callback;
             exe->importing_lib = plib;
             int r = fklRunVM(exe, exit_frame);
 
+			// TODO: 检查还没有导出的符号
             int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
             atomic_store(&plib->import_state, import_state);
             fklUnlockVMlib(plib);

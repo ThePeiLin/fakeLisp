@@ -104,7 +104,6 @@ static inline void print_lib_table(FklVM *vm,
         uint64_t id = cur->v;
         CB_LINE("lib %" PRIu64 ":", id);
         if (FKL_IS_PROC(l->proc)) {
-            CB_LINE("epc %" PRIu64 "", l->epc);
             FKL_DIS_PROC(vm,
                     FKL_VM_PROC(l->proc),
                     build,
@@ -246,7 +245,6 @@ int main(int argc, char **argv) {
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
             CB_LINE("lib 0:");
-            CB_LINE("epc %" PRIu64 "", lib->epc);
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);

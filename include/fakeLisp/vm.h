@@ -281,7 +281,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueLib, {
     atomic_int import_state;
 
     FklVMvalue *proc;
-    uint64_t epc;
 
     FklVMvalue *values[];
 });

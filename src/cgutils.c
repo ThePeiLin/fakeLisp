@@ -605,16 +605,13 @@ void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
     }
 }
 
-static FklVMvalueLib *create_script_lib(FklVM *vm,
-        FklCgLib *clib,
-        FklVMvalueProc *proc,
-        uint64_t epc) {
+static FklVMvalueLib *
+create_script_lib(FklVM *vm, FklCgLib *clib, FklVMvalueProc *proc) {
     FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_SCRIPT);
     if (clib->lib)
         return clib->lib;
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
     l->proc = FKL_VM_VAL(proc);
-    l->epc = epc;
     clib->lib = l;
     return l;
 }
@@ -670,8 +667,7 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
         FklVMvalueCgInfo *info,
-        FklVMvalue *proc,
-        uint64_t epc) {
+        FklVMvalue *proc) {
     memset(lib, 0, sizeof(*lib));
 
     lib->type = FKL_CODEGEN_LIB_SCRIPT;
@@ -701,7 +697,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
                 &sid_idx_list->v);
     }
 
-    lib->lib = create_script_lib(ctx->vm, lib, FKL_VM_PROC(proc), epc);
+    lib->lib = create_script_lib(ctx->vm, lib, FKL_VM_PROC(proc));
 }
 
 static const FklCgMacro *find_macro(FklVMvalue *exp,

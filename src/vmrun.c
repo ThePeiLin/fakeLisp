@@ -125,20 +125,6 @@ typedef struct ImportPostProcessContext {
     FklVM *exe;
 } ImportPostProcessContext;
 
-FKL_DEPRECATED
-static int import_frame_ret_callback(FklVM *exe, FklVMframe *f) {
-    f->ret_cb = NULL;
-
-    uint32_t const value_count = (exe->tp - f->sp);
-    if (value_count > 1 || value_count < 1) {
-        return 0;
-    }
-
-    uint64_t epc = fklVMgetUint(FKL_VM_GET_ARG(exe, f, -3));
-    f->pc = f->spc + epc;
-    return 1;
-}
-
 static inline void call_cproc(FklVM *exe, FklVMvalue *cproc) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
@@ -666,7 +652,6 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklVMvalueLib *plib;
     uint32_t idx;
     uint32_t idx1;
-    uint32_t exporting_idx = 0;
     uint64_t size;
     int64_t offset;
 start:

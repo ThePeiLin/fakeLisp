@@ -566,11 +566,10 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     default:
         FKL_UNREACHABLE();
         break;
-    case FKL_CODEGEN_LIB_SCRIPT:
-        fread(&lib->epc, sizeof(lib->epc), 1, fp);
+    case FKL_CODEGEN_LIB_SCRIPT: {
         FklVMvalueProc *proc = load_proc(fp, values, protos);
         lib->proc = FKL_VM_VAL(proc);
-        break;
+    } break;
     case FKL_CODEGEN_LIB_DLL:
         lib->proc = load_value_id(fp, values);
         break;
@@ -1029,8 +1028,6 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     fwrite(&type_byte, sizeof(type_byte), 1, fp);
     switch (type_byte) {
     case FKL_CODEGEN_LIB_SCRIPT: {
-        fwrite(&lib->epc, sizeof(lib->epc), 1, fp);
-
         FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
         write_proc(proc,
                 FKL_TYPE_CAST(FklValueTable *, value_table),
@@ -1756,7 +1753,6 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
 
     FklVMvalueProc *proc = load_proc(fp, values, protos);
     FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, cg_lib->exports.count);
-    fread(&lib->epc, sizeof(lib->epc), 1, fp);
     lib->proc = FKL_VM_VAL(proc);
     cg_lib->lib = lib;
 }
@@ -1914,7 +1910,6 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 FKL_WRITE_CODE_PASS_SECOND,
                 outfp);
 
-        fwrite(&codegen->epc, sizeof(codegen->epc), 1, outfp);
         break;
     }
 }

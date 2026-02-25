@@ -605,23 +605,42 @@ void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
     }
 }
 
-static FklVMvalueLib *
-create_script_lib(FklVM *vm, FklCgLib *clib, FklVMvalueProc *proc) {
+FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
+        const FklCgExportSidIdxHashMap *map) {
+    FklVMvalue *vv = fklCreateVMvalueVec(vm, map->count);
+    FklVMvalueVec *names = FKL_VM_VEC(vv);
+
+    const FklCgExportSidIdxHashMapNode *cur = NULL;
+    for (cur = map->first; cur; cur = cur->next) {
+        names->base[cur->v.idx] = cur->k;
+    }
+
+    return names;
+}
+
+static FklVMvalueLib *create_script_lib(FklVM *vm,
+        FklVMvalue *name,
+        FklCgLib *clib,
+        FklVMvalueProc *proc) {
     FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_SCRIPT);
     if (clib->lib)
         return clib->lib;
-    FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
+
+    FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);
+    FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
     l->proc = FKL_VM_VAL(proc);
     clib->lib = l;
     return l;
 }
 
-static FklVMvalueLib *create_dll_lib(FklVM *vm, FklCgLib *clib) {
+static FklVMvalueLib *
+create_dll_lib(FklVM *vm, FklVMvalue *name, FklCgLib *clib) {
     FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_DLL);
     if (clib->lib)
         return clib->lib;
+    FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);
     const char *rp = fklCgLibRp(clib);
-    FklVMvalueLib *l = fklCreateVMvalueLib(vm, clib->exports.count);
+    FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
     l->proc = fklCreateVMvalueStr2(vm,
             strlen(rp) - strlen(FKL_DLL_FILE_TYPE),
             rp);
@@ -641,7 +660,9 @@ static void uninit_cg_lib(FklCgLib *lib) {
     fklClearCgLibMacros(lib);
 }
 
+// TODO: 优化模块名
 void fklInitCgDllLib(const FklCgCtx *ctx,
+        FklVMvalue *name,
         FklCgLib *lib,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init) {
@@ -661,9 +682,10 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     }
     if (exports)
         fklZfree(exports);
-    lib->lib = create_dll_lib(ctx->vm, lib);
+    lib->lib = create_dll_lib(ctx->vm, name, lib);
 }
 
+// TODO: 优化模块名
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
         FklVMvalueCgInfo *info,
@@ -697,7 +719,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
                 &sid_idx_list->v);
     }
 
-    lib->lib = create_script_lib(ctx->vm, lib, FKL_VM_PROC(proc));
+    lib->lib = create_script_lib(ctx->vm, info->fid, lib, FKL_VM_PROC(proc));
 }
 
 static const FklCgMacro *find_macro(FklVMvalue *exp,

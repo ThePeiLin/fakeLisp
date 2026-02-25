@@ -1719,10 +1719,14 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(_lib_userdata_print, "lib");
 static void _lib_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueLib *t = fklVMvalueLib(v);
 
+    fklVMgcToGray(t->name, gc);
     fklVMgcToGray(t->proc, gc);
 
+    // 将 count 乘二，标记导出的名字
+    size_t total_count = t->count << 1;
     FklVMvalue **cur = t->values;
-    FklVMvalue **const end = cur + t->count;
+    FklVMvalue **const end = cur + total_count;
+
     for (; cur < end; ++cur)
         fklVMgcToGray(*cur, gc);
 }
@@ -1745,16 +1749,27 @@ int fklIsVMvalueLib(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LibUserDataMetaTable;
 }
 
-FklVMvalueLib *fklCreateVMvalueLib(FklVM *exe, uint32_t count) {
+FklVMvalueLib *
+fklCreateVMvalueLib(FklVM *exe, FklVMvalue *name, const FklVMvalueVec *names) {
+    FKL_ASSERT(FKL_IS_SYM(name));
     FklVMvalueLib *r = NULL;
-    size_t extra_size = count * sizeof(r->values[0]);
+    size_t const count = names->size;
+    size_t const total_count = count << 1;
+    size_t extra_size = total_count * sizeof(r->values[0]);
 
     r = (FklVMvalueLib *)fklCreateVMvalueUd2(exe, //
             &LibUserDataMetaTable,
             extra_size,
             NULL);
     uv_mutex_init_recursive(&r->lock);
+    r->name = name;
     r->count = count;
+
+    FklVMvalue **cur = &r->values[count];
+    for (size_t i = 0; i < count; ++i) {
+        cur[i] = names->base[i];
+    }
+
     return r;
 }
 

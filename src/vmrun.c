@@ -647,6 +647,30 @@ static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
                     | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
+static FKL_ALWAYS_INLINE int check_unbound_exported_symbol(FklVM *exe,
+        FklVMvalueLib *l) {
+    FklVMvalue *const *values = l->values;
+    FklVMvalue *name = NULL;
+    for (size_t i = 0; i < l->count; ++i) {
+        if (values[i] == NULL) {
+            name = fklVMvalueLibNames(l)[i];
+            break;
+        }
+    }
+
+    if (name != NULL) {
+        FklVMvalue *err = FKL_MAKE_VM_ERR(FKL_ERR_EXPORT_ERROR,
+                exe,
+                "The symbol %S is not exported in module %S",
+                name,
+                l->name);
+        FKL_VM_PUSH_VALUE(exe, err);
+        return 1;
+    }
+
+    return 0;
+}
+
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     const FklIns *ins;
     FklVMvalueLib *plib;

@@ -505,6 +505,9 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     FklVMvalue *dollers[];
 });
 
+FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
+        const FklCgExportSidIdxHashMap *map);
+
 int fklIsVMvalueCgLibs(const FklVMvalue *v);
 FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
 FklCgLib *fklVMvalueCgLibsGet(const FklVMvalueCgLibs *, const char *rp);
@@ -626,6 +629,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
 FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 
 void fklInitCgDllLib(const FklCgCtx *ctx,
+        FklVMvalue *name,
         FklCgLib *lib,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init);

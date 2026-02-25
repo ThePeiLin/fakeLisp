@@ -93,6 +93,29 @@ static inline void print_statistics(const char *filename,
             statistics[FKL_OPCODE_NUM - 1].count);
 }
 
+static inline void print_lib_name(FklVM *vm,
+        const FklVMvalueLib *l,
+        uint64_t id,
+        FklCodeBuilder *build) {
+    CB_FMT("lib ");
+    fklPrin1VMvalue2(l->name, build, vm);
+    CB_LINE(" (%" PRIu64 "):", id);
+}
+
+static inline void
+print_export_symbols(FklVM *vm, const FklVMvalueLib *l, FklCodeBuilder *build) {
+    CB_LINE("export symbols %" PRIu32 ":", l->count);
+    CB_INDENT(flag) {
+        int digits_count = fklComputeDigitsCount(l->count);
+        FklVMvalue *const *names = fklVMvalueLibNames(l);
+        for (size_t i = 0; i < l->count; ++i) {
+            CB_LINE_START("%-*zu:\t", digits_count, i + 1);
+            fklPrin1VMvalue2(names[i], build, vm);
+            CB_LINE_END("");
+        }
+    }
+}
+
 static inline void print_lib_table(FklVM *vm,
         const FklLibTable *lib_table,
         uint64_t *opcode_count,
@@ -102,7 +125,9 @@ static inline void print_lib_table(FklVM *vm,
         const FklVMvalueLib *l = fklVMvalueLib(cur->k);
         CB_LINE("");
         uint64_t id = cur->v;
-        CB_LINE("lib %" PRIu64 ":", id);
+        print_lib_name(vm, l, id, build);
+        print_export_symbols(vm, l, build);
+
         if (FKL_IS_PROC(l->proc)) {
             FKL_DIS_PROC(vm,
                     FKL_VM_PROC(l->proc),
@@ -244,7 +269,8 @@ int main(int argc, char **argv) {
             FKL_ASSERT(cg_lib->type == FKL_CODEGEN_LIB_SCRIPT);
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
-            CB_LINE("lib 0:");
+			print_lib_name(vm, lib, 0, build);
+            print_export_symbols(vm, lib, build);
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);

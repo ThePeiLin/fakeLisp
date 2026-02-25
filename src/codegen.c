@@ -6823,7 +6823,11 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
     }
 
     lib = fklVMvalueCgLibsAdd(info->libraries, rp);
-    fklInitCgDllLib(ctx, lib, dll, initExport);
+    fklInitCgDllLib(ctx,
+            fklVMaddSymbolCstr(vm, filename),
+            lib,
+            dll,
+            initExport);
     uv_dlclose(&dll);
 
     return lib;

@@ -3,6 +3,7 @@
 #include <fakeLisp/code_builder.h>
 #include <fakeLisp/dis.h>
 #include <fakeLisp/symbol.h>
+#include <fakeLisp/utils.h>
 #include <fakeLisp/value_table.h>
 #include <fakeLisp/vm.h>
 
@@ -181,24 +182,12 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
     }
 }
 
-static inline int compute_digits_count(uint64_t len) {
-    if (len == 0)
-        return 1;
-    int sum = 0;
-    while (len > 0) {
-        ++sum;
-        len /= 10;
-    }
-
-    return sum;
-}
-
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklVMvalueProto *pt,
         FklCodeBuilder *build,
         const FklDisArgs *args) {
-    int digits_count = compute_digits_count(bcl->bc.len);
+    int digits_count = fklComputeDigitsCount(bcl->bc.len);
     int indents = args ? args->indents : 0;
     const char *indent_str = args && args->indent_str //
                                    ? args->indent_str
@@ -232,7 +221,7 @@ void fklDisassembleProc(FklVM *vm,
                                    ? args->indent_str
                                    : "    ";
     const FklLibTable *lib_table = args ? args->lib_table : NULL;
-    int digits_count = compute_digits_count(bcl->bc.len);
+    int digits_count = fklComputeDigitsCount(bcl->bc.len);
     uint64_t i = 0;
     CB_INDENT(flag) {
         disassemble_byte_code_lnt(vm,
@@ -253,7 +242,7 @@ void fklPrintObarray(FklVM *vm,
         const FklVMvalueObarray *a,
         FklCodeBuilder *build) {
 
-    int digits_count = compute_digits_count(a->map.count);
+    int digits_count = fklComputeDigitsCount(a->map.count);
 
     CB_LINE("count:\t%" PRIu32 "", a->map.count);
 

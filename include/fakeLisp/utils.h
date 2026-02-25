@@ -87,6 +87,19 @@ int fklIsAccessibleDirectory(const char *s);
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
 void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset);
 
+FKL_ALWAYS_INLINE
+static int fklComputeDigitsCount(uint64_t len) {
+    if (len == 0)
+        return 1;
+    int sum = 0;
+    while (len > 0) {
+        ++sum;
+        len /= 10;
+    }
+
+    return sum;
+}
+
 #ifdef __cplusplus
 }
 #endif

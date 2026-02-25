@@ -277,11 +277,18 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLib, {
     uv_mutex_t lock;
-    uint32_t count;
+
     atomic_int import_state;
 
+    // 大小是 values 实际长度的一半
+    uint32_t count;
+
+    uint64_t name_offset;
+
+    FklVMvalue *name;
     FklVMvalue *proc;
 
+    // 前半部分用来存值，后半部分存名字
     FklVMvalue *values[];
 });
 
@@ -1549,10 +1556,19 @@ void fklLockVMlib(FklVMvalueLib *lib);
 void fklUnlockVMlib(FklVMvalueLib *lib);
 
 int fklIsVMvalueLib(const FklVMvalue *);
-FklVMvalueLib *fklCreateVMvalueLib(FklVM *vm, uint32_t count);
+
+FklVMvalueLib *fklCreateVMvalueLib(FklVM *vm, //
+        FklVMvalue *name,
+        const FklVMvalueVec *names);
+
 static FKL_ALWAYS_INLINE FklVMvalueLib *fklVMvalueLib(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueLib(v));
     return FKL_TYPE_CAST(FklVMvalueLib *, v);
+}
+
+FKL_ALWAYS_INLINE
+static FklVMvalue *const *fklVMvalueLibNames(const FklVMvalueLib *l) {
+    return &l->values[l->count];
 }
 
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
@@ -1575,8 +1591,10 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtArr(
         const char *fmt,
         size_t value_count,
         FklVMvalue *values[]) {
-    FklVMvalue *errorMessage =
-            fklVMformatToString(exe, fmt, value_count, values);
+    FklVMvalue *errorMessage = fklVMformatToString(exe, //
+            fmt,
+            value_count,
+            values);
     FklVMvalue *err = fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[error_type],
             errorMessage);

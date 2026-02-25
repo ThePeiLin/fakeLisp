@@ -557,9 +557,18 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos,
         const FklLoadLibArgs *libs) {
+    FklVMvalue *name = load_value_id(fp, values);
     TotalValCount val_count = 0;
     fread(&val_count, sizeof(val_count), 1, fp);
-    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, val_count);
+
+    FklVMvalue *names = fklCreateVMvalueVec(values->vm, val_count);
+    for (size_t i = 0; i < val_count; ++i) {
+        FKL_VM_VEC(names)->base[i] = load_value_id(fp, values);
+    }
+
+    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, //
+            name,
+            FKL_VM_VEC(names));
     LibType lib_type = 0;
     fread(&lib_type, sizeof(lib_type), 1, fp);
     switch ((FklCgLibType)lib_type) {
@@ -668,12 +677,22 @@ static inline void write_prototype_pass_1(const FklVMvalueProto *pt,
 
         FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);
         for (uint32_t i = 0; i < pt->used_libraries_count; ++i) {
-            FklValueId id = fklLibTableGet(lib_table, libs[i]);
+            FklVMvalueLib *const l = libs[i];
+            FklValueId id = fklLibTableGet(lib_table, l);
             if (id != 0)
                 continue;
 
-            fklLibTableAdd(lib_table, libs[i]);
-            FklVMvalue *proc_v = libs[i]->proc;
+            fklLibTableAdd(lib_table, l);
+
+            FklVMvalue *proc_v = l->proc;
+
+            fklValueTableAdd(vt, l->name);
+
+            FklVMvalue *const *names = fklVMvalueLibNames(l);
+            for (size_t i = 0; i < l->count; ++i) {
+                fklValueTableAdd(vt, names[i]);
+            }
+
             if (FKL_IS_PROC(proc_v)) {
                 FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
                 fklValueVectorPushBack2(&pending, FKL_VM_VAL(proc->proto));
@@ -1023,8 +1042,16 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     LibType type_byte = FKL_IS_PROC(lib->proc) ? FKL_CODEGEN_LIB_SCRIPT
                                                : FKL_CODEGEN_LIB_DLL;
 
+    write_value_id(value_table, 0, lib->name, fp);
+
     TotalValCount val_count = lib->count;
     fwrite(&val_count, sizeof(val_count), 1, fp);
+
+    FklVMvalue *const *names = fklVMvalueLibNames(lib);
+    for (size_t i = 0; i < val_count; ++i) {
+        write_value_id(value_table, 0, names[i], fp);
+    }
+
     fwrite(&type_byte, sizeof(type_byte), 1, fp);
     switch (type_byte) {
     case FKL_CODEGEN_LIB_SCRIPT: {
@@ -1746,13 +1773,15 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
         const FklLoadProtoArgs *const protos,
         FklCgLib *cg_lib,
         FklLoadPreCompileArgs *const args) {
+    FklVMvalue *name = load_value_id(fp, values);
     load_export_sid_idx_table(fp, values, &cg_lib->exports);
     cg_lib->macros = load_compiler_macros(args->ctx->vm, fp, values, protos);
     cg_lib->replacements = load_replacements(fp, values);
     cg_lib->named_prod_groups = load_named_prods(fp, args->ctx, values, protos);
 
     FklVMvalueProc *proc = load_proc(fp, values, protos);
-    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, cg_lib->exports.count);
+    FklVMvalueVec *names = fklCreateCgNamesVec(values->vm, &cg_lib->exports);
+    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, name, names);
     lib->proc = FKL_VM_VAL(proc);
     cg_lib->lib = lib;
 }
@@ -1868,6 +1897,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         const FklVMvalueProc *proc) {
     switch (pass) {
     case FKL_WRITE_CODE_PASS_FIRST:
+        fklValueTableAdd(value_table, codegen->fid);
         write_export_sid_idx_table_pass_1(&codegen->exports, value_table);
         write_compiler_macros_pass_1(codegen->export_macros,
                 value_table,
@@ -1886,6 +1916,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 NULL);
         break;
     case FKL_WRITE_CODE_PASS_SECOND:
+        write_value_id(value_table, 0, codegen->fid, outfp);
         write_export_sid_idx_table_pass_2(&codegen->exports,
                 value_table,
                 outfp);

@@ -403,7 +403,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             exe->importing_lib = plib;
             int r = fklRunVM(exe, exit_frame);
 
-			// TODO: 检查还没有导出的符号
+            r = r || check_unbound_exported_symbol(exe, plib);
             int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
             atomic_store(&plib->import_state, import_state);
             fklUnlockVMlib(plib);
@@ -490,8 +490,15 @@ void fklVMexecuteInstruction(FklVM *exe,
             plib->proc = dll;
             initFunc(exe, dll, plib->count, plib->values);
             exe->tp = tp;
-            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTED);
+            int r = check_unbound_exported_symbol(exe, plib);
+            int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
+            atomic_store(&plib->import_state, import_state);
             fklUnlockVMlib(plib);
+
+            if (r) {
+                fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+            }
+
             break;
 
         case FKL_VM_LIB_IMPORTED:

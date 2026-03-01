@@ -690,23 +690,6 @@ static inline FklVMvalue *append_load_lib_ins(FklVM *exe,
             scope);
 }
 
-static inline FklVMvalue *append_load_dll_ins(FklVM *exe,
-        InsAppendMode m,
-        FklVMvalue *bcl,
-        uint32_t lib_id,
-        FklVMvalue *fid,
-        uint32_t line,
-        uint32_t scope) {
-    return set_and_append_ins_with_unsigned_imm(exe,
-            m,
-            bcl,
-            FKL_OP_LOAD_DLL,
-            lib_id,
-            fid,
-            line,
-            scope);
-}
-
 static inline FklVMvalue *append_drop_one_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
@@ -6853,7 +6836,7 @@ static inline int import_dll_impl(const CgCbArgs *args,
     if (lib == NULL)
         return -1;
 
-    FklVMvalue *load_dll_bc = append_load_dll_ins(vm,
+    FklVMvalue *load_dll_bc = append_load_lib_ins(vm,
             INS_APPEND_BACK,
             NULL,
             fklVMvalueCgEnvAddUsedLib(env, fklCgLibRp(lib), lib->lib)->id,

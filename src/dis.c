@@ -69,9 +69,6 @@ static inline int print_single_ins(FklVM *vm,
     case FKL_OP_LOAD_LIB:
     case FKL_OP_LOAD_LIB_C:
     case FKL_OP_LOAD_LIB_X:
-    case FKL_OP_LOAD_DLL:
-    case FKL_OP_LOAD_DLL_C:
-    case FKL_OP_LOAD_DLL_X:
         CB_FMT("%" PRIu64, ins_arg.ux);
         if (lib_table != NULL) {
             FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);

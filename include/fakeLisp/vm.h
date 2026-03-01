@@ -374,8 +374,6 @@ typedef struct FklVM {
     struct FklVM *next;
     jmp_buf *buf;
 
-    FklVMvalueLib *importing_lib;
-
     FklVMinsFunc dummy_ins_func;
 
     uint64_t rand_state[4];

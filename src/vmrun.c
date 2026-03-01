@@ -671,6 +671,75 @@ static FKL_ALWAYS_INLINE int check_unbound_exported_symbol(FklVM *exe,
     return 0;
 }
 
+static inline void load_lib(FklVM *exe, FklVMvalueLib *l) {
+    atomic_store(&l->import_state, FKL_VM_LIB_IMPORTING);
+    FklVMrecoverArgs re = { 0 };
+    fklVMsetRecover(exe, &re);
+
+    FklVMframe *exit_frame = exe->top_frame;
+    fklSetBp(exe);
+    FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(l));
+    call_compound_procedure(exe, FKL_VM_PROC(l->proc));
+
+    int r = fklRunVM(exe, exit_frame);
+
+    r = r || check_unbound_exported_symbol(exe, l);
+    int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
+    atomic_store(&l->import_state, import_state);
+    fklUnlockVMlib(l);
+
+    if (r) {
+        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+    }
+
+    fklVMrecover(exe, &re);
+}
+
+static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
+    atomic_store(&l->import_state, FKL_VM_LIB_IMPORTING);
+    FklVMvalue *error_msg = NULL;
+    FklVMvalue *dll;
+    FklImportDllInitFunc initFunc = NULL;
+    if (FKL_IS_STR(l->proc)) {
+        dll = fklCreateVMvalueDll(exe, l->proc, &error_msg);
+        fklInitVMdll(dll, exe);
+    } else {
+        dll = l->proc;
+    }
+
+    if (dll)
+        initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
+    else {
+        atomic_store(&l->import_state, FKL_VM_LIB_ERROR);
+        fklUnlockVMlib(l);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
+                exe,
+                FKL_VM_STR(error_msg)->str);
+    }
+
+    if (!initFunc) {
+        atomic_store(&l->import_state, FKL_VM_LIB_ERROR);
+        fklUnlockVMlib(l);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
+                exe,
+                "Failed to import dll: %s",
+                l->proc);
+    }
+
+    uint32_t tp = exe->tp;
+    l->proc = dll;
+    initFunc(exe, dll, l->count, l->values);
+    exe->tp = tp;
+    int r = check_unbound_exported_symbol(exe, l);
+    int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
+    atomic_store(&l->import_state, import_state);
+    fklUnlockVMlib(l);
+
+    if (r) {
+        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+    }
+}
+
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     const FklIns *ins;
     FklVMvalueLib *plib;

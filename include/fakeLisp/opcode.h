@@ -100,9 +100,6 @@ extern "C" {
     X(FKL_OP_LOAD_LIB,          "load-lib",          FKL_OP_MODE_IuB     )\
     X(FKL_OP_LOAD_LIB_C,        "load-lib-c",        FKL_OP_MODE_IuC     )\
     X(FKL_OP_LOAD_LIB_X,        "load-lib-x",        FKL_OP_MODE_IuBB    )\
-    X(FKL_OP_LOAD_DLL,          "load-dll",          FKL_OP_MODE_IuB     )\
-    X(FKL_OP_LOAD_DLL_C,        "load-dll-c",        FKL_OP_MODE_IuC     )\
-    X(FKL_OP_LOAD_DLL_X,        "load-dll-x",        FKL_OP_MODE_IuBB    )\
     X(FKL_OP_ATOM,              "atom",              FKL_OP_MODE_I       )\
     X(FKL_OP_TRUE,              "true",              FKL_OP_MODE_I       )\
     X(FKL_OP_NOT,               "not",               FKL_OP_MODE_I       )\

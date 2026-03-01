@@ -623,6 +623,7 @@ static FklVMvalueLib *create_script_lib(FklVM *vm,
         FklCgLib *clib,
         FklVMvalueProc *proc) {
     FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_SCRIPT);
+    FKL_ASSERT(FKL_IS_SYM(name));
     if (clib->lib)
         return clib->lib;
 
@@ -636,6 +637,7 @@ static FklVMvalueLib *create_script_lib(FklVM *vm,
 static FklVMvalueLib *
 create_dll_lib(FklVM *vm, FklVMvalue *name, FklCgLib *clib) {
     FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_DLL);
+    FKL_ASSERT(FKL_IS_SYM(name));
     if (clib->lib)
         return clib->lib;
     FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);

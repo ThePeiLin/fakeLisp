@@ -1714,7 +1714,17 @@ fklVMvalueTerminalCreate(const char *s, size_t len, size_t line, void *c) {
     return fklCreateVMvalueStr2(ctx->exe, len, s);
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(_lib_userdata_print, "lib");
+static void
+_lib_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
+    FklBuiltinErrorType r = fklVMformat(exe,
+            buf,
+            "#<lib %S>",
+            NULL,
+            1,
+            (FklVMvalue *[]){ fklVMvalueLib(ud)->name });
+    (void)r;
+    FKL_ASSERT(r == FKL_ERR_DUMMY);
+}
 
 static void _lib_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueLib *t = fklVMvalueLib(v);

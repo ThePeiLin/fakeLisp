@@ -71,9 +71,10 @@ set_back_origin_prev_env(FklVMvalueCgEnv *new_env, FklVMvalueCgEnv *outer_env) {
 static inline int has_import_op_code(const FklByteCodelnt *lnt) {
     const FklIns *cur = lnt->bc.code;
     const FklIns *const end = &cur[lnt->bc.len];
-    for (; cur < end; cur++)
-        if (cur->op == FKL_OP_LOAD_DLL || cur->op == FKL_OP_LOAD_LIB)
+    for (; cur < end; cur++) {
+        if (cur->op >= FKL_OP_LOAD_LIB && cur->op <= FKL_OP_LOAD_LIB_X)
             return 1;
+    }
     return 0;
 }
 

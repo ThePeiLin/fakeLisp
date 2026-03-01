@@ -288,7 +288,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
         frame->pc += 2;
     import_lib: {
-        FklVMvalueLib *plib = exe->importing_lib;
+        FklVMvalueLib *plib = fklVMvalueLib(FKL_VM_GET_TOP_VALUE(exe));
         FKL_ASSERT(idx < plib->count);
         FklVMvalue *v = plib->values[idx];
         if (v == NULL) {
@@ -390,38 +390,16 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
 
         switch (atomic_load(&plib->import_state)) {
-        case FKL_VM_LIB_NONE: {
-            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
-            FklVMrecoverArgs re = { 0 };
-            fklVMsetRecover(exe, &re);
-
-            FklVMframe *exit_frame = exe->top_frame;
-            fklSetBp(exe);
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(plib));
-            call_compound_procedure(exe, FKL_VM_PROC(plib->proc));
-
-            exe->importing_lib = plib;
-            int r = fklRunVM(exe, exit_frame);
-
-            r = r || check_unbound_exported_symbol(exe, plib);
-            int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
-            atomic_store(&plib->import_state, import_state);
-            fklUnlockVMlib(plib);
-
-            if (r) {
-                fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+        case FKL_VM_LIB_NONE:
+            if (FKL_IS_PROC(plib->proc)) {
+                load_lib(exe, plib);
+            } else {
+                load_dll(exe, plib);
             }
-
-            exe->importing_lib = plib;
-
-            fklVMrecover(exe, &re);
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
-        } break;
+            break;
         case FKL_VM_LIB_IMPORTED:
             if (state == FKL_VM_LIB_IMPORTING)
                 fklUnlockVMlib(plib);
-            exe->importing_lib = plib;
-            FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
             break;
 
         case FKL_VM_LIB_ERROR:
@@ -435,84 +413,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FKL_UNREACHABLE();
         }
 
-        return;
-    } break;
-    case FKL_OP_LOAD_DLL:
-        plib = frame->libs[ins->bu];
-        goto load_dll;
-    case FKL_OP_LOAD_DLL_C:
-        plib = frame->libs[FKL_GET_INS_UC(ins)];
-        goto load_dll;
-    case FKL_OP_LOAD_DLL_X:
-        plib = frame->libs[GET_INS_UX(ins, frame)];
-    load_dll: {
-        int state = atomic_load(&plib->import_state);
-
-        if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
-            fklUnlockThread(exe);
-            fklLockVMlib(plib);
-            fklLockThread(exe);
-        }
-
-        switch (atomic_load(&plib->import_state)) {
-        case FKL_VM_LIB_NONE:
-            atomic_store(&plib->import_state, FKL_VM_LIB_IMPORTING);
-            FklVMvalue *error_msg = NULL;
-            FklVMvalue *dll;
-            FklImportDllInitFunc initFunc = NULL;
-            if (FKL_IS_STR(plib->proc)) {
-                dll = fklCreateVMvalueDll(exe, plib->proc, &error_msg);
-                fklInitVMdll(dll, exe);
-            } else {
-                dll = plib->proc;
-            }
-
-            if (dll)
-                initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
-            else {
-                atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                fklUnlockVMlib(plib);
-                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
-                        exe,
-                        FKL_VM_STR(error_msg)->str);
-            }
-
-            if (!initFunc) {
-                atomic_store(&plib->import_state, FKL_VM_LIB_ERROR);
-                fklUnlockVMlib(plib);
-                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,
-                        exe,
-                        "Failed to import dll: %s",
-                        plib->proc);
-            }
-
-            uint32_t tp = exe->tp;
-            plib->proc = dll;
-            initFunc(exe, dll, plib->count, plib->values);
-            exe->tp = tp;
-            int r = check_unbound_exported_symbol(exe, plib);
-            int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
-            atomic_store(&plib->import_state, import_state);
-            fklUnlockVMlib(plib);
-
-            if (r) {
-                fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
-            }
-
-            break;
-
-        case FKL_VM_LIB_IMPORTED:
-            if (state == FKL_VM_LIB_IMPORTING)
-                fklUnlockVMlib(plib);
-            break;
-
-        case FKL_VM_LIB_ERROR:
-        case FKL_VM_LIB_IMPORTING:
-            FKL_UNREACHABLE();
-        }
-
-        exe->importing_lib = plib;
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_NIL);
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(plib));
     } break;
 
     case FKL_OP_ATOM: {

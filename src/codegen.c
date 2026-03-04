@@ -657,17 +657,15 @@ static inline FklVMvalue *append_jmp_ins(FklVM *exe,
 static inline FklVMvalue *append_import_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
-        uint32_t idx1,
         uint32_t idx,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(exe,
+    return set_and_append_ins_with_unsigned_imm(exe,
             m,
             bcl,
             FKL_OP_IMPORT,
             idx,
-            idx1,
             fid,
             line,
             scope);
@@ -5525,16 +5523,11 @@ static inline void export_symbol(FklVM *exe,
         uint32_t scope,
         FklVMvalueCgInfo *lib_info) {
     uint32_t target_idx = fklAddCgDefBySid(k, scope, env)->idx;
-    append_import_ins(exe,
-            INS_APPEND_BACK,
-            bcl,
-            target_idx,
-            v->idx,
-            fid,
-            line,
-            scope);
+    append_import_ins(exe, INS_APPEND_BACK, bcl, v->idx, fid, line, scope);
+    append_put_loc_ins(exe, INS_APPEND_BACK, bcl, target_idx, fid, line, scope);
     if (lib_info == NULL)
-        return;
+        goto done;
+
     FklCgExportIdx *item = NULL;
     item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, k);
     if (item == NULL) {
@@ -5547,8 +5540,9 @@ static inline void export_symbol(FklVM *exe,
                 });
     }
 
-    append_get_loc_ins(exe, INS_APPEND_BACK, bcl, target_idx, fid, line, scope);
     append_export_ins(exe, INS_APPEND_BACK, bcl, item->idx, fid, line, scope);
+
+done:
     append_drop_one_ins(exe, INS_APPEND_BACK, bcl, fid, line, scope);
 }
 

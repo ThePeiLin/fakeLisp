@@ -79,9 +79,9 @@ extern "C" {
     X(FKL_OP_JMP_C,             "jmp-c",             FKL_OP_MODE_IsC     )\
     X(FKL_OP_JMP_X,             "jmp-x",             FKL_OP_MODE_IsBB    )\
     X(FKL_OP_JMP_XX,            "jmp-xx",            FKL_OP_MODE_IsCCB   )\
-    X(FKL_OP_IMPORT,            "import",            FKL_OP_MODE_IuAuB   )\
-    X(FKL_OP_IMPORT_X,          "import-x",          FKL_OP_MODE_IuCuC   )\
-    X(FKL_OP_IMPORT_XX,         "import-xx",         FKL_OP_MODE_IuCAuBB )\
+    X(FKL_OP_IMPORT,            "import",            FKL_OP_MODE_IuB     )\
+    X(FKL_OP_IMPORT_C,          "import-x",          FKL_OP_MODE_IuC     )\
+    X(FKL_OP_IMPORT_X,          "import-xx",         FKL_OP_MODE_IuBB    )\
     X(FKL_OP_GET_LOC,           "get-loc",           FKL_OP_MODE_IuB     )\
     X(FKL_OP_GET_LOC_C,         "get-loc-c",         FKL_OP_MODE_IuC     )\
     X(FKL_OP_GET_LOC_X,         "get-loc-x",         FKL_OP_MODE_IuBB    )\

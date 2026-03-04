@@ -638,7 +638,7 @@ static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
 }
 
 #define GET_INS_UX(ins, frame)                                                 \
-    ((ins)->bu | (((uint32_t)frame->pc++->bu) << FKL_I16_WIDTH))
+    ((ins)->bu | (((uint32_t)(frame->pc++)->bu) << FKL_I16_WIDTH))
 #define GET_INS_IX(ins, frame) ((int32_t)GET_INS_UX(ins, frame))
 #define GET_INS_UXX(ins, frame)                                                \
     (frame->pc += 2,                                                           \
@@ -744,7 +744,6 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     const FklIns *ins;
     FklVMvalueLib *plib;
     uint32_t idx;
-    uint32_t idx1;
     uint64_t size;
     int64_t offset;
 start:

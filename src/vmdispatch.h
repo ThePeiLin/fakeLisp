@@ -15,7 +15,6 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMframe *frame) {
     FklVMvalueLib *plib;
     uint32_t idx;
-    uint32_t idx1;
     uint64_t size;
     int64_t offset;
     switch (op) {
@@ -275,18 +274,19 @@ void fklVMexecuteInstruction(FklVM *exe,
         frame->pc += offset;
         break;
     case FKL_OP_IMPORT:
-        idx = ins->au;
-        idx1 = ins->bu;
+        idx = ins->bu;
+        // idx1 = ins->bu;
+        goto import_lib;
+    case FKL_OP_IMPORT_C:
+        idx = FKL_GET_INS_UC(ins);
+        // ins = frame->pc++;
+        // idx1 = FKL_GET_INS_UC(ins);
         goto import_lib;
     case FKL_OP_IMPORT_X:
-        idx = FKL_GET_INS_UC(ins);
-        ins = frame->pc++;
-        idx1 = FKL_GET_INS_UC(ins);
-        goto import_lib;
-    case FKL_OP_IMPORT_XX:
-        idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->pc += 2;
+        idx = GET_INS_UX(ins, frame);
+        // idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
+        // idx1 = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
+        // frame->pc += 2;
     import_lib: {
         FklVMvalueLib *plib = fklVMvalueLib(FKL_VM_GET_TOP_VALUE(exe));
         FKL_ASSERT(idx < plib->count);
@@ -295,7 +295,8 @@ void fklVMexecuteInstruction(FklVM *exe,
             fklPrintErrBacktrace(plib->proc, exe, NULL);
             abort();
         }
-        FKL_VM_GET_ARG(exe, frame, idx1) = v;
+		FKL_VM_PUSH_VALUE(exe, v);
+        // FKL_VM_GET_ARG(exe, frame, idx1) = v;
     } break;
     case FKL_OP_GET_LOC:
         FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, ins->bu));

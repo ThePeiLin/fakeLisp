@@ -50,13 +50,6 @@ static inline int print_single_ins(FklVM *vm,
         fklPrin1VMvalue2(FKL_MAKE_VM_CHR(ins_arg.ux), build, vm);
     } break;
 
-    case FKL_OP_PUSH_PROC:
-    case FKL_OP_PUSH_PROC_X:
-    case FKL_OP_PUSH_PROC_XX:
-    case FKL_OP_PUSH_PROC_XXX:
-        CB_FMT("%" PRIu64 "  %" PRIu64, ins_arg.ux, ins_arg.uy);
-        break;
-
     case FKL_OP_DROP:
     case FKL_OP_PAIR:
     case FKL_OP_VEC:
@@ -128,6 +121,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
         int indents,
         const char *indent_str,
         const FklLibTable *lib_table) {
+    const FklVMvalueProto *proto = NULL;
     while (pc < end) {
         print_single_ins(vm,
                 digits_count,
@@ -138,7 +132,13 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                 indents,
                 indent_str,
                 lib_table);
-        if (fklIsPushProcIns(pc)) {
+        if (fklIsLoadProto(pc)) {
+            FklInsArg ins_arg = { 0 };
+            fklGetInsOpArg(pc, &ins_arg);
+            proto = fklVMvalueProtoChildren(pt)[ins_arg.ux];
+        }
+
+        if (fklIsMakeProcIns(pc)) {
             FklInsArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
 
@@ -161,8 +161,8 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         digits_count,
                         bcl,
                         pc,
-                        pc + ins_arg.uy,
-                        fklVMvalueProtoChildren(pt)[ins_arg.ux],
+                        pc + ins_arg.ux,
+                        proto,
                         i,
                         build,
                         indents,
@@ -170,8 +170,8 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         lib_table);
             }
 
-            pc += ins_arg.uy;
-            i += ins_arg.uy;
+            pc += ins_arg.ux;
+            i += ins_arg.ux;
         } else {
             ++pc;
             ++i;

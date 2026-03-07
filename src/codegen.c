@@ -245,50 +245,6 @@ static inline FklVMvalue *create_0len_bcl(FklVM *exe) {
     return fklCreateVMvalueCodeObj1(exe);
 }
 
-#define I24_L8_MASK (0xFF)
-#define I32_L16_MASK (0xFFFF)
-#define I64_L24_MASK (0xFFFFFF)
-
-static inline void set_ins_uc(FklIns *ins, uint32_t k) {
-    ins->au = k & I24_L8_MASK;
-    ins->bu = k >> FKL_BYTE_WIDTH;
-}
-
-static inline void set_ins_uxx(FklIns *ins, uint64_t k) {
-    set_ins_uc(&ins[0], k & I64_L24_MASK);
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    set_ins_uc(&ins[1], (k >> FKL_I24_WIDTH) & I64_L24_MASK);
-    ins[2].op = FKL_OP_EXTRA_ARG;
-    ins[2].bu = (k >> (FKL_I24_WIDTH * 2));
-}
-
-static inline void set_ins_ux(FklIns *ins, uint32_t k) {
-    ins[0].bu = k & I32_L16_MASK;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    ins[1].bu = k >> FKL_I16_WIDTH;
-}
-
-static inline int
-set_ins_with_unsigned_imm(FklIns *ins, FklOpcode op, uint64_t k) {
-    int l = 1;
-    if (k <= UINT16_MAX) {
-        ins[0].op = op;
-        ins[0].bu = k;
-    } else if (k <= FKL_U24_MAX) {
-        ins[0].op = op + 1;
-        set_ins_uc(&ins[0], k);
-    } else if (k <= UINT32_MAX) {
-        ins[0].op = op + 2;
-        set_ins_ux(ins, k);
-        l = 2;
-    } else {
-        ins[0].op = op + 3;
-        set_ins_uxx(ins, k);
-        l = 3;
-    }
-    return l;
-}
-
 static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
@@ -297,87 +253,8 @@ static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklIns ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
-    int l = set_ins_with_unsigned_imm(ins, op, k);
-    if (bcl == NULL)
-        bcl = create_0len_bcl(exe);
-    switch (m) {
-    case INS_APPEND_BACK:
-        for (int i = 0; i < l; i++)
-            fklByteCodeLntPushBackIns(FKL_VM_CO(bcl),
-                    &ins[i],
-                    fid,
-                    line,
-                    scope);
-        break;
-    case INS_APPEND_FRONT:
-        for (; l > 0; l--)
-            fklByteCodeLntInsertFrontIns(&ins[l - 1],
-                    FKL_VM_CO(bcl),
-                    fid,
-                    line,
-                    scope);
-    }
-    return bcl;
-}
-
-static inline int set_ins_with_2_unsigned_imm(FklIns *ins,
-        FklOpcode op,
-        uint64_t ux,
-        uint64_t uy) {
-    int l = 1;
-    if (ux <= UINT8_MAX && uy <= UINT16_MAX) {
-        ins[0].op = op;
-        ins[0].au = ux;
-        ins[0].bu = uy;
-    } else if (ux <= FKL_U24_MAX && uy <= FKL_U24_MAX) {
-        ins[0].op = op + 1;
-        ins[1].op = FKL_OP_EXTRA_ARG;
-        set_ins_uc(&ins[0], ux);
-        set_ins_uc(&ins[1], uy);
-        l = 2;
-    } else if (ux <= UINT32_MAX && uy <= UINT32_MAX) {
-        ins[0].op = op + 2;
-        set_ins_uc(&ins[0], ux & I64_L24_MASK);
-        ins[1].op = FKL_OP_EXTRA_ARG;
-        ins[1].au = ux >> FKL_I24_WIDTH;
-        ins[1].bu = uy & I32_L16_MASK;
-        ins[2].op = FKL_OP_EXTRA_ARG;
-        ins[2].bu = uy >> FKL_I16_WIDTH;
-        l = 3;
-    } else {
-        ins[0].op = op + 3;
-        set_ins_uc(&ins[0], ux & I64_L24_MASK);
-        ins[1].op = FKL_OP_EXTRA_ARG;
-        ins[1].au = ux >> FKL_I24_WIDTH;
-        ins[1].bu = uy & I32_L16_MASK;
-
-        ins[2].op = FKL_OP_EXTRA_ARG;
-        set_ins_uc(&ins[2], (uy >> FKL_I16_WIDTH) & I64_L24_MASK);
-
-        ins[3].op = FKL_OP_EXTRA_ARG;
-        set_ins_uc(&ins[3],
-                (uy >> (FKL_I16_WIDTH + FKL_I24_WIDTH)) & I64_L24_MASK);
-        l = 4;
-    }
-    return l;
-}
-
-#undef I24_L8_MASK
-#undef I32_L16_MASK
-#undef I64_L24_MASK
-
-static inline FklVMvalue *set_and_append_ins_with_2_unsigned_imm(FklVM *exe,
-        InsAppendMode m,
-        FklVMvalue *bcl,
-        FklOpcode op,
-        uint64_t ux,
-        uint64_t uy,
-        FklVMvalue *fid,
-        uint32_t line,
-        uint32_t scope) {
     FklIns ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
-    int l = set_ins_with_2_unsigned_imm(ins, op, ux, uy);
+    int l = FKL_MAKE_INS(ins, op, .ux = k);
     if (bcl == NULL)
         bcl = create_0len_bcl(exe);
     switch (m) {
@@ -398,27 +275,6 @@ static inline FklVMvalue *set_and_append_ins_with_2_unsigned_imm(FklVM *exe,
                     scope);
     }
     return bcl;
-}
-
-static inline int
-set_ins_with_signed_imm(FklIns *ins, FklOpcode op, int64_t k) {
-    int l = 1;
-    if (k >= INT16_MIN && k <= INT16_MAX) {
-        ins[0].op = op;
-        ins[0].bi = k;
-    } else if (k >= FKL_I24_MIN && k <= FKL_I24_MAX) {
-        ins[0].op = op + 1;
-        set_ins_uc(ins, k + FKL_I24_OFFSET);
-    } else if (k >= INT32_MIN && k <= INT32_MAX) {
-        ins[0].op = op + 2;
-        set_ins_ux(ins, k);
-        l = 2;
-    } else {
-        ins[0].op = op + 3;
-        set_ins_uxx(ins, k);
-        l = 3;
-    }
-    return l;
 }
 
 static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
@@ -429,8 +285,9 @@ static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklIns ins[3] = { FKL_INSTRUCTION_STATIC_INIT };
-    int l = set_ins_with_signed_imm(ins, op, k);
+    FklIns ins[4] = { FKL_INSTRUCTION_STATIC_INIT };
+    int l = FKL_MAKE_INS(ins, op, .ix = k);
+    FKL_ASSERT(l);
     if (bcl == NULL)
         bcl = create_0len_bcl(exe);
     switch (m) {
@@ -453,83 +310,10 @@ static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
     return bcl;
 }
 
-static inline FklByteCode *
-append_push_chr_ins_to_bc(InsAppendMode m, FklByteCode *bc, char ch) {
-    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
-    ins.op = FKL_OP_PUSH_CHAR;
-    ins.bu = (uint8_t)ch;
-    if (bc == NULL)
-        bc = fklCreateByteCode(0);
-    switch (m) {
-    case INS_APPEND_BACK:
-        fklByteCodePushBack(bc, ins);
-        break;
-    case INS_APPEND_FRONT:
-        fklByteCodeInsertFront(ins, bc);
-        break;
-    }
-    return bc;
-}
-
-static inline FklByteCode *append_push_const_ins_to_bc(InsAppendMode m,
-        FklByteCode *bc,
-        uint32_t k,
-        FklVMvalueCgInfo *info) {
-    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
-    ins.op = FKL_OP_PUSH_CONST;
-    set_ins_uc(&ins, k);
-    if (bc == NULL)
-        bc = fklCreateByteCode(0);
-    switch (m) {
-    case INS_APPEND_BACK:
-        fklByteCodePushBack(bc, ins);
-        break;
-    case INS_APPEND_FRONT:
-        fklByteCodeInsertFront(ins, bc);
-    }
-    return bc;
-}
-
-static inline FklByteCode *append_push_i24_ins_to_bc(InsAppendMode m,
-        FklByteCode *bc,
-        int32_t k,
-        FklVMvalueCgInfo *info) {
-    FklIns ins = FKL_INSTRUCTION_STATIC_INIT;
-    if (k == 0 || k == 1) {
-        ins.op = FKL_OP_PUSH_0 + k;
-        goto append;
-    } else if (k >= INT8_MIN && k <= INT8_MAX) {
-        ins.op = FKL_OP_PUSH_I8;
-        ins.ai = k;
-        goto append;
-    } else if (k >= INT16_MIN && k <= INT16_MAX) {
-        ins.op = FKL_OP_PUSH_I16;
-        ins.bi = k;
-        goto append;
-    } else if (k >= FKL_I24_MIN && k <= FKL_I24_MAX) {
-        ins.op = FKL_OP_PUSH_I24;
-        set_ins_uc(&ins, k + FKL_I24_OFFSET);
-    append:
-        if (bc == NULL)
-            bc = fklCreateByteCode(0);
-        switch (m) {
-        case INS_APPEND_BACK:
-            fklByteCodePushBack(bc, ins);
-            break;
-        case INS_APPEND_FRONT:
-            fklByteCodeInsertFront(ins, bc);
-        }
-    } else {
-        FKL_UNREACHABLE();
-    }
-    return bc;
-}
-
 static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
         int64_t k,
-        FklVMvalueCgInfo *info,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
@@ -537,17 +321,10 @@ static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
     if (k == 0 || k == 1) {
         ins.op = FKL_OP_PUSH_0 + k;
         goto append;
-    } else if (k >= INT8_MIN && k <= INT8_MAX) {
-        ins.op = FKL_OP_PUSH_I8;
-        ins.ai = k;
-        goto append;
-    } else if (k >= INT16_MIN && k <= INT16_MAX) {
-        ins.op = FKL_OP_PUSH_I16;
-        ins.bi = k;
-        goto append;
     } else if (k >= FKL_I24_MIN && k <= FKL_I24_MAX) {
-        ins.op = FKL_OP_PUSH_I24;
-        set_ins_uc(&ins, k + FKL_I24_OFFSET);
+        int l = FKL_MAKE_INS(&ins, FKL_OP_PUSH_I8, .ix = k);
+        FKL_ASSERT(l == 1);
+        (void)l;
     append:
         if (bcl == NULL)
             bcl = create_0len_bcl(exe);
@@ -571,17 +348,43 @@ static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
 static inline FklVMvalue *append_push_proc_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
-        uint32_t prototypeId,
+        uint32_t proto_id,
         uint64_t len,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return set_and_append_ins_with_2_unsigned_imm(exe,
+    FklOpcode ops[2] = { 0 };
+    FklInsArg args[2] = { 0 };
+    switch (m) {
+    case INS_APPEND_BACK:
+        ops[0] = FKL_OP_LOAD_PROTO;
+        args[0].ux = proto_id;
+
+        ops[1] = FKL_OP_MAKE_PROC;
+        args[1].ux = len;
+        break;
+    case INS_APPEND_FRONT:
+        ops[0] = FKL_OP_MAKE_PROC;
+        args[0].ux = len;
+
+        ops[1] = FKL_OP_LOAD_PROTO;
+        args[1].ux = proto_id;
+        break;
+    }
+
+    bcl = set_and_append_ins_with_unsigned_imm(exe,
             m,
             bcl,
-            FKL_OP_PUSH_PROC,
-            prototypeId,
-            len,
+            ops[0],
+            args[0].ux,
+            fid,
+            line,
+            scope);
+    return set_and_append_ins_with_unsigned_imm(exe,
+            m,
+            bcl,
+            ops[1],
+            args[1].ux,
             fid,
             line,
             scope);
@@ -2265,42 +2068,29 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
         FklVMvalue *cur = *fklValueVectorPopBackNonNull(stack);
         FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
         const FklIns *cur_ins = &FKL_VM_CO(cur)->bc.code[0];
-        if (fklIsPushProcIns(cur_ins)) {
+        if (fklIsLoadProto(cur_ins)) {
             const FklIns *popVar_ins = &FKL_VM_CO(popVar)->bc.code[0];
+            FklInsArg arg;
+            fklGetInsOpArg(cur_ins, &arg);
+            uint64_t proto_id = arg.ux;
+            fklGetInsOpArg(popVar_ins, &arg);
+            uint64_t idx = arg.ux;
+
+            FklVMvalue *pt_v = env->child_proc_protos.base[proto_id];
+            FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
+            FklVMvalueProto *proto = fklVMvalueProto(pt_v);
             if (fklIsPutLocIns(popVar_ins)) {
-                FklInsArg arg;
-                fklGetInsOpArg(cur_ins, &arg);
-                uint64_t prototypeId = arg.ux;
-
-                fklGetInsOpArg(popVar_ins, &arg);
-                uint64_t idx = arg.ux;
-
-                FklVMvalue *pt_v = env->child_proc_protos.base[prototypeId];
-                FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
-
-                FklVMvalueProto *proto = fklVMvalueProto(pt_v);
                 if (proto->name == NULL) {
                     const FklCgEnvScope *sc = fklCgEnvScopeGet(env, scope_id);
                     proto->name = get_sid_with_idx(sc, idx, ctx);
                 }
             } else if (fklIsPutVarRefIns(popVar_ins)) {
-                FklInsArg arg;
-                fklGetInsOpArg(cur_ins, &arg);
-                uint64_t prototypeId = arg.ux;
-
-                fklGetInsOpArg(popVar_ins, &arg);
-                uint64_t idx = arg.ux;
-
-                FklVMvalue *pt_v = env->child_proc_protos.base[prototypeId];
-                FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
-
-                FklVMvalueProto *proto = fklVMvalueProto(pt_v);
-
                 if (proto->name == NULL) {
                     proto->name = get_sid_with_ref_idx(&env->refs, idx, ctx);
                 }
             }
         }
+
         fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(popVar));
         return popVar;
     } else {
@@ -2751,7 +2541,6 @@ static void codegen_named_let1(const CgCbArgs *args) {
 
 static FklVMvalue *_and_exp_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
-    FklVMvalueCgInfo *info = args->info;
     uint32_t scope = args->scope;
     FklValueVector *bcl_vec = args->bcl_vec;
     FklVMvalue *fid = args->fid;
@@ -2781,15 +2570,15 @@ static FklVMvalue *_and_exp_bc_process(const FklCgActCbArgs *args) {
             fklCodeLntReverseConcat(FKL_VM_CO(cur), FKL_VM_CO(retval));
         }
         return retval;
-    } else
+    } else {
         return append_push_i24_ins(vm,
                 INS_APPEND_BACK,
                 NULL,
                 1,
-                info,
                 fid,
                 line,
                 scope);
+    }
 }
 
 static void codegen_and(const CgCbArgs *args) {
@@ -8919,18 +8708,28 @@ static FklVMvalue *gen_push_literal_code(FklVM *exe,
     case FKL_TAG_NIL:
         fklByteCodeInsertFront(create_op_ins(FKL_OP_PUSH_NIL), retval);
         break;
-    case FKL_TAG_CHR:
-        append_push_chr_ins_to_bc(INS_APPEND_FRONT, retval, FKL_GET_CHR(node));
-        break;
+    case FKL_TAG_CHR: {
+        char ch = FKL_GET_CHR(node);
+        FklIns ins = { .op = FKL_OP_PUSH_CHAR, .bu = (uint16_t)ch };
+        fklByteCodeInsertFront(ins, retval);
+    } break;
     case FKL_TAG_FIX: {
         int64_t i = FKL_GET_FIX(node);
         if (i >= FKL_I24_MIN && i <= FKL_I24_MAX) {
-            append_push_i24_ins_to_bc(INS_APPEND_FRONT, retval, i, info);
+            append_push_i24_ins(exe,
+                    INS_APPEND_FRONT,
+                    r,
+                    i,
+                    info->fid,
+                    CURLINE(node),
+                    scope);
+            return r;
         } else {
         add_consts:
             k = fklValueTableAdd(&env->konsts, node) - 1;
             FKL_ASSERT(k <= FKL_U24_MAX);
-            append_push_const_ins_to_bc(INS_APPEND_FRONT, retval, k, info);
+            FklIns ins = { .op_ = FKL_OP_PUSH_CONST, .cu = k };
+            fklByteCodeInsertFront(ins, retval);
         }
     } break;
     }

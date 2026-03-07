@@ -9,8 +9,9 @@
 static struct {
     char *name;
     FklOpcodeMode mode;
+    FklOpcode next;
 } opcodeInfo[FKL_OPCODE_NUM] = {
-#define X(A, B, C) { B, C },
+#define X(A, B, C, D) { B, C, D },
     FKL_OPCODE_X
 #undef X
 };
@@ -21,6 +22,10 @@ const char *fklGetOpcodeName(FklOpcode opcode) {
 
 FklOpcodeMode fklGetOpcodeMode(FklOpcode opcode) {
     return opcodeInfo[opcode].mode;
+}
+
+FklOpcode fklGetOpcodeNext(FklOpcode opcode) {
+    return opcodeInfo[opcode].next;
 }
 
 FklOpcode fklFindOpcode(const char *str) {

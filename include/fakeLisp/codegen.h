@@ -134,7 +134,9 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
         const FklResolveRefArgs *args);
 
 #define FKL_CREATE_VMVALUE_PROTO(EXE, ENV, ...)                                \
-    fklCreateVMvalueProto3(EXE, ENV, &(const FklResolveRefArgs){ __VA_ARGS__ })
+    (fklCreateVMvalueProto3(EXE,                                               \
+            ENV,                                                               \
+            &(const FklResolveRefArgs){ __VA_ARGS__ }))
 
 void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,

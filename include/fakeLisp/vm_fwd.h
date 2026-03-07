@@ -48,7 +48,7 @@ typedef enum {
     struct FklVMvalue *dll_;                                                   \
     const struct FklVMudMetaTable *mt_
 
-#define FKL_VM_DEF_UD_STRUCT(NAME, MEMBERS)                                    \
+#define FKL_VM_DEF_UD_STRUCT(NAME, ...)                                        \
     typedef struct NAME {                                                      \
         FKL_VM_VALUE_COMMON_HEADER;                                            \
         alignas(struct {                                                       \
@@ -56,7 +56,7 @@ typedef enum {
             void *data[];                                                      \
         }) struct {                                                            \
             FKL_VM_UD_COMMON_HEADER;                                           \
-            struct MEMBERS;                                                    \
+            struct __VA_ARGS__;                                                \
         };                                                                     \
     } NAME
 

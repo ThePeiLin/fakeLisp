@@ -1335,10 +1335,8 @@ uint32_t fklVMfetchVarRef(FklVM *exe, FklVMvalueProc *proc, FklVMframe *f) {
 FklVMvalue *fklCreateVMvalueProc3(FklVM *exe,
         FklVMframe *f,
         size_t cpc,
-        uint32_t pid,
-        const FklVMvalueProto *parent_proto) {
+        FklVMvalueProto *pt) {
     FklVMvalue *co = get_compound_frame_code_obj(f);
-    FklVMvalueProto *pt = fklVMvalueProtoChildren(parent_proto)[pid];
     FklVMvalue *r = fklCreateVMvalueProc2(exe, f->pc, cpc, co, pt);
 
     uint32_t count = pt->ref_count;

@@ -6,6 +6,7 @@
 #include "symbol.h"
 #include "vm_fwd.h"
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -25,12 +26,9 @@ typedef union {
             int16_t bi;
         };
     };
+
     struct {
-        uint32_t op1 : 8;
-        uint32_t ci : 24;
-    };
-    struct {
-        uint32_t op2 : 8;
+        uint32_t op_ : 8;
         uint32_t cu : 24;
     };
 } FklIns;
@@ -142,6 +140,16 @@ int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *arg);
 
 int fklGetNextIns(const FklIns *cur_ins, const FklIns *ins[2]);
 
+FKL_NODISCARD
+int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *);
+
+#define FKL_MAKE_INS(INS, OP, ...)                                             \
+    (fklMakeIns((INS), (OP), &(const FklInsArg){ __VA_ARGS__ }));
+
+static FKL_ALWAYS_INLINE int fklIsLoadProto(const FklIns *ins) {
+    return ins->op == FKL_OP_LOAD_PROTO;
+}
+
 static inline int fklIsJmpIns(const FklIns *ins) {
     return ins->op >= FKL_OP_JMP && ins->op <= FKL_OP_JMP_XX;
 }
@@ -150,12 +158,20 @@ static inline int fklIsCondJmpIns(const FklIns *ins) {
     return ins->op >= FKL_OP_JMP_IF_TRUE && ins->op <= FKL_OP_JMP_IF_FALSE_XX;
 }
 
+static inline int fklIsJmpIfTrueIns(const FklIns *ins) {
+    return ins->op >= FKL_OP_JMP_IF_TRUE && ins->op <= FKL_OP_JMP_IF_TRUE_XX;
+}
+
+static inline int fklIsJmpIfFalseIns(const FklIns *ins) {
+    return ins->op >= FKL_OP_JMP_IF_FALSE && ins->op <= FKL_OP_JMP_IF_FALSE_XX;
+}
+
 static inline int fklIsPutLocIns(const FklIns *ins) {
     return ins->op >= FKL_OP_PUT_LOC && ins->op <= FKL_OP_PUT_LOC_X;
 }
 
-static inline int fklIsPushProcIns(const FklIns *ins) {
-    return ins->op >= FKL_OP_PUSH_PROC && ins->op <= FKL_OP_PUSH_PROC_XXX;
+static inline int fklIsMakeProcIns(const FklIns *ins) {
+    return ins->op == FKL_OP_MAKE_PROC;
 }
 
 static inline int fklIsPutVarRefIns(const FklIns *ins) {

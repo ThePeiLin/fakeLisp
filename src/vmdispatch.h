@@ -107,34 +107,22 @@ void fklVMexecuteInstruction(FklVM *exe,
         exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
         FKL_VM_PUSH_VALUE(exe, hash);
     } break;
-    case FKL_OP_PUSH_PROC:
-        idx = ins->au;
-        size = ins->bu;
-        goto push_proc;
-    case FKL_OP_PUSH_PROC_X:
-        idx = FKL_GET_INS_UC(ins);
-        ins = frame->pc++;
-        size = FKL_GET_INS_UC(ins);
-        goto push_proc;
-    case FKL_OP_PUSH_PROC_XX:
-        idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        size = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
-        frame->pc += 2;
-        goto push_proc;
-    case FKL_OP_PUSH_PROC_XXX:
-        idx = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        size = ins[1].bu | (((uint64_t)ins[2].au) << FKL_I16_WIDTH)
-             | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
-             | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
-             | (((uint64_t)ins[3].bu)
-                     << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
-        frame->pc += 3;
-    push_proc: {
+
+    case FKL_OP_LOAD_PROTO: {
+        idx = ins->cu;
         FklVMvalueProto *proto = FKL_VM_PROC(frame->proc)->proto;
-        FklVMvalue *proc = fklCreateVMvalueProc3(exe, frame, size, idx, proto);
-        FKL_VM_PUSH_VALUE(exe, proc);
+        FklVMvalueProto *child_proto = fklVMvalueProtoChildren(proto)[idx];
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(child_proto));
+    } break;
+
+    case FKL_OP_MAKE_PROC: {
+        size = ins->cu;
+        FklVMvalueProto *proto = fklVMvalueProto(FKL_VM_GET_TOP_VALUE(exe));
+        FklVMvalue *proc = fklCreateVMvalueProc3(exe, frame, size, proto);
+        FKL_VM_GET_TOP_VALUE(exe) = proc;
         frame->pc += size;
     } break;
+
     case FKL_OP_DUP: {
         if (exe->tp <= frame->sp)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACKERROR, exe);
@@ -295,7 +283,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             fklPrintErrBacktrace(plib->proc, exe, NULL);
             abort();
         }
-		FKL_VM_PUSH_VALUE(exe, v);
+        FKL_VM_PUSH_VALUE(exe, v);
         // FKL_VM_GET_ARG(exe, frame, idx1) = v;
     } break;
     case FKL_OP_GET_LOC:

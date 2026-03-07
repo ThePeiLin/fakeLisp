@@ -1116,8 +1116,7 @@ FklVMvalue *fklCreateVMvalueProc2(FklVM *,
 FklVMvalue *fklCreateVMvalueProc3(FklVM *,
         FklVMframe *f,
         size_t,
-        uint32_t pid,
-        const FklVMvalueProto *parent_proto);
+        FklVMvalueProto *child_proto);
 
 #ifdef _WIN32
 #define FKL_DLL_EXPORT __declspec(dllexport)

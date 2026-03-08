@@ -145,37 +145,4 @@ int main() {
             arg.ix);
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
-
-    // IuCuC
-    ux = 0x123456;
-    uint64_t uy = 0x789ABC;
-    ins[0].op = FKL_OP_CLOSE_REF_X;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    set_ins_uc(&ins[0], ux);
-    set_ins_uc(&ins[1], uy);
-    arg.ux = FKL_GET_INS_UC(ins);
-    arg.uy = FKL_GET_INS_UC(&ins[1]);
-    fputs("IuCuC\n", stderr);
-    fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
-            ", arg.uy= %" PRIu64 "\n",
-            __FILE__,
-            __LINE__,
-            ux,
-            uy,
-            arg.ux,
-            arg.uy);
-    FKL_ASSERT(arg.ux == ux && arg.uy == uy);
-    fklGetInsOpArg(ins, &arg);
-    fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", uy= %" PRIu64 ", arg.ux= %" PRIu64
-            ", arg.uy= %" PRIu64 "\n",
-            __FILE__,
-            __LINE__,
-            ux,
-            uy,
-            arg.ux,
-            arg.uy);
-    FKL_ASSERT(arg.ux == ux && arg.uy == uy);
-    fputc('\n', stderr);
 }

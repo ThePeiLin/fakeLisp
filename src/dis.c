@@ -60,8 +60,6 @@ static inline int print_single_ins(FklVM *vm,
         CB_FMT("::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
         break;
     case FKL_OP_LOAD_LIB:
-    case FKL_OP_LOAD_LIB_C:
-    case FKL_OP_LOAD_LIB_X:
         CB_FMT("%" PRIu64, ins_arg.ux);
         if (lib_table != NULL) {
             FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);

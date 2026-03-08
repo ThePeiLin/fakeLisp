@@ -187,7 +187,7 @@ static inline int fklIsRetIns(const FklIns *ins) {
 }
 
 static inline int fklIsLoadLibIns(const FklIns *ins) {
-    return ins->op >= FKL_OP_LOAD_LIB && ins->op <= FKL_OP_LOAD_LIB_X;
+    return ins->op == FKL_OP_LOAD_LIB;
 }
 
 void fklScanAndSetTailCall(FklByteCode *bc);

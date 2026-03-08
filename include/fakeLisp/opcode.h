@@ -77,9 +77,7 @@ extern "C" {
     X(FKL_OP_JMP_C,            "jmp-c",            FKL_OP_MODE_IsC,      FKL_OP_JMP_X          )\
     X(FKL_OP_JMP_X,            "jmp-x",            FKL_OP_MODE_IsBB,     FKL_OP_JMP_XX         )\
     X(FKL_OP_JMP_XX,           "jmp-xx",           FKL_OP_MODE_IsCCB,    FKL_OP_DUMMY          )\
-    X(FKL_OP_IMPORT,           "import",           FKL_OP_MODE_IuB,      FKL_OP_IMPORT_C       )\
-    X(FKL_OP_IMPORT_C,         "import-x",         FKL_OP_MODE_IuC,      FKL_OP_IMPORT_X       )\
-    X(FKL_OP_IMPORT_X,         "import-xx",        FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
+    X(FKL_OP_IMPORT,           "import",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_GET_LOC,          "get-loc",          FKL_OP_MODE_IuB,      FKL_OP_GET_LOC_C      )\
     X(FKL_OP_GET_LOC_C,        "get-loc-c",        FKL_OP_MODE_IuC,      FKL_OP_GET_LOC_X      )\
     X(FKL_OP_GET_LOC_X,        "get-loc-x",        FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
@@ -92,12 +90,8 @@ extern "C" {
     X(FKL_OP_PUT_VAR_REF,      "put-var-ref",      FKL_OP_MODE_IuB,      FKL_OP_PUT_VAR_REF_C  )\
     X(FKL_OP_PUT_VAR_REF_C,    "put-var-ref-c",    FKL_OP_MODE_IuC,      FKL_OP_PUT_VAR_REF_X  )\
     X(FKL_OP_PUT_VAR_REF_X,    "put-var-ref-x",    FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
-    X(FKL_OP_EXPORT,           "export",           FKL_OP_MODE_IuB,      FKL_OP_EXPORT_C       )\
-    X(FKL_OP_EXPORT_C,         "export-c",         FKL_OP_MODE_IuC,      FKL_OP_EXPORT_X       )\
-    X(FKL_OP_EXPORT_X,         "export-x",         FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
-    X(FKL_OP_LOAD_LIB,         "load-lib",         FKL_OP_MODE_IuB,      FKL_OP_LOAD_LIB_C     )\
-    X(FKL_OP_LOAD_LIB_C,       "load-lib-c",       FKL_OP_MODE_IuC,      FKL_OP_LOAD_LIB_X     )\
-    X(FKL_OP_LOAD_LIB_X,       "load-lib-x",       FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
+    X(FKL_OP_EXPORT,           "export",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_LOAD_LIB,         "load-lib",         FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_ATOM,             "atom",             FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_TRUE,             "true",             FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_NOT,              "not",              FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
@@ -122,9 +116,7 @@ extern "C" {
     X(FKL_OP_BVEC,             "bvec",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_BOX,              "box",              FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_HASH,             "hash",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
-    X(FKL_OP_CLOSE_REF,        "close-ref",        FKL_OP_MODE_IuB,      FKL_OP_CLOSE_REF_C    )\
-    X(FKL_OP_CLOSE_REF_C,      "close-ref-x",      FKL_OP_MODE_IuC,      FKL_OP_CLOSE_REF_X    )\
-    X(FKL_OP_CLOSE_REF_X,      "close-ref-xx",     FKL_OP_MODE_IuBB,     FKL_OP_DUMMY          )\
+    X(FKL_OP_CLOSE_REF,        "close-ref",        FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_POP_LOC,          "pop-loc",          FKL_OP_MODE_IuB,      FKL_OP_DUMMY          )\
     X(FKL_OP_MOV_LOC,          "mov-loc",          FKL_OP_MODE_IuAuB,    FKL_OP_DUMMY          )\
     X(FKL_OP_MOV_VAR_REF,      "mov-var-ref",      FKL_OP_MODE_IuAuB,    FKL_OP_DUMMY          )\

@@ -20,6 +20,16 @@ typedef intptr_t ssize_t;
 #define FKL_I24_MAX (0x7FFFFF)
 #define FKL_I24_MIN (-0x800000)
 
+#define FKL_FIX_INT_MAX (1152921504606846975)
+#define FKL_FIX_INT_MIN (-1152921504606846975 - 1)
+#define FKL_FIX_INT_OFFSET (0x1000000000000000)
+
+#if (-1 >> 1) == -1
+#define FKL_IS_ARITHMETIC_RIGHT_SHIFT (1)
+#else
+#define FKL_IS_ARITHMETIC_RIGHT_SHIFT (0)
+#endif
+
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')
 #define FKL_PATH_SEPARATOR_STR ("\\")

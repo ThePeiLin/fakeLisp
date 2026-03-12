@@ -1253,7 +1253,7 @@ FklVMvalue *fklVMvalueEof(void);
 
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P)) & FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P)) & FKL_PTR_MASK))
-#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))
+
 #define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) (P)
 
@@ -1637,8 +1637,7 @@ noreturn static FKL_ALWAYS_INLINE void fklRaiseBuiltinErrorFmtV(
 
 #define FKL_VM_NIL ((FklVMptr)0x1)
 #define FKL_VM_TRUE (FKL_MAKE_VM_FIX(1))
-#define FKL_MAKE_VM_FIX(I)                                                     \
-    ((FklVMptr)((((uintptr_t)(I)) << FKL_UNUSEDBITNUM) | FKL_TAG_FIX))
+
 #define FKL_MAKE_VM_CHR(C)                                                     \
     ((FklVMptr)((((uintptr_t)(C)) << FKL_UNUSEDBITNUM) | FKL_TAG_CHR))
 
@@ -1652,6 +1651,23 @@ HASH_P(EQV);
 HASH_P(EQUAL);
 
 #undef HASH_P
+
+#if FKL_IS_ARITHMETIC_RIGHT_SHIFT
+
+#define FKL_GET_FIX(P) ((int64_t)((intptr_t)(P) >> FKL_UNUSEDBITNUM))
+#define FKL_MAKE_VM_FIX(I)                                                     \
+    ((FklVMptr)((((uintptr_t)(I)) << FKL_UNUSEDBITNUM) | FKL_TAG_FIX))
+
+#else
+
+#define FKL_GET_FIX(P)                                                         \
+    (((int64_t)((uintptr_t)(P) >> FKL_UNUSEDBITNUM)) - FKL_FIX_INT_OFFSET)
+
+#define FKL_MAKE_VM_FIX(I)                                                     \
+    ((FklVMptr)((((uintptr_t)(((int64_t)(I)) + FKL_FIX_INT_OFFSET))            \
+                        << FKL_UNUSEDBITNUM)                                   \
+                | FKL_TAG_FIX))
+#endif
 
 static FKL_ALWAYS_INLINE int FKL_IS_TRUE(const void *P) {
     FKL_ASSERT(P != NULL);

@@ -14,9 +14,6 @@
 extern "C" {
 #endif
 
-#define FKL_FIX_INT_MAX (1152921504606846975)
-#define FKL_FIX_INT_MIN (-1152921504606846975 - 1)
-
 typedef struct FklString {
     uint64_t size;
     char str[1];

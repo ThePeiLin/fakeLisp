@@ -24,9 +24,7 @@ FklOpcodeMode fklGetOpcodeMode(FklOpcode opcode) {
     return opcodeInfo[opcode].mode;
 }
 
-FklOpcode fklGetOpcodeNext(FklOpcode opcode) {
-    return opcodeInfo[opcode].next;
-}
+FklOpcode fklGetOpcodeNext(FklOpcode opcode) { return opcodeInfo[opcode].next; }
 
 FklOpcode fklFindOpcode(const char *str) {
     for (FklOpcode i = 0; i < FKL_OPCODE_NUM; i++)

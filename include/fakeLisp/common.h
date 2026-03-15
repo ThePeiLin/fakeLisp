@@ -6,11 +6,14 @@ extern "C" {
 #endif
 
 #include <assert.h>
+#include <limits.h>
 #include <stdint.h>
 
 typedef intptr_t ssize_t;
 
-#define FKL_BYTE_WIDTH (8)
+#define FKL_MAKE_MASK(S) ((1 << (S)) - 1)
+
+#define FKL_BYTE_WIDTH (CHAR_BIT)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
 #define FKL_I24_WIDTH (FKL_BYTE_WIDTH * 3)
 #define FKL_PATH_MAX (4096)

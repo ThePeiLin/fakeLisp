@@ -6,6 +6,7 @@
 #include "symbol.h"
 #include "vm_fwd.h"
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -14,29 +15,66 @@
 extern "C" {
 #endif
 
-typedef union {
-    struct {
-        uint8_t op;
-        union {
-            uint8_t au;
-            int8_t ai;
-        };
-        union {
-            uint16_t bu;
-            int16_t bi;
-        };
-    };
+// typedef union {
+//     struct {
+//         uint8_t op;
+//         union {
+//             uint8_t au;
+//             int8_t ai;
+//         };
+//         union {
+//             uint16_t bu;
+//             int16_t bi;
+//         };
+//     };
+//
+//     struct {
+//         uint32_t op_ : 8;
+//         uint32_t cu : 24;
+//     };
+// } FklIns;
 
-    struct {
-        uint32_t op_ : 8;
-        uint32_t cu : 24;
-    };
-} FklIns;
+typedef uint32_t FklIns;
 
 static_assert(sizeof(FklIns) == sizeof(uint32_t),
         "invalid instruction definition");
 
-#define FKL_INSTRUCTION_STATIC_INIT { .op = FKL_OP_DUMMY, .au = 0, .bu = 0 }
+#define FKL_INS_STATIC_INIT (0)
+
+#define FKL_INS_OP_SIZE ((sizeof(uint8_t)) * FKL_BYTE_WIDTH)
+#define FKL_INS_OP_POS (0)
+
+#define FKL_INS_A_POS (FKL_INS_OP_SIZE)
+#define FKL_INS_A_SIZE ((sizeof(uint8_t)) * FKL_BYTE_WIDTH)
+
+#define FKL_INS_B_POS (FKL_INS_A_SIZE + FKL_INS_OP_SIZE)
+#define FKL_INS_B_SIZE ((sizeof(uint16_t)) * FKL_BYTE_WIDTH)
+
+#define FKL_INS_C_POS (FKL_INS_OP_SIZE)
+#define FKL_INS_C_SIZE (FKL_INS_B_SIZE + FKL_INS_A_SIZE)
+
+static_assert(FKL_INS_C_SIZE == FKL_I24_WIDTH, "what the fuck?");
+
+#define FKL_INS_GET(i, type, pos, size)                                        \
+    ((type)((((FklIns)(i)) >> pos) & FKL_MAKE_MASK(size)))
+
+#define FKL_INS_OP(I)                                                          \
+    (FKL_INS_GET(FklOpcode, (I), FKL_INS_OP_POS, FKL_INS_OP_SIZE))
+#define FKL_INS_SET_OP(I, OP) ((I) | ((OP) << FKL_INS_OP_POS))
+
+#define FKL_INS_As(I) (FKL_INS_GET(int8_t, (I), FKL_INS_A_POS, FKL_INS_A_SIZE))
+#define FKL_INS_Au(I) (FKL_INS_GET(uint8_t, (I), FKL_INS_A_POS, FKL_INS_A_SIZE))
+
+#define FKL_INS_Bs(I) (FKL_INS_GET(int16_t, (I), FKL_INS_B_POS, FKL_INS_B_SIZE))
+#define FKL_INS_Bu(I)                                                          \
+    (FKL_INS_GET(uint16_t, (I), FKL_INS_B_POS, FKL_INS_B_SIZE))
+
+#define FKL_INS_Cs(I)                                                          \
+    (FKL_INS_GET(int32_t, (I), FKL_INS_C_POS, FKL_INS_C_SIZE) - FKL_I24_OFFSET)
+#define FKL_INS_Cu(I)                                                          \
+    (FKL_INS_GET(uint32_t, (I), FKL_INS_C_POS, FKL_INS_C_SIZE))
+
+// #define FKL_INSTRUCTION_STATIC_INIT { .op = FKL_OP_DUMMY, .au = 0, .bu = 0 }
 
 typedef struct {
     uint64_t len;

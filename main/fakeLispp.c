@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
             FKL_ASSERT(cg_lib->type == FKL_CODEGEN_LIB_SCRIPT);
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
-			print_lib_name(vm, lib, 0, build);
+            print_lib_name(vm, lib, 0, build);
             print_export_symbols(vm, lib, build);
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)

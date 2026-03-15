@@ -524,9 +524,7 @@ static inline FklVMvalue *append_export_ins(FklVM *exe,
             scope);
 }
 
-static inline FklIns create_op_ins(FklOpcode op) {
-    return (FklIns){ .op = op };
-}
+static inline FklIns create_op_ins(FklOpcode op) { return (FklIns){ .op = op }; }
 
 static inline FklVMvalue *append_pop_loc_ins(FklVM *exe,
         InsAppendMode m,

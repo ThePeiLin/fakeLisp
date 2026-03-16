@@ -4641,21 +4641,27 @@ static inline FklVMvalue *inl_0_arg_func(FklVM *exe,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklIns ins = { .op = opc };
-    return fklCreateVMvalueCodeObjExt(exe, ins, fid, line, scope);
+    return fklCreateVMvalueCodeObjExt(exe,
+            FKL_MAKE_INS_I(opc),
+            fid,
+            line,
+            scope);
 }
 
 static inline FklVMvalue *inl_0_arg_func2(FklVM *exe,
-        const FklIns *ins,
+        const FklIns ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    return fklCreateVMvalueCodeObjExt(exe, *ins, fid, line, scope);
+    return fklCreateVMvalueCodeObjExt(exe, ins, fid, line, scope);
 }
 
 static inline FklVMvalue *inlfunc_box0(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PUSH_BOX, .ai = 0 };
-    return fklCreateVMvalueCodeObjExt(exe, ins, fid, line, scope);
+    return fklCreateVMvalueCodeObjExt(exe,
+            FKL_MAKE_INS_IsA(FKL_OP_PUSH_BOX, 0),
+            fid,
+            line,
+            scope);
 }
 
 static inline FklVMvalue *inlfunc_add0(INL_FUNC_ARGS) {
@@ -4663,12 +4669,12 @@ static inline FklVMvalue *inlfunc_add0(INL_FUNC_ARGS) {
 }
 
 static FklVMvalue *inlfunc_ret0(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_DROP, .ai = FKL_SUBOP_DROP_ALL };
-    FklVMvalue *r = inl_0_arg_func2(exe, &ins, fid, line, scope);
-    ins.op = FKL_OP_PUSH_NIL;
-    fklByteCodeLntPushBackIns(FKL_VM_CO(r), &ins, fid, line, scope);
-    ins.op = FKL_OP_RET;
-    fklByteCodeLntPushBackIns(FKL_VM_CO(r), &ins, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DROP, FKL_SUBOP_DROP_ALL);
+    FklVMvalue *r = inl_0_arg_func2(exe, ins, fid, line, scope);
+    ins = FKL_MAKE_INS_I(FKL_OP_PUSH_NIL);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(r), ins, fid, line, scope);
+    ins = FKL_MAKE_INS_I(FKL_OP_RET);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(r), ins, fid, line, scope);
     return r;
 }
 
@@ -4676,7 +4682,7 @@ static inline FklVMvalue *inlfunc_mul0(INL_FUNC_ARGS) {
     return inl_0_arg_func(exe, FKL_OP_PUSH_1, fid, line, scope);
 }
 
-static inline FklVMvalue *inl_1_arg_func2(const FklIns *ins,
+static inline FklVMvalue *inl_1_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
         uint32_t line,
@@ -4690,8 +4696,7 @@ static inline FklVMvalue *inl_1_arg_func(FklOpcode opc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklIns bc = { .op = opc };
-    return inl_1_arg_func2(&bc, bcs, fid, line, scope);
+    return inl_1_arg_func2(FKL_MAKE_INS_I(opc), bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_true(INL_FUNC_ARGS) {
@@ -4707,75 +4712,75 @@ static FklVMvalue *inlfunc_atom(INL_FUNC_ARGS) {
 }
 
 static FklVMvalue *inlfunc_car(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_CAR };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PAIR, FKL_SUBOP_PAIR_CAR);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_cdr(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_CDR };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PAIR, FKL_SUBOP_PAIR_CDR);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_vec_first(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_FIRST };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_VEC, FKL_SUBOP_VEC_FIRST);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_vec_last(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_LAST };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_VEC, FKL_SUBOP_VEC_LAST);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_add_1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_ADDK, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_ADDK, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_sub_1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_ADDK, .ai = -1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_ADDK, -1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_sub1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_SUB, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_SUB, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_div1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_DIV, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DIV, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_add1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_ADD, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_ADD, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_mul1(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_MUL, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_MUL, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_box(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PUSH_BOX, .ai = 1 };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PUSH_BOX, 1);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_unbox(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_UNBOX };
-    return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BOX, FKL_SUBOP_BOX_UNBOX);
+    return inl_1_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_ret1(INL_FUNC_ARGS) {
     FklVMvalue *r = bcs[0];
-    FklIns ins = { .op = FKL_OP_DROP, .ai = FKL_SUBOP_DROP_ALL };
-    fklByteCodeLntInsertFrontIns(&ins, FKL_VM_CO(r), fid, line, scope);
-    ins.op = FKL_OP_RET;
-    fklByteCodeLntPushBackIns(FKL_VM_CO(r), &ins, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DROP, FKL_SUBOP_DROP_ALL);
+    fklByteCodeLntInsertFrontIns(ins, FKL_VM_CO(r), fid, line, scope);
+    ins = FKL_MAKE_INS_I(FKL_OP_RET);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(r), ins, fid, line, scope);
     return r;
 }
 
-static inline FklVMvalue *inl_2_arg_func2(const FklIns *ins,
+static inline FklVMvalue *inl_2_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
         uint32_t line,
@@ -4790,8 +4795,7 @@ static inline FklVMvalue *inl_2_arg_func(FklOpcode opc,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
-    FklIns bc = { .op = opc };
-    return inl_2_arg_func2(&bc, bcs, fid, line, scope);
+    return inl_2_arg_func2(FKL_MAKE_INS_I(opc), bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_cons(INL_FUNC_ARGS) {
@@ -4811,107 +4815,107 @@ static FklVMvalue *inlfunc_equal(INL_FUNC_ARGS) {
 }
 
 static FklVMvalue *inlfunc_eqn2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_EQN, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_EQN, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_mul2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_MUL, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_MUL, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_div2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_DIV, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DIV, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_idiv2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_IDIV, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_IDIV, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_mod(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_DIV, .ai = -2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DIV, -2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_nth(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_NTH };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PAIR, FKL_SUBOP_PAIR_NTH);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_vec_ref(INL_FUNC_ARGS) {
     FklByteCodelnt *ib = FKL_VM_CO(bcs[1]);
-    if (ib->bc.len == 1 && ib->bc.code[0].op == FKL_OP_PUSH_0) {
-        FklIns ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_FIRST };
-        return inl_1_arg_func2(&ins, bcs, fid, line, scope);
+    if (ib->bc.len == 1 && FKL_INS_OP(ib->bc.code[0]) == FKL_OP_PUSH_0) {
+        FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_VEC, FKL_SUBOP_VEC_FIRST);
+        return inl_1_arg_func2(ins, bcs, fid, line, scope);
     } else {
-        FklIns ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_REF };
-        return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+        FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_VEC, FKL_SUBOP_VEC_REF);
+        return inl_2_arg_func2(ins, bcs, fid, line, scope);
     }
 }
 
 static FklVMvalue *inlfunc_str_ref(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_STR, .ai = FKL_SUBOP_STR_REF };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_STR, FKL_SUBOP_STR_REF);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_bvec_ref(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_BVEC, .ai = FKL_SUBOP_BVEC_REF };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BVEC, FKL_SUBOP_BVEC_REF);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_car_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_CAR_SET };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PAIR, FKL_SUBOP_PAIR_CAR_SET);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_cdr_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_PAIR, .ai = FKL_SUBOP_PAIR_CDR_SET };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_PAIR, FKL_SUBOP_PAIR_CDR_SET);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_box_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_BOX, .ai = FKL_SUBOP_BOX_SET };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BOX, FKL_SUBOP_BOX_SET);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_hash_ref_2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_HASH, .ai = FKL_SUBOP_HASH_REF_2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_HASH, FKL_SUBOP_HASH_REF_2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_add2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_ADD, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_ADD, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_sub2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_SUB, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_SUB, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_gt2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_GT, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_GT, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_lt2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_LT, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_LT, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_ge2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_GE, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_GE, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_le2(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_LE, .ai = 2 };
-    return inl_2_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_LE, 2);
+    return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
-static inline FklVMvalue *inl_3_arg_func2(const FklIns *ins,
+static inline FklVMvalue *inl_3_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
         uint32_t line,
@@ -4927,84 +4931,84 @@ static inline FklVMvalue *inl_3_arg_func(FklOpcode opc,
                                              FklByteCodelnt *bcs[],
                                              FklSid_t fid, uint32_t line,
                                              uint32_t scope) {
-    FklInstruction bc = {.op = opc};
-    return inl_3_arg_func2(&bc, bcs, fid, line, scope);
+	FklIns ins = FKL_MAKE_INS_I(opc);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 #endif
 
 static FklVMvalue *inlfunc_eqn3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_EQN, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_EQN, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_gt3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_GT, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_GT, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_lt3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_LT, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_LT, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_ge3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_GE, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_GE, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_le3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_LE, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_LE, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_add3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_ADD, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_ADD, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_sub3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_SUB, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_SUB, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_mul3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_MUL, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_MUL, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_div3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_DIV, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_DIV, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_idiv3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_IDIV, .ai = 3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_IDIV, 3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_vec_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_VEC, .ai = FKL_SUBOP_VEC_SET };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_VEC, FKL_SUBOP_VEC_SET);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_str_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_STR, .ai = FKL_SUBOP_STR_SET };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_STR, FKL_SUBOP_STR_SET);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_bvec_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_BVEC, .ai = FKL_SUBOP_BVEC_SET };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BVEC, FKL_SUBOP_BVEC_SET);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_hash_ref_3(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_HASH, .ai = FKL_SUBOP_HASH_REF_3 };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_HASH, FKL_SUBOP_HASH_REF_3);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 static FklVMvalue *inlfunc_hash_set(INL_FUNC_ARGS) {
-    FklIns ins = { .op = FKL_OP_HASH, .ai = FKL_SUBOP_HASH_SET };
-    return inl_3_arg_func2(&ins, bcs, fid, line, scope);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_HASH, FKL_SUBOP_HASH_SET);
+    return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
 #undef INL_FUNC_ARGS

@@ -194,10 +194,11 @@ typedef struct ByteCodePrintState {
 
 static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
     uint64_t r = 0;
-    const FklIns *ins = NULL;
-    while (index + r < bc->len
-            && (ins = &bc->code[index + r])->op != FKL_OP_CALL) {
-        if (fklIsMakeProcIns(ins)) {
+    for (const FklIns *ins = NULL; index + r < bc->len;) {
+        ins = &bc->code[index + r];
+        if (FKL_INS_OP(*ins) == FKL_OP_CALL)
+            break;
+        if (fklIsMakeProcIns(*ins)) {
             FklInsArg arg = { 0 };
             int8_t l = fklGetInsOpArg(ins, &arg);
             r += arg.ux + l;
@@ -205,11 +206,12 @@ static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
             r++;
         }
     }
+
     return r;
 }
 
 static inline int64_t get_next(const FklIns *ins) {
-    if (fklIsJmpIns(ins)) {
+    if (fklIsJmpIns(*ins)) {
         FklInsArg arg = { 0 };
         int8_t l = fklGetInsOpArg(ins, &arg);
         return arg.ix + l;
@@ -224,18 +226,18 @@ int fklGetNextIns(const FklIns *c, const FklIns *ins[2]) {
 
     FklInsArg arg = { 0 };
     int8_t l = fklGetInsOpArg(c, &arg);
-    if (fklIsCallIns(c) || fklIsRetIns(c)) {
+    if (fklIsCallIns(*c) || fklIsRetIns(*c)) {
         r = 0;
-    } else if (fklIsMakeProcIns(c)) {
+    } else if (fklIsMakeProcIns(*c)) {
         ins[0] = c + l + arg.ux;
-    } else if (fklIsCondJmpIns(c)) {
+    } else if (fklIsCondJmpIns(*c)) {
         ins[0] = c + l;
         ins[1] = ins[0] + arg.ix;
         if (ins[0] == ins[1])
             ins[1] = NULL;
         else
             r = 2;
-    } else if (fklIsJmpIns(c)) {
+    } else if (fklIsJmpIns(*c)) {
         ins[0] = c + l + arg.ix;
     } else {
         ins[0] = c + l;
@@ -243,45 +245,31 @@ int fklGetNextIns(const FklIns *c, const FklIns *ins[2]) {
     return r;
 }
 
-#define I32_L16_MASK (0xFFFF)
-#define I64_L24_MASK (0xFFFFFF)
+#define I32_L8_MASK FKL_MASK1(uint32_t, 24, 0)
+#define I32_L16_MASK FKL_MASK1(uint32_t, 16, 0)
+#define I64_L24_MASK FKL_MASK1(uint64_t, 24, 0)
+
+#define MAKE_EXTRA_uC(uC) (FKL_MAKE_INS_IuC(FKL_OP_EXTRA_ARG, uC))
+#define MAKE_EXTRA_uB(uB) (FKL_MAKE_INS_IuB(FKL_OP_EXTRA_ARG, uB))
+#define MAKE_EXTRA_uA(uA) (FKL_MAKE_INS_IuA(FKL_OP_EXTRA_ARG, uA))
 
 static FKL_ALWAYS_INLINE void set_ins_uxx(FklIns *ins, uint64_t k) {
-    ins[0].cu = k & I64_L24_MASK;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    ins[1].cu = (k >> FKL_I24_WIDTH) & I64_L24_MASK;
-    ins[2].op = FKL_OP_EXTRA_ARG;
-    ins[2].bu = (k >> (FKL_I24_WIDTH * 2));
+    ins[0] = FKL_INS_SET_uC(ins[0], k & I64_L24_MASK);
+    ins[1] = MAKE_EXTRA_uC((k >> FKL_I24_WIDTH) & I64_L24_MASK);
+    ins[2] = MAKE_EXTRA_uC((k >> (FKL_I24_WIDTH * 2)) & I64_L24_MASK);
 }
 
 static FKL_ALWAYS_INLINE void set_ins_ux(FklIns *ins, uint32_t k) {
-    ins[0].bu = k & I32_L16_MASK;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    ins[1].bu = k >> FKL_I16_WIDTH;
+    ins[0] = FKL_INS_SET_uB(ins[0], k & I32_L16_MASK);
+    ins[1] = MAKE_EXTRA_uB((k >> FKL_I16_WIDTH) & I32_L16_MASK);
 }
 
 static FKL_ALWAYS_INLINE void
 set_ins_2_uxx(FklIns *ins, uint64_t ux, uint64_t uy) {
-    ins[0].cu = ux & I64_L24_MASK;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    ins[1].au = ux >> FKL_I24_WIDTH;
-    ins[1].bu = uy & I32_L16_MASK;
-    ins[2].op = FKL_OP_EXTRA_ARG;
-    ins[2].bu = uy >> FKL_I16_WIDTH;
-}
-
-static FKL_ALWAYS_INLINE void
-set_ins_2_uxxx(FklIns *ins, uint64_t ux, uint64_t uy) {
-    ins[0].cu = ux & I64_L24_MASK;
-    ins[1].op = FKL_OP_EXTRA_ARG;
-    ins[1].au = ux >> FKL_I24_WIDTH;
-    ins[1].bu = uy & I32_L16_MASK;
-
-    ins[2].op = FKL_OP_EXTRA_ARG;
-    ins[2].cu = (uy >> FKL_I16_WIDTH) & I64_L24_MASK;
-
-    ins[3].op = FKL_OP_EXTRA_ARG;
-    ins[3].cu = (uy >> (FKL_I16_WIDTH + FKL_I24_WIDTH)) & I64_L24_MASK;
+    ins[0] = FKL_INS_SET_uC(ins[0], ux & I64_L24_MASK);
+    ins[1] = MAKE_EXTRA_uA((ux >> FKL_I24_WIDTH) & I32_L8_MASK);
+    ins[1] = FKL_INS_SET_uB(ins[1], uy & I32_L16_MASK);
+    ins[2] = MAKE_EXTRA_uB((uy >> FKL_I16_WIDTH) & I32_L16_MASK);
 }
 
 int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *arg) {
@@ -320,7 +308,6 @@ int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *arg) {
     case FKL_OP_MODE_IuAuB:
     case FKL_OP_MODE_IuCuC:
     case FKL_OP_MODE_IuCAuBB:
-    case FKL_OP_MODE_IuCAuBCC:
         ux = arg->ux;
         uy = arg->uy;
         break;
@@ -423,13 +410,6 @@ int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *arg) {
                 goto emit_ins;
             break;
 
-        case FKL_OP_MODE_IuCAuBCC:
-            if (ux > UINT32_MAX)
-                op = fklGetOpcodeNext(op);
-            else
-                goto emit_ins;
-            break;
-
         case FKL_OP_MODE_IxAxB:
             FKL_UNREACHABLE();
             break;
@@ -439,7 +419,7 @@ int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *arg) {
     int len = 0;
 emit_ins:
     FKL_ASSERT(op != FKL_OP_DUMMY);
-    ins[0].op = op;
+    ins[0] = FKL_INS_SET_OP(ins[0], op);
     len = fklGetOpcodeModeLen(op);
 
     switch (mode) {
@@ -447,15 +427,15 @@ emit_ins:
         break;
 
     case FKL_OP_MODE_IsA:
-        ins[0].ai = ix;
+        ins[0] = FKL_INS_SET_sA(ins[0], ix);
         break;
 
     case FKL_OP_MODE_IsB:
-        ins[0].bi = ix;
+        ins[0] = FKL_INS_SET_sB(ins[0], ix);
         break;
 
     case FKL_OP_MODE_IsC:
-        ins[0].cu = ix + FKL_I24_OFFSET;
+        ins[0] = FKL_INS_SET_sC(ins[0], ix);
         break;
 
     case FKL_OP_MODE_IsBB:
@@ -468,11 +448,11 @@ emit_ins:
 
         // unsigned imm
     case FKL_OP_MODE_IuB:
-        ins[0].bu = ux;
+        ins[0] = FKL_INS_SET_uB(ins[0], ux);
         break;
 
     case FKL_OP_MODE_IuC:
-        ins[0].cu = ux;
+        ins[0] = FKL_INS_SET_uC(ins[0], ux);
         break;
 
     case FKL_OP_MODE_IuBB:
@@ -483,28 +463,24 @@ emit_ins:
         set_ins_uxx(ins, ux);
         break;
 
-        // to imm
+        // two imm
     case FKL_OP_MODE_IsAuB:
-        ins[0].ai = ix;
-        ins[0].bu = uy;
+        ins[0] = FKL_INS_SET_sA(ins[0], ix);
+        ins[0] = FKL_INS_SET_uB(ins[0], uy);
         break;
 
     case FKL_OP_MODE_IuAuB:
-        ins[0].au = ux;
-        ins[0].bu = uy;
+        ins[0] = FKL_INS_SET_uA(ins[0], ux);
+        ins[0] = FKL_INS_SET_uB(ins[0], uy);
         break;
 
     case FKL_OP_MODE_IuCuC:
-        ins[0].cu = ux;
-        ins[1].cu = uy;
+        ins[0] = FKL_INS_SET_uC(ins[0], ux);
+        ins[1] = FKL_INS_SET_uC(ins[1], uy);
         break;
 
     case FKL_OP_MODE_IuCAuBB:
         set_ins_2_uxx(ins, ux, uy);
-        break;
-
-    case FKL_OP_MODE_IuCAuBCC:
-        set_ins_2_uxxx(ins, ux, uy);
         break;
 
     case FKL_OP_MODE_IxAxB:
@@ -518,10 +494,12 @@ emit_ins:
 static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
     uint64_t size = bc->len;
     FklIns *code = bc->code;
-    for (uint64_t i = index; i < size && code[i].op != FKL_OP_RET;
-            i += get_next(&code[i]))
-        if (code[i].op != FKL_OP_JMP && code[i].op != FKL_OP_CLOSE_REF)
+    for (uint64_t i = index; i < size && FKL_INS_OP(code[i]) != FKL_OP_RET;
+            i += get_next(&code[i])) {
+        FklOpcode op = FKL_INS_OP(code[i]);
+        if (op != FKL_OP_JMP && op != FKL_OP_CLOSE_REF)
             return 0;
+    }
     return 1;
 }
 
@@ -532,77 +510,70 @@ get_ins_op_with_op(FklOpcode op, const FklIns *ins, FklInsArg *a) {
         return 1;
         break;
     case FKL_OP_MODE_IsA:
-        a->ix = ins->ai;
+        a->ix = FKL_INS_sA(*ins);
         return 1;
         break;
     case FKL_OP_MODE_IuB:
-        a->ux = ins->bu;
+        a->ux = FKL_INS_uB(*ins);
         return 1;
         break;
     case FKL_OP_MODE_IsB:
-        a->ix = ins->bi;
+        a->ix = FKL_INS_sB(*ins);
         return 1;
         break;
     case FKL_OP_MODE_IuC:
-        a->ux = FKL_GET_INS_UC(ins);
+        a->ux = FKL_INS_uC(*ins);
         return 1;
         break;
     case FKL_OP_MODE_IsC:
-        a->ix = FKL_GET_INS_IC(ins);
+        a->ix = FKL_INS_sC(*ins);
         return 1;
         break;
     case FKL_OP_MODE_IuBB:
-        a->ux = FKL_GET_INS_UX(ins);
+        a->ux = FKL_INS_uX(ins);
         return 2;
         break;
     case FKL_OP_MODE_IsBB:
-        a->ix = FKL_GET_INS_IX(ins);
+        a->ix = FKL_INS_sX(ins);
         return 2;
         break;
     case FKL_OP_MODE_IuCCB:
-        a->ux = FKL_GET_INS_UXX(ins);
+        a->ux = FKL_INS_uXX(ins);
         return 3;
         break;
     case FKL_OP_MODE_IsCCB:
-        a->ix = FKL_GET_INS_IXX(ins);
+        a->ix = FKL_INS_sXX(ins);
         return 3;
         break;
 
     case FKL_OP_MODE_IsAuB:
-        a->ix = ins->ai;
-        a->uy = ins->bu;
+        a->ix = FKL_INS_sA(*ins);
+        a->uy = FKL_INS_uB(*ins);
         return 1;
         break;
 
     case FKL_OP_MODE_IuAuB:
-        a->ux = ins->au;
-        a->uy = ins->bu;
+        a->ux = FKL_INS_uA(*ins);
+        a->uy = FKL_INS_uB(*ins);
         return 1;
         break;
 
     case FKL_OP_MODE_IuCuC:
-        a->ux = FKL_GET_INS_UC(ins);
-        a->uy = FKL_GET_INS_UC(ins + 1);
+        a->ux = FKL_INS_uC(ins[0]);
+        a->uy = FKL_INS_uC(ins[1]);
         return 2;
         break;
     case FKL_OP_MODE_IuCAuBB:
-        a->ux = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        a->uy = ins[1].bu | (((uint64_t)ins[2].bu) << FKL_I16_WIDTH);
+        a->ux = FKL_INS_uC(ins[0])
+              | (((uint32_t)FKL_INS_uA(ins[1])) << FKL_I24_WIDTH);
+        a->uy = FKL_INS_uB(ins[1])
+              | (((uint64_t)FKL_INS_uB(ins[2])) << FKL_I16_WIDTH);
         return 3;
-        break;
-    case FKL_OP_MODE_IuCAuBCC:
-        a->ux = FKL_GET_INS_UC(ins) | (((uint32_t)ins[1].au) << FKL_I24_WIDTH);
-        a->uy = ins[1].bu | (((uint64_t)ins[2].au) << FKL_I16_WIDTH)
-              | (((uint64_t)ins[2].bu) << FKL_I24_WIDTH)
-              | (((uint64_t)ins[3].au) << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH))
-              | (((uint64_t)ins[3].bu)
-                      << (FKL_I16_WIDTH * 2 + FKL_BYTE_WIDTH * 2));
-        return 4;
         break;
 
     case FKL_OP_MODE_IxAxB:
-        a->ux = ins->au;
-        a->uy = ins->bu;
+        a->ux = FKL_INS_uA(*ins);
+        a->uy = FKL_INS_uB(*ins);
         return 1;
         break;
     }
@@ -610,7 +581,7 @@ get_ins_op_with_op(FklOpcode op, const FklIns *ins, FklInsArg *a) {
 }
 
 int fklGetInsOpArg(const FklIns *ins, FklInsArg *a) {
-    return get_ins_op_with_op(ins->op, ins, a);
+    return get_ins_op_with_op(FKL_INS_OP(*ins), ins, a);
 }
 
 int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *a) {
@@ -619,8 +590,9 @@ int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *a) {
 
 void fklScanAndSetTailCall(FklByteCode *bc) {
     for (uint64_t i = skipToCall(0, bc); i < bc->len; i += skipToCall(i, bc))
-        if (is_last_expression(++i, bc))
-            bc->code[i - 1].op = FKL_OP_TAIL_CALL;
+        if (is_last_expression(++i, bc)) {
+            bc->code[i - 1] = FKL_INS_SET_OP(bc->code[i - 1], FKL_OP_TAIL_CALL);
+        }
 }
 
 void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *o, uint64_t size) {
@@ -749,7 +721,7 @@ void fklByteCodePushBack(FklByteCode *bc, FklIns ins) {
 }
 
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
-        const FklIns *ins,
+        const FklIns ins,
         FklVMvalue *fid,
         uint32_t line,
         uint32_t scope) {
@@ -759,13 +731,13 @@ void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         bcl->l = (FklLntItem *)fklZmalloc(sizeof(FklLntItem));
         FKL_ASSERT(bcl->l);
         fklInitLineNumTabNode(&bcl->l[0], fid, 0, line, scope);
-        fklByteCodePushBack(&bcl->bc, *ins);
+        fklByteCodePushBack(&bcl->bc, ins);
     } else {
-        fklByteCodePushBack(&bcl->bc, *ins);
+        fklByteCodePushBack(&bcl->bc, ins);
     }
 }
 
-void fklByteCodeLntInsertFrontIns(const FklIns *ins,
+void fklByteCodeLntInsertFrontIns(const FklIns ins,
         FklByteCodelnt *bcl,
         FklVMvalue *fid,
         uint32_t line,
@@ -776,9 +748,9 @@ void fklByteCodeLntInsertFrontIns(const FklIns *ins,
         bcl->l = (FklLntItem *)fklZmalloc(sizeof(FklLntItem));
         FKL_ASSERT(bcl->l);
         fklInitLineNumTabNode(&bcl->l[0], fid, 0, line, scope);
-        fklByteCodePushBack(&bcl->bc, *ins);
+        fklByteCodePushBack(&bcl->bc, ins);
     } else {
-        fklByteCodeInsertFront(*ins, &bcl->bc);
+        fklByteCodeInsertFront(ins, &bcl->bc);
         FKL_INCREASE_ALL_SCP(bcl->l + 1, bcl->ls - 1, 1);
     }
 }

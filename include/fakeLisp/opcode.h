@@ -154,7 +154,6 @@ typedef enum {
     FKL_OP_MODE_IuAuB,
     FKL_OP_MODE_IuCuC,
     FKL_OP_MODE_IuCAuBB,
-    FKL_OP_MODE_IuCAuBCC,
 
     FKL_OP_MODE_IxAxB,
 } FklOpcodeMode;

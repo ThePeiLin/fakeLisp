@@ -11,7 +11,11 @@ extern "C" {
 
 typedef intptr_t ssize_t;
 
-#define FKL_MAKE_MASK(S) ((1 << (S)) - 1)
+#define FKL_MASK1(T, S, P) (((((T)1) << (S)) - 1) << (P))
+#define FKL_MASK0(T, S, P) (~FKL_MASK1(T, S, P))
+
+static_assert(FKL_MASK1(uint32_t, 24, 4) == 0x0FFFFFF0);
+static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F);
 
 #define FKL_BYTE_WIDTH (CHAR_BIT)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
@@ -79,7 +83,9 @@ typedef intptr_t ssize_t;
 
 #endif
 
-FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
+        FKL_DEPRECATED static inline int fklDeprecatedFunc(void) {
+    return 0;
+}
 
 #define FKL_PACKAGE_MAIN_FILE ("main.fkl")
 #define FKL_PRE_COMPILE_PACKAGE_MAIN_FILE ("main.fklp")

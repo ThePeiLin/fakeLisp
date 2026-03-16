@@ -21,7 +21,7 @@ static inline int print_single_ins(FklVM *vm,
         int indents,
         const char *indent_str,
         const FklLibTable *lib_table) {
-    FklOpcode op = ins->op;
+    FklOpcode op = FKL_INS_OP(*ins);
     FklOpcodeMode mode = fklGetOpcodeMode(op);
 
     for (int i = 0; i < indents; ++i) {
@@ -39,7 +39,7 @@ static inline int print_single_ins(FklVM *vm,
     FklVMvalue *const *konsts = fklVMvalueProtoConsts(pt);
     if (mode == FKL_OP_MODE_I)
         goto end;
-    switch (ins->op) {
+    switch (op) {
     case FKL_OP_PUSH_CONST: {
         CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrin1VMvalue2(konsts[ins_arg.ux], build, vm);
@@ -57,7 +57,7 @@ static inline int print_single_ins(FklVM *vm,
     case FKL_OP_BVEC:
     case FKL_OP_BOX:
     case FKL_OP_HASH:
-        CB_FMT("::%s", fklGetSubOpcodeName(ins->op, ins_arg.ix));
+        CB_FMT("::%s", fklGetSubOpcodeName(op, ins_arg.ix));
         break;
     case FKL_OP_LOAD_LIB:
         CB_FMT("%" PRIu64, ins_arg.ux);
@@ -90,7 +90,6 @@ static inline int print_single_ins(FklVM *vm,
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
-        case FKL_OP_MODE_IuCAuBCC:
             CB_FMT("%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
             break;
         case FKL_OP_MODE_I:
@@ -130,13 +129,13 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                 indents,
                 indent_str,
                 lib_table);
-        if (fklIsLoadProto(pc)) {
+        if (fklIsLoadProto(*pc)) {
             FklInsArg ins_arg = { 0 };
             fklGetInsOpArg(pc, &ins_arg);
             proto = fklVMvalueProtoChildren(pt)[ins_arg.ux];
         }
 
-        if (fklIsMakeProcIns(pc)) {
+        if (fklIsMakeProcIns(*pc)) {
             FklInsArg ins_arg = { 0 };
             int len = fklGetInsOpArg(pc, &ins_arg);
 

@@ -59,10 +59,6 @@ int fklGetOpcodeModeLen(FklOpcode op) {
     case FKL_OP_MODE_IuCAuBB:
         return 3;
         break;
-
-    case FKL_OP_MODE_IuCAuBCC:
-        return 4;
-        break;
     }
     return 0;
 }

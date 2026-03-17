@@ -15,25 +15,6 @@
 extern "C" {
 #endif
 
-// typedef union {
-//     struct {
-//         uint8_t op;
-//         union {
-//             uint8_t au;
-//             int8_t ai;
-//         };
-//         union {
-//             uint16_t bu;
-//             int16_t bi;
-//         };
-//     };
-//
-//     struct {
-//         uint32_t op_ : 8;
-//         uint32_t cu : 24;
-//     };
-// } FklIns;
-
 typedef uint32_t FklIns;
 
 #define FKL_INS_MSK(S) (FKL_MASK1(FklIns, S, 0))
@@ -108,8 +89,6 @@ static_assert(FKL_INS_C_SIZE == FKL_I24_WIDTH, "what the fuck?");
 
 #define FKL_MAKE_INS_IuB(OP, uB) (FKL_INS_SET_uB(FKL_MAKE_INS_I(OP), uB))
 #define FKL_MAKE_INS_IsB(OP, sB) (FKL_INS_SET_uB(FKL_MAKE_INS_I(OP), sB))
-
-// #define FKL_INSTRUCTION_STATIC_INIT { .op = FKL_OP_DUMMY, .au = 0, .bu = 0 }
 
 typedef struct {
     uint64_t len;

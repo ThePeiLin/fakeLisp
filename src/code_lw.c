@@ -823,70 +823,73 @@ static void write_bc(const FklByteCode *bc, FILE *outfp) {
     size_t r = fwrite(bc->code, sizeof(bc->code[0]) * len, 1, outfp);
     FKL_ASSERT(r == 1);
     (void)r;
-    // const FklIns *end = bc->code + len;
-    // const FklIns *code = bc->code;
-    // while (code < end) {
-    //     uint8_t op = FKL_INS_OP(code);
-    //     fwrite(&op, sizeof(op), 1, outfp);
-    //     int ins_len = fklGetOpcodeModeLen(op);
-    //     FklOpcodeMode mode = fklGetOpcodeMode(op);
-    //     switch (mode) {
-    //     case FKL_OP_MODE_I:
-    //         break;
-    //     case FKL_OP_MODE_IsA:
-    //         fwrite(&code->ai, sizeof(code->ai), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IuB:
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IsB:
-    //         fwrite(&code->bi, sizeof(code->bi), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IuC:
-    //     case FKL_OP_MODE_IsC:
-    //     case FKL_OP_MODE_IuAuB:
-    //     case FKL_OP_MODE_IsAuB:
-    //         fwrite(&code->au, sizeof(code->au), 1, outfp);
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IuBB:
-    //     case FKL_OP_MODE_IsBB:
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IuCCB:
-    //     case FKL_OP_MODE_IsCCB:
-    //     case FKL_OP_MODE_IuCAuBB:
-    //         fwrite(&code->au, sizeof(code->au), 1, outfp);
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
-    //         fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-    //         fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
-    //         break;
+    // XXX: need refactor
+#if 0
+    const FklIns *end = bc->code + len;
+    const FklIns *code = bc->code;
+    while (code < end) {
+        uint8_t op = FKL_INS_OP(code);
+        fwrite(&op, sizeof(op), 1, outfp);
+        int ins_len = fklGetOpcodeModeLen(op);
+        FklOpcodeMode mode = fklGetOpcodeMode(op);
+        switch (mode) {
+        case FKL_OP_MODE_I:
+            break;
+        case FKL_OP_MODE_IsA:
+            fwrite(&code->ai, sizeof(code->ai), 1, outfp);
+            break;
+        case FKL_OP_MODE_IuB:
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            break;
+        case FKL_OP_MODE_IsB:
+            fwrite(&code->bi, sizeof(code->bi), 1, outfp);
+            break;
+        case FKL_OP_MODE_IuC:
+        case FKL_OP_MODE_IsC:
+        case FKL_OP_MODE_IuAuB:
+        case FKL_OP_MODE_IsAuB:
+            fwrite(&code->au, sizeof(code->au), 1, outfp);
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            break;
+        case FKL_OP_MODE_IuBB:
+        case FKL_OP_MODE_IsBB:
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
+            break;
+        case FKL_OP_MODE_IuCCB:
+        case FKL_OP_MODE_IsCCB:
+        case FKL_OP_MODE_IuCAuBB:
+            fwrite(&code->au, sizeof(code->au), 1, outfp);
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
+            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
+            fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
+            break;
 
-    //     case FKL_OP_MODE_IuCuC:
-    //         fwrite(&code->au, sizeof(code->au), 1, outfp);
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
-    //         fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IuCAuBCC:
-    //         fwrite(&code->au, sizeof(code->au), 1, outfp);
-    //         fwrite(&code->bu, sizeof(code->bu), 1, outfp);
-    //         fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
+        case FKL_OP_MODE_IuCuC:
+            fwrite(&code->au, sizeof(code->au), 1, outfp);
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
+            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
+            break;
+        case FKL_OP_MODE_IuCAuBCC:
+            fwrite(&code->au, sizeof(code->au), 1, outfp);
+            fwrite(&code->bu, sizeof(code->bu), 1, outfp);
+            fwrite(&code[1].au, sizeof(code[1].au), 1, outfp);
 
-    //         fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
-    //         fwrite(&code[2].au, sizeof(code[2].au), 1, outfp);
-    //         fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
-    //         fwrite(&code[3].au, sizeof(code[3].au), 1, outfp);
-    //         fwrite(&code[3].bu, sizeof(code[3].bu), 1, outfp);
-    //         break;
-    //     case FKL_OP_MODE_IxAxB:
-    //         FKL_UNREACHABLE();
-    //         break;
-    //     }
-    //     code += ins_len;
-    // }
+            fwrite(&code[1].bu, sizeof(code[1].bu), 1, outfp);
+            fwrite(&code[2].au, sizeof(code[2].au), 1, outfp);
+            fwrite(&code[2].bu, sizeof(code[2].bu), 1, outfp);
+            fwrite(&code[3].au, sizeof(code[3].au), 1, outfp);
+            fwrite(&code[3].bu, sizeof(code[3].bu), 1, outfp);
+            break;
+        case FKL_OP_MODE_IxAxB:
+            FKL_UNREACHABLE();
+            break;
+        }
+        code += ins_len;
+    }
+#endif
 }
 
 static void write_proc(const FklVMvalueProc *proc,
@@ -915,7 +918,7 @@ static FklVMvalueProc *load_proc(FILE *fp,
 
     int r = load_bc_lnt(fp, values, FKL_VM_CO(bcl));
     FKL_ASSERT(r == 0);
-	(void)r;
+    (void)r;
 
     FklVMvalue *proc = fklCreateVMvalueProc(vm, bcl, pt);
     fklInitMainProcRefs(vm, proc);
@@ -940,78 +943,81 @@ static void load_bc(FklByteCode *tmp, FILE *fp) {
     FKL_ASSERT(r == 1);
     (void)r;
 
-    // const FklIns *end = tmp->code + len;
-    // FklIns *code = tmp->code;
-    // while (code < end) {
-    //     uint8_t op = 0;
-    //     fread(&op, sizeof(op), 1, fp);
-    //     code->op = op;
-    //     FklOpcodeMode mode = fklGetOpcodeMode(op);
-    //     switch (mode) {
-    //     case FKL_OP_MODE_I:
-    //         break;
-    //     case FKL_OP_MODE_IsA:
-    //         fread(&code->ai, sizeof(code->ai), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IuB:
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IsB:
-    //         fread(&code->bi, sizeof(code->bi), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IuC:
-    //     case FKL_OP_MODE_IsC:
-    //     case FKL_OP_MODE_IuAuB:
-    //     case FKL_OP_MODE_IsAuB:
-    //         fread(&code->au, sizeof(code->au), 1, fp);
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         break;
+// XXX: need refactor
+#if 0
+    const FklIns *end = tmp->code + len;
+    FklIns *code = tmp->code;
+    while (code < end) {
+        uint8_t op = 0;
+        fread(&op, sizeof(op), 1, fp);
+        code->op = op;
+        FklOpcodeMode mode = fklGetOpcodeMode(op);
+        switch (mode) {
+        case FKL_OP_MODE_I:
+            break;
+        case FKL_OP_MODE_IsA:
+            fread(&code->ai, sizeof(code->ai), 1, fp);
+            break;
+        case FKL_OP_MODE_IuB:
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            break;
+        case FKL_OP_MODE_IsB:
+            fread(&code->bi, sizeof(code->bi), 1, fp);
+            break;
+        case FKL_OP_MODE_IuC:
+        case FKL_OP_MODE_IsC:
+        case FKL_OP_MODE_IuAuB:
+        case FKL_OP_MODE_IsAuB:
+            fread(&code->au, sizeof(code->au), 1, fp);
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            break;
 
-    //     case FKL_OP_MODE_IuBB:
-    //     case FKL_OP_MODE_IsBB:
-    //         code[1].op = FKL_OP_EXTRA_ARG;
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IuCCB:
-    //     case FKL_OP_MODE_IsCCB:
-    //     case FKL_OP_MODE_IuCAuBB:
-    //         code[1].op = FKL_OP_EXTRA_ARG;
-    //         code[2].op = FKL_OP_EXTRA_ARG;
-    //         fread(&code->au, sizeof(code->au), 1, fp);
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         fread(&code[1].au, sizeof(code[1].au), 1, fp);
-    //         fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-    //         fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
-    //         break;
+        case FKL_OP_MODE_IuBB:
+        case FKL_OP_MODE_IsBB:
+            code[1].op = FKL_OP_EXTRA_ARG;
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
+            break;
+        case FKL_OP_MODE_IuCCB:
+        case FKL_OP_MODE_IsCCB:
+        case FKL_OP_MODE_IuCAuBB:
+            code[1].op = FKL_OP_EXTRA_ARG;
+            code[2].op = FKL_OP_EXTRA_ARG;
+            fread(&code->au, sizeof(code->au), 1, fp);
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            fread(&code[1].au, sizeof(code[1].au), 1, fp);
+            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
+            fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
+            break;
 
-    //     case FKL_OP_MODE_IuCuC:
-    //         code[1].op = FKL_OP_EXTRA_ARG;
-    //         fread(&code->au, sizeof(code->au), 1, fp);
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         fread(&code[1].au, sizeof(code[1].au), 1, fp);
-    //         fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IuCAuBCC:
-    //         code[1].op = FKL_OP_EXTRA_ARG;
-    //         code[2].op = FKL_OP_EXTRA_ARG;
-    //         code[3].op = FKL_OP_EXTRA_ARG;
+        case FKL_OP_MODE_IuCuC:
+            code[1].op = FKL_OP_EXTRA_ARG;
+            fread(&code->au, sizeof(code->au), 1, fp);
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            fread(&code[1].au, sizeof(code[1].au), 1, fp);
+            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
+            break;
+        case FKL_OP_MODE_IuCAuBCC:
+            code[1].op = FKL_OP_EXTRA_ARG;
+            code[2].op = FKL_OP_EXTRA_ARG;
+            code[3].op = FKL_OP_EXTRA_ARG;
 
-    //         fread(&code->au, sizeof(code->au), 1, fp);
-    //         fread(&code->bu, sizeof(code->bu), 1, fp);
-    //         fread(&code[1].au, sizeof(code[1].au), 1, fp);
-    //         fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
-    //         fread(&code[2].au, sizeof(code[2].au), 1, fp);
-    //         fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
-    //         fread(&code[3].au, sizeof(code[3].au), 1, fp);
-    //         fread(&code[3].bu, sizeof(code[3].bu), 1, fp);
-    //         break;
-    //     case FKL_OP_MODE_IxAxB:
-    //         FKL_UNREACHABLE();
-    //         break;
-    //     }
-    //     code += fklGetOpcodeModeLen(op);
-    // }
+            fread(&code->au, sizeof(code->au), 1, fp);
+            fread(&code->bu, sizeof(code->bu), 1, fp);
+            fread(&code[1].au, sizeof(code[1].au), 1, fp);
+            fread(&code[1].bu, sizeof(code[1].bu), 1, fp);
+            fread(&code[2].au, sizeof(code[2].au), 1, fp);
+            fread(&code[2].bu, sizeof(code[2].bu), 1, fp);
+            fread(&code[3].au, sizeof(code[3].au), 1, fp);
+            fread(&code[3].bu, sizeof(code[3].bu), 1, fp);
+            break;
+        case FKL_OP_MODE_IxAxB:
+            FKL_UNREACHABLE();
+            break;
+        }
+        code += fklGetOpcodeModeLen(op);
+    }
+#endif
 }
 
 static int

@@ -10,18 +10,6 @@ static FklIns ins[4] = { FKL_INS_STATIC_INIT };
 #define I32_L16_MASK (0xFFFF)
 #define I64_L24_MASK (0xFFFFFF)
 
-static inline void set_ins_uxx(FklIns *ins, uint64_t k) {
-    ins[0] = FKL_INS_SET_uC(ins[0], k & I64_L24_MASK);
-    ins[1] = FKL_MAKE_INS_IuC(FKL_OP_EXTRA_ARG,
-            (k >> FKL_I24_WIDTH) & I64_L24_MASK);
-    ins[2] = FKL_MAKE_INS_IuB(FKL_OP_EXTRA_ARG, (k >> (FKL_I24_WIDTH * 2)));
-}
-
-static inline void set_ins_ux(FklIns *ins, uint32_t k) {
-    ins[0] = FKL_INS_SET_uB(ins[0], k & I32_L16_MASK);
-    ins[1] = FKL_MAKE_INS_IuB(FKL_OP_EXTRA_ARG, k >> FKL_I16_WIDTH);
-}
-
 int main() {
     uint64_t ux = 0x123456;
     int64_t s = -0x123456;
@@ -71,7 +59,7 @@ int main() {
     // IuBB
     ux = 0x12345678;
     int r = FKL_MAKE_INS(ins, FKL_OP_GET_LOC_X, .ux = ux);
-	FKL_ASSERT(r == 2);
+    FKL_ASSERT(r == 2);
     arg.ux = FKL_INS_uX(ins);
     fputs("IuBB\n", stderr);
     fprintf(stderr,
@@ -94,7 +82,7 @@ int main() {
     // IsBB
     s = -0x12345678;
     r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_X, .ix = s);
-	FKL_ASSERT(r == 2);
+    FKL_ASSERT(r == 2);
     arg.ix = FKL_INS_sX(ins);
     fputs("IsBB\n", stderr);
     fprintf(stderr,
@@ -117,7 +105,7 @@ int main() {
     // IsCCB
     s = -0x123456789ABCDEF0;
     r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_XX, .ix = s);
-	FKL_ASSERT(r == 3);
+    FKL_ASSERT(r == 3);
     arg.ix = FKL_INS_sXX(ins);
     fputs("IsCCB\n", stderr);
     fprintf(stderr,

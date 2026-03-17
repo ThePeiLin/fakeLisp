@@ -2232,7 +2232,6 @@ static inline FklVMvalue *processArgsInStack(FklVM *exe,
 
         fklAddCgDefBySid(curId, 1, env);
     }
-    // FklIns check_arg = { .op = FKL_OP_CHECK_ARG, .ai = 0, .bu = top };
     FklIns check_arg = FKL_MAKE_INS_IsA(FKL_OP_CHECK_ARG, 0);
     check_arg = FKL_INS_SET_uB(check_arg, top);
     FklByteCodelnt *rco = FKL_VM_CO(retval);

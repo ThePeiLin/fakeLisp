@@ -60,7 +60,7 @@ static void B_int3(FklVM *exe, const FklIns *ins) {
 
     BdbCodepoint *item = NULL;
 
-    BdbInt3Flags flags = ins->au;
+    BdbInt3Flags flags = FKL_INS_uA(*ins);
     FklIns oins = { 0 };
 
     if ((flags & BDB_INT3_STEPPING)) {
@@ -91,11 +91,11 @@ static void B_int3(FklVM *exe, const FklIns *ins) {
             exe->top_frame->pc = cur;
         }
 
-        fklVMexecuteInstruction(exe, oins.op, &oins, exe->top_frame);
+        fklVMexecuteInstruction(exe, FKL_INS_OP(oins), &oins, exe->top_frame);
 
         if (flags & BDB_INT3_GET_NEXT_INS
-                || (pc->op == FKL_OP_DUMMY
-                        && (pc->au & BDB_INT3_GET_NEXT_INS))) {
+                || (FKL_INS_OP(*pc) == FKL_OP_DUMMY
+                        && (FKL_INS_uA(*pc) & BDB_INT3_GET_NEXT_INS))) {
             bdbUnsetStepping(debug_ctx);
             debug_ctx->stepping_ctx.ln = ln;
             bdbSetStepIns(debug_ctx,
@@ -113,7 +113,7 @@ static void B_int3(FklVM *exe, const FklIns *ins) {
 
 reached_breakpoint:
     if (exe->is_single_thread) {
-        fklVMexecuteInstruction(exe, oins.op, &oins, exe->top_frame);
+        fklVMexecuteInstruction(exe, FKL_INS_OP(oins), &oins, exe->top_frame);
         return;
     }
 
@@ -128,7 +128,7 @@ static void B_int33(FklVM *exe, const FklIns *ins) {
     exe->dummy_ins_func = B_int3;
 
     const FklIns *oins = &bdbGetCodepoint(debug_ctx, ins)->origin_ins;
-    fklVMexecuteInstruction(exe, oins->op, oins, exe->top_frame);
+    fklVMexecuteInstruction(exe, FKL_INS_OP(*oins), oins, exe->top_frame);
 }
 
 static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, FklVMextraMarkArgs *arg) {
@@ -854,13 +854,13 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     const FklIns *ins = &bc->code[ins_pc];
     FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
     FklVMvalue *is_cur_ins = is_cur_pc ? FKL_VM_TRUE : FKL_VM_NIL;
-    if (ins->op == FKL_OP_DUMMY) {
+    if (FKL_INS_OP(*ins) == FKL_OP_DUMMY) {
         ins = &bdbGetCodepoint(dctx, ins)->origin_ins;
     }
     FklVMvalue *opcode_str = NULL;
     FklVMvalue *imm1 = NULL;
     FklVMvalue *imm2 = NULL;
-    FklOpcode op = ins->op;
+    FklOpcode op = FKL_INS_OP(*ins);
     FklOpcodeMode mode = fklGetOpcodeMode(op);
     FklInsArg arg;
     fklGetInsOpArgWithOp(op, ins, &arg);
@@ -890,7 +890,7 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     case FKL_OP_HASH: {
         FklStrBuf buf = { 0 };
         fklInitStrBuf(&buf);
-        fklStrBufPuts(&buf, fklGetOpcodeName(ins->op));
+        fklStrBufPuts(&buf, fklGetOpcodeName(op));
         fklStrBufPuts(&buf, "::");
         fklStrBufPuts(&buf, fklGetSubOpcodeName(op, arg.ix));
         opcode_str = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
@@ -924,7 +924,6 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
-        case FKL_OP_MODE_IuCAuBCC:
             imm1 = fklMakeVMuint(arg.ux, exe);
             imm2 = fklMakeVMuint(arg.uy, exe);
             break;
@@ -932,7 +931,7 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
         break;
     }
     FklVMvalue *retval = NULL;
-    opcode_str = fklCreateVMvalueStr1(exe, fklGetOpcodeName(ins->op));
+    opcode_str = fklCreateVMvalueStr1(exe, fklGetOpcodeName(op));
     switch (mode) {
     case FKL_OP_MODE_I:
     op_with_subop:
@@ -962,7 +961,6 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     case FKL_OP_MODE_IuAuB:
     case FKL_OP_MODE_IuCuC:
     case FKL_OP_MODE_IuCAuBB:
-    case FKL_OP_MODE_IuCAuBCC:
 
     case FKL_OP_MODE_IxAxB:
         retval = fklCreateVMvalueVecExt(exe,
@@ -1008,11 +1006,8 @@ int bdbGetCurLine(DebugCtx *dctx, BdbPos *line) {
 }
 
 static FKL_ALWAYS_INLINE const FklIns *assign_ins(const FklIns *to,
-        const FklIns *from) {
-    if (from != NULL)
-        *(FklIns *)to = *from;
-    else
-        memset((FklIns *)to, 0, sizeof(*to));
+        const FklIns from) {
+    *(FklIns *)to = from;
     return to;
 }
 
@@ -1044,8 +1039,7 @@ static inline void remove_breakpoint(BdbBp *bp, BdbBpTable *bt) {
 
     if (ins_item->v.bp == NULL) {
         const FklIns *ins = ins_item->k;
-        assign_ins(ins, &ins_item->v.origin_ins);
-        // *ins = ins_item->v.origin_ins;
+        assign_ins(ins, ins_item->v.origin_ins);
         bdbBpInsHashMapDel2(&bt->ins_ht, ins);
     }
 }
@@ -1236,7 +1230,7 @@ static inline BdbBp *create_bp(DebugCtx *ctx,
             ins,
             (BdbCodepoint){ .origin_ins = *ins, .bp = NULL });
     item->v.bp = make_breakpoint(item, bt, s, line);
-    assign_ins(ins, &(FklIns){ .op = FKL_OP_DUMMY });
+    assign_ins(ins, FKL_MAKE_INS_I(FKL_OP_DUMMY));
     return item->v.bp;
 }
 
@@ -1349,12 +1343,12 @@ static inline void set_stepping_target(struct SteppingCtx *stepping_ctx,
         const SetSteppingArgs *args) {
     stepping_ctx->ins[args->i] = *target;
     stepping_ctx->target_ins[args->i] = target;
-    FklOpcode op = target->op;
+    FklOpcode op = FKL_INS_OP(*target);
     uint8_t flags = args->flags;
     if (op == FKL_OP_DUMMY)
         flags |= BDB_INT3_STEP_AT_BP;
 
-    assign_ins(target, &(FklIns){ .op = FKL_OP_DUMMY, .au = flags });
+    assign_ins(target, FKL_MAKE_INS_IuA(FKL_OP_DUMMY, flags));
 }
 
 static inline void set_step_ins(DebugCtx *ctx,
@@ -1384,7 +1378,7 @@ static inline void set_step_ins(DebugCtx *ctx,
         goto set_target;
 
     r = 1;
-    if (fklIsCallIns(f->pc)) {
+    if (fklIsCallIns(*(f->pc))) {
         FklVMvalue *proc = exe->base[exe->bp];
         if (mode == BDB_STEP_MODE_INTO && FKL_IS_PROC(proc)) {
             FklVMvalueProc *p = FKL_VM_PROC(proc);
@@ -1395,7 +1389,7 @@ static inline void set_step_ins(DebugCtx *ctx,
             ins[0] = f->pc + l;
         }
 
-    } else if (fklIsLoadLibIns(f->pc)) {
+    } else if (fklIsLoadLibIns(*(f->pc))) {
         FklInsArg arg = { 0 };
         int8_t l = fklGetInsOpArg(f->pc, &arg);
         FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
@@ -1492,18 +1486,18 @@ static inline void set_step_line(DebugCtx *ctx,
 
     FklIns tmp_ins = *cur_ins;
 
-    if (cur_ins->op == FKL_OP_DUMMY) {
-        const FklIns *oins = &bdbGetCodepoint(ctx, cur_ins)->origin_ins;
+    if (FKL_INS_OP(*cur_ins) == FKL_OP_DUMMY) {
+        const FklIns oins = bdbGetCodepoint(ctx, cur_ins)->origin_ins;
         assign_ins(cur_ins, oins);
 
         r = fklGetNextIns(cur_ins, ins);
-        assign_ins(cur_ins, &tmp_ins);
+        assign_ins(cur_ins, tmp_ins);
 
         if (r == 1) {
             cur_ins = ins[0];
             goto get_next_line_ins;
         }
-        tmp_ins = *oins;
+        tmp_ins = oins;
     }
 
     if (r == 2) {
@@ -1514,7 +1508,7 @@ static inline void set_step_line(DebugCtx *ctx,
         goto set_target;
     }
     r = 1;
-    if (fklIsCallIns(&tmp_ins)) {
+    if (fklIsCallIns(tmp_ins)) {
         FklVMvalue *proc = exe->base[exe->bp];
         if (cur_ins != f->pc) {
             ins[0] = cur_ins;
@@ -1534,7 +1528,7 @@ static inline void set_step_line(DebugCtx *ctx,
         cur_ins = ins[0];
         goto get_next_line_ins;
 
-    } else if (fklIsLoadLibIns(&tmp_ins)) {
+    } else if (fklIsLoadLibIns(tmp_ins)) {
         FklInsArg arg = { 0 };
         int8_t l = fklGetInsOpArg(cur_ins, &arg);
         FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
@@ -1655,7 +1649,7 @@ void bdbUnsetStepping(DebugCtx *ctx) {
     sctx->ln = NULL;
     for (size_t i = 0; i < BDB_STEPPING_TARGET_INS_COUNT; ++i) {
         if (sctx->target_ins[i]) {
-            assign_ins(sctx->target_ins[i], &sctx->ins[i]);
+            assign_ins(sctx->target_ins[i], sctx->ins[i]);
             sctx->target_ins[i] = NULL;
         }
     }

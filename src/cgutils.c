@@ -2894,8 +2894,7 @@ FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm) {
 
 static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *as_weak_map(
         const FklVMvalueCgEnvWeakMap *hp) {
-    FklVMvalue *v = FKL_VM_VAL(hp);
-    FKL_ASSERT(fklIsVMvalueWeakHashEq(v));
+    FKL_ASSERT(fklIsVMvalueWeakHashEq(FKL_VM_VAL(hp)));
     return (FklVMvalueWeakHashEq *)hp;
 }
 

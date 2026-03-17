@@ -256,7 +256,7 @@ int fklGetNextIns(const FklIns *c, const FklIns *ins[2]) {
 static FKL_ALWAYS_INLINE void set_ins_uxx(FklIns *ins, uint64_t k) {
     ins[0] = FKL_INS_SET_uC(ins[0], k & I64_L24_MASK);
     ins[1] = MAKE_EXTRA_uC((k >> FKL_I24_WIDTH) & I64_L24_MASK);
-    ins[2] = MAKE_EXTRA_uC((k >> (FKL_I24_WIDTH * 2)) & I64_L24_MASK);
+    ins[2] = MAKE_EXTRA_uB((k >> (FKL_I24_WIDTH * 2)) & I32_L16_MASK);
 }
 
 static FKL_ALWAYS_INLINE void set_ins_ux(FklIns *ins, uint32_t k) {

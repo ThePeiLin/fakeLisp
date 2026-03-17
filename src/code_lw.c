@@ -915,6 +915,7 @@ static FklVMvalueProc *load_proc(FILE *fp,
 
     int r = load_bc_lnt(fp, values, FKL_VM_CO(bcl));
     FKL_ASSERT(r == 0);
+	(void)r;
 
     FklVMvalue *proc = fklCreateVMvalueProc(vm, bcl, pt);
     fklInitMainProcRefs(vm, proc);

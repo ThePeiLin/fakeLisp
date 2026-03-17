@@ -638,13 +638,15 @@ static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
 }
 
 #define GET_INS_UX(ins, frame)                                                 \
-    ((ins)->bu | (((uint32_t)(frame->pc++)->bu) << FKL_I16_WIDTH))
+    (FKL_INS_uB(ins)                                                           \
+            | (((uint32_t)FKL_INS_uB(*(frame->pc++))) << FKL_I16_WIDTH))
 #define GET_INS_IX(ins, frame) ((int32_t)GET_INS_UX(ins, frame))
 #define GET_INS_UXX(ins, frame)                                                \
     (frame->pc += 2,                                                           \
-            FKL_GET_INS_UC(ins)                                                \
-                    | (((uint64_t)FKL_GET_INS_UC((ins) + 1)) << FKL_I24_WIDTH) \
-                    | (((uint64_t)ins[2].bu) << (FKL_I24_WIDTH * 2)))
+            FKL_INS_uC(ins)                                                    \
+                    | (((uint64_t)FKL_INS_uC(frame->pc[-2])) << FKL_I24_WIDTH) \
+                    | (((uint64_t)FKL_INS_uB(frame->pc[-1]))                   \
+                            << (FKL_I24_WIDTH * 2)))
 #define GET_INS_IXX(ins, frame) ((int64_t)GET_INS_UXX(ins, frame))
 
 static FKL_ALWAYS_INLINE int check_unbound_exported_symbol(FklVM *exe,
@@ -741,14 +743,14 @@ static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
 }
 
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
-    const FklIns *ins;
+    FklIns ins = FKL_INS_STATIC_INIT;
     FklVMvalueLib *plib;
     uint32_t idx;
     uint64_t size;
     int64_t offset;
 start:
-    ins = frame->pc++;
-    switch ((FklOpcode)ins->op) {
+    ins = *(frame->pc++);
+    switch (FKL_INS_OP(ins)) {
 #define DISPATCH_INCLUDED
 #define DISPATCH_SWITCH
 #include "vmdispatch.h"

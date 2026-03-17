@@ -1872,7 +1872,7 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(obarray_print, "obarray");
 
 static FklVMudMetaTable const ObarrayUserDataMetaTable;
 
-static FKL_ALWAYS_INLINE int is_obarray(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FKL_UNUSED int is_obarray(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ObarrayUserDataMetaTable;
 }
 

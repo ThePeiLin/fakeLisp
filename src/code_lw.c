@@ -105,7 +105,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueLibPlaceholder, { LibIdx idx; });
 
 static FklVMudMetaTable const LibPlaceholderUserDataMetaTable;
 
-static FKL_ALWAYS_INLINE int is_lib_placeholder(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FKL_UNUSED int is_lib_placeholder(
+        const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
         && FKL_VM_UD(v)->mt_ == &LibPlaceholderUserDataMetaTable;
 }

@@ -115,12 +115,12 @@ function(target_define_relative_file target_name)
 	endforeach()
 endfunction()
 
-file(GLOB LIBFKL_SOURCE "src/*.c"
-						"${GENERATED_HEADER_DIR}/lisp.g.h")
+file(GLOB LIBFKL_SOURCE "src/*.c")
 
 add_library(grammer_lib
 	OBJECT
 	${LIBFKL_SOURCE})
+add_dependencies(grammer_lib lisp.g)
 target_compile_definitions(grammer_lib PRIVATE DEFINE_PUSH_STATE0)
 target_link_libraries(grammer_lib $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
 target_define_relative_file(grammer_lib)
@@ -181,7 +181,8 @@ target_link_libraries(test-lexer5 grammer_lib ${LINK_TARGET})
 target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c")
 target_define_relative_file(test-lexer5)
 
-add_executable(test-parser-grammer "main/tests/parser-grammer.c" "${GENERATED_HEADER_DIR}/lisp.g.h")
+add_executable(test-parser-grammer "main/tests/parser-grammer.c")
+add_dependencies(test-parser-grammer lisp.g)
 target_link_libraries(test-parser-grammer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-parser-grammer)
  
@@ -223,6 +224,7 @@ endif()
 add_library(${LIBFKL_STATIC_TARGET_NAME}
 	STATIC
 	${LIBFKL_SOURCE})
+add_dependencies(${LIBFKL_STATIC_TARGET_NAME} lisp.g)
 set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
 	POSITION_INDEPENDENT_CODE ON)
 target_define_relative_file(${LIBFKL_STATIC_TARGET_NAME})
@@ -231,6 +233,7 @@ target_define_relative_file(${LIBFKL_STATIC_TARGET_NAME})
 add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
+add_dependencies(${LIBFKL_TARGET_NAME} lisp.g)
 target_define_relative_file(${LIBFKL_TARGET_NAME})
 
 if(MSVC)
@@ -248,9 +251,7 @@ add_executable(${BYTECODE_PRINTER_TARGET_NAME} ${BYTECODE_PRINTER_SOURCE})
 target_define_relative_file(${BYTECODE_PRINTER_TARGET_NAME})
 
 # bin2h
-file(GLOB BIN2H_SOURCE
-	"main/bin2h.c")
-
+file(GLOB BIN2H_SOURCE "main/bin2h.c")
 add_executable(${BIN2H} ${BIN2H_SOURCE})
 target_link_libraries(${BIN2H} argtable3 ${LINK_TARGET})
 target_define_relative_file(${BIN2H})
@@ -426,16 +427,17 @@ add_custom_target(MAKE_GENERATED_HEADER_DIR ALL
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
 	BYPRODUCTS ${GENERATED_HEADER_DIR})
 
-function(add_bin2h dir name)
-	add_custom_command(OUTPUT "${GENERATED_HEADER_DIR}/${name}.h"
+function(add_bin2h target_name dir name)
+	add_custom_target(${target_name} ALL
 		COMMAND $<TARGET_FILE:${BIN2H}>
 		"-o" "${GENERATED_HEADER_DIR}/${name}.h"
-		"-i" "${dir}/${name}"
+		"-i" ${dir}/${name}
 		DEPENDS ${BIN2H} ${dir}/${name} ${GENERATED_HEADER_DIR}
+		BYPRODUCTS "${GENERATED_HEADER_DIR}/${name}.h"
 		VERBATIM)
 endfunction()
 
-add_bin2h(${PROJECT_SOURCE_DIR} "lisp.g")
+add_bin2h(lisp.g ${PROJECT_SOURCE_DIR} "lisp.g")
 
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)
@@ -464,6 +466,7 @@ cmake_print_variables(FANALYZER)
 cmake_print_variables(CMAKE_BUILD_TYPE)
 cmake_print_variables(CMAKE_C_COMPILER)
 cmake_print_variables(CMAKE_CXX_COMPILER)
+cmake_print_variables(GENERATED_HEADER_DIR)
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 message("")
 

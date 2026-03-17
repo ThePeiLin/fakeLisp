@@ -1559,7 +1559,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
 static const FklVMudMetaTable CustomActionCtxUdMetaTable;
 
-static FKL_ALWAYS_INLINE int is_custom_ctx(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FKL_UNUSED int is_custom_ctx(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
         && FKL_VM_UD(v)->mt_ == &CustomActionCtxUdMetaTable;
 }
@@ -2558,7 +2558,7 @@ find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
 }
 
 static const FklVMudMetaTable SimpleActionCtxUdMetaTable;
-static FKL_ALWAYS_INLINE int is_simple_ctx(const FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FKL_UNUSED int is_simple_ctx(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
         && FKL_VM_UD(v)->mt_ == &SimpleActionCtxUdMetaTable;
 }

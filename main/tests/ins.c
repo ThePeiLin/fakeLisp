@@ -60,6 +60,7 @@ int main() {
     ux = 0x12345678;
     int r = FKL_MAKE_INS(ins, FKL_OP_GET_LOC_X, .ux = ux);
     FKL_ASSERT(r == 2);
+	(void)r;
     arg.ux = FKL_INS_uX(ins);
     fputs("IuBB\n", stderr);
     fprintf(stderr,

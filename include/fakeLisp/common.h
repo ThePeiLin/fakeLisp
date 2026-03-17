@@ -14,8 +14,8 @@ typedef intptr_t ssize_t;
 #define FKL_MASK1(T, S, P) (((((T)1) << (S)) - 1) << (P))
 #define FKL_MASK0(T, S, P) (~FKL_MASK1(T, S, P))
 
-static_assert(FKL_MASK1(uint32_t, 24, 4) == 0x0FFFFFF0);
-static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F);
+static_assert(FKL_MASK1(uint32_t, 24, 4) == 0x0FFFFFF0, "what the fuck?");
+static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #define FKL_BYTE_WIDTH (CHAR_BIT)
 #define FKL_I16_WIDTH (FKL_BYTE_WIDTH * 2)
@@ -61,6 +61,7 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F);
 #define FKL_FMT_ATTR(A, B) __attribute__((format(printf, A, B)))
 
 #define FKL_DEPRECATED __attribute__((deprecated))
+#define FKL_UNUSED __attribute__((unused))
 #define FKL_ALWAYS_INLINE inline __attribute__((always_inline))
 #define FKL_UNREACHABLE_() __builtin_unreachable()
 #define FKL_NODISCARD __attribute__((warn_unused_result))
@@ -72,6 +73,7 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F);
 #define FKL_ALWAYS_INLINE __forceinline
 #define FKL_UNREACHABLE_() __assume(0)
 #define FKL_NODISCARD
+#define FKL_UNUSED
 
 #else
 
@@ -80,6 +82,7 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F);
 #define FKL_DEPRECATED
 #define FKL_ALWAYS_INLINE inline
 #define FKL_NODISCARD
+#define FKL_UNUSED
 
 #endif
 

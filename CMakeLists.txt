@@ -428,13 +428,21 @@ add_custom_target(MAKE_GENERATED_HEADER_DIR ALL
 	BYPRODUCTS ${GENERATED_HEADER_DIR})
 
 function(add_bin2h target_name dir name)
-	add_custom_target(${target_name} ALL
-		COMMAND $<TARGET_FILE:${BIN2H}>
-		"-o" "${GENERATED_HEADER_DIR}/${name}.h"
-		"-i" ${dir}/${name}
-		DEPENDS ${BIN2H} ${dir}/${name} ${GENERATED_HEADER_DIR}
-		BYPRODUCTS "${GENERATED_HEADER_DIR}/${name}.h"
-		VERBATIM)
+    set(INPUT_FILE ${dir}/${name})
+    set(OUTPUT_FILE ${GENERATED_HEADER_DIR}/${name}.h)
+
+    add_custom_command(OUTPUT ${OUTPUT_FILE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
+        COMMAND $<TARGET_FILE:${BIN2H}>
+                -o ${OUTPUT_FILE}
+                -i ${INPUT_FILE}
+        DEPENDS ${BIN2H} ${INPUT_FILE}
+        VERBATIM)
+
+    add_custom_target(${target_name} ALL
+        DEPENDS ${OUTPUT_FILE})
+
+    set_source_files_properties(${OUTPUT_FILE} PROPERTIES GENERATED TRUE)
 endfunction()
 
 add_bin2h(lisp.g ${PROJECT_SOURCE_DIR} "lisp.g")

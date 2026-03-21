@@ -610,9 +610,9 @@ static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer *buf,
         uint32_t k) {
     if (k < 3)
         return 0;
-    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_LOC_C
+    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_LOC
             && FKL_INS_OP(peephole[1].ins) == FKL_OP_ADDK
-            && FKL_INS_OP(peephole[2].ins) == FKL_OP_PUT_LOC_C
+            && FKL_INS_OP(peephole[2].ins) == FKL_OP_PUT_LOC
             && FKL_INS_uC(peephole[0].ins) == FKL_INS_uC(peephole[2].ins)
             && is_in_u16_range(FKL_INS_uC(peephole[0].ins)))
         return 3;
@@ -681,7 +681,7 @@ static uint32_t put_loc_drop_predicate(const FklByteCodeBuffer *buf,
         return 0;
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     uint32_t i = set_insln_to_ins(&peephole[0], ins);
-    if (i < k && FKL_INS_OP(ins[0]) == FKL_OP_PUT_LOC_C
+    if (i < k && FKL_INS_OP(ins[0]) == FKL_OP_PUT_LOC
             && is_in_u16_range(FKL_INS_uC(ins[0]))
             && is_drop1(peephole[i].ins)) {
         return i + 1;
@@ -725,7 +725,7 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
     fklGetInsOpArg(ins, &arg);
     uint32_t loc_idx = arg.ux;
     i += set_insln_to_ins(&peephole[i], ins);
-    if (FKL_INS_OP(ins[0]) != FKL_OP_GET_LOC_C)
+    if (FKL_INS_OP(ins[0]) != FKL_OP_GET_LOC)
         return 0;
     fklGetInsOpArg(ins, &arg);
     if (loc_idx != arg.ux)
@@ -743,7 +743,7 @@ static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
     set_insln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
     uint32_t loc_idx = arg.ux;
-    FklOpcode op = FKL_OP_PUT_LOC_C;
+    FklOpcode op = FKL_OP_PUT_LOC;
     uint32_t nl = FKL_MAKE_INS(ins, op, .ux = loc_idx);
 
     set_ins_to_insln(ins, peephole, output);
@@ -1264,13 +1264,13 @@ static uint32_t mov_loc_pred(const FklByteCodeBuffer *buf,
         uint32_t k) {
     if (k < 2)
         return 0;
-    if (FKL_INS_OP(peephole[0].ins) != FKL_OP_GET_LOC_C)
+    if (FKL_INS_OP(peephole[0].ins) != FKL_OP_GET_LOC)
         return 0;
 
     uint32_t a_idx = FKL_INS_uC(peephole[0].ins);
     if (a_idx > UINT8_MAX)
         return 0;
-    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_PUT_LOC_C)
+    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_PUT_LOC)
         return 0;
     if (is_in_u16_range(FKL_INS_uC(peephole[1].ins)))
         return 2;
@@ -1303,7 +1303,7 @@ static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer *buf,
     if (!is_drop1(peephole[1].ins))
         return 0;
 
-    if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_LOC_C) {
+    if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_LOC) {
         return FKL_INS_uC(peephole[2].ins) == a_idx ? 3 : 0;
     } else if (FKL_INS_OP(peephole[2].ins) == FKL_OP_MOV_LOC) {
         uint32_t a_idx1 = FKL_INS_uA(peephole[2].ins);
@@ -1329,13 +1329,16 @@ static uint32_t mov_var_ref_pred(const FklByteCodeBuffer *buf,
         uint32_t k) {
     if (k < 2)
         return 0;
-    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_VAR_REF) {
-        uint32_t a_idx = FKL_INS_uB(peephole[0].ins);
-        if (a_idx > UINT8_MAX)
-            return 0;
-        if (FKL_INS_OP(peephole[1].ins) == FKL_OP_PUT_VAR_REF)
-            return 2;
-    }
+    if (FKL_INS_OP(peephole[0].ins) != FKL_OP_GET_VAR_REF)
+        return 0;
+
+    uint32_t a_idx = FKL_INS_uB(peephole[0].ins);
+    if (a_idx > UINT8_MAX)
+        return 0;
+    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_PUT_VAR_REF)
+        return 0;
+    if (is_in_u16_range(FKL_INS_uC(peephole[1].ins)))
+        return 2;
     return 0;
 }
 
@@ -1346,8 +1349,8 @@ static uint32_t mov_var_ref_output(const FklByteCodeBuffer *buf,
         FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins = FKL_INS_SET_OP(output[0].ins, FKL_OP_MOV_VAR_REF);
-    output[0].ins = FKL_INS_SET_uA(output[0].ins, FKL_INS_uB(peephole[0].ins));
-    output[0].ins = FKL_INS_SET_uB(output[0].ins, FKL_INS_uB(peephole[1].ins));
+    output[0].ins = FKL_INS_SET_uA(output[0].ins, FKL_INS_uC(peephole[0].ins));
+    output[0].ins = FKL_INS_SET_uB(output[0].ins, FKL_INS_uC(peephole[1].ins));
     return 1;
 }
 
@@ -1359,17 +1362,18 @@ static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer *buf,
         return 0;
     if (FKL_INS_OP(peephole[0].ins) != FKL_OP_MOV_VAR_REF)
         return 0;
+
     uint32_t a_idx = FKL_INS_uA(peephole[0].ins);
+    uint32_t b_idx = FKL_INS_uB(peephole[0].ins);
     if (!is_drop1(peephole[1].ins))
         return 0;
 
     if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_VAR_REF) {
-        if (FKL_INS_uB(peephole[2].ins) == a_idx)
-            return 3;
+        return FKL_INS_uB(peephole[2].ins) == a_idx ? 3 : 0;
     } else if (FKL_INS_OP(peephole[2].ins) == FKL_OP_MOV_VAR_REF) {
-        if (FKL_INS_uA(peephole[2].ins) == FKL_INS_uA(peephole[0].ins)
-                && FKL_INS_uB(peephole[2].ins) == FKL_INS_uB(peephole[0].ins))
-            return 3;
+        uint32_t a_idx1 = FKL_INS_uA(peephole[2].ins);
+        uint32_t b_idx1 = FKL_INS_uB(peephole[2].ins);
+        return a_idx1 == a_idx && b_idx1 == b_idx ? 3 : 0;
     }
     return 0;
 }
@@ -1396,103 +1400,33 @@ static uint32_t mov_to_get_output(const FklByteCodeBuffer *buf,
     output[0] = peephole[0];
     uint32_t idx = FKL_INS_uA(peephole[0].ins);
     FklOpcode op = FKL_INS_OP(peephole[0].ins) == FKL_OP_MOV_LOC
-                         ? FKL_OP_GET_LOC_C
-                         : FKL_OP_GET_VAR_REF_C;
+                         ? FKL_OP_GET_LOC
+                         : FKL_OP_GET_VAR_REF;
     output[0].ins = FKL_MAKE_INS_IuC(op, idx);
     return 1;
 }
 
 static const struct PeepholeOptimizer PeepholeOptimizers[] = {
-    {
-        not3_predicate,
-        not3_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        inc_or_dec_loc_predicate,
-        inc_or_dec_loc_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        not_jmp_if_true_or_false_predicate,
-        not_jmp_if_true_or_false_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        put_loc_drop_predicate,
-        put_loc_drop_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        pop_and_get_loc_predicate,
-        pop_and_get_loc_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        jmp_to_ret_predicate,
-        jmp_to_ret_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        jmp_to_jmp_predicate,
-        jmp_to_jmp_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        oprand1_const_fold_predicate,
-        oprand1_const_fold_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        oprand2_const_fold_predicate,
-        oprand2_const_fold_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        oprand3_const_fold_predicate,
-        oprand3_const_fold_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        nil_cond_ret_or_jmp_drop_pred,
-        nil_cond_ret_or_jmp_drop_output,
-        PEEPHOLE_CAN_IN_BLOCKS,
-    },
-    {
-        push_const_not_pred,
-        push_const_not_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        mov_loc_pred,
-        mov_loc_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        mov_loc_drop_get_pred,
-        mov_loc_drop_get_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        mov_var_ref_pred,
-        mov_var_ref_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        mov_var_ref_drop_get_pred,
-        mov_loc_drop_get_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        mov_to_get_pred,
-        mov_to_get_output,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
-    {
-        NULL,
-        NULL,
-        PEEPHOLE_SHOULD_IN_ONE_BLOCK,
-    },
+    // clang-format off
+    { not3_predicate,                     not3_output,                     PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { inc_or_dec_loc_predicate,           inc_or_dec_loc_output,           PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { not_jmp_if_true_or_false_predicate, not_jmp_if_true_or_false_output, PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { put_loc_drop_predicate,             put_loc_drop_output,             PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { pop_and_get_loc_predicate,          pop_and_get_loc_output,          PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { jmp_to_ret_predicate,               jmp_to_ret_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { jmp_to_jmp_predicate,               jmp_to_jmp_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { oprand1_const_fold_predicate,       oprand1_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { oprand2_const_fold_predicate,       oprand2_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { oprand3_const_fold_predicate,       oprand3_const_fold_output,       PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { nil_cond_ret_or_jmp_drop_pred,      nil_cond_ret_or_jmp_drop_output, PEEPHOLE_CAN_IN_BLOCKS       },
+    { push_const_not_pred,                push_const_not_output,           PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { mov_loc_pred,                       mov_loc_output,                  PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { mov_loc_drop_get_pred,              mov_loc_drop_get_output,         PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { mov_var_ref_pred,                   mov_var_ref_output,              PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { mov_var_ref_drop_get_pred,          mov_loc_drop_get_output,         PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { mov_to_get_pred,                    mov_to_get_output,               PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    { NULL,                               NULL,                            PEEPHOLE_SHOULD_IN_ONE_BLOCK },
+    // clang-format on
 };
 
 static inline int

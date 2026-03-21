@@ -222,7 +222,7 @@ static inline int fklIsJmpIfFalseIns(const FklIns ins) {
 }
 
 static inline int fklIsPutLocIns(const FklIns ins) {
-    return FKL_INS_OP(ins) == FKL_OP_PUT_LOC_C;
+    return FKL_INS_OP(ins) == FKL_OP_PUT_LOC;
 }
 
 static inline int fklIsMakeProcIns(const FklIns ins) {
@@ -230,8 +230,7 @@ static inline int fklIsMakeProcIns(const FklIns ins) {
 }
 
 static inline int fklIsPutVarRefIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_PUT_VAR_REF
-        && FKL_INS_OP(ins) <= FKL_OP_PUT_VAR_REF_X;
+    return FKL_INS_OP(ins) == FKL_OP_PUT_VAR_REF;
 }
 
 static inline int fklIsCallIns(const FklIns ins) {

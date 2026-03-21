@@ -275,23 +275,15 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
-    case FKL_OP_GET_LOC_C:
+    case FKL_OP_GET_LOC:
         FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, FKL_INS_uC(ins)));
         break;
-    case FKL_OP_PUT_LOC_C:
+    case FKL_OP_PUT_LOC:
         FKL_VM_GET_ARG(exe, frame, FKL_INS_uC(ins)) = FKL_VM_GET_TOP_VALUE(exe);
         break;
-    case FKL_OP_GET_VAR_REF:
-        idx = FKL_INS_uB(ins);
-        goto get_var_ref;
-    case FKL_OP_GET_VAR_REF_C:
-        idx = FKL_INS_uC(ins);
-        goto get_var_ref;
-    case FKL_OP_GET_VAR_REF_X:
-        idx = GET_INS_UX(ins, frame);
-    get_var_ref: {
+    case FKL_OP_GET_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *v = get_var_val(frame, idx, &name);
+        FklVMvalue *v = get_var_val(frame, FKL_INS_uC(ins), &name);
         if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
@@ -299,17 +291,9 @@ void fklVMexecuteInstruction(FklVM *exe,
                     name);
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
-    case FKL_OP_PUT_VAR_REF:
-        idx = FKL_INS_uB(ins);
-        goto put_var_ref;
-    case FKL_OP_PUT_VAR_REF_C:
-        idx = FKL_INS_uC(ins);
-        goto put_var_ref;
-    case FKL_OP_PUT_VAR_REF_X:
-        idx = GET_INS_UX(ins, frame);
-    put_var_ref: {
+    case FKL_OP_PUT_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *volatile *pv = get_var_ref(frame, idx, &name);
+        FklVMvalue *volatile *pv = get_var_ref(frame, FKL_INS_uC(ins), &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,

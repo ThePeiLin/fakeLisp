@@ -539,7 +539,7 @@ static inline FklVMvalue *append_put_loc_ins(FklVM *exe,
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
             bcl,
-            FKL_OP_PUT_LOC_C,
+            FKL_OP_PUT_LOC,
             idx,
             fid,
             line,
@@ -701,8 +701,7 @@ static inline void pushListItemToStack(FklVMvalue *list,
 }
 
 static inline int is_get_var_ref_ins(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_GET_VAR_REF
-        && FKL_INS_OP(ins) <= FKL_OP_GET_VAR_REF_X;
+    return FKL_INS_OP(ins) == FKL_OP_GET_VAR_REF;
 }
 
 static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
@@ -5215,7 +5214,7 @@ static inline FklVMvalue *append_get_loc_ins(FklVM *exe,
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
             bcl,
-            FKL_OP_GET_LOC_C,
+            FKL_OP_GET_LOC,
             idx,
             fid,
             line,

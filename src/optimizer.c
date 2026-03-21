@@ -1,5 +1,6 @@
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/opcode.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
@@ -19,13 +20,26 @@ static inline void push_ins_ln(FklByteCodeBuffer *buf, const FklInsLn *ins) {
     buf->base[buf->size++] = *ins;
 }
 
-static inline int set_ins_ln_to_ins(const FklInsLn *cur_ins_ln, FklIns *ins) {
+static inline int set_insln_to_ins(const FklInsLn *cur_ins_ln, FklIns *ins) {
     const FklIns cur_ins = cur_ins_ln->ins;
     FklOpcode op = FKL_INS_OP(cur_ins);
     int ol = fklGetOpcodeModeLen(op);
 
     for (int i = 0; i < ol; i++)
         ins[i] = cur_ins_ln[i].ins;
+    return ol;
+}
+
+static inline int set_ins_to_insln(const FklIns *ins,
+        const FklInsLn *peephole,
+        FklInsLn *output) {
+    FklOpcode op = FKL_INS_OP(ins[0]);
+    int ol = fklGetOpcodeModeLen(op);
+    for (int i = 0; i < ol; ++i) {
+        output[i] = peephole[i];
+        output[i].ins = ins[i];
+    }
+
     return ol;
 }
 
@@ -56,7 +70,7 @@ static inline FklByteCodeBuffer *recompute_jmp_target(FklByteCodeBuffer *a,
             FklInsLn *cur = &a->base[i];
             tmp_ins_ln = *cur;
             if (cur->jmp_to) {
-                int ol = set_ins_ln_to_ins(cur, ins);
+                int ol = set_insln_to_ins(cur, ins);
                 fklGetInsOpArg(ins, &arg);
 
                 if (fklIsMakeProcIns(*ins)) {
@@ -586,16 +600,21 @@ static uint32_t not3_output(const FklByteCodeBuffer *buf,
     return 1;
 }
 
+static FKL_ALWAYS_INLINE int is_in_u16_range(uint32_t i) {
+    return i <= UINT16_MAX;
+}
+
 static uint32_t inc_or_dec_loc_predicate(const FklByteCodeBuffer *buf,
         const uint64_t *block_start,
         const FklInsLn *peephole,
         uint32_t k) {
     if (k < 3)
         return 0;
-    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_LOC
+    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_LOC_C
             && FKL_INS_OP(peephole[1].ins) == FKL_OP_ADDK
-            && FKL_INS_OP(peephole[2].ins) == FKL_OP_PUT_LOC
-            && FKL_INS_uB(peephole[0].ins) == FKL_INS_uB(peephole[2].ins))
+            && FKL_INS_OP(peephole[2].ins) == FKL_OP_PUT_LOC_C
+            && FKL_INS_uC(peephole[0].ins) == FKL_INS_uC(peephole[2].ins)
+            && is_in_u16_range(FKL_INS_uC(peephole[0].ins)))
         return 3;
     return 0;
 }
@@ -605,10 +624,16 @@ static uint32_t inc_or_dec_loc_output(const FklByteCodeBuffer *buf,
         const FklInsLn *peephole,
         uint32_t k,
         FklInsLn *output) {
+    uint32_t uB = FKL_INS_uC(peephole[0].ins);
+    int8_t sA = FKL_INS_sA(peephole[1].ins);
     output[0] = peephole[0];
-    output[0].ins = FKL_INS_SET_OP(output[0].ins, FKL_OP_ADDK_LOC);
-    output[0].ins = FKL_INS_SET_sA(output[0].ins, FKL_INS_sA(peephole[1].ins));
+    output[0].ins = FKL_MAKE_INS_IsA(FKL_OP_ADDK_LOC, sA);
+    output[0].ins = FKL_INS_SET_uB(output[0].ins, uB);
     return 1;
+}
+
+static FKL_ALWAYS_INLINE int is_drop1(const FklIns i) {
+    return FKL_INS_OP(i) == FKL_OP_DROP && FKL_INS_uA(i) == FKL_SUBOP_DROP_1;
 }
 
 static uint32_t not_jmp_if_true_or_false_predicate(const FklByteCodeBuffer *buf,
@@ -621,15 +646,15 @@ static uint32_t not_jmp_if_true_or_false_predicate(const FklByteCodeBuffer *buf,
     if (FKL_INS_OP(peephole[i++].ins) != FKL_OP_NOT)
         return 0;
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
-    i += set_ins_ln_to_ins(&peephole[i], ins);
+    i += set_insln_to_ins(&peephole[i], ins);
     if (i >= k)
         return 0;
     if (!fklIsCondJmpIns(ins[0]))
         return 0;
-    if (FKL_INS_OP(peephole[i].ins) != FKL_OP_DROP)
+    if (!is_drop1(peephole[i].ins))
         return 0;
     FklIns target_ins = buf->base[block_start[peephole[1].jmp_to - 1]].ins;
-    if (FKL_INS_OP(target_ins) == FKL_OP_DROP)
+    if (is_drop1(target_ins))
         return i;
     return 0;
 }
@@ -655,11 +680,12 @@ static uint32_t put_loc_drop_predicate(const FklByteCodeBuffer *buf,
     if (k < 2)
         return 0;
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
-    uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
-    if (i < k //
-            && FKL_INS_OP(ins[0]) == FKL_OP_PUT_LOC
-            && FKL_INS_OP(peephole[i].ins) == FKL_OP_DROP)
+    uint32_t i = set_insln_to_ins(&peephole[0], ins);
+    if (i < k && FKL_INS_OP(ins[0]) == FKL_OP_PUT_LOC_C
+            && is_in_u16_range(FKL_INS_uC(ins[0]))
+            && is_drop1(peephole[i].ins)) {
         return i + 1;
+    }
     return 0;
 }
 
@@ -670,16 +696,14 @@ static uint32_t put_loc_drop_output(const FklByteCodeBuffer *buf,
         FklInsLn *output) {
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     FklInsArg arg;
-    set_ins_ln_to_ins(&peephole[0], ins);
+    set_insln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
     uint32_t loc_idx = arg.ux;
     FklOpcode op = FKL_OP_POP_LOC;
+
     uint32_t nl = FKL_MAKE_INS(ins, op, .ux = loc_idx);
 
-    for (uint32_t i = 0; i < nl; i++) {
-        output[i] = peephole[i];
-        output[i].ins = ins[i];
-    }
+    set_ins_to_insln(ins, peephole, output);
 
     return nl;
 }
@@ -692,7 +716,7 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
         return 0;
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     FklInsArg arg;
-    uint32_t i = set_ins_ln_to_ins(&peephole[0], ins);
+    uint32_t i = set_insln_to_ins(&peephole[0], ins);
     if (i >= k)
         return 0;
     if (FKL_INS_OP(ins[0]) != FKL_OP_POP_LOC)
@@ -700,9 +724,8 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
 
     fklGetInsOpArg(ins, &arg);
     uint32_t loc_idx = arg.ux;
-    i += set_ins_ln_to_ins(&peephole[i], ins);
-    if (FKL_INS_OP(ins[0]) < FKL_OP_GET_LOC
-            || FKL_INS_OP(ins[0]) > FKL_OP_GET_LOC_X)
+    i += set_insln_to_ins(&peephole[i], ins);
+    if (FKL_INS_OP(ins[0]) != FKL_OP_GET_LOC_C)
         return 0;
     fklGetInsOpArg(ins, &arg);
     if (loc_idx != arg.ux)
@@ -717,16 +740,13 @@ static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
         FklInsLn *output) {
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     FklInsArg arg;
-    set_ins_ln_to_ins(&peephole[0], ins);
+    set_insln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
     uint32_t loc_idx = arg.ux;
-    FklOpcode op = FKL_OP_PUT_LOC;
+    FklOpcode op = FKL_OP_PUT_LOC_C;
     uint32_t nl = FKL_MAKE_INS(ins, op, .ux = loc_idx);
 
-    for (uint32_t i = 0; i < nl; i++) {
-        output[i] = peephole[i];
-        output[i].ins = ins[i];
-    }
+    set_ins_to_insln(ins, peephole, output);
 
     return nl;
 }
@@ -1172,7 +1192,7 @@ static uint32_t nil_cond_ret_or_jmp_drop_pred(const FklByteCodeBuffer *buf,
                 return 0;
             if (peephole[i].block_id)
                 block_count++;
-            if (FKL_INS_OP(peephole[i++].ins) == FKL_OP_DROP) {
+            if (is_drop1(peephole[i++].ins)) {
                 if (i >= k)
                     return 0;
                 if (peephole[i].block_id)
@@ -1244,13 +1264,16 @@ static uint32_t mov_loc_pred(const FklByteCodeBuffer *buf,
         uint32_t k) {
     if (k < 2)
         return 0;
-    if (FKL_INS_OP(peephole[0].ins) == FKL_OP_GET_LOC) {
-        uint32_t a_idx = FKL_INS_uB(peephole[0].ins);
-        if (a_idx > UINT8_MAX)
-            return 0;
-        if (FKL_INS_OP(peephole[1].ins) == FKL_OP_PUT_LOC)
-            return 2;
-    }
+    if (FKL_INS_OP(peephole[0].ins) != FKL_OP_GET_LOC_C)
+        return 0;
+
+    uint32_t a_idx = FKL_INS_uC(peephole[0].ins);
+    if (a_idx > UINT8_MAX)
+        return 0;
+    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_PUT_LOC_C)
+        return 0;
+    if (is_in_u16_range(FKL_INS_uC(peephole[1].ins)))
+        return 2;
     return 0;
 }
 
@@ -1261,8 +1284,8 @@ static uint32_t mov_loc_output(const FklByteCodeBuffer *buf,
         FklInsLn *output) {
     output[0] = peephole[0];
     output[0].ins = FKL_INS_SET_OP(output[0].ins, FKL_OP_MOV_LOC);
-    output[0].ins = FKL_INS_SET_uA(output[0].ins, FKL_INS_uB(peephole[0].ins));
-    output[0].ins = FKL_INS_SET_uB(output[0].ins, FKL_INS_uB(peephole[1].ins));
+    output[0].ins = FKL_INS_SET_uA(output[0].ins, FKL_INS_uC(peephole[0].ins));
+    output[0].ins = FKL_INS_SET_uB(output[0].ins, FKL_INS_uC(peephole[1].ins));
     return 1;
 }
 
@@ -1276,17 +1299,18 @@ static uint32_t mov_loc_drop_get_pred(const FklByteCodeBuffer *buf,
         return 0;
 
     uint32_t a_idx = FKL_INS_uA(peephole[0].ins);
-    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_DROP)
+    uint32_t b_idx = FKL_INS_uB(peephole[0].ins);
+    if (!is_drop1(peephole[1].ins))
         return 0;
-    if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_LOC) {
-        if (FKL_INS_uB(peephole[2].ins) == a_idx)
-            return 3;
+
+    if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_LOC_C) {
+        return FKL_INS_uC(peephole[2].ins) == a_idx ? 3 : 0;
     } else if (FKL_INS_OP(peephole[2].ins) == FKL_OP_MOV_LOC) {
-        if (FKL_INS_uA(peephole[2].ins) != FKL_INS_uA(peephole[0].ins))
-            return 0;
-        if (FKL_INS_uB(peephole[2].ins) == FKL_INS_uB(peephole[0].ins))
-            return 3;
+        uint32_t a_idx1 = FKL_INS_uA(peephole[2].ins);
+        uint32_t b_idx1 = FKL_INS_uB(peephole[2].ins);
+        return a_idx1 == a_idx && b_idx1 == b_idx ? 3 : 0;
     }
+
     return 0;
 }
 
@@ -1336,7 +1360,7 @@ static uint32_t mov_var_ref_drop_get_pred(const FklByteCodeBuffer *buf,
     if (FKL_INS_OP(peephole[0].ins) != FKL_OP_MOV_VAR_REF)
         return 0;
     uint32_t a_idx = FKL_INS_uA(peephole[0].ins);
-    if (FKL_INS_OP(peephole[1].ins) != FKL_OP_DROP)
+    if (!is_drop1(peephole[1].ins))
         return 0;
 
     if (FKL_INS_OP(peephole[2].ins) == FKL_OP_GET_VAR_REF) {
@@ -1354,13 +1378,13 @@ static uint32_t mov_to_get_pred(const FklByteCodeBuffer *buf,
         const uint64_t *block_start,
         const FklInsLn *peephole,
         uint32_t k) {
-    if ((FKL_INS_OP(peephole[0].ins) == FKL_OP_MOV_LOC
-                || FKL_INS_OP(peephole[0].ins) == FKL_OP_MOV_VAR_REF)) {
-        uint32_t a_idx = FKL_INS_uA(peephole[0].ins);
-        uint32_t b_idx = FKL_INS_uB(peephole[0].ins);
-        if (a_idx == b_idx)
-            return 1;
-    }
+    FklOpcode op = FKL_INS_OP(peephole[0].ins);
+    if (op != FKL_OP_MOV_LOC && op != FKL_OP_MOV_VAR_REF)
+        return 0;
+    uint32_t a_idx = FKL_INS_uA(peephole[0].ins);
+    uint32_t b_idx = FKL_INS_uB(peephole[0].ins);
+    if (a_idx == b_idx)
+        return 1;
     return 0;
 }
 
@@ -1370,10 +1394,11 @@ static uint32_t mov_to_get_output(const FklByteCodeBuffer *buf,
         uint32_t k,
         FklInsLn *output) {
     output[0] = peephole[0];
+    uint32_t idx = FKL_INS_uA(peephole[0].ins);
     FklOpcode op = FKL_INS_OP(peephole[0].ins) == FKL_OP_MOV_LOC
-                         ? FKL_OP_GET_LOC
-                         : FKL_OP_GET_VAR_REF;
-    output[0].ins = FKL_INS_SET_OP(peephole[0].ins, op);
+                         ? FKL_OP_GET_LOC_C
+                         : FKL_OP_GET_VAR_REF_C;
+    output[0].ins = FKL_MAKE_INS_IuC(op, idx);
     return 1;
 }
 

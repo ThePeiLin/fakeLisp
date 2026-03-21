@@ -56,33 +56,9 @@ int main() {
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
-    // IuBB
-    ux = 0x12345678;
-    int r = FKL_MAKE_INS(ins, FKL_OP_GET_LOC_X, .ux = ux);
-    FKL_ASSERT(r == 2);
-	(void)r;
-    arg.ux = FKL_INS_uX(ins);
-    fputs("IuBB\n", stderr);
-    fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__,
-            __LINE__,
-            ux,
-            arg.ux);
-    FKL_ASSERT(arg.ux == ux);
-    fklGetInsOpArg(ins, &arg);
-    fprintf(stderr,
-            "[%s: %d] ux= %" PRIu64 ", arg.ux= %" PRIu64 "\n",
-            __FILE__,
-            __LINE__,
-            ux,
-            arg.ux);
-    FKL_ASSERT(arg.ux == ux);
-    fputc('\n', stderr);
-
     // IsBB
     s = -0x12345678;
-    r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_X, .ix = s);
+    int r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_X, .ix = s);
     FKL_ASSERT(r == 2);
     arg.ix = FKL_INS_sX(ins);
     fputs("IsBB\n", stderr);

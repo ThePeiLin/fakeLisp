@@ -222,8 +222,7 @@ static inline int fklIsJmpIfFalseIns(const FklIns ins) {
 }
 
 static inline int fklIsPutLocIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_PUT_LOC
-        && FKL_INS_OP(ins) <= FKL_OP_PUT_LOC_X;
+    return FKL_INS_OP(ins) == FKL_OP_PUT_LOC_C;
 }
 
 static inline int fklIsMakeProcIns(const FklIns ins) {

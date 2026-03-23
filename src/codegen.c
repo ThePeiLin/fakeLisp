@@ -401,6 +401,7 @@ static inline FklVMvalue *append_jmp_ins(FklVM *exe,
     }
     switch (orien) {
     case JMP_FORWARD:
+        FKL_ASSERT(len >= FKL_I24_MIN && len <= FKL_I24_MAX);
         return set_and_append_ins_with_signed_imm(exe,
                 m,
                 bcl,
@@ -412,26 +413,7 @@ static inline FklVMvalue *append_jmp_ins(FklVM *exe,
         break;
     case JMP_BACKWARD:
         len = -len - 1;
-        if (len >= FKL_I24_MIN)
-            return set_and_append_ins_with_signed_imm(exe,
-                    m,
-                    bcl,
-                    op,
-                    len,
-                    fid,
-                    line,
-                    scope);
-        len -= 1;
-        if (len >= INT32_MIN)
-            return set_and_append_ins_with_signed_imm(exe,
-                    m,
-                    bcl,
-                    op,
-                    len,
-                    fid,
-                    line,
-                    scope);
-        len -= 1;
+        FKL_ASSERT(len >= FKL_I24_MIN && len <= FKL_I24_MAX);
         return set_and_append_ins_with_signed_imm(exe,
                 m,
                 bcl,

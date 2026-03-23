@@ -18,7 +18,6 @@ void fklVMexecuteInstruction(FklVM *exe,
     FklVMvalueLib *plib;
     uint32_t idx;
     uint64_t size;
-    int64_t offset;
     FklIns ins = *pc;
     switch (op) {
 #endif
@@ -212,58 +211,15 @@ void fklVMexecuteInstruction(FklVM *exe,
 #undef RETURN_HEADER
     } break;
     case FKL_OP_JMP_IF_TRUE:
-        offset = sB(ins);
-        goto jmp_if_true;
-        break;
-    case FKL_OP_JMP_IF_TRUE_C:
-        offset = sC(ins);
-        goto jmp_if_true;
-        break;
-    case FKL_OP_JMP_IF_TRUE_X:
-        offset = sX(ins, frame);
-        goto jmp_if_true;
-        break;
-    case FKL_OP_JMP_IF_TRUE_XX:
-        offset = sXX(ins, frame);
-    jmp_if_true:
         if (FKL_VM_GET_TOP_VALUE(exe) != FKL_VM_NIL)
-            frame->pc += offset;
+            frame->pc += sC(ins);
         break;
-
     case FKL_OP_JMP_IF_FALSE:
-        offset = sB(ins);
-        goto jmp_if_false;
-        break;
-    case FKL_OP_JMP_IF_FALSE_C:
-        offset = sC(ins);
-        goto jmp_if_false;
-        break;
-    case FKL_OP_JMP_IF_FALSE_X:
-        offset = sX(ins, frame);
-        goto jmp_if_false;
-        break;
-    case FKL_OP_JMP_IF_FALSE_XX:
-        offset = sXX(ins, frame);
-    jmp_if_false:
         if (FKL_VM_GET_TOP_VALUE(exe) == FKL_VM_NIL)
-            frame->pc += offset;
+            frame->pc += sC(ins);
         break;
     case FKL_OP_JMP:
-        offset = sB(ins);
-        goto jmp;
-        break;
-    case FKL_OP_JMP_C:
-        offset = sC(ins);
-        goto jmp;
-        break;
-    case FKL_OP_JMP_X:
-        offset = sX(ins, frame);
-        goto jmp;
-        break;
-    case FKL_OP_JMP_XX:
-        offset = sXX(ins, frame);
-    jmp:
-        frame->pc += offset;
+        frame->pc += sC(ins);
         break;
     case FKL_OP_IMPORT: {
         idx = uC(ins);

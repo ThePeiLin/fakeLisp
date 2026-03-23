@@ -203,22 +203,20 @@ static FKL_ALWAYS_INLINE int fklIsLoadProto(const FklIns ins) {
 }
 
 static inline int fklIsJmpIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_JMP && FKL_INS_OP(ins) <= FKL_OP_JMP_XX;
+    return FKL_INS_OP(ins) == FKL_OP_JMP;
 }
 
 static inline int fklIsCondJmpIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_JMP_IF_TRUE
-        && FKL_INS_OP(ins) <= FKL_OP_JMP_IF_FALSE_XX;
+    return FKL_INS_OP(ins) == FKL_OP_JMP_IF_TRUE
+        || FKL_INS_OP(ins) == FKL_OP_JMP_IF_FALSE;
 }
 
 static inline int fklIsJmpIfTrueIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_JMP_IF_TRUE
-        && FKL_INS_OP(ins) <= FKL_OP_JMP_IF_TRUE_XX;
+    return FKL_INS_OP(ins) == FKL_OP_JMP_IF_TRUE;
 }
 
 static inline int fklIsJmpIfFalseIns(const FklIns ins) {
-    return FKL_INS_OP(ins) >= FKL_OP_JMP_IF_FALSE
-        && FKL_INS_OP(ins) <= FKL_OP_JMP_IF_FALSE_XX;
+    return FKL_INS_OP(ins) == FKL_OP_JMP_IF_FALSE;
 }
 
 static inline int fklIsPutLocIns(const FklIns ins) {

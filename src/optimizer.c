@@ -45,12 +45,7 @@ static inline int set_ins_to_insln(const FklIns *ins,
 
 static inline int set_jmp_backward(FklOpcode op, int64_t len, FklIns *new_ins) {
     len = -len - 1;
-    if (len >= FKL_I24_MIN)
-        return FKL_MAKE_INS(new_ins, op, .ix = len);
-    len -= 1;
-    if (len >= INT32_MIN)
-        return FKL_MAKE_INS(new_ins, op, .ix = len);
-    len -= 1;
+    FKL_ASSERT(len >= FKL_I24_MIN && len <= FKL_I24_MAX);
     return FKL_MAKE_INS(new_ins, op, .ix = len);
 }
 
@@ -760,13 +755,7 @@ static uint32_t jmp_to_ret_predicate(const FklByteCodeBuffer *buf,
     FklIns op = FKL_INS_OP(buf->base[block_start[peephole[0].jmp_to - 1]].ins);
     if (op != FKL_OP_RET)
         return 0;
-    if (fklIsJmpIns(peephole[0].ins))
-        return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP - 1);
-    if (fklIsJmpIfTrueIns(peephole[0].ins))
-        return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP_IF_TRUE - 1);
-    if (fklIsJmpIfFalseIns(peephole[0].ins))
-        return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP_IF_FALSE - 1);
-    return 0;
+    return fklIsJmpIns(peephole[0].ins) || fklIsCondJmpIns(peephole[0].ins);
 }
 
 static uint32_t jmp_to_ret_output(const FklByteCodeBuffer *buf,
@@ -789,15 +778,9 @@ static uint32_t jmp_to_jmp_predicate(const FklByteCodeBuffer *buf,
     if (peephole[0].jmp_to) {
         FklIns target_ins = buf->base[block_start[peephole[0].jmp_to - 1]].ins;
         FklOpcode target_opcode = FKL_INS_OP(target_ins);
-        if (target_opcode >= FKL_OP_JMP && target_opcode <= FKL_OP_JMP_XX) {
-            if (fklIsJmpIns(peephole[0].ins))
-                return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP - 1);
-            if (fklIsJmpIfTrueIns(peephole[0].ins))
-                return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP_IF_TRUE - 1);
-            if (fklIsJmpIfFalseIns(peephole[0].ins))
-                return FKL_INS_OP(peephole[0].ins) - (FKL_OP_JMP_IF_FALSE - 1);
-        } else
+        if (target_opcode != FKL_OP_JMP)
             return 0;
+        return fklIsJmpIns(peephole[0].ins) && fklIsCondJmpIns(peephole[0].ins);
     }
     return 0;
 }
@@ -1455,22 +1438,26 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
 
     for (uint64_t i = 0; i < buf->size;) {
         uint64_t j = 0;
-        uint64_t k = 0;
+        uint64_t peephole_len = 0;
 
-        for (; j + i < buf->size && k < PEEPHOLE_SIZE; j++)
-            if (FKL_INS_OP(buf->base[i + j].ins)) {
-                peephole[k] = buf->base[i + j];
-                valid_ins_idx[k++] = j;
+        for (; j + i < buf->size && peephole_len < PEEPHOLE_SIZE; j++) {
+            if (FKL_INS_OP(buf->base[i + j].ins) != FKL_OP_DUMMY) {
+                peephole[peephole_len] = buf->base[i + j];
+                valid_ins_idx[peephole_len++] = j;
             }
+        }
 
-        if (k == 0)
+        if (peephole_len == 0)
             break;
 
         uint32_t offset = 0;
         for (const struct PeepholeOptimizer *optimizer = &PeepholeOptimizers[0];
                 optimizer->predicate;
                 optimizer++) {
-            offset = optimizer->predicate(buf, block_start, peephole, k);
+            offset = optimizer->predicate(buf,
+                    block_start,
+                    peephole,
+                    peephole_len);
             uint32_t block_id = 0;
             if (offset
                     && (optimizer->block_state
@@ -1479,14 +1466,14 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
                 uint32_t output_len = optimizer->output(buf,
                         block_start,
                         peephole,
-                        k,
+                        peephole_len,
                         output);
                 uint32_t ii = 0;
                 for (; ii < output_len; ii++)
                     output_start[ii] = output[ii];
                 if (block_id)
                     output_start[0].block_id = block_id;
-                if (offset < k) {
+                if (offset < peephole_len) {
                     for (; ii < valid_ins_idx[offset]; ii++) {
                         FklIns ins = output_start[ii].ins;
                         ins = FKL_INS_SET_OP(ins, FKL_OP_DUMMY);

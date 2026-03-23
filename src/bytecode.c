@@ -497,8 +497,9 @@ static inline int is_last_expression(uint64_t index, FklByteCode *bc) {
     for (uint64_t i = index; i < size && FKL_INS_OP(code[i]) != FKL_OP_RET;
             i += get_next(&code[i])) {
         FklOpcode op = FKL_INS_OP(code[i]);
-        if (op != FKL_OP_JMP && op != FKL_OP_CLOSE_REF)
+        if (op != FKL_OP_JMP && op != FKL_OP_CLOSE_REF) {
             return 0;
+        }
     }
     return 1;
 }

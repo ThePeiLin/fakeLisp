@@ -746,7 +746,6 @@ static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklVMvalueLib *plib;
     uint32_t idx;
     uint64_t size;
-    int64_t offset;
 start:
     ins = *(frame->pc++);
     switch (FKL_INS_OP(ins)) {

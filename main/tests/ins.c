@@ -36,7 +36,7 @@ int main() {
     fputc('\n', stderr);
 
     // IsC
-    ins[0] = FKL_MAKE_INS_IsC(FKL_OP_JMP_IF_TRUE_C, s);
+    ins[0] = FKL_MAKE_INS_IsC(FKL_OP_JMP_IF_TRUE, s);
     arg.ix = FKL_INS_sC(ins[0]);
     fputs("IsC\n", stderr);
     fprintf(stderr,
@@ -56,49 +56,5 @@ int main() {
     FKL_ASSERT(arg.ix == s);
     fputc('\n', stderr);
 
-    // IsBB
-    s = -0x12345678;
-    int r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_X, .ix = s);
-    FKL_ASSERT(r == 2);
-    arg.ix = FKL_INS_sX(ins);
-    fputs("IsBB\n", stderr);
-    fprintf(stderr,
-            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__,
-            __LINE__,
-            s,
-            arg.ix);
-    FKL_ASSERT(arg.ix == s);
-    fklGetInsOpArg(ins, &arg);
-    fprintf(stderr,
-            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__,
-            __LINE__,
-            s,
-            arg.ix);
-    FKL_ASSERT(arg.ix == s);
-    fputc('\n', stderr);
-
-    // IsCCB
-    s = -0x123456789ABCDEF0;
-    r = FKL_MAKE_INS(ins, FKL_OP_JMP_IF_TRUE_XX, .ix = s);
-    FKL_ASSERT(r == 3);
-    arg.ix = FKL_INS_sXX(ins);
-    fputs("IsCCB\n", stderr);
-    fprintf(stderr,
-            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__,
-            __LINE__,
-            s,
-            arg.ix);
-    FKL_ASSERT(arg.ix == s);
-    fklGetInsOpArg(ins, &arg);
-    fprintf(stderr,
-            "[%s: %d] i= %" PRId64 ", arg.ix= %" PRId64 "\n",
-            __FILE__,
-            __LINE__,
-            s,
-            arg.ix);
-    FKL_ASSERT(arg.ix == s);
-    fputc('\n', stderr);
+    return 0;
 }

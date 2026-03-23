@@ -65,18 +65,9 @@ extern "C" {
     X(FKL_OP_RET_IF_TRUE,      "ret-if-true",      FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_RET_IF_FALSE,     "ret-if-false",     FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_RET,              "ret",              FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP_IF_TRUE,      "jmp-if-true",      FKL_OP_MODE_IsB,      FKL_OP_JMP_IF_TRUE_C  )\
-    X(FKL_OP_JMP_IF_TRUE_C,    "jmp-if-true-c",    FKL_OP_MODE_IsC,      FKL_OP_JMP_IF_TRUE_X  )\
-    X(FKL_OP_JMP_IF_TRUE_X,    "jmp-if-true-x",    FKL_OP_MODE_IsBB,     FKL_OP_JMP_IF_TRUE_XX )\
-    X(FKL_OP_JMP_IF_TRUE_XX,   "jmp-if-true-xx",   FKL_OP_MODE_IsCCB,    FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP_IF_FALSE,     "jmp-if-false",     FKL_OP_MODE_IsB,      FKL_OP_JMP_IF_FALSE_C )\
-    X(FKL_OP_JMP_IF_FALSE_C,   "jmp-if-false-c",   FKL_OP_MODE_IsC,      FKL_OP_JMP_IF_FALSE_X )\
-    X(FKL_OP_JMP_IF_FALSE_X,   "jmp-if-false-x",   FKL_OP_MODE_IsBB,     FKL_OP_JMP_IF_FALSE_XX)\
-    X(FKL_OP_JMP_IF_FALSE_XX,  "jmp-if-false-xx",  FKL_OP_MODE_IsCCB,    FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP,              "jmp",              FKL_OP_MODE_IsB,      FKL_OP_JMP_C          )\
-    X(FKL_OP_JMP_C,            "jmp-c",            FKL_OP_MODE_IsC,      FKL_OP_JMP_X          )\
-    X(FKL_OP_JMP_X,            "jmp-x",            FKL_OP_MODE_IsBB,     FKL_OP_JMP_XX         )\
-    X(FKL_OP_JMP_XX,           "jmp-xx",           FKL_OP_MODE_IsCCB,    FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP_IF_TRUE,    "jmp-if-true",        FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP_IF_FALSE,   "jmp-if-false",       FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP,            "jmp",                FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
     X(FKL_OP_IMPORT,           "import",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_GET_LOC,          "get-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUT_LOC,          "put-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\

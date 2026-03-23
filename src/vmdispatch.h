@@ -1,6 +1,8 @@
 #ifndef DISPATCH_INCLUDED
 #include <fakeLisp/vm.h>
 
+#include <fakeLisp/ins_helper.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -39,24 +41,23 @@ void fklVMexecuteInstruction(FklVM *exe,
         FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(1));
         break;
     case FKL_OP_PUSH_I8:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(FKL_INS_sA(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(sA(ins)));
         break;
     case FKL_OP_PUSH_I16:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(FKL_INS_sB(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(sB(ins)));
         break;
     case FKL_OP_PUSH_I24:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(FKL_INS_sC(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(sC(ins)));
         break;
     case FKL_OP_PUSH_CHAR:
-        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_CHR(FKL_INS_uB(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_CHR(uB(ins)));
         break;
     case FKL_OP_PUSH_CONST:
-        FKL_VM_PUSH_VALUE(exe, frame->konsts[FKL_INS_uC(ins)]);
+        FKL_VM_PUSH_VALUE(exe, frame->konsts[uC(ins)]);
         break;
     case FKL_OP_PUSH_BOX:
         FKL_VM_PUSH_VALUE(exe,
-                FKL_INS_sA(ins)
-                        ? fklCreateVMvalueBox(exe, FKL_VM_POP_TOP_VALUE(exe))
+                sA(ins) ? fklCreateVMvalueBox(exe, FKL_VM_POP_TOP_VALUE(exe))
                         : fklCreateVMvalueBoxNil(exe));
         break;
     case FKL_OP_PUSH_LIST_0: {
@@ -111,14 +112,14 @@ void fklVMexecuteInstruction(FklVM *exe,
     } break;
 
     case FKL_OP_LOAD_PROTO: {
-        idx = FKL_INS_uC(ins);
+        idx = uC(ins);
         FklVMvalueProto *proto = FKL_VM_PROC(frame->proc)->proto;
         FklVMvalueProto *child_proto = fklVMvalueProtoChildren(proto)[idx];
         FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(child_proto));
     } break;
 
     case FKL_OP_MAKE_PROC: {
-        size = FKL_INS_uC(ins);
+        size = uC(ins);
         FklVMvalueProto *proto = fklVMvalueProto(FKL_VM_GET_TOP_VALUE(exe));
         FklVMvalue *proc = fklCreateVMvalueProc3(exe, frame, size, proto);
         FKL_VM_GET_TOP_VALUE(exe) = proc;
@@ -133,7 +134,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FKL_VM_PUSH_VALUE(exe, val);
     } break;
     case FKL_OP_DROP:
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_DROP_1:
             if (exe->tp > frame->sp)
                 DROP_TOP(exe);
@@ -148,10 +149,10 @@ void fklVMexecuteInstruction(FklVM *exe,
         break;
     case FKL_OP_CHECK_ARG: {
         uint32_t const arg_num = frame->arg_num;
-        uint32_t const expect_arg_num = FKL_INS_uB(ins);
+        uint32_t const expect_arg_num = uB(ins);
         if (arg_num < expect_arg_num)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 0:
             if (arg_num > expect_arg_num)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOMANYARG, exe);
@@ -211,61 +212,61 @@ void fklVMexecuteInstruction(FklVM *exe,
 #undef RETURN_HEADER
     } break;
     case FKL_OP_JMP_IF_TRUE:
-        offset = FKL_INS_sB(ins);
+        offset = sB(ins);
         goto jmp_if_true;
         break;
     case FKL_OP_JMP_IF_TRUE_C:
-        offset = FKL_INS_sC(ins);
+        offset = sC(ins);
         goto jmp_if_true;
         break;
     case FKL_OP_JMP_IF_TRUE_X:
-        offset = GET_INS_IX(ins, frame);
+        offset = sX(ins, frame);
         goto jmp_if_true;
         break;
     case FKL_OP_JMP_IF_TRUE_XX:
-        offset = GET_INS_IXX(ins, frame);
+        offset = sXX(ins, frame);
     jmp_if_true:
         if (FKL_VM_GET_TOP_VALUE(exe) != FKL_VM_NIL)
             frame->pc += offset;
         break;
 
     case FKL_OP_JMP_IF_FALSE:
-        offset = FKL_INS_sB(ins);
+        offset = sB(ins);
         goto jmp_if_false;
         break;
     case FKL_OP_JMP_IF_FALSE_C:
-        offset = FKL_INS_sC(ins);
+        offset = sC(ins);
         goto jmp_if_false;
         break;
     case FKL_OP_JMP_IF_FALSE_X:
-        offset = GET_INS_IX(ins, frame);
+        offset = sX(ins, frame);
         goto jmp_if_false;
         break;
     case FKL_OP_JMP_IF_FALSE_XX:
-        offset = GET_INS_IXX(ins, frame);
+        offset = sXX(ins, frame);
     jmp_if_false:
         if (FKL_VM_GET_TOP_VALUE(exe) == FKL_VM_NIL)
             frame->pc += offset;
         break;
     case FKL_OP_JMP:
-        offset = FKL_INS_sB(ins);
+        offset = sB(ins);
         goto jmp;
         break;
     case FKL_OP_JMP_C:
-        offset = FKL_INS_sC(ins);
+        offset = sC(ins);
         goto jmp;
         break;
     case FKL_OP_JMP_X:
-        offset = GET_INS_IX(ins, frame);
+        offset = sX(ins, frame);
         goto jmp;
         break;
     case FKL_OP_JMP_XX:
-        offset = GET_INS_IXX(ins, frame);
+        offset = sXX(ins, frame);
     jmp:
         frame->pc += offset;
         break;
     case FKL_OP_IMPORT: {
-        idx = FKL_INS_uC(ins);
+        idx = uC(ins);
         FklVMvalueLib *plib = fklVMvalueLib(FKL_VM_GET_TOP_VALUE(exe));
         FKL_ASSERT(idx < plib->count);
         FklVMvalue *v = plib->values[idx];
@@ -276,14 +277,14 @@ void fklVMexecuteInstruction(FklVM *exe,
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
     case FKL_OP_GET_LOC:
-        FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, FKL_INS_uC(ins)));
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, uC(ins)));
         break;
     case FKL_OP_PUT_LOC:
-        FKL_VM_GET_ARG(exe, frame, FKL_INS_uC(ins)) = FKL_VM_GET_TOP_VALUE(exe);
+        FKL_VM_GET_ARG(exe, frame, uC(ins)) = FKL_VM_GET_TOP_VALUE(exe);
         break;
     case FKL_OP_GET_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *v = get_var_val(frame, FKL_INS_uC(ins), &name);
+        FklVMvalue *v = get_var_val(frame, uC(ins), &name);
         if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
@@ -293,7 +294,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     } break;
     case FKL_OP_PUT_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *volatile *pv = get_var_ref(frame, FKL_INS_uC(ins), &name);
+        FklVMvalue *volatile *pv = get_var_ref(frame, uC(ins), &name);
         if (!pv)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
@@ -302,7 +303,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         *pv = FKL_VM_GET_TOP_VALUE(exe);
     } break;
     case FKL_OP_EXPORT: {
-        idx = FKL_INS_uC(ins);
+        idx = uC(ins);
         FklVMvalue *callee = FKL_VM_GET_ARG(exe, frame, -1);
         if (!fklIsVMvalueLib(callee))
             break;
@@ -312,7 +313,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     } break;
 
     case FKL_OP_LOAD_LIB: {
-        plib = frame->libs[FKL_INS_uC(ins)];
+        plib = frame->libs[uC(ins)];
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {
@@ -381,7 +382,7 @@ void fklVMexecuteInstruction(FklVM *exe,
                 (fklVMvalueEqual(fir, sec)) ? FKL_VM_TRUE : FKL_VM_NIL);
     } break;
     case FKL_OP_EQN: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -408,7 +409,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_GT: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -435,7 +436,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_LT: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -462,7 +463,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_GE: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -489,7 +490,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_LE: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -517,7 +518,7 @@ void fklVMexecuteInstruction(FklVM *exe,
     } break;
     case FKL_OP_ADDK: {
         FklVMvalue *arg = FKL_VM_POP_TOP_VALUE(exe);
-        FklVMvalue *r = fklProcessVMnumAddk(exe, arg, FKL_INS_sA(ins));
+        FklVMvalue *r = fklProcessVMnumAddk(exe, arg, sA(ins));
         if (r) {
             FKL_VM_PUSH_VALUE(exe, r);
         } else {
@@ -525,16 +526,16 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_ADDK_LOC: {
-        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, FKL_INS_uB(ins));
-        FklVMvalue *r = fklProcessVMnumAddk(exe, v, FKL_INS_sA(ins));
+        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, uB(ins));
+        FklVMvalue *r = fklProcessVMnumAddk(exe, v, sA(ins));
         if (r)
             FKL_VM_PUSH_VALUE(exe, r);
         else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        FKL_VM_GET_ARG(exe, frame, FKL_INS_uB(ins)) = r;
+        FKL_VM_GET_ARG(exe, frame, uB(ins)) = r;
     } break;
     case FKL_OP_ADD: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
             if (FKL_IS_BIGINT(a))
@@ -575,7 +576,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_SUB: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
             FKL_VM_PUSH_VALUE(exe, fklProcessVMnumNeg(exe, a));
@@ -612,7 +613,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_MUL: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
             if (FKL_IS_BIGINT(a))
@@ -653,7 +654,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_DIV: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case -2: {
             FklVMvalue *sec = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *fir = FKL_VM_POP_TOP_VALUE(exe);
@@ -702,7 +703,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_IDIV: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
@@ -733,7 +734,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_PAIR: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_PAIR_CAR: {
             FklVMvalue *obj = FKL_VM_POP_TOP_VALUE(exe);
             FKL_CHECK_TYPE(obj, FKL_IS_PAIR, exe);
@@ -805,7 +806,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_VEC: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_VEC_LAST: {
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
             if (!FKL_IS_VECTOR(vec))
@@ -859,7 +860,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_STR: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_STR_REF: {
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *str = FKL_VM_POP_TOP_VALUE(exe);
@@ -896,7 +897,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_BVEC: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_BVEC_REF: {
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *bvec = FKL_VM_POP_TOP_VALUE(exe);
@@ -934,7 +935,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_BOX: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_BOX_UNBOX: {
             FklVMvalue *box = FKL_VM_POP_TOP_VALUE(exe);
             FKL_CHECK_TYPE(box, FKL_IS_BOX, exe);
@@ -953,7 +954,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_HASH: {
-        switch (FKL_INS_sA(ins)) {
+        switch (sA(ins)) {
         case FKL_SUBOP_HASH_REF_2: {
             FklVMvalue *key = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *ht = FKL_VM_POP_TOP_VALUE(exe);
@@ -986,32 +987,33 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_CLOSE_REF:
-        idx = FKL_INS_uC(ins);
+        idx = uC(ins);
         close_var_ref_from(frame, idx);
         break;
     case FKL_OP_POP_LOC:
-        FKL_VM_GET_ARG(exe, frame, FKL_INS_uB(ins)) = FKL_VM_POP_TOP_VALUE(exe);
+        FKL_VM_GET_ARG(exe, frame, uB(ins)) = FKL_VM_POP_TOP_VALUE(exe);
         break;
     case FKL_OP_MOV_LOC: {
-        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, FKL_INS_uA(ins));
-        FKL_VM_GET_ARG(exe, frame, FKL_INS_uB(ins)) = v;
+        FklVMvalue *v = FKL_VM_GET_ARG(exe, frame, uA(ins));
+        FKL_VM_GET_ARG(exe, frame, uB(ins)) = v;
         FKL_VM_PUSH_VALUE(exe, v);
     } break;
     case FKL_OP_MOV_VAR_REF: {
         FklVMvalue *name = FKL_VM_NIL;
-        FklVMvalue *v = get_var_val(frame, FKL_INS_uA(ins), &name);
+        FklVMvalue *v = get_var_val(frame, uA(ins), &name);
         if (name != FKL_VM_NIL)
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
                     name);
         FKL_VM_PUSH_VALUE(exe, v);
-        FklVMvalue *volatile *pv = get_var_ref(frame, FKL_INS_uB(ins), &name);
-        if (!pv)
+        FklVMvalue *volatile *pv = get_var_ref(frame, uB(ins), &name);
+        if (!pv) {
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_SYMUNDEFINE,
                     exe,
                     "Symbol %S is undefined",
                     name);
+        }
         *pv = v;
     } break;
     case FKL_OP_EXTRA_ARG:

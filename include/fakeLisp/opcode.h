@@ -80,8 +80,8 @@ extern "C" {
     X(FKL_OP_IMPORT,           "import",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_GET_LOC,          "get-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUT_LOC,          "put-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
-    X(FKL_OP_GET_VAR_REF,      "get-var-ref-c",    FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
-    X(FKL_OP_PUT_VAR_REF,      "put-var-ref-c",    FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_GET_VAR_REF,      "get-var-ref",      FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_PUT_VAR_REF,      "put-var-ref",      FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_EXPORT,           "export",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_LOAD_LIB,         "load-lib",         FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_ATOM,             "atom",             FKL_OP_MODE_I,        FKL_OP_DUMMY          )\

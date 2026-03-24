@@ -247,14 +247,16 @@ static inline int fklIsLoadLibIns(const FklIns ins) {
 
 void fklScanAndSetTailCall(FklByteCode *bc);
 
-#define FKL_INS_uX(ins)                                                        \
-    (FKL_INS_uB(*(ins)) | (((uint32_t)FKL_INS_uB((ins)[1])) << FKL_I16_WIDTH))
-#define FKL_INS_sX(ins) ((int32_t)FKL_INS_uX(ins))
-#define FKL_INS_uXX(ins)                                                       \
-    (FKL_INS_uC(*(ins)) | (((uint64_t)FKL_INS_uC((ins)[1])) << FKL_I24_WIDTH)  \
-            | (((uint64_t)FKL_INS_uB(ins[2])) << (FKL_I24_WIDTH * 2)))
+#define FKL_INS_uX(ins0, ins1)                                                 \
+    (FKL_INS_uB(ins0) | (((uint32_t)FKL_INS_uB(ins1)) << FKL_I16_WIDTH))
 
-#define FKL_INS_sXX(ins) ((int64_t)FKL_INS_uXX(ins))
+#define FKL_INS_sX(ins0, ins1) ((int32_t)FKL_INS_uX(ins0, ins1))
+
+#define FKL_INS_uXX(ins0, ins1, ins2)                                          \
+    (FKL_INS_uC(ins0) | (((uint64_t)FKL_INS_uC(ins1)) << FKL_I24_WIDTH)        \
+            | (((uint64_t)FKL_INS_uB(ins2)) << (FKL_I24_WIDTH * 2)))
+
+#define FKL_INS_sXX(ins0, ins1, ins2) ((int64_t)FKL_INS_uXX(ins0, ins1, ins2))
 
 #ifdef __cplusplus
 }

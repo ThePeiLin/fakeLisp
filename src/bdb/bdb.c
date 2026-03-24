@@ -9,6 +9,8 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
+#include <fakeLisp/ins_helper.h>
+
 #include <string.h>
 
 static void bdb_step_break_userdata_print(const FklVMvalue *ud,
@@ -91,10 +93,10 @@ static void B_int3(FklVM *exe, const FklIns *ins) {
             exe->top_frame->pc = cur;
         }
 
-        fklVMexecuteInstruction(exe, FKL_INS_OP(oins), &oins, exe->top_frame);
+        fklVMexecuteInstruction(exe, OP(oins), &oins, exe->top_frame);
 
         if (flags & BDB_INT3_GET_NEXT_INS
-                || (FKL_INS_OP(*pc) == FKL_OP_DUMMY
+                || (OP(*pc) == FKL_OP_DUMMY
                         && (FKL_INS_uA(*pc) & BDB_INT3_GET_NEXT_INS))) {
             bdbUnsetStepping(debug_ctx);
             debug_ctx->stepping_ctx.ln = ln;
@@ -113,7 +115,7 @@ static void B_int3(FklVM *exe, const FklIns *ins) {
 
 reached_breakpoint:
     if (exe->is_single_thread) {
-        fklVMexecuteInstruction(exe, FKL_INS_OP(oins), &oins, exe->top_frame);
+        fklVMexecuteInstruction(exe, OP(oins), &oins, exe->top_frame);
         return;
     }
 
@@ -128,7 +130,7 @@ static void B_int33(FklVM *exe, const FklIns *ins) {
     exe->dummy_ins_func = B_int3;
 
     const FklIns *oins = &bdbGetCodepoint(debug_ctx, ins)->origin_ins;
-    fklVMexecuteInstruction(exe, FKL_INS_OP(*oins), oins, exe->top_frame);
+    fklVMexecuteInstruction(exe, OP(*oins), oins, exe->top_frame);
 }
 
 static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, FklVMextraMarkArgs *arg) {
@@ -854,13 +856,13 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     const FklIns *ins = &bc->code[ins_pc];
     FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
     FklVMvalue *is_cur_ins = is_cur_pc ? FKL_VM_TRUE : FKL_VM_NIL;
-    if (FKL_INS_OP(*ins) == FKL_OP_DUMMY) {
+    if (OP(*ins) == FKL_OP_DUMMY) {
         ins = &bdbGetCodepoint(dctx, ins)->origin_ins;
     }
     FklVMvalue *opcode_str = NULL;
     FklVMvalue *imm1 = NULL;
     FklVMvalue *imm2 = NULL;
-    FklOpcode op = FKL_INS_OP(*ins);
+    FklOpcode op = OP(*ins);
     FklOpcodeMode mode = fklGetOpcodeMode(op);
     FklInsArg arg;
     fklGetInsOpArgWithOp(op, ins, &arg);
@@ -1343,7 +1345,7 @@ static inline void set_stepping_target(struct SteppingCtx *stepping_ctx,
         const SetSteppingArgs *args) {
     stepping_ctx->ins[args->i] = *target;
     stepping_ctx->target_ins[args->i] = target;
-    FklOpcode op = FKL_INS_OP(*target);
+    FklOpcode op = OP(*target);
     uint8_t flags = args->flags;
     if (op == FKL_OP_DUMMY)
         flags |= BDB_INT3_STEP_AT_BP;
@@ -1486,7 +1488,7 @@ static inline void set_step_line(DebugCtx *ctx,
 
     FklIns tmp_ins = *cur_ins;
 
-    if (FKL_INS_OP(*cur_ins) == FKL_OP_DUMMY) {
+    if (OP(*cur_ins) == FKL_OP_DUMMY) {
         const FklIns oins = bdbGetCodepoint(ctx, cur_ins)->origin_ins;
         assign_ins(cur_ins, oins);
 

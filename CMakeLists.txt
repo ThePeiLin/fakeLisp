@@ -96,6 +96,7 @@ elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" M
 	add_compile_options(-Werror=implicit-function-declaration)
 	add_compile_options(-Werror=int-conversion)
 	add_compile_options(-Werror=switch)
+	add_compile_options(-Werror=pointer-to-int-cast)
 # add_compile_options(-Werror=compare-distinct-pointer-types)
 # add_compile_options(-Wfatal-errors)
 endif()

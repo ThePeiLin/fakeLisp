@@ -17,6 +17,8 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <fakeLisp/ins_helper.h>
+
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -683,7 +685,7 @@ static inline void pushListItemToStack(FklVMvalue *list,
 }
 
 static inline int is_get_var_ref_ins(const FklIns ins) {
-    return FKL_INS_OP(ins) == FKL_OP_GET_VAR_REF;
+    return OP(ins) == FKL_OP_GET_VAR_REF;
 }
 
 static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
@@ -2193,7 +2195,7 @@ static inline FklVMvalue *processArgs(FklVM *exe,
         fklAddCgDefBySid(args, 1, env);
     }
     FklIns check_arg = FKL_MAKE_INS_IsA(FKL_OP_CHECK_ARG, rest_list);
-    check_arg = FKL_INS_SET_uB(check_arg, arg_count);
+    check_arg = set_uB(check_arg, arg_count);
 
     FklByteCodelnt *rco = FKL_VM_CO(retval);
     fklByteCodeLntPushBackIns(rco, check_arg, info->fid, CURLINE(args), 1);
@@ -2214,7 +2216,7 @@ static inline FklVMvalue *processArgsInStack(FklVM *exe,
         fklAddCgDefBySid(curId, 1, env);
     }
     FklIns check_arg = FKL_MAKE_INS_IsA(FKL_OP_CHECK_ARG, 0);
-    check_arg = FKL_INS_SET_uB(check_arg, top);
+    check_arg = set_uB(check_arg, top);
     FklByteCodelnt *rco = FKL_VM_CO(retval);
     fklByteCodeLntPushBackIns(rco, check_arg, info->fid, curline, 1);
     return retval;
@@ -4380,7 +4382,7 @@ static inline int is_const_true_bytecode_lnt(const FklByteCodelnt *bcl) {
     const FklIns *cur = bcl->bc.code;
     const FklIns *const end = &cur[bcl->bc.len];
     for (; cur < end; cur++) {
-        switch (FKL_INS_OP(*cur)) {
+        switch (OP(*cur)) {
         case FKL_OP_SET_BP:
         case FKL_OP_PUSH_0:
         case FKL_OP_PUSH_1:

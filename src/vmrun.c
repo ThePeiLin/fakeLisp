@@ -639,15 +639,6 @@ static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
     }
 }
 
-#define uX(ins, frame)                                                         \
-    (uB(ins) | (((uint32_t)uB(*(frame->pc++))) << FKL_I16_WIDTH))
-#define sX(ins, frame) ((int32_t)uX(ins, frame))
-#define uXX(ins, frame)                                                        \
-    (frame->pc += 2,                                                           \
-            uC(ins) | (((uint64_t)uC(frame->pc[-2])) << FKL_I24_WIDTH)         \
-                    | (((uint64_t)uB(frame->pc[-1])) << (FKL_I24_WIDTH * 2)))
-#define sXX(ins, frame) ((int64_t)uXX(ins, frame))
-
 static FKL_ALWAYS_INLINE int check_unbound_exported_symbol(FklVM *exe,
         FklVMvalueLib *l) {
     FklVMvalue *const *values = l->values;

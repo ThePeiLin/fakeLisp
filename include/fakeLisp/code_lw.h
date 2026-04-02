@@ -41,6 +41,8 @@ typedef struct {
     // out
     FklLibTable *lib_table;
     FklCgLib *cg_lib;
+
+    FKL_DEPRECATED
     char *error;
 } FklLoadPreCompileArgs;
 

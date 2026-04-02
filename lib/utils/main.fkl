@@ -1,1 +1,2 @@
-(export (import (f) (m)))
+(export (import f))
+(export (import m))

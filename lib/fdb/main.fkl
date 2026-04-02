@@ -1,4 +1,4 @@
-(import (.. bdb))
+(import ../bdb)
 
 (define cmd-abbr-map
   #hash((b,break)

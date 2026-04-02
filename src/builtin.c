@@ -3457,9 +3457,11 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
 }
 
 static inline int is_symbol_list(const FklVMvalue *p) {
-    for (; p != FKL_VM_NIL; p = FKL_VM_CDR(p))
-        if (!FKL_IS_PAIR(p) || !FKL_IS_SYM(FKL_VM_CAR(p)))
+    for (; p != FKL_VM_NIL; p = FKL_VM_CDR(p)) {
+        if (!FKL_IS_PAIR(p) || !FKL_IS_SYM(FKL_VM_CAR(p))) {
             return 0;
+        }
+    }
     return 1;
 }
 

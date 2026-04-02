@@ -19,6 +19,7 @@
 
 #include <fakeLisp/ins_helper.h>
 
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -857,6 +858,11 @@ make_import_failed_error2(FklVM *exe, const char *str, FklVMvalue *place) {
             "%s %S",
             fklCreateVMvalueStr1(exe, str),
             place);
+}
+
+static inline FklVMvalue *
+make_import_failed_error_fmt(FklVM *exe, const char *str, FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED, exe, str, place);
 }
 
 static inline FklVMvalue *make_grammer_create_error(FklVM *exe) {
@@ -5149,6 +5155,7 @@ static void codegen_load(const CgCbArgs *args) {
             actions);
 }
 
+FKL_DEPRECATED
 static inline char *combineFileNameFromListAndCheckPrivate(
         const FklVMvalue *list) {
     char *r = NULL;
@@ -6729,6 +6736,57 @@ static inline int is_valid_alias_sym_list(const FklVMvalue *alias) {
     return alias == FKL_VM_NIL;
 }
 
+// steal from zuo: https://github.com/racket/zuo
+// zuo_is_symbol_module_char
+static inline int is_module_path_char(char c) {
+    return c != 0 && (isalpha(c) || isdigit(c) || strchr(".-_+/", c) != NULL);
+}
+
+// steal from zuo: https://github.com/racket/zuo
+// zuo_is_module_path
+static inline int is_module_path(const FklString *s) {
+    if (s->size == 0)
+        return 0;
+    uint64_t saw_slash = 0;
+    uint64_t const end = s->size - 1;
+    for (uint64_t i = 0; i < s->size; ++i) {
+        char c = s->str[i];
+        if (c == '/') {
+            if (i == 0 || i == end || saw_slash == i)
+                return 0;
+            saw_slash = i + 1;
+        } else if (!is_module_path_char(c)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static inline FklVMvalue *get_priv_sub_mod_name(FklVM *v, const FklString *s) {
+    FKL_ASSERT(s->size != 0);
+    uint64_t saw_slash = 0;
+    uint64_t end = 0;
+    for (uint64_t i = 0; i < s->size; ++i) {
+        char c = s->str[i];
+        if (c == '/')
+            saw_slash = i + 1;
+        else if (c == '_' && i != 0 && saw_slash == i)
+            goto importing_private_module;
+    }
+
+    return NULL;
+importing_private_module:
+
+    end = saw_slash;
+    for (; end < s->size; ++end) {
+        if (s->str[end] == '/')
+            break;
+    }
+
+    FklVMvalue *name = fklCreateVMvalueStr2(v, end, s->str);
+    return name;
+}
+
 static inline void codegen_import_helper(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         FklVMvalueCgInfo *lib_info) {
@@ -6747,14 +6805,29 @@ static inline void codegen_import_helper(const CgCbArgs *args,
     FklVMvalue *name = import_args->name;
     FklVMvalue *rest = import_args->rest;
 
-    if (name == FKL_VM_NIL || !is_symbol_list(name)) {
+    if (!FKL_IS_SYM(name)) {
         errors->error = make_syntax_error(vm, orig);
         errors->line = CURLINE(orig);
         return;
     }
 
-    if (import_args->import_check_cb != NULL
-            && !import_args->import_check_cb(import_args->import_cb_args)) {
+    if (!is_module_path(FKL_VM_SYM(name))) {
+        errors->error = make_syntax_error(vm, orig);
+        errors->line = CURLINE(orig);
+        return;
+    }
+
+    FklVMvalue *priv_sub_mod_name = get_priv_sub_mod_name(vm, FKL_VM_SYM(name));
+    if (priv_sub_mod_name != NULL) {
+        errors->error = make_import_failed_error_fmt(vm,
+                "import private module: %S",
+                priv_sub_mod_name);
+        errors->line = CURLINE(orig);
+        return;
+    }
+
+    ImportLibCbCheck const check_cb = import_args->import_check_cb;
+    if (check_cb != NULL && !check_cb(import_args->import_cb_args)) {
         errors->error = make_syntax_error(vm, import_args->import_cb_args);
         errors->line = CURLINE(orig);
         return;
@@ -6799,57 +6872,97 @@ static inline void codegen_import_helper(const CgCbArgs *args,
                 actions);
     }
 
-    char *filename = combineFileNameFromListAndCheckPrivate(name);
+    // char *filename = combineFileNameFromListAndCheckPrivate(name);
 
-    if (filename == NULL) {
-        errors->error = make_import_failed_error(vm, name);
-        errors->line = CURLINE(orig);
-        return;
+    // if (filename == NULL) {
+    //     errors->error = make_import_failed_error(vm, name);
+    //     errors->line = CURLINE(orig);
+    //     return;
+    // }
+
+    const char *name_cstr = FKL_VM_SYM(name)->str;
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
+
+    fklStrBufPrintf(&buf,
+            "%s%s%s",
+            name_cstr,
+            FKL_PATH_SEPARATOR_STR,
+            FKL_PACKAGE_MAIN_FILE);
+
+    // char *packageMainFileName =
+    //         fklStrCat(fklZstrdup(name_cstr), FKL_PATH_SEPARATOR_STR);
+    // packageMainFileName = fklStrCat(packageMainFileName,
+    // FKL_PACKAGE_MAIN_FILE);
+
+    // char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
+    //         FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+    // char *scriptFileName =
+    //         fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
+
+    // char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
+        process_import_script_common_header(args,
+                import_args,
+                fklStrBufBody(&buf),
+                lib_info);
+        goto exit;
     }
 
-    char *packageMainFileName =
-            fklStrCat(fklZstrdup(filename), FKL_PATH_SEPARATOR_STR);
-    packageMainFileName = fklStrCat(packageMainFileName, FKL_PACKAGE_MAIN_FILE);
+    fklStrBufClear(&buf);
+    fklStrBufPrintf(&buf, "%s%s", name_cstr, FKL_SCRIPT_FILE_EXTENSION);
 
-    char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
+    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
+        process_import_script_common_header(args,
+                import_args,
+                fklStrBufBody(&buf),
+                lib_info);
+        goto exit;
+    }
+
+    fklStrBufClear(&buf);
+    fklStrBufPrintf(&buf,
+            "%s%s%s%s",
+            name_cstr,
+            FKL_PATH_SEPARATOR_STR,
+            FKL_PACKAGE_MAIN_FILE,
             FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 
-    char *scriptFileName =
-            fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
-
-    char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
-
-    if (fklIsAccessibleRegFile(packageMainFileName)) {
-        process_import_script_common_header(args,
-                import_args,
-                packageMainFileName,
-                lib_info);
-    } else if (fklIsAccessibleRegFile(scriptFileName)) {
-        process_import_script_common_header(args,
-                import_args,
-                scriptFileName,
-                lib_info);
-    } else if (fklIsAccessibleRegFile(preCompileFileName)) {
+    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
         int r = import_pre_compiler_impl(args,
                 import_args,
-                preCompileFileName,
+                fklStrBufBody(&buf),
                 lib_info);
-        if (r != 0)
-            goto exit;
-    } else if (fklIsAccessibleRegFile(dllFileName)) {
-        int r = import_dll_impl(args, import_args, dllFileName, lib_info);
-        if (r != 0)
-            goto exit;
-    } else {
-        errors->error = make_import_failed_error(vm, name);
-        errors->line = CURLINE(orig);
+        FKL_ASSERT(r == 0);
+        (void)r;
+        goto exit;
     }
+
+    fklStrBufClear(&buf);
+    fklStrBufPrintf(&buf, "%s%s", name_cstr, FKL_DLL_FILE_TYPE);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
+        int r = import_dll_impl(args,
+                import_args,
+                fklStrBufBody(&buf),
+                lib_info);
+        FKL_ASSERT(r == 0);
+        (void)r;
+        goto exit;
+    }
+
+    errors->error = make_import_failed_error(vm, name);
+    errors->line = CURLINE(orig);
 exit:
-    fklZfree(filename);
-    fklZfree(scriptFileName);
-    fklZfree(dllFileName);
-    fklZfree(packageMainFileName);
-    fklZfree(preCompileFileName);
+    // fklZfree(filename);
+    // fklZfree(scriptFileName);
+    // fklZfree(dllFileName);
+    // fklZfree(packageMainFileName);
+    // fklZfree(preCompileFileName);
+
+    fklUninitStrBuf(&buf);
 }
 
 static void codegen_import_impl(const CgCbArgs *args,

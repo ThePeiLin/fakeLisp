@@ -72,8 +72,8 @@ static inline FklVMvalue *add_symbol(FklCgCtx *c, const FklString *s) {
 }
 
 static inline int is_symbol_list(const FklVMvalue *v) {
-    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v)) {
-        if (!FKL_IS_SYM(FKL_VM_CAR(v)))
+    for (; v != FKL_VM_NIL; v = FKL_VM_CDR(v)) {
+        if (!FKL_IS_PAIR(v) || !FKL_IS_SYM(FKL_VM_CAR(v)))
             return 0;
     }
     return 1;

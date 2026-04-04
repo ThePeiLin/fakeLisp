@@ -853,15 +853,6 @@ static inline FklVMvalue *make_import_failed_error(FklVM *exe,
 
 static inline FklVMvalue *
 make_import_failed_error2(FklVM *exe, const char *str, FklVMvalue *place) {
-    return FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
-            exe,
-            "%s %S",
-            fklCreateVMvalueStr1(exe, str),
-            place);
-}
-
-static inline FklVMvalue *
-make_import_failed_error_fmt(FklVM *exe, const char *str, FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED, exe, str, place);
 }
 
@@ -6496,10 +6487,11 @@ static inline int import_pre_compile_impl(const CgCbArgs *args,
         lib = fklLoadPreCompile(fp, rp, &args);
         if (lib == NULL) {
             fklVMvalueCgLibsRemove(info->libraries, rp);
-            if (args.error) {
-                errors->error = make_import_failed_error2(vm, args.error, name);
-                fklZfree(args.error);
-                args.error = NULL;
+            if (args.error_fmt) {
+                errors->error = make_import_failed_error2(vm,
+                        args.error_fmt,
+                        args.error_obj);
+                args.error_fmt = NULL;
             } else {
                 errors->error = make_import_failed_error(vm, name);
             }
@@ -6845,7 +6837,7 @@ static inline void codegen_import_helper(const CgCbArgs *args,
 
     FklVMvalue *priv_sub_mod_name = get_priv_sub_mod_name(vm, FKL_VM_SYM(name));
     if (priv_sub_mod_name != NULL) {
-        errors->error = make_import_failed_error_fmt(vm,
+        errors->error = make_import_failed_error2(vm,
                 "import private module: %S",
                 priv_sub_mod_name);
         errors->line = CURLINE(orig);

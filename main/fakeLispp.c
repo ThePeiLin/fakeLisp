@@ -253,11 +253,15 @@ int main(int argc, char **argv) {
             fclose(fp);
 
             if (cg_lib == NULL) {
-                if (args.error) {
-                    fprintf(stderr, "%s\n", args.error);
-                    fklZfree(args.error);
-                } else
+                if (args.error_fmt) {
+                    FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                            &gc->gcvm,
+                            args.error_fmt,
+                            args.error_obj);
+                    fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+                } else {
                     fprintf(stderr, "%s: load failed\n", filename);
+                }
                 exitState = EXIT_FAILURE;
                 goto precompile_exit;
             }

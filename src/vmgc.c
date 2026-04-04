@@ -712,25 +712,6 @@ FklVMvalue *fklVMaddSymbolValue(FklVM *vm, FklVMvalue *v) {
     return r;
 }
 
-void fklVMclearSymbol(FklVMgc *gc) {
-    uv_mutex_lock(&gc->obarray->lock);
-    fklStrValueHashMapClear(&gc->obarray->map);
-    uv_mutex_unlock(&gc->obarray->lock);
-}
-
-void fklVMrestoreSymbol(FklVMgc *gc) {
-    uv_mutex_lock(&gc->obarray->lock);
-    FklStrValueHashMap *ht = &gc->obarray->map;
-    for (FklVMvalue *cur = gc->head; cur; cur = cur->next_) {
-        if (FKL_IS_SYM(cur) && FKL_VM_SYM_INTERNED(cur)) {
-            FklVMvalue *r = add_symbol_value_unlock(ht, cur);
-            FKL_ASSERT(r == cur);
-            (void)r;
-        }
-    }
-    uv_mutex_unlock(&gc->obarray->lock);
-}
-
 FklVMinterruptResult
 fklVMinterrupt(FklVM *vm, FklVMvalue *ev, FklVMvalue **pv) {
     struct FklVMinterruptHandleList *l = vm->int_list;

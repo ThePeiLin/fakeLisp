@@ -184,9 +184,7 @@ static inline int compile(const char *filename,
         goto compile_exit;
     }
 
-    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    // fklVMrestoreSymbol(gc);
 
     fklWriteCodeFile(outfp, FKL_VM_PROC(proc));
 

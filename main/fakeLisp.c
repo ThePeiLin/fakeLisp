@@ -82,9 +82,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
 
     fklUninitCgCtx(&ctx);
 
-    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    // fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
     int r = fklRunVMidleLoop(vm);
@@ -143,13 +141,15 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     fclose(fp);
 
     if (cg_lib == NULL) {
+        if (args.error_fmt) {
+            FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                    &gc->gcvm,
+                    args.error_fmt,
+                    args.error_obj);
+            fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+        }
         fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
-        if (args.error) {
-            fprintf(stderr, "%s\n", args.error);
-            fklZfree(args.error);
-            args.error = NULL;
-        }
         fprintf(stderr, "%s: Load pre-compile file failed.\n", filename);
         return 1;
     }
@@ -159,9 +159,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     fklChdir(ctx.cwd);
     fklUninitCgCtx(&ctx);
 
-    // fklVMclearSymbol(gc);
     fklVMgcCheck(vm, 1);
-    // fklVMrestoreSymbol(gc);
 
     fklInitVMargs(gc, argc, argv);
     int r = fklRunVMidleLoop(vm);

@@ -1,4 +1,4 @@
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (assert (equal (remq! 'a '(a b a c d a e))
                '(b c d e)))

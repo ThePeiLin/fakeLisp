@@ -1,52 +1,52 @@
 (cfg (eq *platform* "win32")
   (begin
-    (import (.. lib os))
+    (import ../lib/os)
     (system "chcp 65001")))
 
-(import (make-test))
+(import make-test)
 
 (define msg-vec
   (make-test
-    (ascii-art)
-    (bf)
-    (threading)
-    (idle)
-    (atexit)
-    (demo1)
-    (demo2)
-    (fib)
-    (hello)
-    (internationale)
-    (test-loc)
-    (lex)
-    (reader-macro)
-    (compiler-macro)
-    (test)
-    (test-alias)
-    (test-only)
-    (test-prefix)
-    (test-except)
-    (bigint)
-    (parse)
-    (stringify)
-    (read)
-    (bigloop)
-    (dll)
-    (complex-macro)
-    (compile-check)
-    (test-ht)
-    (os)
-    (fs)
-    (sync)
-    (cir-ref)
-    (remq)
-    (fuv)
-    (lisp-by-lisp)
-    (dvec-and-append)
-    (sort)
-    (buf)
-    (inline-test)
-    (macro-context)))
+    ascii-art
+    bf
+    threading
+    idle
+    atexit
+    demo1
+    demo2
+    fib
+    hello
+    internationale
+    test-loc
+    lex
+    reader-macro
+    compiler-macro
+    test
+    test-alias
+    test-only
+    test-prefix
+    test-except
+    bigint
+    parse
+    stringify
+    read
+    bigloop
+    dll
+    complex-macro
+    compile-check
+    test-ht
+    os
+    fs
+    sync
+    cir-ref
+    remq
+    fuv
+    lisp-by-lisp
+    dvec-and-append
+    sort
+    buf
+    inline-test
+    macro-context))
 
 (newline)
 (foreach (lambda (t) (println (cdr t)))

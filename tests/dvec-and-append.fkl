@@ -1,5 +1,5 @@
-(import (only (.. lib utils) assert))
-(import (.. lib dvec))
+(import (only ../lib/utils assert))
+(import ../lib/dvec)
 
 (define v #(foo bar))
 (println (vector-ref v 0))

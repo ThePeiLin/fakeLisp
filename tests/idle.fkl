@@ -14,7 +14,7 @@
   (barrier-wait bar)
   (idle f1 1))
 
-(import (.. lib sync))
+(import ../lib/sync)
 
 (define bar (make-barrier THREAD-NUM))
 
@@ -26,7 +26,7 @@
 
 (foreach recv ch)
 
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (assert (eqv (println count) TOTAL))
 

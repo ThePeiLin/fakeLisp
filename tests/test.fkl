@@ -1,4 +1,4 @@
-(import (.. lib utils))
+(import ../lib/utils)
 
 (let []
   (println 'let))
@@ -25,7 +25,7 @@
 (println (append '(1 2 3)
                  '(4)))
 
-(import (.. lib queue))
+(import ../lib/queue)
 (define q (make-queue))
 (queue-push! q 1)
 (queue-push! q 2)

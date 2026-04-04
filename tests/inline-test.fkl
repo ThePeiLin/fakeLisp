@@ -1,4 +1,4 @@
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (define p (cons 1 2))
 (assert (eq (car-set! p 'foo) 'foo))

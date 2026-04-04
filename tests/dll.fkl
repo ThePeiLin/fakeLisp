@@ -1,2 +1,2 @@
-(import (test-dll))
+(import test-dll)
 (test-func)

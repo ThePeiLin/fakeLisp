@@ -1,5 +1,5 @@
-(import (.. lib ht))
-(import (only (.. lib utils m) assert))
+(import ../lib/ht)
+(import (only ../lib/utils/m assert))
 
 (define hash-table (make-ht equal-hashv equal))
 

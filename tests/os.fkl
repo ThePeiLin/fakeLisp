@@ -1,4 +1,4 @@
-(import (.. lib os))
+(import ../lib/os)
 
 (define fmt "%Y-%m-%d %H:%M:%S")
 (define time-stamp (time))

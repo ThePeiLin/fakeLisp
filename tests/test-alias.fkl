@@ -1,4 +1,4 @@
-(import (alias (test-lib)
+(import (alias test-lib
                (comment comment)
                (custom foobar)))
 
@@ -7,7 +7,7 @@
 
 /*comment*/
 
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (println "test alias")
 

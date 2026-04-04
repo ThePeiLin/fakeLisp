@@ -1,6 +1,6 @@
 (defmacro ~(test-m1)
   (begin
-    (import (macro-context-lib))
+    (import macro-context-lib)
     (printf "[%s:\t%4d] test-macro-var: %S\n"
             *file*
             *line*
@@ -9,7 +9,7 @@
 
 (defmacro ~(test-m2)
   (begin
-    (import (macro-context-lib))
+    (import macro-context-lib)
     (printf "[%s:\t%4d] test-macro-var: %S\n"
             *file*
             *line*
@@ -23,7 +23,7 @@
 (defmacro #&internal
   #[inc-test-macro-var #["#INC#"] custom
                        (begin
-                         (import (macro-context-lib))
+                         (import macro-context-lib)
                          (printf "[%s:\t%4d] test-macro-var: %S\n"
                                  *file*
                                  *line*

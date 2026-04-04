@@ -1,6 +1,6 @@
-(import (.. lib json))
+(import ../lib/json)
 
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (prin1n json-parser)
 

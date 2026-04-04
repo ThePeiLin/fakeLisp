@@ -1,4 +1,4 @@
-(import (only (.. .. lib utils m) assert))
+(import (only ../../lib/utils/m assert))
 
 (define read-res (fgetd))
 (assert (equal read-res "1145141919810\n"))

@@ -1,4 +1,4 @@
-(import (only (.. lib utils m) assert macroexpand macroexpand-1))
+(import (only ../lib/utils/m assert macroexpand macroexpand-1))
 
 (defmacro ~(alpha ~a) `(quote ~a))
 (defmacro ~(beta ~a) `(alpha ~a))

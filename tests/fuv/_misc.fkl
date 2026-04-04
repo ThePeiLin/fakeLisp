@@ -1,6 +1,6 @@
-(import (prefix (.. .. lib fuv) uv-))
+(import (prefix ../../lib/fuv uv-))
 
-(import (only (.. .. lib utils m) assert))
+(import (only ../../lib/utils/m assert))
 
 (define (pretty-print-table ht)
   (define kv (hash->list ht))

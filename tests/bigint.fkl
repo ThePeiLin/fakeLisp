@@ -1,4 +1,4 @@
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (define n 1152921504606846976)
 (define s"1152921504606846976")

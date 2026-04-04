@@ -1,11 +1,11 @@
-(import (prefix (test-lib) foobar-))
+(import (prefix test-lib foobar-))
 
 (defmacro #&internal
   #(test #["#ya-quote'" (foobar-custom,custom-quote)] builtin second))
 
 /*comment*/
 
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (println "test prefix")
 

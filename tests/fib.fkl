@@ -1,4 +1,4 @@
-; (import (.. lib dvec))
+; (import ../lib/dvec)
 ; (define fib
 ;   (local
 ;     (define fib-cache (dvec 0 1 1))

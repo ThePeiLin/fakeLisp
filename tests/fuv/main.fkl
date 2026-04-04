@@ -1,15 +1,15 @@
-(import (.. make-test))
+(import ../make-test)
 
 (define msg-vec
   (make-test
-    (_handle)
-    (_dns)
-    (_process)
-    (_pipe)
-    (_tcp)
-    (_udp)
-    (_fs)
-    (_misc)))
+    _handle
+    _dns
+    _process
+    _pipe
+    _tcp
+    _udp
+    _fs
+    _misc))
 
 (define msgs (vector->list msg-vec))
 

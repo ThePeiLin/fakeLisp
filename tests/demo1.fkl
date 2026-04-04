@@ -1,4 +1,4 @@
-(import (.. lib utils m))
+(import ../lib/utils/m)
 ;defun宏
 (defmacro
   ~(defun ~name ~args,~body)

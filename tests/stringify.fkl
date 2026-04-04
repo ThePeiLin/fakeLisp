@@ -1,4 +1,4 @@
-(import (only (.. lib utils) assert))
+(import (only ../lib/utils assert))
 
 (assert (equal "(1,2)"
                (println (stringify '(1,2)))))

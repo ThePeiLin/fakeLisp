@@ -1,12 +1,12 @@
-(import (prefix (.. .. lib fuv) uv-))
+(import (prefix ../../lib/fuv uv-))
 
-(import (only (.. .. lib utils m) assert))
+(import (only ../../lib/utils/m assert))
 
 (define loop (uv-make-loop))
 
-(import (only (.. .. lib fs) fileno))
+(import (only ../../lib/fs fileno))
 
-(import (alias (.. .. lib os) (remove os-remove)))
+(import (alias ../../lib/os (remove os-remove)))
 
 (define fd (uv-fs-open loop *file-rp* "r" nil))
 

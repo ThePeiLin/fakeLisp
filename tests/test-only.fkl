@@ -1,9 +1,9 @@
-(import (only (test-lib) custom))
+(import (only test-lib custom))
 
 (defmacro #&internal
   #(test #["#ya-quote'" (custom,custom-quote)] builtin second))
 
-(import (only (.. lib utils m) assert))
+(import (only ../lib/utils/m assert))
 
 (println "test only")
 

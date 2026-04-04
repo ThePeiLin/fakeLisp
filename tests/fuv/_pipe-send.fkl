@@ -1,8 +1,8 @@
-(import (.. .. lib os))
+(import ../../lib/os)
 
-(import (prefix (.. .. lib fuv) uv-))
+(import (prefix ../../lib/fuv uv-))
 
-(import (only (.. .. lib utils m) assert))
+(import (only ../../lib/utils/m assert))
 
 (define fd (string->number (getenv "PIPE_FD")))
 

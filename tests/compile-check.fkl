@@ -1,4 +1,4 @@
-(import (only (.. lib utils) assert))
+(import (only ../lib/utils assert))
 (println "\ncompile check test")
 
 ;; 1
@@ -48,10 +48,10 @@
              (or (not 1) foo))))))
 
 ;; 1
-(assert (println (cfg (import (.. lib json)))))
+(assert (println (cfg (import ../lib/json))))
 
 ;; ()
-(assert (not (println (cfg (import (foobar))))))
+(assert (not (println (cfg (import foobar)))))
 
 (defmacro foo 'bar)
 (defmacro ~(foobar) 'foobar)
@@ -92,19 +92,19 @@
 (cfg
   *main?* (println "main")
   (define foo) (println foo)
-  (import (lib json)) (println '(lib json))
+  (import lib/json) (println '(lib json))
   (defmacro foo) (println foo)
   (defmacro (cc)) (println '(cc))
   (defmacro #&cc) (println '#&cc)
-  (or (import (lib json))
+  (or (import lib/json)
     (define foo)
     *main?*)
   (println "json or main or foo")
-  (and (import (lib json))
+  (and (import lib/json)
     (define foo)
     *main?*)
   (println "json and main and foo")
-  (not (import (lib json)))
+  (not (import lib/json))
   (println "not has (lib json)"))
 
 (cfg (eq *platform* "win32") (println "win32!")

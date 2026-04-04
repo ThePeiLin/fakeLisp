@@ -1,5 +1,5 @@
-(import (.. lib sync))
-(import (.. lib queue))
+(import ../lib/sync)
+(import ../lib/queue)
 
 (define (make-concurrent-queue,elems)
   (cons (make-mutex)

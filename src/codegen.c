@@ -3187,9 +3187,6 @@ static inline FklVMvalue *get_replacement(const FklPmatchRes *value,
         return NULL;
 }
 
-static inline char *combineFileNameFromListAndCheckPrivate(
-        const FklVMvalue *list);
-
 static inline int is_valid_compile_check_pattern(const FklVMvalue *p) {
     return p != FKL_VM_NIL            //
         && FKL_IS_PAIR(p)             //
@@ -3336,6 +3333,107 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
     return fklFindSymbolDef(value->value, scope, env) != NULL;
 }
 
+// steal from zuo: https://github.com/racket/zuo
+// zuo_is_symbol_module_char
+static inline int is_module_path_char(char c) {
+    return c != 0 && (isalpha(c) || isdigit(c) || strchr(".-_+/", c) != NULL);
+}
+
+// steal from zuo: https://github.com/racket/zuo
+// zuo_is_module_path
+static inline int is_module_path(const FklString *s) {
+    if (s->size == 0)
+        return 0;
+    uint64_t saw_slash = 0;
+    uint64_t const end = s->size - 1;
+    for (uint64_t i = 0; i < s->size; ++i) {
+        char c = s->str[i];
+        if (c == '/') {
+            if (i == 0 || i == end || saw_slash == i)
+                return 0;
+            saw_slash = i + 1;
+        } else if (!is_module_path_char(c)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static inline FklVMvalue *get_priv_sub_mod_name(FklVM *v, const FklString *s) {
+    FKL_ASSERT(s->size != 0);
+    uint64_t saw_slash = 0;
+    uint64_t end = 0;
+    for (uint64_t i = 0; i < s->size; ++i) {
+        char c = s->str[i];
+        if (c == '/')
+            saw_slash = i + 1;
+        else if (c == '_' && i != 0 && saw_slash == i)
+            goto importing_private_module;
+    }
+
+    return NULL;
+importing_private_module:
+
+    end = saw_slash;
+    for (; end < s->size; ++end) {
+        if (s->str[end] == '/')
+            break;
+    }
+
+    FklVMvalue *name = fklCreateVMvalueStr2(v, end, s->str);
+    return name;
+}
+
+typedef enum {
+    ACCESS_NONE,
+    ACCESS_SCRIPT_FILE,
+    ACCESS_PACKAGE_FILE,
+    ACCESS_PRECOMPILE_FILE,
+    ACCESS_DLL_FILE,
+} AccessableFileType;
+
+static AccessableFileType get_accessable_file_type(const FklString *module_name,
+        FklStrBuf *buf) {
+    const char *name_cstr = module_name->str;
+    fklStrBufPrintf(buf,
+            "%s%s%s",
+            name_cstr,
+            FKL_PATH_SEPARATOR_STR,
+            FKL_PACKAGE_MAIN_FILE);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
+        return ACCESS_PACKAGE_FILE;
+    }
+
+    fklStrBufClear(buf);
+    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_SCRIPT_FILE_EXTENSION);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
+        return ACCESS_SCRIPT_FILE;
+    }
+
+    fklStrBufClear(buf);
+    fklStrBufPrintf(buf,
+            "%s%s%s%s",
+            name_cstr,
+            FKL_PATH_SEPARATOR_STR,
+            FKL_PACKAGE_MAIN_FILE,
+            FKL_PRE_COMPILE_FKL_SUFFIX_STR);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
+        return ACCESS_PRECOMPILE_FILE;
+    }
+
+    fklStrBufClear(buf);
+    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_DLL_FILE_TYPE);
+
+    if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
+        return ACCESS_DLL_FILE;
+    }
+
+    return ACCESS_NONE;
+}
+
 static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
         const FklPmatchRes *exp,
         const FklPmatchHashMap *ht,
@@ -3346,39 +3444,37 @@ static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
     FklCgErrorState *error_state = ctx->error_state;
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtin_sym_value);
-    if (value->value == FKL_VM_NIL || !is_symbol_list(value->value)) {
+    if (!FKL_IS_SYM(value->value)) {
         error_state->error = make_syntax_error(vm, exp->value);
         error_state->line = CURLINE(exp->container);
         return 0;
     }
-    char *filename = combineFileNameFromListAndCheckPrivate(value->value);
 
-    if (filename) {
-        char *packageMainFileName =
-                fklStrCat(fklZstrdup(filename), FKL_PATH_SEPARATOR_STR);
-        packageMainFileName =
-                fklStrCat(packageMainFileName, FKL_PACKAGE_MAIN_FILE);
+    FklVMvalue *priv_sub_mod_name =
+            get_priv_sub_mod_name(vm, FKL_VM_SYM(value->value));
 
-        char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
-                FKL_PRE_COMPILE_FKL_SUFFIX_STR);
-
-        char *scriptFileName =
-                fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
-
-        char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
-
-        int r = fklIsAccessibleRegFile(packageMainFileName)
-             || fklIsAccessibleRegFile(scriptFileName)
-             || fklIsAccessibleRegFile(preCompileFileName)
-             || fklIsAccessibleRegFile(dllFileName);
-        fklZfree(filename);
-        fklZfree(scriptFileName);
-        fklZfree(dllFileName);
-        fklZfree(packageMainFileName);
-        fklZfree(preCompileFileName);
-        return r;
-    } else
+    if (priv_sub_mod_name != NULL)
         return 0;
+
+    FklStrBuf buf;
+    fklInitStrBuf(&buf);
+    AccessableFileType type =
+            get_accessable_file_type(FKL_VM_SYM(value->value), &buf);
+    fklUninitStrBuf(&buf);
+
+    switch (type) {
+    case ACCESS_NONE:
+        return 0;
+        break;
+    case ACCESS_DLL_FILE:
+    case ACCESS_PRECOMPILE_FILE:
+    case ACCESS_SCRIPT_FILE:
+    case ACCESS_PACKAGE_FILE:
+        return 1;
+        break;
+    }
+
+    return 0;
 }
 
 static inline int cfg_check_macro_defined(const FklVMvalueCgInfo *info,
@@ -5155,25 +5251,6 @@ static void codegen_load(const CgCbArgs *args) {
             actions);
 }
 
-FKL_DEPRECATED
-static inline char *combineFileNameFromListAndCheckPrivate(
-        const FklVMvalue *list) {
-    char *r = NULL;
-    for (const FklVMvalue *curPair = list; FKL_IS_PAIR(curPair);
-            curPair = FKL_VM_CDR(curPair)) {
-        FklVMvalue *cur = FKL_VM_CAR(curPair);
-        const FklString *str = FKL_VM_SYM(cur);
-        if (curPair != list && str->str[0] == '_') {
-            fklZfree(r);
-            return NULL;
-        }
-        r = fklCstrStringCat(r, str);
-        if (FKL_VM_CDR(curPair) != FKL_VM_NIL)
-            r = fklStrCat(r, FKL_PATH_SEPARATOR_STR);
-    }
-    return r;
-}
-
 static inline void export_compiler_macro(FklVMvalueCgMacroScope *macro_scope,
         FklVMvalue *pattern,
         FklVMvalue *proc,
@@ -6378,7 +6455,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
 }
 
 FKL_NODISCARD
-static inline int import_pre_compiler_impl(const CgCbArgs *args,
+static inline int import_pre_compile_impl(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         const char *filename,
         FklVMvalueCgInfo *lib_info) {
@@ -6736,57 +6813,6 @@ static inline int is_valid_alias_sym_list(const FklVMvalue *alias) {
     return alias == FKL_VM_NIL;
 }
 
-// steal from zuo: https://github.com/racket/zuo
-// zuo_is_symbol_module_char
-static inline int is_module_path_char(char c) {
-    return c != 0 && (isalpha(c) || isdigit(c) || strchr(".-_+/", c) != NULL);
-}
-
-// steal from zuo: https://github.com/racket/zuo
-// zuo_is_module_path
-static inline int is_module_path(const FklString *s) {
-    if (s->size == 0)
-        return 0;
-    uint64_t saw_slash = 0;
-    uint64_t const end = s->size - 1;
-    for (uint64_t i = 0; i < s->size; ++i) {
-        char c = s->str[i];
-        if (c == '/') {
-            if (i == 0 || i == end || saw_slash == i)
-                return 0;
-            saw_slash = i + 1;
-        } else if (!is_module_path_char(c)) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static inline FklVMvalue *get_priv_sub_mod_name(FklVM *v, const FklString *s) {
-    FKL_ASSERT(s->size != 0);
-    uint64_t saw_slash = 0;
-    uint64_t end = 0;
-    for (uint64_t i = 0; i < s->size; ++i) {
-        char c = s->str[i];
-        if (c == '/')
-            saw_slash = i + 1;
-        else if (c == '_' && i != 0 && saw_slash == i)
-            goto importing_private_module;
-    }
-
-    return NULL;
-importing_private_module:
-
-    end = saw_slash;
-    for (; end < s->size; ++end) {
-        if (s->str[end] == '/')
-            break;
-    }
-
-    FklVMvalue *name = fklCreateVMvalueStr2(v, end, s->str);
-    return name;
-}
-
 static inline void codegen_import_helper(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         FklVMvalueCgInfo *lib_info) {
@@ -6872,95 +6898,47 @@ static inline void codegen_import_helper(const CgCbArgs *args,
                 actions);
     }
 
-    // char *filename = combineFileNameFromListAndCheckPrivate(name);
-
-    // if (filename == NULL) {
-    //     errors->error = make_import_failed_error(vm, name);
-    //     errors->line = CURLINE(orig);
-    //     return;
-    // }
-
-    const char *name_cstr = FKL_VM_SYM(name)->str;
     FklStrBuf buf;
     fklInitStrBuf(&buf);
 
-    fklStrBufPrintf(&buf,
-            "%s%s%s",
-            name_cstr,
-            FKL_PATH_SEPARATOR_STR,
-            FKL_PACKAGE_MAIN_FILE);
+    AccessableFileType type = get_accessable_file_type(FKL_VM_SYM(name), &buf);
 
-    // char *packageMainFileName =
-    //         fklStrCat(fklZstrdup(name_cstr), FKL_PATH_SEPARATOR_STR);
-    // packageMainFileName = fklStrCat(packageMainFileName,
-    // FKL_PACKAGE_MAIN_FILE);
+    int r = 0;
+    (void)r;
 
-    // char *preCompileFileName = fklStrCat(fklZstrdup(packageMainFileName),
-    //         FKL_PRE_COMPILE_FKL_SUFFIX_STR);
-
-    // char *scriptFileName =
-    //         fklStrCat(fklZstrdup(filename), FKL_SCRIPT_FILE_EXTENSION);
-
-    // char *dllFileName = fklStrCat(fklZstrdup(filename), FKL_DLL_FILE_TYPE);
-
-    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
+    switch (type) {
+    case ACCESS_PACKAGE_FILE:
         process_import_script_common_header(args,
                 import_args,
                 fklStrBufBody(&buf),
                 lib_info);
-        goto exit;
-    }
+        break;
 
-    fklStrBufClear(&buf);
-    fklStrBufPrintf(&buf, "%s%s", name_cstr, FKL_SCRIPT_FILE_EXTENSION);
-
-    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
+    case ACCESS_SCRIPT_FILE:
         process_import_script_common_header(args,
                 import_args,
                 fklStrBufBody(&buf),
                 lib_info);
-        goto exit;
-    }
+        break;
 
-    fklStrBufClear(&buf);
-    fklStrBufPrintf(&buf,
-            "%s%s%s%s",
-            name_cstr,
-            FKL_PATH_SEPARATOR_STR,
-            FKL_PACKAGE_MAIN_FILE,
-            FKL_PRE_COMPILE_FKL_SUFFIX_STR);
-
-    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
-        int r = import_pre_compiler_impl(args,
+    case ACCESS_PRECOMPILE_FILE:
+        r = import_pre_compile_impl(args,
                 import_args,
                 fklStrBufBody(&buf),
                 lib_info);
         FKL_ASSERT(r == 0);
-        (void)r;
-        goto exit;
-    }
+        break;
 
-    fklStrBufClear(&buf);
-    fklStrBufPrintf(&buf, "%s%s", name_cstr, FKL_DLL_FILE_TYPE);
-
-    if (fklIsAccessibleRegFile(fklStrBufBody(&buf))) {
-        int r = import_dll_impl(args,
-                import_args,
-                fklStrBufBody(&buf),
-                lib_info);
+    case ACCESS_DLL_FILE:
+        r = import_dll_impl(args, import_args, fklStrBufBody(&buf), lib_info);
         FKL_ASSERT(r == 0);
-        (void)r;
-        goto exit;
-    }
+        break;
 
-    errors->error = make_import_failed_error(vm, name);
-    errors->line = CURLINE(orig);
-exit:
-    // fklZfree(filename);
-    // fklZfree(scriptFileName);
-    // fklZfree(dllFileName);
-    // fklZfree(packageMainFileName);
-    // fklZfree(preCompileFileName);
+    case ACCESS_NONE:
+        errors->error = make_import_failed_error(vm, name);
+        errors->line = CURLINE(orig);
+        break;
+    }
 
     fklUninitStrBuf(&buf);
 }

@@ -420,7 +420,7 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
 
     FklVMgc *gc = &dctx->gc;
     FklCgCtx *ctx = &dctx->cg_ctx;
-    fklInitCgCtx(ctx, fklGetDir(rp), &gc->gcvm);
+    fklInitCgCtx(ctx, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx->main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(ctx,

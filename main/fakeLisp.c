@@ -52,7 +52,7 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
 
     FklVMgc *gc = fklCreateVMgc();
 
-    fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
+    fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
@@ -125,7 +125,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     FklCgCtx ctx = { 0 };
     char *rp = fklRealpath(filename);
-    fklInitCgCtx(&ctx, fklGetDir(rp), &gc->gcvm);
+    fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,

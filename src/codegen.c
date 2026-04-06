@@ -6573,7 +6573,6 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
     }
 
     FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
-
     lib = fklVMvalueCgLibsAdd(info->libraries, rp);
     fklInitCgDllLib(ctx, module_name, lib, dll, initExport);
     uv_dlclose(&dll);

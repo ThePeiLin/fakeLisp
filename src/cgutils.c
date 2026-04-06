@@ -1483,7 +1483,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                         : NULL;
 
     if (filename != NULL) {
-        r->dir = fklGetDir(rp);
+        r->dir = fklDupDir(rp);
         r->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
         r->realpath = rp;
         r->fid = add_symbol_cstr(ctx, r->filename);

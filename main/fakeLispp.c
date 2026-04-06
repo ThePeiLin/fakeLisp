@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
 
             FklCgCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            fklInitCgCtx(&ctx, fklGetDir(rp), vm);
+            fklInitCgCtx(&ctx, fklDupDir(fklTruncDir(fklZstrdup(rp))), vm);
 
             FklLibTable lib_table = { 0 };
             fklInitLibTable(&lib_table);

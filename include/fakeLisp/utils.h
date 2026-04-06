@@ -57,7 +57,8 @@ int fklGetDelim(FILE *fp, FklStrBuf *b, char d);
 
 void *fklCopyMemory(const void *, size_t);
 
-char *fklGetDir(const char *);
+char *fklTruncDir(char *path);
+char *fklDupDir(const char *);
 char **fklSplit(char *str, const char *divider, size_t *);
 char *fklStrTok(char *str, const char *divstr, char **context);
 char *fklTrim(char *str);

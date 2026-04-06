@@ -356,15 +356,23 @@ char *fklRealpath(const char *filename) {
     return fklZstrdup(path_buf);
 }
 
-char *fklGetDir(const char *filename) {
+char *fklDupDir(const char *filename) {
     int i = strlen(filename) - 1;
-    for (; filename[i] != FKL_PATH_SEPARATOR; i--)
+    for (; filename[i] != FKL_PATH_SEPARATOR; --i)
         ;
     char *tmp = (char *)fklZmalloc((i + 1) * sizeof(char));
     FKL_ASSERT(tmp);
     tmp[i] = '\0';
     memcpy(tmp, filename, i);
     return tmp;
+}
+
+char *fklTruncDir(char *path) {
+    char *pos = strrchr(path, FKL_PATH_SEPARATOR);
+    if (pos != path) {
+        *pos = '\0';
+    }
+    return path;
 }
 
 char *fklRelpath(const char *start, const char *path) {

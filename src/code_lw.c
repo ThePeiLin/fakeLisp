@@ -2023,7 +2023,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     int err = 0;
 
     FklCgCtx *ctx = args->ctx;
-    char *main_dir = fklGetDir(rp);
+    char *main_dir = fklDupDir(rp);
     main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
 
     FklLoadValueArgs values = { .vm = ctx->vm };
@@ -2063,5 +2063,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     libs.libs = NULL;
 
     fklZfree(main_dir);
+
+    lib->lib->name = fklCgRealpathToModuleName(ctx, rp);
     return lib;
 }

@@ -39,21 +39,19 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')
-#define FKL_PATH_SEPARATOR_STR ("\\")
+#define FKL_PATH_SEPARATOR_STR "\\"
 #define FKL_PATH_UPPER_DIR "..\\"
 #define FKL_PATH_SEPARATOR_STR_LEN (1)
 
-#define FKL_DLL_FILE_TYPE (".dll")
-#define FKL_DLL_FILE_TYPE_STR_LEN (4)
+#define FKL_DLL_FILE_EXTENSION ".dll"
 
 #else
 
 #define FKL_PATH_SEPARATOR ('/')
-#define FKL_PATH_SEPARATOR_STR ("/")
+#define FKL_PATH_SEPARATOR_STR "/"
 #define FKL_PATH_UPPER_DIR "../"
 #define FKL_PATH_SEPARATOR_STR_LEN (1)
-#define FKL_DLL_FILE_TYPE (".so")
-#define FKL_DLL_FILE_TYPE_STR_LEN (3)
+#define FKL_DLL_FILE_EXTENSION ".so"
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -86,19 +84,16 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #endif
 
-        FKL_DEPRECATED static inline int fklDeprecatedFunc(void) {
-    return 0;
-}
+FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 
-#define FKL_PACKAGE_MAIN_FILE ("main.fkl")
-#define FKL_PRE_COMPILE_PACKAGE_MAIN_FILE ("main.fklp")
+#define FKL_PACKAGE_MAIN_FILE "main.fkl"
 
-#define FKL_SCRIPT_FILE_EXTENSION (".fkl")
-#define FKL_BYTECODE_FILE_EXTENSION (".fklc")
-#define FKL_PRE_COMPILE_FILE_EXTENSION (".fklp")
+#define FKL_SCRIPT_FILE_EXTENSION ".fkl"
+#define FKL_BYTECODE_FILE_EXTENSION ".fklc"
+#define FKL_PRE_COMPILE_FILE_EXTENSION ".fklp"
 
-#define FKL_BYTECODE_FKL_SUFFIX_STR ("c")
-#define FKL_PRE_COMPILE_FKL_SUFFIX_STR ("p")
+#define FKL_BYTECODE_FKL_SUFFIX_STR "c"
+#define FKL_PRE_COMPILE_FKL_SUFFIX_STR "p"
 
 #define FKL_BYTECODE_FKL_SUFFIX ('c')
 #define FKL_PRE_COMPILE_FKL_SUFFIX ('p')
@@ -147,8 +142,8 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 #define FKL_CONTAINER_OF(ptr, type, member)                                    \
     FKL_TYPE_CAST(type *, FKL_TYPE_CAST(char *, ptr) - offsetof(type, member))
 
-#define FKL_ESCAPE_CHARS ("ABTNVFRS")
-#define FKL_ESCAPE_CHARS_TO ("\a\b\t\n\v\f\r\x20")
+#define FKL_ESCAPE_CHARS "ABTNVFRS"
+#define FKL_ESCAPE_CHARS_TO "\a\b\t\n\v\f\r\x20"
 
 #ifdef __cplusplus
 }

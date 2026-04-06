@@ -483,6 +483,59 @@ char *fklStrCat(char *s1, const char *s2) {
     return s1;
 }
 
+char *fklStrrstr(const char *haystack, const char *needle) {
+    if (haystack == NULL)
+        return NULL;
+    if (needle == NULL)
+        return NULL;
+
+    size_t needle_len = strlen(needle);
+    size_t haystack_len = strlen(haystack);
+
+    if (needle_len == 0)
+        return (char *)haystack;
+
+    if (haystack_len < needle_len)
+        return NULL;
+
+    const char *p = haystack + haystack_len - needle_len;
+
+    while (p >= haystack) {
+        for (size_t i = 0; i < needle_len; i++)
+            if (p[i] != needle[i])
+                goto next;
+
+        return (char *)p;
+
+    next:
+        p--;
+    }
+
+    return NULL;
+}
+
+char *fklStrEndWith(const char *str, const char *suffix) {
+    if (str == NULL)
+        return NULL;
+    if (suffix == NULL)
+        return NULL;
+
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+
+    if (suffix_len == 0)
+        return NULL;
+    if (str_len < suffix_len)
+        return NULL;
+
+    const char *suffix_pos = str + (str_len - suffix_len);
+
+    if (strcmp(suffix_pos, suffix) != 0)
+        return NULL;
+
+    return (char *)suffix_pos;
+}
+
 char *fklCharBufToCstr(const char *buf, size_t size) {
     char *str = (char *)fklZmalloc((size + 1) * sizeof(char));
     FKL_ASSERT(str);

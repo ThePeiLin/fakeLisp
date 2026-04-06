@@ -72,6 +72,10 @@ int fklIsFixMulOverflow(int64_t a, int64_t b);
 
 char *fklStrCat(char *, const char *);
 
+// steal from glib: https://gitlab.gnome.org/GNOME/glib
+char *fklStrrstr(const char *haystack, const char *needle);
+char *fklStrEndWith(const char *str, const char *sub);
+
 char *fklCharBufToCstr(const char *buf, size_t size);
 
 int fklChdir(const char *);

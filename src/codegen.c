@@ -3416,7 +3416,7 @@ static AccessableFileType get_accessable_file_type(const FklString *module_name,
     }
 
     fklStrBufClear(buf);
-    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_DLL_FILE_TYPE);
+    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_DLL_FILE_EXTENSION);
 
     if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
         return ACCESS_DLL_FILE;
@@ -5418,6 +5418,7 @@ typedef struct {
     FklVMvalueCgMacroScope *cms;
     FklVMvalueCgInfo *lib_info;
 
+    FklVMvalue *mod_name;
     FklVMvalue *import_cb_args;
     ImportLibCb import_cb;
     uint32_t scope;
@@ -5429,6 +5430,7 @@ static void export_context_data_finalizer(void *data) {
     d->info = NULL;
     d->import_cb = NULL;
     d->import_cb_args = NULL;
+    d->mod_name = NULL;
 }
 
 static void export_context_data_atomic(FklVMgc *gc, void *ctx) {
@@ -5438,6 +5440,7 @@ static void export_context_data_atomic(FklVMgc *gc, void *ctx) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, d->info), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, d->lib_info), gc);
 
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, d->mod_name), gc);
     fklVMgcToGray(d->import_cb_args, gc);
 }
 
@@ -6101,7 +6104,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     fklInitMainProcRefs(ctx->vm, proc);
 
     FklCgLib *lib = fklVMvalueCgLibsAdd(info->libraries, info->realpath);
-    fklInitCgScriptLib(ctx, lib, info, proc);
+    fklInitCgScriptLib(ctx, lib, d->mod_name, info, proc);
 
     return d->import_cb(ctx,
             fklVMvalueCgEnvAddUsedLib(d->env, info->realpath, lib->lib)->id,
@@ -6119,6 +6122,7 @@ static FklCgActCtx *createExportContext(FklVMvalueCgInfo *info,
         FklVMvalueCgEnv *targetEnv,
         uint32_t scope,
         FklVMvalueCgMacroScope *cms,
+        FklVMvalue *mod_name,
         ImportLibCb import_cb,
         FklVMvalue *import_cb_args,
         FklVMvalueCgInfo *lib_info) {
@@ -6134,6 +6138,7 @@ static FklCgActCtx *createExportContext(FklVMvalueCgInfo *info,
 
     data->import_cb = import_cb;
     data->import_cb_args = import_cb_args;
+    data->mod_name = mod_name;
 
     data->lib_info = lib_info;
     return r;
@@ -6350,11 +6355,10 @@ typedef struct {
     FklVMvalue *import_cb_args;
 } CgImportHelperArgs;
 
-static inline void process_import_script_common_header(const CgCbArgs *args,
+static inline void process_import_script_helper(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         const char *filename,
         FklVMvalueCgInfo *lib_info) {
-
     FklCgCtx *ctx = args->ctx;
     FklVM *vm = args->ctx->vm;
     FklVMvalue *orig = args->orig->value;
@@ -6373,6 +6377,9 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
             &(FklCgInfoArgs){
                 .is_lib = 1,
             });
+
+    const char *rp = next_info->realpath;
+    FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
 
     if (hasLoadSameFile(next_info->realpath, info)) {
         errors->error = make_circular_load_error(vm, name);
@@ -6404,6 +6411,7 @@ static inline void process_import_script_common_header(const CgCbArgs *args,
                         env,
                         scope,
                         macro_scope,
+                        module_name,
                         import_args->import_cb,
                         import_args->import_cb_args,
                         lib_info),
@@ -6499,6 +6507,8 @@ static inline int import_pre_compile_impl(const CgCbArgs *args,
             errors->line = CURLINE(orig);
             return -1;
         }
+
+        lib->lib->name = fklCgRealpathToModuleName(ctx, rp);
     }
 
     FklVMvalue *importBc = import_args->import_cb(ctx,
@@ -6562,12 +6572,10 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
         return 0;
     }
 
+    FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
+
     lib = fklVMvalueCgLibsAdd(info->libraries, rp);
-    fklInitCgDllLib(ctx,
-            fklVMaddSymbolCstr(vm, filename),
-            lib,
-            dll,
-            initExport);
+    fklInitCgDllLib(ctx, module_name, lib, dll, initExport);
     uv_dlclose(&dll);
 
     return lib;
@@ -6900,14 +6908,14 @@ static inline void codegen_import_helper(const CgCbArgs *args,
 
     switch (type) {
     case ACCESS_PACKAGE_FILE:
-        process_import_script_common_header(args,
+        process_import_script_helper(args,
                 import_args,
                 fklStrBufBody(&buf),
                 lib_info);
         break;
 
     case ACCESS_SCRIPT_FILE:
-        process_import_script_common_header(args,
+        process_import_script_helper(args,
                 import_args,
                 fklStrBufBody(&buf),
                 lib_info);

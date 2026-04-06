@@ -644,7 +644,7 @@ create_dll_lib(FklVM *vm, FklVMvalue *name, FklCgLib *clib) {
     const char *rp = fklCgLibRp(clib);
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
     l->proc = fklCreateVMvalueStr2(vm,
-            strlen(rp) - strlen(FKL_DLL_FILE_TYPE),
+            strlen(rp) - strlen(FKL_DLL_FILE_EXTENSION),
             rp);
     clib->lib = l;
     return l;
@@ -690,6 +690,7 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 // TODO: 优化模块名
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
+        FklVMvalue *mod_name,
         FklVMvalueCgInfo *info,
         FklVMvalue *proc) {
     memset(lib, 0, sizeof(*lib));
@@ -721,7 +722,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
                 &sid_idx_list->v);
     }
 
-    lib->lib = create_script_lib(ctx->vm, info->fid, lib, FKL_VM_PROC(proc));
+    lib->lib = create_script_lib(ctx->vm, mod_name, lib, FKL_VM_PROC(proc));
 }
 
 static const FklCgMacro *find_macro(FklVMvalue *exp,
@@ -2912,4 +2913,58 @@ void fklVMvalueCgEnvWeakMapInsert(FklVMvalueCgEnvWeakMap *hp,
     FklValueEqHashMapElm *elm = fklVMvalueWeakHashEqInsert(as_weak_map(hp), //
             (FklVMvalue *)k);
     elm->v = (FklVMvalue *)v;
+}
+
+static inline char *get_suffix_pos(char *path) {
+    char *r = NULL;
+
+    r = fklStrEndWith(path, FKL_PATH_SEPARATOR_STR "main.fklp");
+    if (r != NULL)
+        return r;
+
+    r = fklStrEndWith(path, FKL_PATH_SEPARATOR_STR "main.fkl");
+    if (r != NULL)
+        return r;
+
+    r = fklStrEndWith(path, FKL_SCRIPT_FILE_EXTENSION);
+    if (r != NULL)
+        return r;
+
+    r = fklStrEndWith(path, FKL_DLL_FILE_EXTENSION);
+    if (r != NULL)
+        return r;
+
+    return NULL;
+}
+
+static inline char *path_to_module_name(char *path) {
+    FKL_ASSERT(path != NULL);
+    char *pos = get_suffix_pos(path);
+    if (pos != NULL) {
+        *pos = '\0';
+    }
+
+#ifdef _WIN32
+    for (char *cur = path; cur < pos; ++cur) {
+        if (*cur == '\\')
+            *cur = '/';
+    }
+#endif
+
+    return path;
+}
+
+static inline FklVMvalue *
+realpath_to_module_name(FklVM *vm, const char *main_dir, const char *rp) {
+    char *mod_path_cstr = fklRelpath(main_dir, rp);
+    if (mod_path_cstr == NULL)
+        mod_path_cstr = fklZstrdup(rp);
+    path_to_module_name(mod_path_cstr);
+    FklVMvalue *module_name = fklVMaddSymbolCstr(vm, mod_path_cstr);
+    fklZfree(mod_path_cstr);
+    return module_name;
+}
+
+FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp) {
+    return realpath_to_module_name(ctx->vm, ctx->main_file_real_path_dir, rp);
 }

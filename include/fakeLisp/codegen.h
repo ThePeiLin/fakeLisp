@@ -522,6 +522,8 @@ FklCgLib *fklVMvalueCgLibsIter(const FklVMvalueCgLibs *v);
 FklCgLib *fklCgLibNext(const FklCgLib *c);
 const char *fklCgLibRp(const FklCgLib *c);
 
+FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp);
+
 FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
 FklVMvalueCgEnv *fklVMvalueCgEnvWeakMapGet(const FklVMvalueCgEnvWeakMap *,
         const FklVMvalueProto *p);
@@ -625,6 +627,7 @@ FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
+        FklVMvalue *mod_name,
         FklVMvalueCgInfo *codegen,
         FklVMvalue *proc);
 

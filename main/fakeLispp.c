@@ -136,8 +136,10 @@ static inline void print_lib_table(FklVM *vm,
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(FKL_VM_PROC(l->proc)->bcl),
                         opcode_count);
-        } else {
+        } else if (FKL_IS_STR(l->proc)) {
             CB_LINE("%s", FKL_VM_STR(l->proc)->str);
+        } else {
+            FKL_UNREACHABLE();
         }
 
         CB_LINE("");
@@ -232,7 +234,7 @@ int main(int argc, char **argv) {
 
             FklCgCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            fklInitCgCtx(&ctx, fklDupDir(fklTruncDir(fklZstrdup(rp))), vm);
+            fklInitCgCtx(&ctx, fklTruncDir(fklTruncDir(fklZstrdup(rp))), vm);
 
             FklLibTable lib_table = { 0 };
             fklInitLibTable(&lib_table);

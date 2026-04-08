@@ -582,6 +582,23 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     } break;
     case FKL_CODEGEN_LIB_DLL:
         lib->proc = load_value_id(fp, values);
+        if (FKL_IS_SYM(lib->proc)) {
+            char *rp = fklRealpath(FKL_VM_SYM(lib->proc)->str);
+            FklVMvalue *p = NULL;
+            char *cwd = fklSysgetcwd();
+            fprintf(stderr, "cwd is %s\n", cwd);
+            fprintf(stderr, "name is %s\n", FKL_VM_SYM(lib->proc)->str);
+            fklZfree(cwd);
+            if (rp == NULL) {
+                fprintf(stderr, "rp is null\n");
+                p = fklCreateVMvalueStr(values->vm, FKL_VM_SYM(lib->proc));
+            } else {
+                fprintf(stderr, "rp is %s\n", rp);
+                p = fklCreateVMvalueStr1(values->vm, rp);
+            }
+            fklZfree(rp);
+            lib->proc = p;
+        }
         break;
     }
 
@@ -701,11 +718,7 @@ static inline void write_prototype_pass_1(const FklVMvalueProto *pt,
                         vt,
                         FKL_WRITE_CODE_PASS_FIRST,
                         NULL);
-            } else if (FKL_IS_STR(proc_v)) {
-                fklValueTableAdd(vt, proc_v);
-            } else if (fklIsVMvalueDll(proc_v)) {
-                fklValueTableAdd(vt, FKL_VM_DLL(proc_v)->path);
-            } else {
+            } else if (!FKL_IS_STR(proc_v) && !fklIsVMvalueDll(proc_v)) {
                 FKL_UNREACHABLE();
             }
         }
@@ -1079,12 +1092,11 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     } break;
     case FKL_CODEGEN_LIB_DLL: {
         FklVMvalue *proc = lib->proc;
-        if (FKL_IS_STR(proc)) {
-            write_value_id(value_table, 0, proc, fp);
-        } else if (fklIsVMvalueDll(proc)) {
-            write_value_id(value_table, 0, FKL_VM_DLL(proc)->path, fp);
-        } else
+        if (FKL_IS_STR(proc) || fklIsVMvalueDll(proc)) {
+            write_value_id(value_table, 0, lib->name, fp);
+        } else {
             FKL_UNREACHABLE();
+        }
     } break;
     }
 }

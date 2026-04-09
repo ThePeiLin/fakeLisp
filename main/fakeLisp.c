@@ -103,7 +103,7 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
     FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, fklTruncDir(filename), NULL);
+    FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, fklTruncDir(rp), NULL);
     FKL_ASSERT(proc != NULL);
     fclose(fp);
     fklZfree(rp);

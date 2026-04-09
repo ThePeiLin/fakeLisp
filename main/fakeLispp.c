@@ -190,13 +190,17 @@ int main(int argc, char **argv) {
                 exitState = EXIT_FAILURE;
                 goto exit;
             }
+
+            char *rp = fklRealpath(filename);
+            char *dir = fklDupDir(rp);
+
             FklVMgc *gc = fklCreateVMgc();
             FklVM *vm = &gc->gcvm;
 
             FklLibTable lib_table = { 0 };
             fklInitLibTable(&lib_table);
 
-            FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, &lib_table);
+            FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, dir, &lib_table);
             FKL_ASSERT(proc != NULL);
             fclose(fp);
 
@@ -204,7 +208,12 @@ int main(int argc, char **argv) {
             fklInitCodeBuilderFp(&builder, stdout, NULL);
             FklCodeBuilder *const build = &builder;
 
+            CB_LINE("realpath: %s", rp);
             CB_LINE("file: %s", filename);
+            CB_LINE("dir: %s", dir);
+            fklZfree(dir);
+            fklZfree(rp);
+
             CB_LINE("");
 
             CB_LINE("main func:");
@@ -248,6 +257,7 @@ int main(int argc, char **argv) {
 
             const FklCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
+            char *dir = fklDupDir(rp);
             fklZfree(rp);
 
             fklVMunregisterExtraMarkFunc(gc, (FklVMextraMarkArgs *)&ctx);
@@ -275,6 +285,8 @@ int main(int argc, char **argv) {
             FKL_ASSERT(cg_lib->type == FKL_CODEGEN_LIB_SCRIPT);
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
+
+            CB_LINE("dir: %s", dir);
             print_lib_name(vm, lib, 0, build);
             print_export_symbols(vm, lib, build);
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
@@ -308,6 +320,7 @@ int main(int argc, char **argv) {
             fklUninitCgCtx(&ctx);
             fklUninitLibTable(&lib_table);
             fklDestroyVMgc(gc);
+            fklZfree(dir);
             if (exitState)
                 break;
         } else {

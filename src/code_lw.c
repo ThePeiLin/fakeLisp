@@ -47,6 +47,7 @@ static int load_proto_table(FILE *fp,
 typedef struct {
     // in
     FklVM *const vm;
+    const char *main_dir;
 
     // out
     FklValueId count;
@@ -583,20 +584,24 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     case FKL_CODEGEN_LIB_DLL:
         lib->proc = load_value_id(fp, values);
         if (FKL_IS_SYM(lib->proc)) {
-            char *rp = fklRealpath(FKL_VM_SYM(lib->proc)->str);
+            FklStrBuf buf = { 0 };
+            fklInitStrBuf(&buf);
+            fklStrBufPrintf(&buf,
+                    "%s%c%s",
+                    libs->main_dir,
+                    FKL_PATH_SEPARATOR,
+                    FKL_VM_SYM(lib->proc)->str);
+
+            char *rp = fklRealpath(fklStrBufBody(&buf));
             FklVMvalue *p = NULL;
-            char *cwd = fklSysgetcwd();
-            fprintf(stderr, "cwd is %s\n", cwd);
-            fprintf(stderr, "name is %s\n", FKL_VM_SYM(lib->proc)->str);
-            fklZfree(cwd);
             if (rp == NULL) {
-                fprintf(stderr, "rp is null\n");
                 p = fklCreateVMvalueStr(values->vm, FKL_VM_SYM(lib->proc));
             } else {
-                fprintf(stderr, "rp is %s\n", rp);
                 p = fklCreateVMvalueStr1(values->vm, rp);
             }
+
             fklZfree(rp);
+            fklUninitStrBuf(&buf);
             lib->proc = p;
         }
         break;
@@ -1169,10 +1174,16 @@ static int fix_proto_lib_refs(const FklLoadProtoArgs *protos,
     return 0;
 }
 
-FklVMvalueProc *fklLoadCodeFile(FILE *fp, FklVM *vm, FklLibTable *lib_table) {
+FklVMvalueProc *fklLoadCodeFile(FILE *fp,
+        FklVM *vm,
+        const char *main_dir,
+        FklLibTable *lib_table) {
     FklLoadValueArgs values = { .vm = vm };
     FklLoadProtoArgs protos = { .vm = vm };
-    FklLoadLibArgs libs = { .vm = vm };
+    FklLoadLibArgs libs = {
+        .vm = vm,
+        .main_dir = main_dir,
+    };
 
     int r = load_value_table(fp, &values);
     (void)r;
@@ -1794,7 +1805,6 @@ static inline FklReplacementHashMap *load_replacements(FILE *fp,
 }
 
 static inline void load_script_lib_from_pre_compile(FILE *fp,
-        const char *main_dir,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos,
         FklCgLib *cg_lib,
@@ -2035,12 +2045,14 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     int err = 0;
 
     FklCgCtx *ctx = args->ctx;
-    char *main_dir = fklDupDir(rp);
-    main_dir = fklStrCat(main_dir, FKL_PATH_SEPARATOR_STR);
 
     FklLoadValueArgs values = { .vm = ctx->vm };
     FklLoadProtoArgs protos = { .vm = ctx->vm };
-    FklLoadLibArgs libs = { .vm = ctx->vm };
+    char *main_dir = fklDupDir(rp);
+    FklLoadLibArgs libs = {
+        .vm = ctx->vm,
+        .main_dir = main_dir,
+    };
 
     err = load_value_table(fp, &values);
     (void)err;
@@ -2055,7 +2067,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     fix_proto_lib_refs(&protos, &libs);
 
     FklCgLib *lib = fklVMvalueCgLibsAdd(args->libraries, rp);
-    load_script_lib_from_pre_compile(fp, main_dir, &values, &protos, lib, args);
+    load_script_lib_from_pre_compile(fp, &values, &protos, lib, args);
 
     values.count = 0;
     fklZfree(values.values);
@@ -2075,7 +2087,6 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     libs.libs = NULL;
 
     fklZfree(main_dir);
-
     lib->lib->name = fklCgRealpathToModuleName(ctx, rp);
     return lib;
 }

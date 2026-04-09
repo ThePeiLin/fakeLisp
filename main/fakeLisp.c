@@ -98,12 +98,16 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
+    char *rp = fklRealpath(filename);
+
     FklVMgc *gc = fklCreateVMgc();
     FklVM *vm = &gc->gcvm;
 
-    FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, NULL);
+    FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, fklTruncDir(filename), NULL);
     FKL_ASSERT(proc != NULL);
     fclose(fp);
+    fklZfree(rp);
+
     vm = fklCreateVM(FKL_VM_VAL(proc), gc);
 
     fklInitVMargs(vm->gc, argc, argv);

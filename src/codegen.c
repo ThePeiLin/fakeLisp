@@ -3387,9 +3387,9 @@ static AccessableFileType get_accessable_file_type(const FklString *module_name,
         FklStrBuf *buf) {
     const char *name_cstr = module_name->str;
     fklStrBufPrintf(buf,
-            "%s%s%s",
+            "%s%c%s",
             name_cstr,
-            FKL_PATH_SEPARATOR_STR,
+            FKL_PATH_SEPARATOR,
             FKL_PACKAGE_MAIN_FILE);
 
     if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
@@ -3405,9 +3405,9 @@ static AccessableFileType get_accessable_file_type(const FklString *module_name,
 
     fklStrBufClear(buf);
     fklStrBufPrintf(buf,
-            "%s%s%s%s",
+            "%s%c%s%s",
             name_cstr,
-            FKL_PATH_SEPARATOR_STR,
+            FKL_PATH_SEPARATOR,
             FKL_PACKAGE_MAIN_FILE,
             FKL_PRE_COMPILE_FKL_SUFFIX_STR);
 

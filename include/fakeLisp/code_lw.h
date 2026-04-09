@@ -20,7 +20,10 @@ typedef enum FklWriteCodePass {
 void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const proc);
 
 FKL_NODISCARD
-FklVMvalueProc *fklLoadCodeFile(FILE *fp, FklVM *vm, FklLibTable *lib_table);
+FklVMvalueProc *fklLoadCodeFile(FILE *fp,
+        FklVM *vm,
+        const char *main_dir,
+        FklLibTable *lib_table);
 
 typedef struct {
     const FklCgCtx *const ctx;

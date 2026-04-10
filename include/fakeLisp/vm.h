@@ -1471,8 +1471,6 @@ typedef void (*FklDllUninitFunc)(void);
                           & _fklExportSymbolInit == &_fklExportSymbolInit,     \
             "invalid export dll init func")
 
-void fklInitVMdll(FklVMvalue *rel, FklVM *);
-
 uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);
 uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch);
 uint64_t fklVMchanlMessageNum(FklVMvalueChanl *ch);

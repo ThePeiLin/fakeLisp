@@ -438,8 +438,7 @@ int fklVMfpClose(FklVMvalueFp *vfp) {
     return r;
 }
 
-void fklInitVMdll(FklVMvalue *rel, FklVM *exe) {
-    FklVMvalueDll *dll = FKL_VM_DLL(rel);
+static inline void init_dll(FklVMvalueDll *dll, FklVM *exe) {
     FklDllInitFunc init = (FklDllInitFunc)fklGetAddress("_fklInit", &dll->dll);
     if (init)
         init(dll, exe);
@@ -1529,6 +1528,8 @@ fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
     fklZfree(real_dll_name);
+
+    init_dll(dll, exe);
     return r;
 err:
     fklZfree(real_dll_name);

@@ -2973,11 +2973,11 @@ static int builtin_dlopen(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dll_name, FKL_IS_STR, exe);
     FklVMvalue *errorStr = NULL;
     FklVMvalue *ndll = fklCreateVMvalueDll(exe, dll_name, &errorStr);
-    if (!ndll)
+    if (!ndll) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,
                 exe,
                 FKL_VM_STR(errorStr)->str);
-    fklInitVMdll(ndll, exe);
+    }
     FKL_CPROC_RETURN(exe, ctx, ndll);
     return 0;
 }

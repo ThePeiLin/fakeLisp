@@ -694,14 +694,13 @@ static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
     FklImportDllInitFunc initFunc = NULL;
     if (FKL_IS_STR(l->proc)) {
         dll = fklCreateVMvalueDll(exe, l->proc, &error_msg);
-        fklInitVMdll(dll, exe);
     } else {
         dll = l->proc;
     }
 
-    if (dll)
+    if (dll) {
         initFunc = getImportInit(&(FKL_VM_DLL(dll)->dll));
-    else {
+    } else {
         atomic_store(&l->import_state, FKL_VM_LIB_ERROR);
         fklUnlockVMlib(l);
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_IMPORTFAILED,

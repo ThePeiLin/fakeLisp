@@ -1524,7 +1524,6 @@ fklCreateVMvalueDll(FklVM *exe, FklVMvalue *path, FklVMvalue **errorStr) {
     }
     FklVMvalue *r = fklCreateVMvalueUd(exe, &DllUserDataMetaTable, NULL);
     FklVMvalueDll *dll = FKL_VM_DLL(r);
-    dll->path = path;
     dll->dll = lib;
     dll->pd = FKL_VM_NIL;
     fklZfree(real_dll_name);

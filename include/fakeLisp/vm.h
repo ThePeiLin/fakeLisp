@@ -680,7 +680,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
-    FklVMvalue *path;
     FklVMvalue *pd;
     uv_lib_t dll;
 });

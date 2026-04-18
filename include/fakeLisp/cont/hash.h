@@ -281,7 +281,8 @@ static inline void METHOD(Shrink)(NAME *self) {
     METHOD(Rehash)(self);
 }
 
-static inline NODE_NAME *const *METHOD(Bucket)(NAME *self, uintptr_t hashv) {
+static inline NODE_NAME *const *METHOD(Bucket)(NAME const *self, //
+        uintptr_t hashv) {
     return &self->buckets[hashv & self->mask];
 }
 

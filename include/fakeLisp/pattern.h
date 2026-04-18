@@ -40,7 +40,12 @@ FklVMvalue *fklCreatePattern(FklVM *exe, FklVMvalue *, FklValueHashSet **);
 int fklPatternMatch(const FklVMvalue *pattern,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht);
+int fklPatternMatch1(const FklVMvalue *head,
+        const FklVMvalue *pat,
+        const FklVMvalue *exp,
+        FklPmatchHashMap *ht);
 
+FKL_NODISCARD
 int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
 
 FklVMvalue *fklVMvalueHeaderWildcard(void);

@@ -66,10 +66,8 @@ static inline FklVMvalue *caadr(const FklVMvalue *node) {
 
 static inline int
 is_defmacro_exp(const FklVMvalue *c, FklCgCtx *ctx, FklPmatchHashMap *ht) {
-    return fklPatternMatch(
-            ctx->builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFMACRO],
-            c,
-            ht);
+    FklVMvalue *pat = ctx->builtin_pattern_node[FKL_CODEGEN_PATTERN_DEFMACRO];
+    return fklPatternMatch(pat, c, ht);
 }
 
 static inline int
@@ -3043,31 +3041,37 @@ static inline void push_default_codegen_quest(FklVM *exe,
     fklCgActVectorPushBack2(actions, cur);
 }
 
-static void add_compiler_macro(FklMacroHashMap *macros,
-        FklVMvalue *pattern,
-        FklVMvalue *proc) {
-    FKL_ASSERT(FKL_IS_PROC(proc));
-    int coverState = FKL_PATTERN_NOT_EQUAL;
-    FklCgMacro **pmacro = fklMacroHashMapAdd1(macros, FKL_VM_CAR(pattern));
-    FklCgMacro **phead = pmacro;
-    for (FklCgMacro *cur = *pmacro; cur; pmacro = &cur->next, cur = cur->next) {
-        coverState = fklPatternCoverState(cur->pattern, pattern);
-        if (coverState == FKL_PATTERN_BE_COVER)
-            phead = &cur->next;
-        else if (coverState)
+static void add_compiler_macro(const FklCgCtx *c,
+        FklVMvalueCgMacroHashMap *macros,
+        FklVMvalue *head,
+        FklVMvalueCgMacro *macro) {
+    FKL_ASSERT(FKL_IS_SYM(head));
+    int cover = FKL_PATTERN_NOT_EQUAL;
+    FklValueHashMapElm *pmacro = fklCgMacroHashMapRef1(macros, head);
+    FklVMvalue *const pattern = macro->pattern;
+    FklVMvalue *const pattern_cdr = FKL_VM_CDR(pattern);
+    FklVMvalue **phead = &pmacro->v;
+
+    for (FklVMvalue *cur_pair = *phead; FKL_IS_PAIR(cur_pair);
+            phead = &FKL_VM_CDR(cur_pair), cur_pair = *phead) {
+        FklVMvalueCgMacro *cur = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
+        cover = fklPatternCoverState(FKL_VM_CDR(cur->pattern), pattern_cdr);
+        if (cover == FKL_PATTERN_EQUAL || cover == FKL_PATTERN_COVER)
             break;
     }
-    if (coverState == FKL_PATTERN_NOT_EQUAL) {
-        FklCgMacro *macro = fklCreateCgMacro(pattern, proc, *phead);
-        *phead = macro;
-    } else if (coverState == FKL_PATTERN_EQUAL) {
-        FklCgMacro *macro = *pmacro;
-        uninit_codegen_macro(macro);
-        macro->pattern = pattern;
-        macro->proc = proc;
-    } else {
-        FklCgMacro *next = *pmacro;
-        *pmacro = fklCreateCgMacro(pattern, proc, next);
+
+    switch (cover) {
+    case FKL_PATTERN_NOT_EQUAL:
+        pmacro->v = fklCreateVMvaluePair(c->vm, FKL_VM_VAL(macro), pmacro->v);
+        break;
+    case FKL_PATTERN_EQUAL:
+        FKL_VM_CAR(*phead) = FKL_VM_VAL(macro);
+        break;
+
+    case FKL_PATTERN_BE_COVER:
+    case FKL_PATTERN_COVER:
+        *phead = fklCreateVMvaluePair(c->vm, FKL_VM_VAL(macro), *phead);
+        break;
     }
 }
 
@@ -3488,8 +3492,8 @@ static inline int cfg_check_macro_defined(const FklVMvalueCgInfo *info,
         FklVMvalue *id = FKL_VM_CAR(value->value);
         for (const FklVMvalueCgMacroScope *cur_scope = macro_scope; cur_scope;
                 cur_scope = cur_scope->prev) {
-            const FklMacroHashMap *macros = cur_scope->macros;
-            FklCgMacro *const *const pm = fklMacroHashMapGet2(macros, id);
+            const FklVMvalueCgMacroHashMap *macros = cur_scope->macros;
+            FklValueHashMapElm const *pm = fklCgMacroHashMapGet(macros, id);
             if (pm != NULL) {
                 r = 1;
                 break;
@@ -5242,15 +5246,17 @@ static void codegen_load(const CgCbArgs *args) {
             actions);
 }
 
-static inline void export_compiler_macro(FklVMvalueCgMacroScope *macro_scope,
-        FklVMvalue *pattern,
-        FklVMvalue *proc,
+static inline void export_compiler_macro(const FklCgCtx *c,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklVMvalue *head,
+        FklVMvalueCgMacro *macro,
         FklVMvalueCgInfo *lib_info) {
-    add_compiler_macro(macro_scope->macros, pattern, proc);
+    add_compiler_macro(c, macro_scope->macros, head, macro);
 
-    if (lib_info) {
-        add_compiler_macro(lib_info->export_macros, pattern, proc);
-    }
+    if (lib_info == NULL)
+        return;
+
+    add_compiler_macro(c, lib_info->export_macros, head, macro);
 }
 
 static inline void export_replacement(FklVMvalueCgMacroScope *macro_scope,
@@ -5351,28 +5357,6 @@ static void add_symbol_with_prefix_to_local_env_in_array(FklVM *exe,
         export_symbol(exe, sym, &l->v, env, bcl, fid, line, scope, lib_info);
     }
     fklUninitStrBuf(&buf);
-}
-
-static FklVMvalue *
-replace_head_for_exp(FklVMvalue *orig, FklVMvalue *head, FklCgCtx *ctx) {
-    FklVM *vm = ctx->vm;
-    FklVMvalue *r = fklCreateVMvaluePair(vm, head, FKL_VM_CDR(orig));
-    return r;
-}
-
-static FklVMvalue *add_prefix_for_exp_head(FklCgCtx *ctx,
-        FklVMvalue *orig,
-        const FklString *prefix,
-        FklVMvalueCgInfo *info) {
-    const FklString *head = FKL_VM_SYM(FKL_VM_CAR(orig));
-    FklString *name_with_prefix = fklStringAppend(prefix, head);
-
-    FklVMvalue *pattern = replace_head_for_exp(orig, //
-            add_symbol(ctx, name_with_prefix),
-            ctx);
-    put_line_number(info->lnt, pattern, CURLINE(orig));
-    fklZfree(name_with_prefix);
-    return pattern;
 }
 
 static inline void export_replacement_with_prefix(FklCgCtx *ctx,
@@ -5574,6 +5558,26 @@ static inline int export_reader_macro(FklCgCtx *ctx,
     return 0;
 }
 
+static inline FklVMvalue *
+append_symbol_prefix(FklCgCtx *ctx, const FklString *prefix, FklVMvalue *sym) {
+    const FklString *head = FKL_VM_SYM(sym);
+    FklString *name_with_prefix = fklStringAppend(prefix, head);
+    FklVMvalue *r = add_symbol(ctx, name_with_prefix);
+    fklZfree(name_with_prefix);
+    return r;
+}
+
+static inline void export_macro_list(const FklCgCtx *c,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklVMvalue *cur_pair,
+        FklVMvalue *head,
+        FklVMvalueCgInfo *lib_info) {
+    for (; FKL_IS_PAIR(cur_pair); cur_pair = FKL_VM_CDR(cur_pair)) {
+        FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
+        export_compiler_macro(c, macro_scope, head, macro, lib_info);
+    }
+}
+
 static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
         uint32_t libId,
         FklVMvalueCgInfo *info,
@@ -5586,20 +5590,17 @@ static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
-    const FklMacroHashMap *macros = lib->macros;
+    const FklVMvalueCgMacroHashMap *macros = lib->macros;
     const FklReplacementHashMap *replacements = lib->replacements;
     const FklGraProdGroupHashMap *named_prod_groups = lib->named_prod_groups;
 
     FKL_ASSERT(replacements);
     FKL_ASSERT(named_prod_groups);
 
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
-        for (const FklCgMacro *macro = cur->v; macro; macro = macro->next) {
-            export_compiler_macro(macro_scope,
-                    macro->pattern,
-                    macro->proc,
-                    lib_info);
-        }
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
+        FklVMvalue *head = cur->k;
+        export_macro_list(ctx, macro_scope, cur->v, head, lib_info);
     }
 
     for (FklReplacementHashMapNode *cur = replacements->first; cur;
@@ -5659,7 +5660,7 @@ static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
-    const FklMacroHashMap *macros = lib->macros;
+    const FklVMvalueCgMacroHashMap *macros = lib->macros;
     const FklReplacementHashMap *replacements = lib->replacements;
     const FklGraProdGroupHashMap *named_prod_groups = lib->named_prod_groups;
 
@@ -5667,15 +5668,11 @@ static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
     FKL_ASSERT(named_prod_groups);
 
     const FklString *prefix = FKL_VM_SYM(prefix_v);
-
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
-        for (const FklCgMacro *macro = cur->v; macro; macro = macro->next) {
-            FklVMvalue *pattern = add_prefix_for_exp_head(ctx, //
-                    macro->pattern,
-                    prefix,
-                    info);
-            export_compiler_macro(macro_scope, pattern, macro->proc, lib_info);
-        }
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
+        FklVMvalue *head = cur->k;
+        head = append_symbol_prefix(ctx, prefix, head);
+        export_macro_list(ctx, macro_scope, cur->v, head, lib_info);
     }
 
     export_replacement_with_prefix(ctx,
@@ -5760,7 +5757,7 @@ static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
 
     const FklCgExportSidIdxHashMap *exports = &lib->exports;
 
-    const FklMacroHashMap *macros = lib->macros;
+    const FklVMvalueCgMacroHashMap *macros = lib->macros;
     const FklReplacementHashMap *replacements = lib->replacements;
     const FklGraProdGroupHashMap *named_prod_groups = lib->named_prod_groups;
 
@@ -5768,41 +5765,36 @@ static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
     FKL_ASSERT(named_prod_groups);
 
     for (; FKL_IS_PAIR(only); only = FKL_VM_CDR(only)) {
-        FklVMvalue *cur = FKL_VM_CAR(only);
-        int r = 0;
+        FklVMvalue *head = FKL_VM_CAR(only);
+        int has_entity = 0;
 
-        FklCgMacro **pmacro = fklMacroHashMapGet2(macros, cur);
+        FklValueHashMapElm *pmacro = fklCgMacroHashMapGet(macros, head);
         if (pmacro != NULL) {
-            r = 1;
-            for (const FklCgMacro *macro = *pmacro; macro;
-                    macro = macro->next) {
-                export_compiler_macro(macro_scope,
-                        macro->pattern,
-                        macro->proc,
-                        lib_info);
-            }
+            has_entity = 1;
+            FKL_ASSERT(pmacro->k == head);
+            export_macro_list(ctx, macro_scope, pmacro->v, head, lib_info);
         }
 
-        FklVMvalue *rep = fklGetReplacement(cur, replacements);
+        FklVMvalue *rep = fklGetReplacement(head, replacements);
         if (rep) {
-            r = 1;
-            export_replacement(macro_scope, cur, rep, lib_info);
+            has_entity = 1;
+            export_replacement(macro_scope, head, rep, lib_info);
         }
 
         FklGrammerProdGroupItem *group =
-                fklGraProdGroupHashMapGet2(named_prod_groups, cur);
+                fklGraProdGroupHashMapGet2(named_prod_groups, head);
 
         if (group) {
-            r = 1;
-            int e = export_reader_macro(ctx, info, group, cur, cur, lib_info);
+            has_entity = 1;
+            int e = export_reader_macro(ctx, info, group, head, head, lib_info);
             if (e != 0)
                 break;
         }
 
-        FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur);
+        FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, head);
         if (item) {
             export_symbol(vm,
-                    cur,
+                    head,
                     item,
                     env,
                     load_lib,
@@ -5810,8 +5802,8 @@ static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
                     CURLINE(only),
                     scope,
                     lib_info);
-        } else if (!r) {
-            error_state->error = make_import_missing_error(vm, cur);
+        } else if (!has_entity) {
+            error_state->error = make_import_missing_error(vm, head);
             error_state->line = CURLINE(only);
             error_state->fid = add_symbol_cstr(ctx, info->filename);
             break;
@@ -5839,7 +5831,7 @@ static inline FklVMvalue *process_import_imported_lib_except(FklCgCtx *ctx,
         FklVMvalueCgInfo *lib_info) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
-    const FklMacroHashMap *macros = lib->macros;
+    const FklVMvalueCgMacroHashMap *macros = lib->macros;
     const FklReplacementHashMap *replacements = lib->replacements;
     const FklGraProdGroupHashMap *named_prod_groups = lib->named_prod_groups;
 
@@ -5855,16 +5847,11 @@ static inline FklVMvalue *process_import_imported_lib_except(FklCgCtx *ctx,
     for (FklVMvalue *list = except; FKL_IS_PAIR(list); list = FKL_VM_CDR(list))
         fklValueHashSetPut2(&excepts, FKL_VM_CAR(list));
 
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
         if (fklValueHashSetHas2(&excepts, cur->k))
             continue;
-
-        for (const FklCgMacro *macro = cur->v; macro; macro = macro->next) {
-            export_compiler_macro(macro_scope,
-                    macro->pattern,
-                    macro->proc,
-                    lib_info);
-        }
+        export_macro_list(ctx, macro_scope, cur->v, cur->k, lib_info);
     }
 
     for (const FklReplacementHashMapNode *reps = replacements->first; reps;
@@ -5950,7 +5937,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
 
     const FklCgExportSidIdxHashMap *exports = &lib->exports;
 
-    const FklMacroHashMap *macros = lib->macros;
+    const FklVMvalueCgMacroHashMap *macros = lib->macros;
     const FklReplacementHashMap *replacements = lib->replacements;
     const FklGraProdGroupHashMap *named_prod_groups = lib->named_prod_groups;
 
@@ -5958,43 +5945,34 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
     FKL_ASSERT(named_prod_groups);
 
     for (; FKL_IS_PAIR(alias); alias = FKL_VM_CDR(alias)) {
-        FklVMvalue *cur_alias = FKL_VM_CAR(alias);
-        FklVMvalue *cur_head = FKL_VM_CAR(cur_alias);
-        FklVMvalue *cur_alias_sym = FKL_VM_CAR(FKL_VM_CDR(cur_alias));
-        int r = 0;
+        FklVMvalue *cur_alias_list = FKL_VM_CAR(alias);
+        FklVMvalue *cur_head = FKL_VM_CAR(cur_alias_list);
+        FklVMvalue *cur_alias = FKL_VM_CAR(FKL_VM_CDR(cur_alias_list));
+        int has_entity = 0;
 
-        FklCgMacro **pmacro = fklMacroHashMapGet2(macros, cur_head);
+        FklValueHashMapElm *pmacro = fklCgMacroHashMapGet(macros, cur_head);
         if (pmacro != NULL) {
-            r = 1;
-            for (const FklCgMacro *macro = *pmacro; macro;
-                    macro = macro->next) {
-                FklVMvalue *pattern = replace_head_for_exp(macro->pattern,
-                        cur_alias_sym,
-                        ctx);
-
-                export_compiler_macro(macro_scope,
-                        pattern,
-                        macro->proc,
-                        lib_info);
-            }
+            FklVMvalue *list = pmacro->v;
+            has_entity = 1;
+            export_macro_list(ctx, macro_scope, list, cur_alias, lib_info);
         }
 
         FklVMvalue *rep = fklGetReplacement(cur_head, replacements);
         if (rep) {
-            r = 1;
-            export_replacement(macro_scope, cur_alias_sym, rep, lib_info);
+            has_entity = 1;
+            export_replacement(macro_scope, cur_alias, rep, lib_info);
         }
 
         FklGrammerProdGroupItem *group =
                 fklGraProdGroupHashMapGet2(named_prod_groups, cur_head);
 
         if (group != NULL) {
-            r = 1;
+            has_entity = 1;
             int e = export_reader_macro(ctx,
                     info,
                     group,
                     cur_head,
-                    cur_alias_sym,
+                    cur_alias,
                     lib_info);
             if (e != 0)
                 break;
@@ -6003,7 +5981,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
         FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, cur_head);
         if (item) {
             export_symbol(vm,
-                    cur_alias_sym,
+                    cur_alias,
                     item,
                     env,
                     load_lib,
@@ -6011,7 +5989,7 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
                     CURLINE(alias),
                     scope,
                     lib_info);
-        } else if (!r) {
+        } else if (!has_entity) {
             error_state->error = make_import_missing_error(vm, cur_head);
             error_state->line = CURLINE(alias);
             error_state->fid = add_symbol_cstr(ctx, info->filename);
@@ -7158,11 +7136,15 @@ static FklVMvalue *compiler_macro_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, macro_bc, proto);
     fklInitMainProcRefs(ctx->vm, proc);
 
-    add_compiler_macro(macros->macros, pattern, proc);
+    FklVMvalueCgMacro *macro = NULL;
+    macro = fklCreateVMvalueCgMacro(ctx, NULL, pattern, proc);
+    FklVMvalue *head = FKL_VM_CAR(pattern);
+    add_compiler_macro(ctx, macros->macros, head, macro);
 
     if (d->lib_info) {
-        add_compiler_macro(d->lib_info->export_macros, pattern, proc);
+        add_compiler_macro(ctx, d->lib_info->export_macros, head, macro);
     }
+
     return NULL;
 }
 

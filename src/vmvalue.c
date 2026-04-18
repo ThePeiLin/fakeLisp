@@ -734,7 +734,7 @@ static int (*const VMhashEqFunc[])(const FklVMvalue *a, const FklVMvalue *b) = {
 };
 
 static inline FklValueHashMapElm *
-vmhash_find_node(FklVMvalueHash *ht, FklVMvalue *key, uintptr_t *hashv) {
+vmhash_find_node(const FklVMvalueHash *ht, FklVMvalue *key, uintptr_t *hashv) {
     *hashv = VMhashFunc[ht->eq_type](key);
     int (*const eq_func)(const FklVMvalue *, const FklVMvalue *) =
             VMhashEqFunc[ht->eq_type];
@@ -749,7 +749,8 @@ vmhash_find_node(FklVMvalueHash *ht, FklVMvalue *key, uintptr_t *hashv) {
     return NULL;
 }
 
-FklValueHashMapElm *fklVMhashTableGet(FklVMvalueHash *ht, FklVMvalue *key) {
+FklValueHashMapElm *fklVMhashTableGet(const FklVMvalueHash *ht,
+        FklVMvalue *key) {
     uintptr_t hashv;
     return vmhash_find_node(ht, key, &hashv);
 }

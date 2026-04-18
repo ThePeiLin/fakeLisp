@@ -28,11 +28,23 @@
 #include <unistd.h>
 #endif
 
-static void print_compiler_macros(FklVM *vm,
-        const FklMacroHashMap *macros,
+static void print_compiler_macros_list(FklVM *vm,
+        FklVMvalue *macros_list,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table);
+
+static void print_compiler_macros(FklVM *vm,
+        const FklVMvalueCgMacroHashMap *macros,
+        FklCodeBuilder *build,
+        uint64_t *opcode_count,
+        const FklLibTable *lib_table) {
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
+        FKL_TODO();
+        print_compiler_macros_list(vm, cur->v, build, opcode_count, lib_table);
+    }
+}
 
 static void print_reader_macros(FklVM *vm,
         const FklGraProdGroupHashMap *named_prod_groups,
@@ -293,12 +305,13 @@ int main(int argc, char **argv) {
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
             CB_LINE("");
-            if (cg_lib->macros)
+            if (cg_lib->macros) {
                 print_compiler_macros(vm,
                         cg_lib->macros,
                         build,
                         opcode_count,
                         &lib_table);
+            }
             if (cg_lib->named_prod_groups)
                 print_reader_macros(vm,
                         cg_lib->named_prod_groups,
@@ -337,8 +350,8 @@ exit:
     return exitState;
 }
 
-static inline void print_compiler_macro_list(FklVM *vm,
-        const FklCgMacro *cur,
+static inline void print_compiler_macro(FklVM *vm,
+        const FklVMvalueCgMacro *cur,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
@@ -353,17 +366,21 @@ static inline void print_compiler_macro_list(FklVM *vm,
     CB_LINE("");
 }
 
-static void print_compiler_macros(FklVM *vm,
-        const FklMacroHashMap *macros,
+static void print_compiler_macros_list(FklVM *vm,
+        FklVMvalue *macros_list,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
-    FKL_ASSERT(macros);
-    if (macros->first == NULL)
+    if (macros_list == FKL_VM_NIL)
         return;
     CB_LINE("\ncompiler macros:");
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
-        print_compiler_macro_list(vm, cur->v, build, opcode_count, lib_table);
+    for (const FklVMvalue *cur_pair = macros_list; FKL_IS_PAIR(cur_pair);
+            cur_pair = FKL_VM_CDR(cur_pair)) {
+        print_compiler_macro(vm,
+                fklVMvalueCgMacro(FKL_VM_CAR(cur_pair)),
+                build,
+                opcode_count,
+                lib_table);
     }
 }
 

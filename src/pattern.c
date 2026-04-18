@@ -84,20 +84,16 @@ typedef struct {
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
 #include <fakeLisp/cont/vector.h>
 
-int fklPatternMatch(const FklVMvalue *pattern,
+int fklPatternMatch1(const FklVMvalue *header,
+        const FklVMvalue *pat,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht) {
-    if (!FKL_IS_PAIR(exp))
-        return 0;
-    if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
-        return 0;
-    FklVMvalue *header = FKL_VM_CAR(pattern);
     PaPmatchPairVector s;
     paPmatchPairVectorInit(&s, 8);
     paPmatchPairVectorPushBack(&s,
             &(PmatchPair){
-                .pat = FKL_VM_CDR(pattern),
-                .exp = FKL_VM_CDR(exp),
+                .pat = pat,
+                .exp = FKL_VM_VAL(exp),
                 .cont = FKL_TYPE_CAST(FklVMvalue *, exp),
             });
 
@@ -143,18 +139,30 @@ int fklPatternMatch(const FklVMvalue *pattern,
     return 1;
 }
 
-static inline int is_pattern_equal(const FklVMvalue *pattern,
-        const FklVMvalue *exp) {
+int fklPatternMatch(const FklVMvalue *pattern,
+        const FklVMvalue *exp,
+        FklPmatchHashMap *ht) {
     if (!FKL_IS_PAIR(exp))
         return 0;
     if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
         return 0;
+    FklVMvalue *header = FKL_VM_CAR(pattern);
+    return fklPatternMatch1(header, FKL_VM_CDR(pattern), FKL_VM_CDR(exp), ht);
+}
+
+static inline int is_pattern_equal(const FklVMvalue *pattern,
+        const FklVMvalue *exp) {
+    // if (!FKL_IS_PAIR(exp))
+    //     return 0;
+    // if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) !=
+    // FKL_VM_CAR(exp))
+    //     return 0;
     FklPairVector s;
     fklPairVectorInit(&s, 8);
     fklPairVectorPushBack(&s,
             &(FklPair){
-                .car = FKL_VM_CDR(pattern),
-                .cdr = FKL_VM_CDR(exp),
+                .car = FKL_VM_VAL(pattern),
+                .cdr = FKL_VM_VAL(exp),
             });
     int r = 1;
     while (r && !fklPairVectorIsEmpty(&s)) {
@@ -185,17 +193,18 @@ static inline int is_pattern_equal(const FklVMvalue *pattern,
 static inline int is_partly_covered(const FklVMvalue *pattern,
         const FklVMvalue *exp) {
     int r = 0;
-    if (!FKL_IS_PAIR(exp))
-        return r;
-    if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) != FKL_VM_CAR(exp))
-        return r;
-    FklVMvalue *header = FKL_VM_CAR(pattern);
+    // if (!FKL_IS_PAIR(exp))
+    //     return r;
+    // if (!FKL_IS_SYM(FKL_VM_CAR(exp)) || FKL_VM_CAR(pattern) !=
+    // FKL_VM_CAR(exp))
+    //     return r;
+    // FklVMvalue *header = FKL_VM_CAR(pattern);
     FklPairVector s;
     fklPairVectorInit(&s, 8);
     fklPairVectorPushBack(&s,
             &(FklPair){
-                .car = FKL_VM_CDR(pattern),
-                .cdr = FKL_VM_CDR(exp),
+                .car = FKL_VM_VAL(pattern),
+                .cdr = FKL_VM_VAL(exp),
             });
     while (!fklPairVectorIsEmpty(&s)) {
         const FklPair *top = fklPairVectorPopBackNonNull(&s);
@@ -206,9 +215,6 @@ static inline int is_partly_covered(const FklVMvalue *pattern,
                 continue;
             r = 1;
             break;
-        } else if (n0 == FKL_VM_HEADER_WILDCARD) {
-            if (n1 != FKL_VM_HEADER_WILDCARD || n1 != header)
-                break;
         } else if (FKL_IS_PAIR(n0) && FKL_IS_PAIR(n1)) {
             fklPairVectorPushBack(&s,
                     &(FklPair){

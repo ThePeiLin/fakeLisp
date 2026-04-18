@@ -47,11 +47,6 @@ static inline void merge_group(FklGrammerProdGroupItem *group,
     fklMergeGrammer(&group->g, &other->g, args);
 }
 
-static inline void uninit_codegen_macro(FklCgMacro *macro) {
-    macro->pattern = NULL;
-    macro->proc = NULL;
-}
-
 static inline void
 put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
     if (ln)

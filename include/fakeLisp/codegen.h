@@ -142,11 +142,11 @@ void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,
         const FklResolveRefArgs *args);
 
-typedef struct FklCgMacro {
-    struct FklCgMacro *next;
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacro, {
+    FklVMvalueLib *lib;
     FklVMvalue *pattern;
     FklVMvalue *proc;
-} FklCgMacro;
+});
 
 // FklReplacementHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
@@ -159,32 +159,12 @@ typedef struct FklCgMacro {
     }
 #include "cont/hash.h"
 
-#define FKL_HASH_KEY_TYPE FklVMvalue *
-#define FKL_HASH_VAL_TYPE FklCgMacro *
-#define FKL_HASH_ELM_NAME Macro
-#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
-#define FKL_HASH_VAL_INIT(V, X)                                                \
-    {                                                                          \
-        *(V) = *(X);                                                           \
-    }
-#define FKL_HASH_VAL_UNINIT(V)                                                 \
-    {                                                                          \
-        FklCgMacro *head = *(V);                                               \
-        *(V) = NULL;                                                           \
-        while (head) {                                                         \
-            head->pattern = NULL;                                              \
-            head->proc = NULL;                                                 \
-            FklCgMacro *next = head->next;                                     \
-            fklZfree(head);                                                    \
-            head = next;                                                       \
-        }                                                                      \
-    }
-#include "cont/hash.h"
+typedef FklVMvalueHash FklVMvalueCgMacroHashMap;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
     struct FklVMvalueCgMacroScope *prev;
     FklReplacementHashMap *replacements;
-    FklMacroHashMap *macros;
+    FklVMvalueCgMacroHashMap *macros;
 });
 
 typedef enum {
@@ -238,7 +218,7 @@ typedef struct {
 
 typedef struct FklCgLib {
     FklCgExportSidIdxHashMap exports;
-    FklMacroHashMap *macros;
+    FklVMvalueCgMacroHashMap *macros;
     FklReplacementHashMap *replacements;
     FklGraProdGroupHashMap *named_prod_groups;
 
@@ -397,7 +377,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueCgEnv *global_env;
     FklCgExportSidIdxHashMap exports;
 
-    FklMacroHashMap *export_macros;
+    FklVMvalueCgMacroHashMap *export_macros;
     FklReplacementHashMap *export_replacement;
     FklGraProdGroupHashMap *export_prod_groups;
 
@@ -642,8 +622,18 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 void fklClearCgLibMacros(FklCgLib *lib);
 void fklClearCgLibMacros2(const FklCgCtx *ctx);
 
-FklCgMacro *
-fklCreateCgMacro(FklVMvalue *pattern, FklVMvalue *proc, FklCgMacro *next);
+FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
+        FklVMvalueLib *from,
+        FklVMvalue *pattern,
+        FklVMvalue *proc);
+int fklIsVMvalueCgMacro(const FklVMvalue *v);
+FklVMvalueCgMacro *fklVMvalueCgMacro(const FklVMvalue *r);
+
+FklVMvalueCgMacroHashMap *fklCreateVMvalueCgMacroHashMap(const FklCgCtx *c);
+FklValueHashMapElm *fklCgMacroHashMapGet(const FklVMvalueCgMacroHashMap *,
+        const FklVMvalue *s);
+FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *,
+        const FklVMvalue *s);
 
 int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,

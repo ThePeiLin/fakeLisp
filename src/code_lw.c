@@ -1764,16 +1764,19 @@ static inline void load_export_sid_idx_table(FILE *fp,
     }
 }
 
-static inline FklMacroHashMap *load_compiler_macros(FklVM *exe,
+static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
         FILE *fp,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos) {
-    FklMacroHashMap *macros = fklMacroHashMapCreate();
+    FKL_TODO();
+    FklVM *exe = ctx->vm;
+    FklVMvalueCgMacroHashMap *macro_table = fklCreateVMvalueCgMacroHashMap(ctx);
     uint64_t count = 0;
     fread(&count, sizeof(count), 1, fp);
     for (uint64_t i = 0; i < count; ++i) {
         FklVMvalue *head = load_value_id(fp, values);
-        FklCgMacro **pr = fklMacroHashMapAdd1(macros, head);
+        FklValueHashMapElm *macros = fklCgMacroHashMapRef1(macro_table, head);
+        FklVMvalue **pr = &macros->v;
 
         uint64_t count = 0;
         fread(&count, sizeof(count), 1, fp);
@@ -1781,13 +1784,18 @@ static inline FklMacroHashMap *load_compiler_macros(FklVM *exe,
             FklVMvalue *pattern = load_value_id(fp, values);
             FklVMvalueProc *proc = load_proc(fp, values, protos);
 
-            FklCgMacro *cur = fklCreateCgMacro(pattern, FKL_VM_VAL(proc), NULL);
+            FklVMvalueCgMacro *cur = fklCreateVMvalueCgMacro(ctx,
+                    NULL,
+                    pattern,
+                    FKL_VM_VAL(proc));
+            FklVMvalue *pair = NULL;
+            pair = fklCreateVMvaluePair(ctx->vm, FKL_VM_VAL(cur), *pr);
 
-            *pr = cur;
-            pr = &cur->next;
+            *pr = pair;
+            pr = &FKL_VM_CDR(pair);
         }
     }
-    return macros;
+    return macro_table;
 }
 
 static inline FklReplacementHashMap *load_replacements(FILE *fp,
@@ -1811,7 +1819,7 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
         FklLoadPreCompileArgs *const args) {
     FklVMvalue *name = load_value_id(fp, values);
     load_export_sid_idx_table(fp, values, &cg_lib->exports);
-    cg_lib->macros = load_compiler_macros(args->ctx->vm, fp, values, protos);
+    cg_lib->macros = load_compiler_macros(args->ctx, fp, values, protos);
     cg_lib->replacements = load_replacements(fp, values);
     cg_lib->named_prod_groups = load_named_prods(fp, args->ctx, values, protos);
 
@@ -1844,17 +1852,24 @@ static inline void write_export_sid_idx_table_pass_1(
     }
 }
 
-static inline void write_compiler_macros_pass_1(const FklMacroHashMap *macros,
+static inline void write_compiler_macros_pass_1(
+        const FklVMvalueCgMacroHashMap *macros,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
+    FKL_TODO();
     if (macros == NULL)
         return;
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
         fklTraverseSerializableValue(vt, cur->k);
-        for (const FklCgMacro *c = cur->v; c; c = c->next) {
-            fklTraverseSerializableValue(vt, c->pattern);
-            write_proc(FKL_VM_PROC(c->proc),
+        for (const FklVMvalue *c = cur->v; FKL_IS_PAIR(c); c = FKL_VM_CDR(c)) {
+            FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(c));
+            fklTraverseSerializableValue(vt, macro->pattern);
+            FklVMvalueLib *lib = macro->lib;
+            fklLibTableAdd(lib_table, lib);
+
+            write_proc(FKL_VM_PROC(macro->proc),
                     vt,
                     proto_table,
                     lib_table,
@@ -1864,34 +1879,38 @@ static inline void write_compiler_macros_pass_1(const FklMacroHashMap *macros,
     }
 }
 
-static inline void write_compiler_macros_pass_2(const FklMacroHashMap *macros,
+static inline void write_compiler_macros_pass_2(
+        const FklVMvalueCgMacroHashMap *macros,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
+    FKL_TODO();
     uint64_t count = 0;
     if (macros == NULL) {
         fwrite(&count, sizeof(count), 1, fp);
         return;
     }
 
-    count = macros->count;
+    count = macros->ht.count;
     fwrite(&count, sizeof(count), 1, fp);
-    for (const FklMacroHashMapNode *cur = macros->first; cur; cur = cur->next) {
+    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
+            cur = cur->next) {
         write_value_id(vt, 0, cur->k, fp);
 
-        uint64_t count = 0;
-        for (const FklCgMacro *c = cur->v; c; c = c->next)
-            count++;
+        uint64_t count = fklVMlistLength(cur->v);
         fwrite(&count, sizeof(count), 1, fp);
-        for (const FklCgMacro *c = cur->v; c; c = c->next) {
-            write_value_id(vt, 0, c->pattern, fp);
-            write_proc(FKL_VM_PROC(c->proc),
-                    vt,
-                    proto_table,
-                    lib_table,
-                    FKL_WRITE_CODE_PASS_SECOND,
-                    fp);
+
+        for (const FklVMvalue *cur_pair = cur->v; FKL_IS_PAIR(cur_pair);
+                cur_pair = FKL_VM_CDR(cur_pair)) {
+            FKL_TODO();
+            // write_value_id(vt, 0, c->pattern, fp);
+            // write_proc(FKL_VM_PROC(c->proc),
+            //         vt,
+            //         proto_table,
+            //         lib_table,
+            //         FKL_WRITE_CODE_PASS_SECOND,
+            //         fp);
         }
     }
 }

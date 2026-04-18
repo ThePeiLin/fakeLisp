@@ -896,7 +896,6 @@ void fklDestroyAllVMs(FklVM *cur);
 void fklDeleteCallChain(FklVM *);
 
 FklGCstate fklVMgcStateGet(FklVMgc *);
-void fklVMgcToGray(const FklVMvalue *, FklVMgc *);
 
 void fklDBG_printVMstack(FklVM *,
         uint32_t c,
@@ -1050,8 +1049,7 @@ FklValueHashMapElm *
 fklVMhashTableSet(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
 FklValueHashMapElm *
 fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
-FklValueHashMapElm *fklVMhashTableRef(FklVMvalueHash *ht, FklVMvalue *key);
-FklValueHashMapElm *fklVMhashTableGet(FklVMvalueHash *, FklVMvalue *key);
+FklValueHashMapElm *fklVMhashTableGet(const FklVMvalueHash *, FklVMvalue *key);
 
 void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc);
 void fklAtomicVMuserdata(FklVMvalue *, FklVMgc *);
@@ -1268,7 +1266,6 @@ FKL_VM_TYPE_X
 #undef X
 
 static FKL_ALWAYS_INLINE FklVMvalue *FKL_VM_VAL(const void *c) {
-    FKL_ASSERT(c != NULL);
     return FKL_TYPE_CAST(FklVMvalue *, c);
 }
 
@@ -1684,6 +1681,15 @@ static FKL_ALWAYS_INLINE int FKL_IS_NIL(const void *P) {
     }
 
 // inlines
+static FKL_ALWAYS_INLINE void fklVMgcToGray(const FklVMvalue *v_, FklVMgc *gc) {
+    FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, v_);
+    if (v && FKL_IS_PTR(v) && v->mark_ < FKL_MARK_G) {
+        v->mark_ = FKL_MARK_G;
+        v->gray_next_ = gc->gray_list;
+        gc->gray_list = v;
+    }
+}
+
 static inline FklBigInt fklVMbigIntToBigInt(const FklVMvalueBigInt *b) {
     const FklBigInt bi = {
         .digits = (FklBigIntDigit *)b->digits,

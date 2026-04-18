@@ -5,15 +5,6 @@
 
 #include <string.h>
 
-void fklVMgcToGray(const FklVMvalue *v_, FklVMgc *gc) {
-    FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, v_);
-    if (v && FKL_IS_PTR(v) && v->mark_ < FKL_MARK_G) {
-        v->mark_ = FKL_MARK_G;
-        v->gray_next_ = gc->gray_list;
-        gc->gray_list = v;
-    }
-}
-
 static inline void mark_atexit(FklVM *vm) {
     FklVMgc *gc = vm->gc;
     for (struct FklVMatExit *c = vm->atexit; c; c = c->next)

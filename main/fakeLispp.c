@@ -53,7 +53,7 @@ static void print_reader_macros(FklVM *vm,
         const FklLibTable *lib_table);
 
 static void print_replacements(FklVM *vm,
-        const FklReplacementHashMap *replacements,
+        const FklVMvalueCgRplHashMap *replacements,
         FklCodeBuilder *build);
 
 struct arg_lit *help;
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
                         build,
                         opcode_count,
                         &lib_table);
-            if (cg_lib->replacements->buckets)
+            if (cg_lib->replacements->ht.buckets)
                 print_replacements(vm, cg_lib->replacements, build);
             if (!cg_lib->macros && !cg_lib->named_prod_groups)
                 CB_LINE("");
@@ -442,17 +442,19 @@ static void print_reader_macros(FklVM *vm,
 }
 
 static void print_replacements(FklVM *vm,
-        const FklReplacementHashMap *replacements,
+        const FklVMvalueCgRplHashMap *replacements,
         FklCodeBuilder *build) {
-    if (replacements->count == 0)
+    FKL_TODO();
+    if (replacements->ht.count == 0)
         return;
     CB_LINE("\nreplacements:");
-    for (const FklReplacementHashMapNode *cur = replacements->first; cur;
+    for (const FklValueHashMapNode *cur = replacements->ht.first; cur;
             cur = cur->next) {
         CB_LINE_START("");
         fklPrin1VMvalue2(cur->k, build, vm);
         CB_FMT(" => ");
-        fklPrin1VMvalue2(cur->v, build, vm);
+        FklVMvalue *v = fklVMvalueCgRpl(cur->v)->value;
+        fklPrin1VMvalue2(v, build, vm);
         CB_LINE_END("");
     }
 }

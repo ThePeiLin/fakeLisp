@@ -143,18 +143,16 @@ void fklResolveRef(FklVMvalueCgEnv *env,
         const FklResolveRefArgs *args);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacro, {
-    FklVMvalueLib *lib;
     FklVMvalue *pattern;
     FklVMvalue *proc;
 });
 
 typedef FklVMvalueHash FklVMvalueCgMacroHashMap;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRpl, {
-    FklVMvalueLib *lib;
-    FklVMvalue *sym;
-    FklVMvalue *value;
-});
+// 我们需要一种只保存用于替换的值的对象
+// 使得其能够是唯一的对象
+// 不使用 BOX 是为了解释器编写过程中的类型安全
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRpl, { FklVMvalue *value; });
 
 typedef FklVMvalueHash FklVMvalueCgRplHashMap;
 
@@ -195,29 +193,51 @@ typedef enum {
     FKL_CODEGEN_PROD_REPLACE,
 } FklCgProdActionType;
 
+// FKL_DEPRECATED
 #define FKL_GRAMMER_GROUP_INITED (0x1)
-#define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
-typedef struct {
-    FklGrammer g;
-    int flags;
-} FklGrammerProdGroupItem;
 
-// FklGraProdGroupHashMap
-#define FKL_HASH_KEY_TYPE FklVMvalue *
-#define FKL_HASH_VAL_TYPE FklGrammerProdGroupItem
-#define FKL_HASH_ELM_NAME GraProdGroup
-#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv(*pk);
-#define FKL_HASH_VAL_UNINIT(V)                                                 \
-    {                                                                          \
-        fklUninitGrammer(&(V)->g);                                             \
-    }
-#include "cont/hash.h"
+// FKL_DEPRECATED
+#define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
+
+typedef enum {
+    FKL_CG_RMACRO_NONE = 0,
+    FKL_CG_RMACRO_ADD_PROD,
+    FKL_CG_RMACRO_ADD_IGNORE,
+    FKL_CG_RMACRO_ADD_DELIM,
+} FklCgRmacroOpcode;
+
+typedef struct {
+    FklGrammerSymType type;
+    FklVMvalue *v;
+} FklCgRmacroGraSym;
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacroProd, {
+    FklVMvalue *left;
+    FklVMvalue *action_type;
+    FklVMvalue *action;
+    uint8_t add_extra;
+    uint32_t len;
+    FklCgRmacroGraSym syms[];
+});
+
+typedef struct {
+    FklCgRmacroOpcode op;
+    FklVMvalue *args;
+} FklCgRmacroCmd;
+
+// 读取器宏的本质是一系列对语法的修改的指令
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacro, {
+    uint64_t len;
+    FklCgRmacroCmd cmds[];
+});
+
+typedef FklVMvalueHash FklVMvalueCgRmacroHashMap;
 
 typedef struct FklCgLib {
     FklCgExportSidIdxHashMap exports;
     FklVMvalueCgMacroHashMap *macros;
     FklVMvalueCgRplHashMap *replacements;
-    FklGraProdGroupHashMap *named_prod_groups;
+    FklVMvalueCgRmacroHashMap *rmacros;
 
     FklVMvalueLib *lib;
     FklCgLibType type;
@@ -357,6 +377,8 @@ typedef struct FklCgCtx {
     FklVMvalue *simple_prod_action_id[FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM];
 } FklCgCtx;
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgGrammer, { FklGrammer g; });
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueLnt *lnt;
     struct FklVMvalueCgInfo *prev;
@@ -365,18 +387,16 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     char *dir;
     uint64_t curline;
     FklVMvalue *fid;
-    struct {
-        FklGrammer *self_g;
-        FklGraProdGroupHashMap self_prod_groups;
-    };
-    FklGrammer **g;
-    FklGraProdGroupHashMap *prod_groups;
+
+    FklVMvalueCgGrammer *g;
+    FklVMvalueCgRmacroHashMap *rmacros;
+
     FklVMvalueCgEnv *global_env;
     FklCgExportSidIdxHashMap exports;
 
     FklVMvalueCgMacroHashMap *export_macros;
     FklVMvalueCgRplHashMap *export_replacement;
-    FklGraProdGroupHashMap *export_prod_groups;
+    FklVMvalueCgRmacroHashMap *export_rmacros;
 
     FklVMvalueCgLibs *libraries;
     unsigned int is_lib : 1;
@@ -618,7 +638,6 @@ void fklClearCgLibMacros(FklCgLib *lib);
 void fklClearCgLibMacros2(const FklCgCtx *ctx);
 
 FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
-        FklVMvalueLib *from,
         FklVMvalue *pattern,
         FklVMvalue *proc);
 int fklIsVMvalueCgMacro(const FklVMvalue *v);
@@ -630,10 +649,7 @@ FklValueHashMapElm *fklCgMacroHashMapGet(const FklVMvalueCgMacroHashMap *,
 FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
 
-FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c,
-        FklVMvalueLib *from,
-        FklVMvalue *sym,
-        FklVMvalue *value);
+FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c, FklVMvalue *value);
 int fklIsVMvalueCgRpl(const FklVMvalue *v);
 FklVMvalueCgRpl *fklVMvalueCgRpl(const FklVMvalue *r);
 
@@ -643,6 +659,38 @@ FklVMvalueCgRpl *fklCgRplHashMapGet(const FklVMvalueCgRplHashMap *,
 void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *,
         const FklVMvalue *sym,
         FklVMvalueCgRpl *rep);
+
+FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *c,
+        FklVMvalue *left,
+        FklVMvalue *action_type,
+        FklVMvalue *action,
+        int add_extra,
+        uint32_t len);
+
+int fklIsVMvalueCgRmacroProd(const FklVMvalue *v);
+FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r);
+
+FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *c, uint64_t len);
+int fklIsVMvalueCgRmacro(const FklVMvalue *v);
+FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r);
+int fklExecuteCgRmacro(FklCgCtx *ctx,
+        FklGrammer *g,
+        FklVMvalue *name,
+        FklVMvalueCgRmacro *r);
+const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op);
+
+FklVMvalueCgRmacroHashMap *fklCreateVMvalueCgRmacroHashMap(const FklCgCtx *c);
+
+FklValueHashMapElm *fklCgRmacroHashMapGet(const FklVMvalueCgRmacroHashMap *,
+        const FklVMvalue *s);
+FklValueHashMapElm *fklCgRmacroHashMapRef1(FklVMvalueCgRmacroHashMap *,
+        const FklVMvalue *s);
+FklVMvalueCgRmacro *fklCgRmacroHashMapDel(FklVMvalueCgRmacroHashMap *,
+        const FklVMvalue *s);
+
+FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c);
+int fklIsVMvalueCgGrammer(const FklVMvalue *v);
+FklVMvalueCgGrammer *fklVMvalueCgGrammer(const FklVMvalue *r);
 
 int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
@@ -671,34 +719,47 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklVMvalueCgInfo *,
         const FklVMvalueCgMacroScope *macros);
 
+FKL_DEPRECATED
 FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms);
+FKL_DEPRECATED
 int fklIsCustomActionProd(const FklGrammerProduction *p);
 
+FKL_DEPRECATED
 FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms,
         struct FklVMvalue *action);
+FKL_DEPRECATED
 int fklIsSimpleActionProd(const FklGrammerProduction *p);
 
+FKL_DEPRECATED
 FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms,
         FklVMvalue *ast);
+FKL_DEPRECATED
 int fklIsReplaceActionProd(const FklGrammerProduction *p);
 
+FKL_DEPRECATED
 FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
         struct FklVMvalue *group,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms,
         FklVMvalue *id);
+
+int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id);
+FklVMvalueSimpleActCtx *fklCreateCgRmacroSimpleAction(const FklCgCtx *cg_ctx,
+        FklVMvalue *action_ast);
+FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
+        FklVMvalueCgRmacroProd *prod);
 
 FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
         FklVMvalue *group,

@@ -1461,41 +1461,44 @@ static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
 }
 
 static inline void write_named_prods_pass_1(
-        const FklGraProdGroupHashMap *named_prod_groups,
+        const FklVMvalueCgRmacroHashMap *reader_macros,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
-    if (named_prod_groups == NULL)
+    if (reader_macros == NULL)
         return;
 
-    for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-            list = list->next) {
-        fklTraverseSerializableValue(vt, list->k);
-        write_grammer_in_binary_pass_1(&list->v.g, vt, proto_table, lib_table);
-    }
+    FKL_TODO();
+    // for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
+    //         list = list->next) {
+    //     fklTraverseSerializableValue(vt, list->k);
+    //     write_grammer_in_binary_pass_1(&list->v.g, vt, proto_table,
+    //     lib_table);
+    // }
 }
 
 static inline void write_named_prods_pass_2(
-        const FklGraProdGroupHashMap *named_prod_groups,
+        const FklVMvalueCgRmacroHashMap *reader_macros,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-    uint8_t has_named_prod = named_prod_groups != NULL //
-                          && named_prod_groups->buckets != NULL;
-    fwrite(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    if (!has_named_prod)
+    uint8_t has_content = reader_macros != NULL //
+                       && reader_macros->ht.buckets != NULL;
+    fwrite(&has_content, sizeof(has_content), 1, fp);
+    if (!has_content)
         return;
-    fwrite(&named_prod_groups->count, sizeof(named_prod_groups->count), 1, fp);
-    for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-            list = list->next) {
-        write_value_id(vt, 0, list->k, fp);
-        write_grammer_in_binary_pass_2(&list->v.g,
-                vt,
-                proto_table,
-                lib_table,
-                fp);
-    }
+    FKL_TODO();
+    // fwrite(&reader_macros->count, sizeof(reader_macros->count), 1, fp);
+    // for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
+    //         list = list->next) {
+    //     write_value_id(vt, 0, list->k, fp);
+    //     write_grammer_in_binary_pass_2(&list->v.g,
+    //             vt,
+    //             proto_table,
+    //             lib_table,
+    //             fp);
+    // }
 }
 
 static inline void load_nonterm(FILE *fp,
@@ -1727,27 +1730,28 @@ static inline void load_grammer_in_binary(FILE *fp,
     }
 }
 
-static inline FklGraProdGroupHashMap *load_named_prods(FILE *fp,
+static inline FklVMvalueCgRmacroHashMap *load_named_prods(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *protos) {
-    uint8_t has_named_prod = 0;
-    fread(&has_named_prod, sizeof(has_named_prod), 1, fp);
-    FklGraProdGroupHashMap *ht = fklGraProdGroupHashMapCreate();
-    if (!has_named_prod)
-        return ht;
-
-    uint32_t num = 0;
-    fread(&num, sizeof(num), 1, fp);
-    for (; num > 0; num--) {
-        FklVMvalue *group_id = load_value_id(fp, values);
-        FklGrammerProdGroupItem *group = add_production_group(ht, //
-                ctx->vm,
-                group_id);
-        load_grammer_in_binary(fp, ctx, values, protos, &group->g);
-    }
-
-    return ht;
+    FKL_TODO();
+    uint8_t has_content = 0;
+    fread(&has_content, sizeof(has_content), 1, fp);
+    // FklGraProdGroupHashMap *ht = fklGraProdGroupHashMapCreate();
+    // if (!has_named_prod)
+    //     return ht;
+    //
+    // uint32_t num = 0;
+    // fread(&num, sizeof(num), 1, fp);
+    // for (; num > 0; num--) {
+    //     FklVMvalue *group_id = load_value_id(fp, values);
+    //     FklGrammerProdGroupItem *group = add_production_group(ht, //
+    //             ctx->vm,
+    //             group_id);
+    //     load_grammer_in_binary(fp, ctx, values, protos, &group->g);
+    // }
+    //
+    // return ht;
 }
 
 static inline void load_export_sid_idx_table(FILE *fp,
@@ -1766,6 +1770,24 @@ static inline void load_export_sid_idx_table(FILE *fp,
     }
 }
 
+static inline void load_macros_with_same_header(FklCgCtx *ctx,
+        FklVMvalue **pr,
+        FILE *fp,
+        const FklLoadValueArgs *const values,
+        const FklLoadProtoArgs *const protos) {
+    MacroCount count = 0;
+    fread(&count, sizeof(count), 1, fp);
+    for (uint64_t j = 0; j < count; ++j) {
+        FklVMvalue *pat = load_value_id(fp, values);
+        FklVMvalue *proc = FKL_VM_VAL(load_proc(fp, values, protos));
+        FklVMvalueCgMacro *cur = fklCreateVMvalueCgMacro(ctx, pat, proc);
+        FklVMvalue *pair = fklCreateVMvaluePair(ctx->vm, FKL_VM_VAL(cur), *pr);
+
+        *pr = pair;
+        pr = &FKL_VM_CDR(pair);
+    }
+}
+
 static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
         FILE *fp,
         const FklLoadValueArgs *const values,
@@ -1780,23 +1802,9 @@ static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
         FklValueHashMapElm *macros = fklCgMacroHashMapRef1(macro_table, head);
         FklVMvalue **pr = &macros->v;
 
-        MacroCount count = 0;
-        fread(&count, sizeof(count), 1, fp);
-        for (uint64_t j = 0; j < count; ++j) {
-            FklVMvalue *pattern = load_value_id(fp, values);
-            FklVMvalueProc *proc = load_proc(fp, values, protos);
-
-            FklVMvalueCgMacro *cur = fklCreateVMvalueCgMacro(ctx,
-                    NULL,
-                    pattern,
-                    FKL_VM_VAL(proc));
-            FklVMvalue *pair = NULL;
-            pair = fklCreateVMvaluePair(ctx->vm, FKL_VM_VAL(cur), *pr);
-
-            *pr = pair;
-            pr = &FKL_VM_CDR(pair);
-        }
+        load_macros_with_same_header(ctx, pr, fp, values, protos);
     }
+
     return macro_table;
 }
 
@@ -1811,7 +1819,7 @@ static inline FklVMvalueCgRplHashMap *load_replacements(FklCgCtx *ctx,
         FklVMvalue *id = load_value_id(fp, values);
         FklVMvalue *v = load_value_id(fp, values);
 
-        FklVMvalueCgRpl *rpl = fklCreateVMvalueCgRpl(ctx, NULL, id, v);
+        FklVMvalueCgRpl *rpl = fklCreateVMvalueCgRpl(ctx, v);
         fklCgRplHashMapSet(ht, id, rpl);
     }
     return ht;
@@ -1826,7 +1834,7 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     load_export_sid_idx_table(fp, values, &cg_lib->exports);
     cg_lib->macros = load_compiler_macros(args->ctx, fp, values, protos);
     cg_lib->replacements = load_replacements(args->ctx, fp, values);
-    cg_lib->named_prod_groups = load_named_prods(fp, args->ctx, values, protos);
+    cg_lib->rmacros = load_named_prods(fp, args->ctx, values, protos);
 
     FklVMvalueProc *proc = load_proc(fp, values, protos);
     FklVMvalueVec *names = fklCreateCgNamesVec(values->vm, &cg_lib->exports);
@@ -1871,8 +1879,6 @@ static inline void write_compiler_macros_pass_1(
         for (const FklVMvalue *c = cur->v; FKL_IS_PAIR(c); c = FKL_VM_CDR(c)) {
             FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(c));
             fklTraverseSerializableValue(vt, macro->pattern);
-            FklVMvalueLib *lib = macro->lib;
-            fklLibTableAdd(lib_table, lib);
 
             write_proc(FKL_VM_PROC(macro->proc),
                     vt,
@@ -1968,7 +1974,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 proto_table,
                 lib_table);
         write_replacements_pass_1(codegen->export_replacement, value_table);
-        write_named_prods_pass_1(codegen->export_prod_groups,
+        write_named_prods_pass_1(codegen->export_rmacros,
                 value_table,
                 proto_table,
                 lib_table);
@@ -1992,7 +1998,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         write_replacements_pass_2(codegen->export_replacement,
                 value_table,
                 outfp);
-        write_named_prods_pass_2(codegen->export_prod_groups,
+        write_named_prods_pass_2(codegen->export_rmacros,
                 value_table,
                 proto_table,
                 lib_table,

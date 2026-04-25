@@ -697,7 +697,7 @@ alloc_more_space_for_var_ref(FklVM *vm, FklVMframe *f, uint32_t i, uint32_t n) {
 #include <fakeLisp/grammer.h>
 
 static inline void
-repl_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklGrammer *g) {
+repl_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklVMvalueCgGrammer *g) {
     cc->offset = 0;
     if (s) {
         fklStrBufClear(s);
@@ -705,15 +705,15 @@ repl_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklGrammer *g) {
     }
     cc->symbols.size = 0;
     cc->states.size = 0;
-    if (g && g->aTable.num)
+    if (g && g->g.aTable.num)
         fklParseStateVectorPushBack2(&cc->states,
-                (FklParseState){ .state = &g->aTable.states[0] });
+                (FklParseState){ .state = &g->g.aTable.states[0] });
     else
         fklVMvaluePushState0ToStack(&cc->states);
 }
 
 static inline void
-eval_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklGrammer *g) {
+eval_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklVMvalueCgGrammer *g) {
     if (s) {
         fklStrBufClear(s);
         s->buf[0] = '\0';
@@ -721,9 +721,9 @@ eval_ctx_buf_reset(ReplCtx *cc, FklStrBuf *s, FklGrammer *g) {
     cc->offset = 0;
     cc->symbols.size = 0;
     cc->states.size = 0;
-    if (g && g->aTable.num)
+    if (g && g->g.aTable.num)
         fklParseStateVectorPushBack2(&cc->states,
-                (FklParseState){ .state = &g->aTable.states[0] });
+                (FklParseState){ .state = &g->g.aTable.states[0] });
     else
         fklVMvaluePushState0ToStack(&cc->states);
 }
@@ -754,7 +754,7 @@ static int read_expression_end_cb(const char *str,
     ReadExpressionEndArgs *args = FKL_TYPE_CAST(ReadExpressionEndArgs *, vargs);
 
     FklVMvalueCgInfo *codegen = args->info;
-    FklGrammer *g = *(codegen->g);
+    const FklVMvalueCgGrammer *g = codegen->g;
 
     FklVM *vm = args->vm;
     ReplCtx *cc = args->cc;
@@ -767,8 +767,8 @@ static int read_expression_end_cb(const char *str,
     size_t restLen = str_len - cc->offset;
 
     FKL_VM_LOCK_BLOCK(vm, flag) {
-        if (g && g->aTable.num) {
-            cc->node = fklParseWithTableForCharBuf2(g,
+        if (g && g->g.aTable.num) {
+            cc->node = fklParseWithTableForCharBuf2(&g->g,
                     str + cc->offset,
                     restLen,
                     &restLen,
@@ -971,11 +971,9 @@ static int repl_frame_step(void *data, FklVM *exe) {
     FklStrBuf *s = &c->buf;
     int is_eof = c->eof;
 
-    FklGrammer *g = *(codegen->g);
-
     FklVMvalue *ast = c->node;
     if (ast == NULL && c->err) {
-        repl_ctx_buf_reset(c, s, g);
+        repl_ctx_buf_reset(c, s, codegen->g);
         if (c->err == READ_ERROR_UNEXPETED_EOF)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_UNEXPECTED_EOF, exe);
         else if (c->err == READ_ERROR_INVALIDEXPR)
@@ -988,8 +986,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
 
         fklStoreHistoryInStrBuf(s, c->offset);
 
-        g = *(codegen->g);
-        repl_ctx_buf_reset(c, NULL, g);
+        repl_ctx_buf_reset(c, NULL, codegen->g);
 
         if (main_bc) {
             execute_repl_compile_result(exe, c, main_bc);
@@ -1105,7 +1102,6 @@ static int eval_frame_step(void *data, FklVM *exe) {
     size_t restLen = fklStrBufLen(&ctx->c->buf);
     FklParseError err = 0;
     size_t errLine = 0;
-    FklGrammer *g = *(info->g);
 
     FklVMvalue *begin_s = fklVMaddSymbolCstr(exe, "begin");
     FklVMvalue *begin_exp = fklCreateVMvaluePair1(exe, begin_s);
@@ -1128,11 +1124,11 @@ static int eval_frame_step(void *data, FklVM *exe) {
                 || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && !restLen)
                 || (err == FKL_PARSE_TERMINAL_MATCH_FAILED && restLen)
                 || (err == FKL_PARSE_REDUCE_FAILED)) {
-            eval_ctx_buf_reset(c, &c->buf, g);
+            eval_ctx_buf_reset(c, &c->buf, info->g);
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDEXPR, exe);
         } else if (ast) {
             eval_expression_str = eval_expression_str + c->offset;
-            eval_ctx_buf_reset(c, &c->buf, g);
+            eval_ctx_buf_reset(c, &c->buf, info->g);
             FklVMvalue *next_pair = fklCreateVMvaluePair1(exe, ast);
             *pnext = next_pair;
             pnext = &FKL_VM_CDR(next_pair);
@@ -1144,8 +1140,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
             main_env,
             c->info);
 
-    g = *(info->g);
-    repl_ctx_buf_reset(c, &c->buf, g);
+    repl_ctx_buf_reset(c, &c->buf, info->g);
 
     if (main_bc) {
         execute_repl_compile_result(exe, c, main_bc);

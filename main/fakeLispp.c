@@ -47,7 +47,7 @@ static void print_compiler_macros(FklVM *vm,
 }
 
 static void print_reader_macros(FklVM *vm,
-        const FklGraProdGroupHashMap *named_prod_groups,
+        const FklVMvalueCgRmacroHashMap *reader_macros,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table);
@@ -312,15 +312,15 @@ int main(int argc, char **argv) {
                         opcode_count,
                         &lib_table);
             }
-            if (cg_lib->named_prod_groups)
+            if (cg_lib->rmacros)
                 print_reader_macros(vm,
-                        cg_lib->named_prod_groups,
+                        cg_lib->rmacros,
                         build,
                         opcode_count,
                         &lib_table);
             if (cg_lib->replacements->ht.buckets)
                 print_replacements(vm, cg_lib->replacements, build);
-            if (!cg_lib->macros && !cg_lib->named_prod_groups)
+            if (!cg_lib->macros && !cg_lib->rmacros)
                 CB_LINE("");
             CB_LINE("");
 
@@ -404,41 +404,43 @@ static void print_reader_macro_action(FklVM *vm,
 }
 
 static void print_reader_macros(FklVM *vm,
-        const FklGraProdGroupHashMap *ht,
+        const FklVMvalueCgRmacroHashMap *ht,
         FklCodeBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     FKL_ASSERT(ht);
-    if (ht->first == NULL)
-        return;
-    CB_LINE("\nreader macros:");
-    for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
-        CB_LINE_START("group name: ");
-        fklPrin1VMvalue2(l->k, build, vm);
-        CB_LINE_END("");
-
-        if (l->v.g.ignores) {
-            CB_LINE("\nignores:");
-            fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, build);
-        }
-
-        if (l->v.g.productions.first) {
-            CB_LINE("prods:");
-            for (const FklProdHashMapNode *cur = l->v.g.productions.first; cur;
-                    cur = cur->next) {
-                for (const FklGrammerProduction *prod = cur->v; prod;
-                        prod = prod->next) {
-                    CB_LINE_START("");
-                    fklPrintGrammerProduction(vm, prod, &l->v.g.regexes, build);
-                    CB_FMT(" => ");
-                    print_reader_macro_action(vm, prod, build, lib_table);
-                }
-                CB_LINE("");
-            }
-        }
-
-        CB_LINE("");
-    }
+    FKL_TODO();
+    // if (ht->first == NULL)
+    //     return;
+    // CB_LINE("\nreader macros:");
+    // for (FklGraProdGroupHashMapNode *l = ht->first; l; l = l->next) {
+    //     CB_LINE_START("group name: ");
+    //     fklPrin1VMvalue2(l->k, build, vm);
+    //     CB_LINE_END("");
+    //
+    //     if (l->v.g.ignores) {
+    //         CB_LINE("\nignores:");
+    //         fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, build);
+    //     }
+    //
+    //     if (l->v.g.productions.first) {
+    //         CB_LINE("prods:");
+    //         for (const FklProdHashMapNode *cur = l->v.g.productions.first;
+    //         cur;
+    //                 cur = cur->next) {
+    //             for (const FklGrammerProduction *prod = cur->v; prod;
+    //                     prod = prod->next) {
+    //                 CB_LINE_START("");
+    //                 fklPrintGrammerProduction(vm, prod, &l->v.g.regexes,
+    //                 build); CB_FMT(" => "); print_reader_macro_action(vm,
+    //                 prod, build, lib_table);
+    //             }
+    //             CB_LINE("");
+    //         }
+    //     }
+    //
+    //     CB_LINE("");
+    // }
 }
 
 static void print_replacements(FklVM *vm,

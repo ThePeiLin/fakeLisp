@@ -65,8 +65,9 @@ FklGrammerProduction *fklCreateProduction(struct FklVMvalue *group,
         void *ctx,
         void (*destroy)(void *),
         void *(*copyer)(const void *)) {
-    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(1,
-            sizeof(FklGrammerProduction) + len * sizeof(FklGrammerSym));
+    size_t total_size = sizeof(FklGrammerProduction) //
+                      + (len * sizeof(FklGrammerSym));
+    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -76,7 +77,9 @@ FklGrammerProduction *fklCreateProduction(struct FklVMvalue *group,
     r->ctx = ctx;
     r->ctx_destroy = destroy;
     r->ctx_copy = copyer;
-    memcpy(r->syms, syms, len * sizeof(FklGrammerSym));
+    if (syms != NULL) {
+        memcpy(r->syms, syms, len * sizeof(FklGrammerSym));
+    }
     return r;
 }
 
@@ -88,8 +91,9 @@ FklGrammerProduction *fklCreateEmptyProduction(struct FklVMvalue *group,
         void *ctx,
         void (*destroy)(void *),
         void *(*copyer)(const void *)) {
-    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(1,
-            sizeof(FklGrammerProduction) + len * sizeof(FklGrammerSym));
+    size_t total_size = sizeof(FklGrammerProduction) //
+                      + len * sizeof(FklGrammerSym);
+    FklGrammerProduction *r = (FklGrammerProduction *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
     r->left.group = group;
     r->left.sid = sid;
@@ -139,17 +143,15 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len) {
         FklGrammerSym *sym = &syms[i];
         FklGrammerIgnoreSym *igs = &igss[i];
         igs->term_type = sym->type;
-        if (igs->term_type == FKL_TERM_BUILTIN)
+        if (igs->term_type == FKL_TERM_BUILTIN) {
             igs->b = sym->b;
-        else {
-            if (igs->term_type == FKL_TERM_REGEX)
-                igs->re = sym->re;
-            else if (igs->term_type == FKL_TERM_STRING)
-                igs->str = sym->str;
-            else {
-                fklZfree(ig);
-                return NULL;
-            }
+        } else if (igs->term_type == FKL_TERM_REGEX) {
+            igs->re = sym->re;
+        } else if (igs->term_type == FKL_TERM_STRING) {
+            igs->str = sym->str;
+        } else {
+            fklZfree(ig);
+            return NULL;
         }
     }
     return ig;
@@ -4476,11 +4478,23 @@ void fklPrintItemStateSet2(FklVM *vm,
 }
 
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
-        struct FklVMvalue *id) {
-    FklLalrBuiltinMatch const **i = fklGraSidBuiltinHashMapGet2(ht, id);
+        const FklVMvalue *id) {
+    FklLalrBuiltinMatch const **i = NULL;
+    i = fklGraSidBuiltinHashMapGet2(ht, (FklVMvalue *)id);
     if (i)
         return *i;
     return NULL;
+}
+
+int fklIsNonterminalExist1(const FklGrammer *g,
+        FklVMvalue *group_id,
+        FklVMvalue *sid) {
+    FklGrammerProduction *const *elm = fklProdHashMapGet2(&g->productions,
+            (FklGrammerNonterm){
+                .group = group_id,
+                .sid = sid,
+            });
+    return elm != NULL;
 }
 
 int fklIsNonterminalExist(const FklProdHashMap *prods,
@@ -4942,8 +4956,8 @@ void fklMergeGrammerProd(FklGrammer *to,
         }
     }
 
-    if (args && args->old_group_id != args->new_group_id)
-        replace_group_id(new_prod, args->new_group_id);
+    if (args && args->old_id != args->new_id)
+        replace_group_id(new_prod, args->new_id);
     if (fklAddProdToProdTableNoRepeat(to, new_prod))
         fklDestroyGrammerProduction(new_prod);
 }

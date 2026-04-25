@@ -483,8 +483,8 @@ typedef struct FklGrammer {
 } FklGrammer;
 
 typedef struct {
-    FklVMvalue *old_group_id;
-    FklVMvalue *new_group_id;
+    FklVMvalue *old_id;
+    FklVMvalue *new_id;
 } FklRecomputeGroupIdArgs;
 
 typedef struct {
@@ -626,9 +626,14 @@ void *fklProdCtxCopyerDoNothing(const void *c);
 void fklUninitGrammerSymbols(FklGrammerSym *syms, size_t len);
 FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len);
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
+        const FklVMvalue *id);
+
+FKL_DEPRECATED
+int fklIsNonterminalExist(const FklProdHashMap *prods,
+        FklVMvalue *group,
         FklVMvalue *id);
 
-int fklIsNonterminalExist(const FklProdHashMap *prods,
+int fklIsNonterminalExist1(const FklGrammer *g,
         FklVMvalue *group,
         FklVMvalue *id);
 

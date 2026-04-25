@@ -10,13 +10,6 @@ static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
     FklCgEnvScopeVector *scopes = &env->scopes;
     FklCgEnvScope *scope = fklCgEnvScopeVectorPushBack(scopes, NULL);
     uint32_t r = env->scopes.size;
-    // uint32_t r = ++env->scope;
-    // size_t total_size = r * sizeof(FklCgEnvScope);
-    // FklCgEnvScope *scopes =
-    //         (FklCgEnvScope *)fklZrealloc(env->scopes, total_size);
-    // FKL_ASSERT(scopes);
-    // env->scopes = scopes;
-    // FklCgEnvScope *newScope = &scopes[r - 1];
     scope->p = p;
     fklSymDefHashMapInit(&scope->defs);
     scope->start = 0;
@@ -28,23 +21,12 @@ static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
     return r;
 }
 
-static inline FklGrammerProdGroupItem *add_production_group(
-        FklGraProdGroupHashMap *named_prod_groups,
-        FklVM *vm,
-        FklVMvalue *group_id) {
-    FklGrammerProdGroupItem *group =
-            fklGraProdGroupHashMapAdd1(named_prod_groups, group_id);
-    if ((group->flags & FKL_GRAMMER_GROUP_INITED) == 0) {
-        fklInitEmptyGrammer(&group->g, vm);
-        group->flags |= FKL_GRAMMER_GROUP_INITED;
-    }
-    return group;
-}
-
-static inline void merge_group(FklGrammerProdGroupItem *group,
-        const FklGrammerProdGroupItem *other,
+FKL_DEPRECATED
+static inline void merge_group(FklVMvalueCgRmacro *to,
+        const FklVMvalueCgRmacro *from,
         const FklRecomputeGroupIdArgs *args) {
-    fklMergeGrammer(&group->g, &other->g, args);
+    FKL_TODO();
+    // fklMergeGrammer(&to->g, &from->g, args);
 }
 
 static inline void
@@ -121,7 +103,7 @@ typedef struct ListElm {
     uint64_t line;
 } ListElm;
 
-static inline FklVMvalue *create_nast_list(ListElm *a,
+static inline FklVMvalue *create_list(ListElm *a,
         size_t num,
         uint32_t line,
         FklVM *vm,

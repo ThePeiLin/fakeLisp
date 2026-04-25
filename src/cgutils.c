@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 static void uninit_cg_lib(FklCgLib *lib);
 
@@ -686,42 +687,6 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     lib->lib = create_dll_lib(ctx->vm, name, lib);
 }
 
-static inline void set_compiler_macro_from(
-        const FklVMvalueCgMacroHashMap *macros,
-        FklVMvalueLib *lib) {
-    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
-            cur = cur->next) {
-        for (const FklVMvalue *cur_pair = cur->v; FKL_IS_PAIR(cur_pair);
-                cur_pair = FKL_VM_CDR(cur_pair)) {
-            FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
-            if (macro->lib == NULL)
-                macro->lib = lib;
-        }
-    }
-}
-
-static inline void set_replacement_from(const FklVMvalueCgRplHashMap *rpls,
-        FklVMvalueLib *l) {
-    for (const FklValueHashMapNode *cur = rpls->ht.first; cur;
-            cur = cur->next) {
-        FklVMvalueCgRpl *rpl = fklVMvalueCgRpl(cur->v);
-        if (rpl->lib == NULL)
-            rpl->lib = l;
-    }
-}
-
-static inline void set_reader_macro_from(
-        const FklGraProdGroupHashMap *reader_macros,
-        FklVMvalueLib *l) {
-    // FKL_TODO();
-}
-
-static inline void set_macros_from(FklCgLib *l) {
-    set_compiler_macro_from(l->macros, l->lib);
-    set_replacement_from(l->replacements, l->lib);
-    set_reader_macro_from(l->named_prod_groups, l->lib);
-}
-
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklCgLib *lib,
         FklVMvalue *mod_name,
@@ -753,13 +718,11 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
 
     lib->macros = info->export_macros;
     lib->replacements = info->export_replacement;
-    lib->named_prod_groups = info->export_prod_groups;
-
-    set_macros_from(lib);
+    lib->rmacros = info->export_rmacros;
 
     info->export_macros = NULL;
     info->export_replacement = NULL;
-    info->export_prod_groups = NULL;
+    info->export_rmacros = NULL;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCgMacro *as_macro(const FklVMvalue *r) {
@@ -799,11 +762,7 @@ static const FklVMvalueCgMacro *find_macro(FklVMvalue *exp,
 void fklClearCgLibMacros(FklCgLib *lib) {
     lib->macros = NULL;
     lib->replacements = NULL;
-
-    if (lib->named_prod_groups) {
-        fklGraProdGroupHashMapDestroy(lib->named_prod_groups);
-        lib->named_prod_groups = NULL;
-    }
+    lib->rmacros = NULL;
 }
 
 void fklClearCgLibMacros2(const FklCgCtx *ctx) {
@@ -1201,14 +1160,6 @@ mark_export_sid_map(const FklCgExportSidIdxHashMap *map, FklVMgc *gc) {
     }
 }
 
-static FKL_ALWAYS_INLINE void
-mark_gra_prod_group_map(const FklGraProdGroupHashMap *map, FklVMgc *gc) {
-    for (FklGraProdGroupHashMapNode *cur = map->first; cur; cur = cur->next) {
-        fklVMgcToGray(cur->k, gc);
-        fklVMgcMarkGrammer(gc, &cur->v.g, NULL);
-    }
-}
-
 static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgEnv *e = as_env(ud);
     for (size_t i = 0; i < e->uref.size; ++i) {
@@ -1392,19 +1343,15 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->libraries), gc);
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->g), gc);
 
     fklVMgcToGray(e->fid, gc);
 
     fklVMgcToGray(FKL_VM_VAL(e->export_replacement), gc);
     fklVMgcToGray(FKL_VM_VAL(e->export_macros), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->export_rmacros), gc);
 
-    if (e->export_prod_groups) {
-        mark_gra_prod_group_map(e->export_prod_groups, gc);
-    }
-
-    if (e->prod_groups == &e->self_prod_groups) {
-        mark_gra_prod_group_map(e->prod_groups, gc);
-    }
+    fklVMgcToGray(FKL_VM_VAL(e->rmacros), gc);
 
     mark_export_sid_map(&e->exports, gc);
 }
@@ -1422,15 +1369,8 @@ static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     i->export_macros = NULL;
     i->export_replacement = NULL;
 
-    if (i->export_prod_groups)
-        fklGraProdGroupHashMapDestroy(i->export_prod_groups);
-
-    if (i->g == &i->self_g && *i->g) {
-        FklGrammer *g = *i->g;
-        fklUninitGrammer(g);
-        fklGraProdGroupHashMapUninit(i->prod_groups);
-        fklZfree(g);
-    }
+    i->export_rmacros = NULL;
+    i->g = NULL;
 
     memset(i, 0, sizeof(FklVMvalueCgInfo));
     return FKL_VM_UD_FINALIZE_NOW;
@@ -1500,20 +1440,21 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
     r->export_macros = is_lib ? fklCreateVMvalueCgMacroHashMap(ctx) : NULL;
     r->export_replacement = is_lib ? fklCreateVMvalueCgRplHashMap(ctx) : NULL;
-    r->export_prod_groups = is_lib ? fklGraProdGroupHashMapCreate() : NULL;
-    if (is_lib)
+    r->export_rmacros = is_lib ? fklCreateVMvalueCgRmacroHashMap(ctx) : NULL;
+    if (is_lib) {
         fklCgExportSidIdxHashMapInit(&r->exports);
-    else
+    } else {
         r->exports.buckets = NULL;
+    }
 
     r->libraries = libs;
 
     if (args && args->inherit_grammer && prev) {
-        r->g = &prev->self_g;
-        r->prod_groups = &prev->self_prod_groups;
+        r->g = prev->g;
+        r->rmacros = prev->rmacros;
     } else {
-        r->g = &r->self_g;
-        r->prod_groups = &r->self_prod_groups;
+        r->g = NULL;
+        r->rmacros = NULL;
     }
 
     if (prev && !is_macro) {
@@ -1648,13 +1589,25 @@ static void *custom_action(FklProdActionArgs *c,
     return r;
 }
 
-static inline FklVMvalue *create_custom_prod_action_ctx(FklCgCtx *cg_ctx,
-        size_t actual_len) {
-    FklVMvalueCustomActCtx *v =
-            (FklVMvalueCustomActCtx *)fklCreateVMvalueUd2(cg_ctx->vm,
-                    &CustomActionCtxUdMetaTable,
-                    actual_len * sizeof(v->dollers[0]),
-                    NULL);
+static inline size_t compute_prod_actual_len(
+        const FklVMvalueCgRmacroProd *prod) {
+    size_t delim_len = 0;
+    for (size_t i = 0; i < prod->len; ++i)
+        if (prod->syms[i].type == FKL_TERM_IGNORE)
+            ++delim_len;
+    return prod->len - delim_len;
+}
+
+FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
+        FklVMvalueCgRmacroProd *prod) {
+    size_t actual_len = compute_prod_actual_len(prod);
+    FklVMvalueCustomActCtx *v = NULL;
+    FklVMvalue *vv = fklCreateVMvalueUd2(cg_ctx->vm,
+            &CustomActionCtxUdMetaTable,
+            actual_len * sizeof(v->dollers[0]),
+            NULL);
+
+    v = (FklVMvalueCustomActCtx *)vv;
 
     v->actual_len = actual_len;
 
@@ -1670,7 +1623,7 @@ static inline FklVMvalue *create_custom_prod_action_ctx(FklCgCtx *cg_ctx,
     }
     fklUninitStrBuf(&buf);
 
-    return FKL_TYPE_CAST(FklVMvalue *, v);
+    return v;
 }
 
 FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
@@ -1678,20 +1631,22 @@ FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
         struct FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms) {
-    FklVMvalue *action_ctx = create_custom_prod_action_ctx(cg_ctx,
-            fklComputeProdActualLen(len, syms));
-
-    FklGrammerProduction *prod = fklCreateProduction(group,
-            sid,
-            len,
-            syms,
-            NULL,
-            custom_action,
-            action_ctx,
-            fklProdCtxDestroyDoNothing,
-            fklProdCtxCopyerDoNothing);
-
-    return prod;
+    FKL_TODO();
+    // FKL_DEPRECATED
+    // FklVMvalue *action_ctx = fklCreateCgRmacroCustomAction(cg_ctx,
+    //         fklComputeProdActualLen(len, syms));
+    //
+    // FklGrammerProduction *prod = fklCreateProduction(group,
+    //         sid,
+    //         len,
+    //         syms,
+    //         NULL,
+    //         custom_action,
+    //         action_ctx,
+    //         fklProdCtxDestroyDoNothing,
+    //         fklProdCtxCopyerDoNothing);
+    //
+    // return prod;
 }
 
 int fklIsCustomActionProd(const FklGrammerProduction *p) {
@@ -2369,7 +2324,7 @@ static inline FklVMvalue *add_header(FklVMparseCtx *c,
         { .v = head, .line = nodes[0].line },
         { .v = s_exp, .line = nodes[1].line },
     };
-    return create_nast_list(s_exps, 2, line, c->exe, c->ln);
+    return create_list(s_exps, 2, line, c->exe, c->ln);
 }
 
 static inline void *builtin_prod_action_quote(FklProdActionArgs *action_ctx,
@@ -2511,13 +2466,18 @@ void fklInitProdActionList(FklCgCtx *ctx) {
     init_simple_prod_action_list(ctx);
 }
 
-static inline FklProdActionFunc find_builtin_prod_action(FklCgCtx *ctx,
-        FklVMvalue *id) {
+static inline FklProdActionFunc find_builtin_prod_action(const FklCgCtx *ctx,
+        const FklVMvalue *id) {
     for (size_t i = 0; i < FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM; i++) {
         if (ctx->builtin_prod_action_id[i] == id)
             return BuiltinProdActions[i].func;
     }
     return NULL;
+}
+
+int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id) {
+    FklProdActionFunc act = find_builtin_prod_action(ctx, id);
+    return act != NULL;
 }
 
 FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
@@ -2543,8 +2503,9 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
             fklProdCtxCopyerDoNothing);
 }
 
-static inline const struct FklSimpleProdAction *
-find_simple_prod_action(FklVMvalue *id, FklVMvalue *simple_prod_action_id[]) {
+static inline const struct FklSimpleProdAction *find_simple_prod_action(
+        FklVMvalue *id,
+        FklVMvalue *const simple_prod_action_id[]) {
     for (size_t i = 0; i < FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM; i++) {
         if (simple_prod_action_id[i] == id)
             return &CgProdCreatorActions[i];
@@ -2579,21 +2540,21 @@ static const FklVMudMetaTable SimpleActionCtxUdMetaTable = {
     .princ = simple_action_ctx_ud_as_print,
 };
 
-static inline FklVMvalue *create_simple_prod_action_ctx(FklCgCtx *cg_ctx,
+FklVMvalueSimpleActCtx *fklCreateCgRmacroSimpleAction(const FklCgCtx *cg_ctx,
         FklVMvalue *action_ast) {
-    const FklSimpleProdAction *mt =
-            find_simple_prod_action(FKL_VM_VEC(action_ast)->base[0],
-                    cg_ctx->simple_prod_action_id);
+    FklVM *vm = cg_ctx->vm;
+    FklVMvalue *sym = FKL_VM_VEC(action_ast)->base[0];
+    FklVMvalue *const *ids = cg_ctx->simple_prod_action_id;
+    const FklSimpleProdAction *mt = find_simple_prod_action(sym, ids);
     if (mt == NULL)
         return NULL;
 
     FklVMvalue **rest = &FKL_VM_VEC(action_ast)->base[1];
     size_t rest_len = FKL_VM_VEC(action_ast)->size - 1;
 
-    FklVMvalueSimpleActCtx *v =
-            (FklVMvalueSimpleActCtx *)fklCreateVMvalueUd(cg_ctx->vm,
-                    &SimpleActionCtxUdMetaTable,
-                    NULL);
+    FklVMvalue *vv = fklCreateVMvalueUd(vm, &SimpleActionCtxUdMetaTable, NULL);
+
+    FklVMvalueSimpleActCtx *v = (FklVMvalueSimpleActCtx *)vv;
 
     int r = mt->check(rest, rest_len);
     if (r != 0) {
@@ -2602,7 +2563,7 @@ static inline FklVMvalue *create_simple_prod_action_ctx(FklCgCtx *cg_ctx,
     v->mt = mt;
     v->vec = action_ast;
 
-    return FKL_TYPE_CAST(FklVMvalue *, v);
+    return v;
 }
 
 FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
@@ -2611,18 +2572,20 @@ FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
         size_t len,
         const FklGrammerSym *syms,
         struct FklVMvalue *action) {
-    FklVMvalue *action_ctx = create_simple_prod_action_ctx(cg_ctx, action);
-    if (action_ctx == NULL)
-        return NULL;
-    return fklCreateProduction(group,
-            sid,
-            len,
-            syms,
-            NULL,
-            simple_action,
-            action_ctx,
-            fklProdCtxDestroyDoNothing,
-            fklProdCtxCopyerDoNothing);
+    FKL_TODO();
+    // FKL_DEPRECATED
+    // FklVMvalue *action_ctx = fklCreateCgRmacroSimpleAction(cg_ctx, action);
+    // if (action_ctx == NULL)
+    //     return NULL;
+    // return fklCreateProduction(group,
+    //         sid,
+    //         len,
+    //         syms,
+    //         NULL,
+    //         simple_action,
+    //         action_ctx,
+    //         fklProdCtxDestroyDoNothing,
+    //         fklProdCtxCopyerDoNothing);
 }
 
 int fklIsSimpleActionProd(const FklGrammerProduction *p) {
@@ -2632,15 +2595,15 @@ int fklIsSimpleActionProd(const FklGrammerProduction *p) {
 FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
         FklVMvalue *group,
         FklVMvalue *sid) {
-    FklGrammerProduction *prod =
-            fklCreateEmptyProduction(ctx->builtin_g.start.group,
-                    ctx->builtin_g.start.sid,
-                    1,
-                    NULL,
-                    NULL,
-                    NULL,
-                    fklProdCtxDestroyDoNothing,
-                    fklProdCtxCopyerDoNothing);
+    FklGrammerProduction *prod;
+    prod = fklCreateEmptyProduction(ctx->builtin_g.start.group,
+            ctx->builtin_g.start.sid,
+            1,
+            NULL,
+            NULL,
+            NULL,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
     prod->func = builtin_prod_action_first;
     prod->idx = 0;
 
@@ -2667,9 +2630,7 @@ static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
     case FKL_CODEGEN_LIB_SCRIPT:
         fklVMgcToGray(FKL_VM_VAL(lib->macros), gc);
         fklVMgcToGray(FKL_VM_VAL(lib->replacements), gc);
-
-        mark_gra_prod_group_map(lib->named_prod_groups, gc);
-
+        fklVMgcToGray(FKL_VM_VAL(lib->rmacros), gc);
         break;
     case FKL_CODEGEN_LIB_DLL:
         break;
@@ -2975,7 +2936,6 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(macro_print, "macro");
 
 static void macro_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgMacro *m = as_macro(ud);
-    fklVMgcToGray(FKL_VM_VAL(m->lib), gc);
     fklVMgcToGray(m->pattern, gc);
     fklVMgcToGray(m->proc, gc);
 }
@@ -2988,14 +2948,12 @@ static FklVMudMetaTable const MacroUserDataMetaTable = {
 };
 
 FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
-        FklVMvalueLib *from,
         FklVMvalue *pattern,
         FklVMvalue *proc) {
     FKL_ASSERT(FKL_IS_PROC(proc));
     FklVMvalueCgMacro *r = (FklVMvalueCgMacro *)fklCreateVMvalueUd(c->vm,
             &MacroUserDataMetaTable,
             NULL);
-    r->lib = from;
     r->pattern = pattern;
     r->proc = proc;
     return r;
@@ -3031,8 +2989,6 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(rpl_print, "rpl");
 
 static void rpl_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgRpl *m = as_rpl(ud);
-    fklVMgcToGray(FKL_VM_VAL(m->lib), gc);
-    fklVMgcToGray(m->sym, gc);
     fklVMgcToGray(m->value, gc);
 }
 
@@ -3043,16 +2999,10 @@ static FklVMudMetaTable const RplUserDataMetaTable = {
     .atomic = rpl_atomic,
 };
 
-FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c,
-        FklVMvalueLib *from,
-        FklVMvalue *sym,
-        FklVMvalue *value) {
-    FKL_ASSERT(FKL_IS_SYM(sym));
+FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c, FklVMvalue *value) {
     FklVMvalueCgRpl *r = (FklVMvalueCgRpl *)fklCreateVMvalueUd(c->vm,
             &RplUserDataMetaTable,
             NULL);
-    r->lib = from;
-    r->sym = sym;
     r->value = value;
     return r;
 }
@@ -3071,4 +3021,606 @@ void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *map,
         const FklVMvalue *sym,
         FklVMvalueCgRpl *rep) {
     fklVMhashTableSet(map, FKL_VM_VAL(sym), FKL_VM_VAL(rep));
+}
+
+static FklVMudMetaTable const RmacroUserDataMetaTable;
+int fklIsVMvalueCgRmacro(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &RmacroUserDataMetaTable;
+}
+
+static inline FklVMvalueCgRmacro *as_reader_macro(const FklVMvalue *r) {
+    FKL_ASSERT(fklIsVMvalueCgRmacro(r));
+    return FKL_TYPE_CAST(FklVMvalueCgRmacro *, r);
+}
+
+FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r) {
+    return as_reader_macro(r);
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(reader_macro_print, "reader-macro");
+
+static void reader_macro_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgRmacro *m = as_reader_macro(ud);
+    for (uint64_t i = 0; i < m->len; ++i) {
+        FklVMvalue *v = m->cmds[i].args;
+        fklVMgcToGray(v, gc);
+    }
+}
+
+static FklVMudMetaTable const RmacroUserDataMetaTable = {
+    .size = sizeof(FklVMvalueCgRmacro),
+    .princ = reader_macro_print,
+    .prin1 = reader_macro_print,
+    .atomic = reader_macro_atomic,
+};
+
+FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *vm, uint64_t len) {
+    size_t cmds_size = len * sizeof(FklCgRmacroCmd);
+    FklVMvalue *v = NULL;
+    v = fklCreateVMvalueUd2(vm, &RmacroUserDataMetaTable, cmds_size, NULL);
+    FklVMvalueCgRmacro *r = as_reader_macro(v);
+    r->len = len;
+    return r;
+}
+
+static FklVMudMetaTable const GrammerUserDataMetaTable;
+int fklIsVMvalueCgGrammer(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &GrammerUserDataMetaTable;
+}
+
+static inline FklVMvalueCgGrammer *as_grammer(const FklVMvalue *r) {
+    FKL_ASSERT(fklIsVMvalueCgGrammer(r));
+    return FKL_TYPE_CAST(FklVMvalueCgGrammer *, r);
+}
+
+FklVMvalueCgGrammer *fklVMvalueCgGrammer(const FklVMvalue *r) {
+    return as_grammer(r);
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(grammer_print, "grammer");
+
+static void grammer_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgGrammer *m = as_grammer(ud);
+    fklVMgcMarkGrammer(gc, &m->g, NULL);
+}
+
+static int grammer_finanlize(FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgGrammer *g = as_grammer(ud);
+    fklUninitGrammer(&g->g);
+
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable const GrammerUserDataMetaTable = {
+    .size = sizeof(FklVMvalueCgGrammer),
+    .princ = grammer_print,
+    .prin1 = grammer_print,
+    .atomic = grammer_atomic,
+    .finalize = grammer_finanlize,
+};
+
+FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c) {
+    FklVMvalueCgGrammer *r = (FklVMvalueCgGrammer *)fklCreateVMvalueUd(c->vm,
+            &GrammerUserDataMetaTable,
+            NULL);
+    fklInitEmptyGrammer(&r->g, c->vm);
+    return r;
+}
+
+FklVMvalueCgRmacroHashMap *fklCreateVMvalueCgRmacroHashMap(const FklCgCtx *c) {
+    return FKL_VM_HASH(fklCreateVMvalueHashEq(c->vm));
+}
+
+FklValueHashMapElm *fklCgRmacroHashMapGet(const FklVMvalueCgRmacroHashMap *map,
+        const FklVMvalue *s) {
+    return fklVMhashTableGet(map, FKL_VM_VAL(s));
+}
+
+FklValueHashMapElm *fklCgRmacroHashMapRef1(FklVMvalueCgRmacroHashMap *map,
+        const FklVMvalue *s) {
+    return fklVMhashTableRef1(map, FKL_VM_VAL(s), NULL);
+}
+
+FklVMvalueCgRmacro *fklCgRmacroHashMapDel(FklVMvalueCgRmacroHashMap *map,
+        const FklVMvalue *s) {
+    FklVMvalue *macro = NULL;
+    int has = fklVMhashTableDel(map, FKL_VM_VAL(s), NULL, &macro);
+    return has ? fklVMvalueCgRmacro(macro) : NULL;
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(prod_print, "prod");
+
+static FklVMudMetaTable const RmacroProdMt;
+int fklIsVMvalueCgRmacroProd(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &RmacroProdMt;
+}
+
+static inline FklVMvalueCgRmacroProd *as_prod(const FklVMvalue *r) {
+    FKL_ASSERT(fklIsVMvalueCgRmacroProd(r));
+    return FKL_TYPE_CAST(FklVMvalueCgRmacroProd *, r);
+}
+
+FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r) {
+    return as_prod(r);
+}
+
+static void prod_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgRmacroProd *m = as_prod(ud);
+    fklVMgcToGray(m->left, gc);
+    fklVMgcToGray(m->action_type, gc);
+    fklVMgcToGray(m->action, gc);
+
+    for (uint32_t i = 0; i < m->len; ++i) {
+        FklVMvalue *v = m->syms[i].v;
+        fklVMgcToGray(v, gc);
+    }
+}
+
+static FklVMudMetaTable const RmacroProdMt = {
+    .size = sizeof(FklVMvalueCgRmacroProd),
+    .princ = prod_print,
+    .prin1 = prod_print,
+    .atomic = prod_atomic,
+};
+
+FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *vm,
+        FklVMvalue *left,
+        FklVMvalue *action_type,
+        FklVMvalue *action,
+        int add_extra,
+        uint32_t len) {
+    size_t syms_size = len * sizeof(FklCgRmacroGraSym);
+    FklVMvalue *v = fklCreateVMvalueUd2(vm, &RmacroProdMt, syms_size, NULL);
+    FklVMvalueCgRmacroProd *r = as_prod(v);
+    r->left = left;
+    r->action_type = action_type;
+    r->action = action;
+    r->add_extra = add_extra;
+    r->len = len;
+    return r;
+}
+
+const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op) {
+    static const char *names[] = {
+        [FKL_CG_RMACRO_NONE] = "none",
+        [FKL_CG_RMACRO_ADD_PROD] = "add-prod",
+        [FKL_CG_RMACRO_ADD_IGNORE] = "add-ignore",
+        [FKL_CG_RMACRO_ADD_DELIM] = "add-delim",
+    };
+
+    return names[op];
+}
+
+typedef FklBuiltinTerminalInitError BtError;
+
+static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
+        FklVMvalue *v,
+        FklLalrBuiltinGrammerSym *out,
+        FklGrammer *g) {
+    BtError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+    const FklLalrBuiltinMatch *bt = NULL;
+
+    out->args = NULL;
+    out->len = 0;
+
+    if (FKL_IS_SYM(v)) {
+        bt = fklGetBuiltinMatch(&g->builtins, v);
+        out->t = bt;
+        if (out->t->ctx_create)
+            err = out->t->ctx_create(out->len, out->args, g);
+
+    } else if (FKL_IS_VECTOR(v)) {
+        FklVMvalue *first = FKL_VM_VEC(v)->base[0];
+        bt = fklGetBuiltinMatch(&g->builtins, first);
+
+        size_t arg_count = FKL_VM_VEC(v)->size - 1;
+        size_t total_size = arg_count * sizeof(FklString *);
+        FklString const **args = fklZmalloc(total_size);
+
+        for (size_t i = 1; i < FKL_VM_VEC(v)->size; ++i) {
+            const FklString *str_v = FKL_VM_STR(FKL_VM_VEC(v)->base[i]);
+            args[i - 1] = fklAddString(&g->terminals, str_v);
+        }
+
+        out->t = bt;
+        if (out->t->ctx_create)
+            err = out->t->ctx_create(arg_count, args, g);
+        if (err) {
+            fklZfree(args);
+            goto done;
+        }
+
+        out->len = arg_count;
+        out->args = args;
+    }
+
+done:
+    return err;
+}
+
+static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
+        FklVMvalue *name,
+        const FklCgRmacroGraSym *in,
+        FklGrammerSym *out,
+        FklGrammer *g) {
+    int err = 0;
+    const FklGrammer *builtin_g = &ctx->builtin_g;
+    switch (in->type) {
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
+        FKL_UNREACHABLE();
+        break;
+
+    case FKL_TERM_BUILTIN: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VECTOR(v));
+
+        *out = (FklGrammerSym){ .type = FKL_TERM_BUILTIN };
+        err = builtin_terminal_init(ctx, v, &out->b, g);
+        break;
+    }
+
+    case FKL_TERM_KEYWORD: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_STR(v));
+
+        const FklString *str = fklAddString(&g->terminals, FKL_VM_STR(v));
+        *out = (FklGrammerSym){ .type = FKL_TERM_STRING, .str = str };
+        break;
+    }
+
+    case FKL_TERM_REGEX: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_STR(v));
+
+        const FklString *re_str = FKL_VM_STR(v);
+        const FklRegexCode *re = fklAddRegexStr(&g->regexes, re_str);
+
+        *out = (FklGrammerSym){ .type = FKL_TERM_REGEX, .re = re };
+        break;
+    }
+
+    case FKL_TERM_STRING: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_STR(v));
+
+        const FklString *str = fklAddString(&g->terminals, FKL_VM_STR(v));
+        *out = (FklGrammerSym){ .type = FKL_TERM_STRING, .str = str };
+        fklAddString(&g->delimiters, FKL_VM_STR(v));
+        break;
+    }
+
+    case FKL_TERM_NONTERM: {
+        FklVMvalue *v = in->v;
+        if (FKL_IS_SYM(v)) {
+            FklVMvalue *group = fklIsNonterminalExist1(builtin_g, NULL, v) //
+                                      ? NULL
+                                      : name;
+
+            *out = (FklGrammerSym){
+                .type = FKL_TERM_NONTERM,
+                .nt.group = group,
+                .nt.sid = v,
+            };
+        } else if (FKL_IS_PAIR(v)) {
+            FKL_ASSERT(FKL_IS_SYM(FKL_VM_CAR(v)));
+            FKL_ASSERT(FKL_IS_SYM(FKL_VM_CDR(v)));
+
+            *out = (FklGrammerSym){
+                .type = FKL_TERM_NONTERM,
+                .nt.group = FKL_VM_CAR(v),
+                .nt.sid = FKL_VM_CDR(v),
+            };
+        } else {
+            FKL_UNREACHABLE();
+        }
+        break;
+    }
+
+    case FKL_TERM_IGNORE:
+        FKL_ASSERT(in->v == NULL);
+        *out = (FklGrammerSym){ .type = FKL_TERM_IGNORE };
+        break;
+    }
+
+    return err;
+}
+
+enum ActionType {
+    ACTION_TYPE_NONE = 0,
+    ACTION_TYPE_BUILTIN,
+    ACTION_TYPE_SIMPLE,
+    ACTION_TYPE_CUSTOM,
+    ACTION_TYPE_REPLACE,
+};
+
+typedef FklGrammerNonterm Nt;
+
+static inline Nt rmacro_prod_left_get(FklCgCtx *ctx,
+        FklVMvalue *group,
+        FklVMvalueCgRmacroProd *in) {
+    FKL_ASSERT(in->left != NULL);
+    if (in->left == FKL_VM_NIL) {
+        return ctx->builtin_g.start;
+    }
+
+    return (Nt){ .group = group, .sid = in->left };
+}
+
+static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
+        const Nt *left,
+        size_t len,
+        FklVMvalue *id) {
+    return fklCreateBuiltinActionProd(ctx,
+            left->group,
+            left->sid,
+            len,
+            NULL,
+            id);
+}
+
+static inline FklGrammerProduction *create_simple_act_prod(FklCgCtx *ctx,
+        const Nt *left,
+        size_t len,
+        FklVMvalue *action) {
+    return fklCreateProduction(left->group,
+            left->sid,
+            len,
+            NULL,
+            NULL,
+            simple_action,
+            action,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
+}
+
+static inline FklGrammerProduction *create_custom_act_prod(FklCgCtx *ctx,
+        const Nt *left,
+        size_t len,
+        FklVMvalue *action) {
+    return fklCreateProduction(left->group,
+            left->sid,
+            len,
+            NULL,
+            NULL,
+            custom_action,
+            action,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
+}
+
+static inline FklGrammerProduction *create_replace_act_prod(FklCgCtx *ctx,
+        const Nt *left,
+        size_t len,
+        FklVMvalue *action) {
+    return fklCreateProduction(left->group,
+            left->sid,
+            len,
+            NULL,
+            NULL,
+            replace_action,
+            action,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
+}
+static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
+        FklGrammer *g,
+        FklVMvalue *name,
+        FklVMvalueCgRmacroProd *in) {
+    FKL_ASSERT(in != NULL);
+    FKL_ASSERT(in->action_type != NULL);
+    FKL_ASSERT(in->action_type != FKL_VM_NIL);
+
+    enum ActionType action_type = ACTION_TYPE_NONE;
+    if (in->action_type == ctx->builtin_sym_builtin) {
+        action_type = ACTION_TYPE_BUILTIN;
+    } else if (in->action_type == ctx->builtin_sym_simple) {
+        action_type = ACTION_TYPE_SIMPLE;
+    } else if (in->action_type == ctx->builtin_sym_custom) {
+        action_type = ACTION_TYPE_CUSTOM;
+    } else if (in->action_type == ctx->builtin_sym_replace) {
+        action_type = ACTION_TYPE_REPLACE;
+    } else {
+        return NULL;
+    }
+
+    Nt left = rmacro_prod_left_get(ctx, name, in);
+
+    FklGrammerProduction *prod = NULL;
+    switch (action_type) {
+    case ACTION_TYPE_NONE:
+        return NULL;
+        break;
+    case ACTION_TYPE_BUILTIN:
+        prod = create_builtin_act_prod(ctx, &left, in->len, in->action);
+        break;
+    case ACTION_TYPE_SIMPLE:
+        prod = create_simple_act_prod(ctx, &left, in->len, in->action);
+        break;
+    case ACTION_TYPE_CUSTOM:
+        prod = create_custom_act_prod(ctx, &left, in->len, in->action);
+        break;
+    case ACTION_TYPE_REPLACE:
+        prod = create_replace_act_prod(ctx, &left, in->len, in->action);
+        break;
+    }
+
+    for (size_t i = 0; i < in->len; ++i) {
+        const FklCgRmacroGraSym *from = &in->syms[i];
+        FklGrammerSym *to = &prod->syms[i];
+        int err = rmacro_prod_sym_to_gra_sym(ctx, name, from, to, g);
+
+        if (err) {
+            fklDestroyGrammerProduction(prod);
+            return NULL;
+        }
+    }
+
+    return prod;
+}
+
+static inline FklVMvalue *make_dup_prod_rule_error(FklVM *vm,
+        FklVMvalueCgRmacroProd *prod) {
+    FKL_ASSERT(prod != NULL);
+    FKL_TODO();
+}
+
+static inline int do_rmacro_add_prod(FklCgCtx *ctx,
+        FklGrammer *g,
+        FklVMvalue *name,
+        FklVMvalue *args) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+    FklVMvalueCgRmacroProd *prod = fklVMvalueCgRmacroProd(args);
+    FklGrammerProduction *out_prod = rmacro_prod_to_prod(ctx, g, name, prod);
+    if (out_prod == NULL) {
+        FKL_TODO();
+        // args->err_node = other_args.err_node;
+        // other_args.len = 0;
+        // fklZfree(other_args.syms);
+        // other_args.syms = NULL;
+        // return err;
+    }
+
+    if (fklAddProdToProdTableNoRepeat(g, out_prod)) {
+        fklDestroyGrammerProduction(out_prod);
+        errors->error = make_dup_prod_rule_error(vm, prod);
+        // TODO:
+        errors->line = 114514;
+        return 1;
+    }
+
+    if (prod->add_extra) {
+        out_prod = fklCreateExtraStartProduction(ctx, name, prod->left);
+        int r = fklAddProdToProdTable(g, out_prod);
+        FKL_ASSERT(r == 0);
+        (void)r;
+    }
+    return 0;
+}
+
+typedef FklGrammerIgnoreSym IgSym;
+
+static inline int rmacro_prod_sym_to_ig_sym(const FklCgCtx *ctx,
+        const FklCgRmacroGraSym *in,
+        IgSym *out,
+        FklGrammer *g) {
+    int err = 0;
+    const FklGrammer *builtin_g = &ctx->builtin_g;
+    switch (in->type) {
+    case FKL_TERM_NONTERM:
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
+    case FKL_TERM_KEYWORD:
+    case FKL_TERM_IGNORE:
+        FKL_UNREACHABLE();
+        break;
+
+    case FKL_TERM_BUILTIN: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VECTOR(v));
+
+        *out = (IgSym){ .term_type = FKL_TERM_BUILTIN };
+        err = builtin_terminal_init(ctx, v, &out->b, g);
+        break;
+    }
+
+    case FKL_TERM_REGEX: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_STR(v));
+
+        const FklString *re_str = FKL_VM_STR(v);
+        const FklRegexCode *re = fklAddRegexStr(&g->regexes, re_str);
+
+        *out = (IgSym){ .term_type = FKL_TERM_REGEX, .re = re };
+        break;
+    }
+
+    case FKL_TERM_STRING: {
+        FklVMvalue *v = in->v;
+        FKL_ASSERT(FKL_IS_STR(v));
+
+        const FklString *str = fklAddString(&g->terminals, FKL_VM_STR(v));
+        *out = (IgSym){ .term_type = FKL_TERM_STRING, .str = str };
+        fklAddString(&g->delimiters, FKL_VM_STR(v));
+        break;
+    }
+    }
+
+    return err;
+}
+
+static inline FklGrammerIgnore *
+rmacro_prod_to_ig(FklCgCtx *ctx, FklGrammer *g, FklVMvalueCgRmacroProd *in) {
+    FklGrammerIgnore *ig = fklCreateEmptyGrammerIgnore(in->len);
+    for (size_t i = 0; i < in->len; ++i) {
+        const FklCgRmacroGraSym *from = &in->syms[i];
+        IgSym *to = &ig->ig[i];
+        int err = rmacro_prod_sym_to_ig_sym(ctx, from, to, g);
+
+        if (err) {
+            fklDestroyIgnore(ig);
+            return NULL;
+        }
+    }
+
+    return ig;
+}
+
+static inline int do_rmacro_add_ignore(FklCgCtx *ctx,
+        FklGrammer *g,
+        FklVMvalue *name,
+        FklVMvalue *args) {
+    FklVMvalueCgRmacroProd *prod = fklVMvalueCgRmacroProd(args);
+    FklGrammerIgnore *ig = rmacro_prod_to_ig(ctx, g, prod);
+    if (ig == NULL) {
+        FKL_TODO();
+        // const char *msg = get_nast_to_grammer_sym_err_msg(err);
+        // errors->error = make_grammer_create_error2(vm, msg, args.err_node);
+        // errors->line = CURLINE(vector_node);
+        return 1;
+    }
+
+    if (fklAddIgnoreToIgnoreList(&g->ignores, ig)) {
+        fklDestroyIgnore(ig);
+    }
+
+    return 0;
+}
+
+int fklExecuteCgRmacro(FklCgCtx *ctx,
+        FklGrammer *g,
+        FklVMvalue *name,
+        FklVMvalueCgRmacro *r) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+    for (uint32_t i = 0; i < r->len; ++i) {
+        int err = 0;
+        const FklCgRmacroCmd *cmd = &r->cmds[i];
+        switch (cmd->op) {
+        case FKL_CG_RMACRO_ADD_DELIM: {
+            FklVMvalue *s = cmd->args;
+            FKL_ASSERT(FKL_IS_STR(s));
+            fklAddString(&g->terminals, FKL_VM_STR(s));
+            fklAddString(&g->delimiters, FKL_VM_STR(s));
+        } break;
+
+        case FKL_CG_RMACRO_ADD_PROD:
+            err = do_rmacro_add_prod(ctx, g, name, cmd->args);
+            break;
+
+        case FKL_CG_RMACRO_ADD_IGNORE:
+            err = do_rmacro_add_ignore(ctx, g, name, cmd->args);
+            break;
+
+        case FKL_CG_RMACRO_NONE:
+        default:
+            FKL_UNREACHABLE();
+            break;
+        }
+
+        if (err != 0)
+            return err;
+    }
+    return 0;
 }

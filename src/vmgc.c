@@ -109,8 +109,7 @@ void fklVMgcMarkGrammer(FklVMgc *gc,
 
     mark_nonterm(gc, &g->start);
 
-    for (const FklProdHashMapNode *cur = g->productions.first; cur;
-            cur = cur->next) {
+    for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
         mark_nonterm(gc, &cur->k);
         for (const FklGrammerProduction *prod = cur->v; prod;
                 prod = prod->next) {

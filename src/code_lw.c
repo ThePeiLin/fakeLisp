@@ -1297,8 +1297,7 @@ static inline void write_grammer_in_binary_pass_1(const FklGrammer *g,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
     FKL_ASSERT(g->start.group == NULL && g->start.sid == NULL);
-    for (const FklProdHashMapNode *cur = g->productions.first; cur;
-            cur = cur->next) {
+    for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
         FKL_ASSERT(!(cur->k.group == NULL && cur->k.sid == NULL));
 
         write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_FIRST, vt, NULL);
@@ -1341,10 +1340,9 @@ static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
         FILE *fp) {
     FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
     fklWriteStringTable(&g->delimiters, fp);
-    uint64_t left_count = g->productions.count;
+    uint64_t left_count = g->prods.count;
     fwrite(&left_count, sizeof(left_count), 1, fp);
-    for (const FklProdHashMapNode *cur = g->productions.first; cur;
-            cur = cur->next) {
+    for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
         FKL_ASSERT(!(cur->k.group == 0 && cur->k.sid == 0));
 
         {

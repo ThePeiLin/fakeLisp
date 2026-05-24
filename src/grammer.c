@@ -268,7 +268,7 @@ create_extra_production(struct FklVMvalue *group, struct FklVMvalue *start) {
 
 int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod) {
     const FklGraSidBuiltinHashMap *builtins = &g->builtins;
-    FklProdHashMap *productions = &g->productions;
+    FklProdHashMap *productions = &g->prods;
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
@@ -286,8 +286,8 @@ int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod) {
             *pp = prod;
             fklDestroyGrammerProduction(cur);
         } else {
-            prod->idx = g->prodNum;
-            g->prodNum++;
+            prod->idx = g->prod_count;
+            g->prod_count++;
             prod->next = NULL;
             *pp = prod;
         }
@@ -299,21 +299,21 @@ int fklAddProdAndExtraToGrammer(FklGrammer *g, FklGrammerProduction *prod) {
             extra_prod->next = NULL;
             pp = fklProdHashMapAdd(productions, &extra_prod->left, NULL);
             *pp = extra_prod;
-            (*pp)->idx = g->prodNum;
-            g->prodNum++;
+            (*pp)->idx = g->prod_count;
+            g->prod_count++;
         }
         prod->next = NULL;
         pp = fklProdHashMapAdd(productions, left, NULL);
-        prod->idx = g->prodNum;
+        prod->idx = g->prod_count;
         *pp = prod;
-        g->prodNum++;
+        g->prod_count++;
     }
     return 0;
 }
 
 int fklAddProdToProdTable(FklGrammer *g, FklGrammerProduction *prod) {
     const FklGraSidBuiltinHashMap *builtins = &g->builtins;
-    FklProdHashMap *productions = &g->productions;
+    FklProdHashMap *productions = &g->prods;
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
@@ -332,16 +332,16 @@ int fklAddProdToProdTable(FklGrammer *g, FklGrammerProduction *prod) {
             *pp = prod;
             fklDestroyGrammerProduction(cur);
         } else {
-            prod->idx = g->prodNum;
-            g->prodNum++;
+            prod->idx = g->prod_count;
+            g->prod_count++;
             prod->next = NULL;
             *pp = prod;
         }
     } else {
         prod->next = NULL;
         pp = fklProdHashMapAdd(productions, left, NULL);
-        prod->idx = g->prodNum;
-        g->prodNum++;
+        prod->idx = g->prod_count;
+        g->prod_count++;
         *pp = prod;
     }
     return 0;
@@ -349,7 +349,7 @@ int fklAddProdToProdTable(FklGrammer *g, FklGrammerProduction *prod) {
 
 int fklAddProdToProdTableNoRepeat(FklGrammer *g, FklGrammerProduction *prod) {
     const FklGraSidBuiltinHashMap *builtins = &g->builtins;
-    FklProdHashMap *productions = &g->productions;
+    FklProdHashMap *productions = &g->prods;
     const FklGrammerNonterm *left = &prod->left;
     if (left->group == 0 && fklGetBuiltinMatch(builtins, left->sid))
         return 1;
@@ -365,16 +365,16 @@ int fklAddProdToProdTableNoRepeat(FklGrammer *g, FklGrammerProduction *prod) {
         if (cur) {
             return 1;
         } else {
-            prod->idx = g->prodNum;
-            g->prodNum++;
+            prod->idx = g->prod_count;
+            g->prod_count++;
             prod->next = NULL;
             *pp = prod;
         }
     } else {
         prod->next = NULL;
         pp = fklProdHashMapAdd(productions, left, NULL);
-        prod->idx = g->prodNum;
-        g->prodNum++;
+        prod->idx = g->prod_count;
+        g->prod_count++;
         *pp = prod;
     }
     return 0;
@@ -1417,10 +1417,10 @@ void fklDestroyIgnore(FklGrammerIgnore *ig) {
 }
 
 void fklClearGrammer(FklGrammer *g) {
-    g->prodNum = 0;
+    g->prod_count = 0;
     g->start.group = 0;
     g->start.sid = 0;
-    fklProdHashMapClear(&g->productions);
+    fklProdHashMapClear(&g->prods);
     fklFirstSetHashMapClear(&g->firstSets);
     clear_analysis_table(g, g->aTable.num - 1);
     fklZfree(g->sorted_delimiters);
@@ -1438,7 +1438,7 @@ void fklClearGrammer(FklGrammer *g) {
 }
 
 void fklUninitGrammer(FklGrammer *g) {
-    fklProdHashMapUninit(&g->productions);
+    fklProdHashMapUninit(&g->prods);
     fklGraSidBuiltinHashMapUninit(&g->builtins);
     fklFirstSetHashMapUninit(&g->firstSets);
     fklUninitStringTable(&g->terminals);
@@ -1504,7 +1504,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
 
     const FklFirstSetItem item = { .hasEpsilon = 0 };
 
-    for (const FklProdHashMapNode *sidl = g->productions.first; sidl;
+    for (const FklProdHashMapNode *sidl = g->prods.first; sidl;
             sidl = sidl->next) {
         if (is_Sq_nt(&sidl->k))
             continue;
@@ -1514,8 +1514,7 @@ static inline int compute_all_first_set(FklGrammer *g) {
     int change;
     do {
         change = 0;
-        for (const FklProdHashMapNode *leftProds = g->productions.first;
-                leftProds;
+        for (const FklProdHashMapNode *leftProds = g->prods.first; leftProds;
                 leftProds = leftProds->next) {
             if (is_Sq_nt(&leftProds->k))
                 continue;
@@ -1623,7 +1622,7 @@ void fklInitEmptyGrammer(FklGrammer *r, struct FklVM *vm) {
     fklInitStringTable(&r->delimiters);
     fklInitRegexTable(&r->regexes);
     fklFirstSetHashMapInit(&r->firstSets);
-    fklProdHashMapInit(&r->productions);
+    fklProdHashMapInit(&r->prods);
     fklInitBuiltinGrammerSymTable(&r->builtins, vm);
 }
 
@@ -1639,9 +1638,7 @@ FklGrammer *fklCreateEmptyGrammer(struct FklVM *vm) {
     return r;
 }
 
-int fklIsGrammerInited(const FklGrammer *g) {
-    return g->productions.buckets != NULL;
-}
+int fklIsGrammerInited(const FklGrammer *g) { return g->prods.buckets != NULL; }
 
 // GraProdVector
 #define FKL_VECTOR_TYPE_PREFIX Gra
@@ -1651,7 +1648,7 @@ int fklIsGrammerInited(const FklGrammer *g) {
 #include <fakeLisp/cont/vector.h>
 
 int fklCheckUndefinedNonterm(FklGrammer *g, FklGrammerNonterm *nt) {
-    FklProdHashMap *productions = &g->productions;
+    FklProdHashMap *productions = &g->prods;
     for (const FklProdHashMapNode *il = productions->first; il; il = il->next) {
         for (const FklGrammerProduction *prods = il->v; prods;
                 prods = prods->next) {
@@ -1693,10 +1690,10 @@ int fklAddExtraProdToGrammer(FklGrammer *g) {
             create_extra_production(left.group, left.sid);
     extra_prod->next = NULL;
     FklGrammerProduction **item =
-            fklProdHashMapAdd(&g->productions, &extra_prod->left, NULL);
+            fklProdHashMapAdd(&g->prods, &extra_prod->left, NULL);
     *item = extra_prod;
-    (*item)->idx = g->prodNum;
-    g->prodNum++;
+    (*item)->idx = g->prod_count;
+    g->prod_count++;
     return 0;
 }
 
@@ -2003,10 +2000,10 @@ static inline void lr0_item_set_closure(FklLalrItemHashSet *itemSet,
             }
         }
 
+        FklGrammerProduction *prod = NULL;
         for (FklNontermHashSetNode *lefts = changeSet.first; lefts;
                 lefts = lefts->next) {
-            FklGrammerProduction *prod =
-                    fklGetGrammerProductions(g, lefts->k.group, lefts->k.sid);
+            prod = fklGetProductions(g, lefts->k.group, lefts->k.sid);
             for (; prod; prod = prod->next) {
                 FklLalrItem item = lalr_item_init(prod, 0, NULL);
                 fklLalrItemHashSetPut(itemSet, &item);
@@ -2319,8 +2316,7 @@ FklLalrItemSetHashMap *fklGenerateLr0Items(FklGrammer *grammer) {
         .group = 0,
         .sid = 0,
     };
-    FklGrammerProduction *prod =
-            *fklProdHashMapGet(&grammer->productions, &left);
+    FklGrammerProduction *prod = *fklProdHashMapGet(&grammer->prods, &left);
     FklLalrItemHashSet items;
     init_first_item_set(&items, prod);
     FklLalrItemSetHashMapElm *itemsetptr =
@@ -2471,7 +2467,7 @@ static inline void lr1_item_set_closure(FklLalrItemHashSet *itemSet,
                         &hasEpsilon);
                 const FklGrammerNonterm *left = &next->nt;
                 FklGrammerProduction *prods =
-                        fklGetGrammerProductions(g, left->group, left->sid);
+                        fklGetProductions(g, left->group, left->sid);
                 if (first) {
                     for (FklLookAheadHashSetNode *first_list = first->first;
                             first_list;
@@ -4486,18 +4482,13 @@ const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
     return NULL;
 }
 
-int fklIsNonterminalExist1(const FklGrammer *g,
+int fklIsNonterminalExist(const FklGrammer *g,
         FklVMvalue *group_id,
         FklVMvalue *sid) {
-    FklGrammerProduction *const *elm = fklProdHashMapGet2(&g->productions,
-            (FklGrammerNonterm){
-                .group = group_id,
-                .sid = sid,
-            });
-    return elm != NULL;
+    return fklIsNonterminalExist1(&g->prods, group_id, sid);
 }
 
-int fklIsNonterminalExist(const FklProdHashMap *prods,
+int fklIsNonterminalExist1(const FklProdHashMap *prods,
         FklVMvalue *group_id,
         FklVMvalue *sid) {
     return fklProdHashMapGet2(prods,
@@ -4505,13 +4496,12 @@ int fklIsNonterminalExist(const FklProdHashMap *prods,
         != NULL;
 }
 
-FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
-        FklVMvalue *group,
-        FklVMvalue *sid) {
-    return fklGetProductions(&g->productions, group, sid);
+FklGrammerProduction *
+fklGetProductions(const FklGrammer *g, FklVMvalue *group, FklVMvalue *sid) {
+    return fklGetProductions1(&g->prods, group, sid);
 }
 
-FklGrammerProduction *fklGetProductions(const FklProdHashMap *prods,
+FklGrammerProduction *fklGetProductions1(const FklProdHashMap *prods,
         FklVMvalue *group,
         FklVMvalue *sid) {
     FklGrammerProduction **pp = fklProdHashMapGet2(prods,
@@ -4598,7 +4588,7 @@ void fklPrintGrammer2(FklVM *vm,
         const FklGrammer *grammer,
         FklCodeBuilder *fp) {
     const FklRegexTable *rt = &grammer->regexes;
-    for (FklProdHashMapNode *list = grammer->productions.first; list;
+    for (FklProdHashMapNode *list = grammer->prods.first; list;
             list = list->next) {
         FklGrammerProduction *prods = list->v;
         for (; prods; prods = prods->next) {
@@ -4970,7 +4960,7 @@ int fklMergeGrammer(FklGrammer *g,
         fklMergeGrammerIgnore(g, ig, other);
     }
 
-    for (const FklProdHashMapNode *prods = other->productions.first; prods;
+    for (const FklProdHashMapNode *prods = other->prods.first; prods;
             prods = prods->next) {
         for (const FklGrammerProduction *prod = prods->v; prod;
                 prod = prod->next) {

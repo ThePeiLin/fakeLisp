@@ -21,14 +21,6 @@ static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
     return r;
 }
 
-FKL_DEPRECATED
-static inline void merge_group(FklVMvalueCgRmacro *to,
-        const FklVMvalueCgRmacro *from,
-        const FklRecomputeGroupIdArgs *args) {
-    FKL_TODO();
-    // fklMergeGrammer(&to->g, &from->g, args);
-}
-
 static inline void
 put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
     if (ln)

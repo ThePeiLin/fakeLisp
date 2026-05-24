@@ -3293,7 +3293,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
     case FKL_TERM_NONTERM: {
         FklVMvalue *v = in->v;
         if (FKL_IS_SYM(v)) {
-            FklVMvalue *group = fklIsNonterminalExist1(builtin_g, NULL, v) //
+            FklVMvalue *group = fklIsNonterminalExist(builtin_g, NULL, v) //
                                       ? NULL
                                       : name;
 

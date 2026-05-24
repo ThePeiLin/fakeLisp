@@ -470,8 +470,8 @@ typedef struct FklGrammer {
 
     FklGrammerNonterm start;
 
-    size_t prodNum;
-    FklProdHashMap productions;
+    size_t prod_count;
+    FklProdHashMap prods;
 
     FklGraSidBuiltinHashMap builtins;
 
@@ -628,21 +628,19 @@ FklGrammerIgnore *fklGrammerSymbolsToIgnore(FklGrammerSym *syms, size_t len);
 const FklLalrBuiltinMatch *fklGetBuiltinMatch(const FklGraSidBuiltinHashMap *ht,
         const FklVMvalue *id);
 
-FKL_DEPRECATED
-int fklIsNonterminalExist(const FklProdHashMap *prods,
+int fklIsNonterminalExist1(const FklProdHashMap *prods,
         FklVMvalue *group,
         FklVMvalue *id);
 
-int fklIsNonterminalExist1(const FklGrammer *g,
+int fklIsNonterminalExist(const FklGrammer *g,
         FklVMvalue *group,
         FklVMvalue *id);
 
-FklGrammerProduction *fklGetProductions(const FklProdHashMap *prod,
+FklGrammerProduction *fklGetProductions1(const FklProdHashMap *prod,
         FklVMvalue *group,
         FklVMvalue *id);
-FklGrammerProduction *fklGetGrammerProductions(const FklGrammer *g,
-        FklVMvalue *group,
-        FklVMvalue *id);
+FklGrammerProduction *
+fklGetProductions(const FklGrammer *g, FklVMvalue *group, FklVMvalue *id);
 
 void fklPrintGrammerIgnores(const FklGrammer *g,
         const FklRegexTable *rt,

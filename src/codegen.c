@@ -5440,7 +5440,7 @@ static inline int merge_all_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
 
     FklGrammer *g = &info->g->g;
 
-    // TODO: 应该尽量降低清空 grammer 的情况
+    // 尽量降低清空 grammer 的情况
     fklClearGrammer(g);
     if (fklMergeGrammer(g, &ctx->builtin_g, NULL))
         FKL_UNREACHABLE();
@@ -5457,8 +5457,8 @@ static inline int merge_all_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
     return 0;
 }
 
-// TODO: 因为没有特意为储存哪些是新添加的 reader-macro
-// 因而采用了这种粗放的方法
+// 新添加的 reader-macro 会储存在参数 new_rmacros 中
+// 如果 need_rebuild_all 为真，则忽略 new_rmacros
 // 我管你是新来的还是旧的，之间把原 grammer 清空，重新添加 reader-macro
 static inline int update_grammer_impl(FklCgCtx *ctx,
         int need_rebuild_all,
@@ -5536,7 +5536,7 @@ static inline FklVMvalueCgInfo *get_reader_start_info(
 
 static inline void init_builtin_grammer_and_prod_group(FklCgCtx *ctx,
         FklVMvalueCgInfo *info) {
-    // TODO: 将清理过程延迟到 add_all_group_to_grammer
+    // 将清理过程延迟到 add_all_group_to_grammer
     if (info->g == NULL) {
         FklVMvalueCgInfo *reader_start_info = get_reader_start_info(info);
         FKL_ASSERT(reader_start_info != NULL);
@@ -5576,7 +5576,6 @@ static inline int import_reader_macro(FklCgCtx *ctx,
         FklVMvalueCgRmacro *item,
         FklVMvalue *new_id,
         FklVMvalueCgInfo *lib_info) {
-    // TODO: 这个初始化应该挪到外面
     init_builtin_grammer_and_prod_group(ctx, info);
 
     FklVMvalueCgRmacroHashMap *map = info->rmacros;
@@ -8099,7 +8098,7 @@ static inline void add_new_rmacro(FklVMvalueCgInfo *lib_info,
 
     init_builtin_grammer_and_prod_group(args->ctx, info);
 
-    // TODO: 使用一个空的 reader macro 对象替换原来已有的 reader macro
+    // 使用一个空的 reader macro 对象替换原来已有的 reader macro
     // 如果发生了替换，清空整个原本的 grammer ，重新添加所有 reader macro
     // 中的产生式
     // 同时，我们可能需要调换被覆盖的那个 hashmap node 的顺序

@@ -3042,15 +3042,14 @@ static void add_compiler_macro(const FklCgCtx *c,
     int cover = FKL_PATTERN_NOT_EQUAL;
     FklValueHashMapElm *pmacro = fklCgMacroHashMapRef1(macros, head);
     FklVMvalue *const pattern = macro->pattern;
-    FklVMvalue *const pattern_cdr = FKL_VM_CDR(pattern);
     FklVMvalue **phead = &pmacro->v;
 
-    for (FklVMvalue *cur_pair = *phead; FKL_IS_PAIR(cur_pair);
-            phead = &FKL_VM_CDR(cur_pair), cur_pair = *phead) {
-        FklVMvalueCgMacro *cur = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
-        cover = fklPatternCoverState(FKL_VM_CDR(cur->pattern), pattern_cdr);
+    for (FklVMvalue *p = *phead; FKL_IS_PAIR(p); p = *phead) {
+        FklVMvalueCgMacro *cur = fklVMvalueCgMacro(FKL_VM_CAR(p));
+        cover = fklPatternCoverState(cur->pattern, pattern);
         if (cover == FKL_PATTERN_EQUAL || cover == FKL_PATTERN_COVER)
             break;
+        phead = &FKL_VM_CDR(p);
     }
 
     switch (cover) {
@@ -7238,7 +7237,7 @@ static FklVMvalue *compiler_macro_bc_process(const FklCgActCbArgs *args) {
     fklInitMainProcRefs(ctx->vm, proc);
 
     FklVMvalueCgMacro *macro = NULL;
-    macro = fklCreateVMvalueCgMacro(ctx, pattern, proc);
+    macro = fklCreateVMvalueCgMacro(ctx, FKL_VM_CDR(pattern), proc);
     FklVMvalue *head = FKL_VM_CAR(pattern);
     add_compiler_macro(ctx, macros->macros, head, macro);
 

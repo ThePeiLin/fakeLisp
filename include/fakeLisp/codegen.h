@@ -673,6 +673,8 @@ FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r);
 FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *c, uint64_t len);
 int fklIsVMvalueCgRmacro(const FklVMvalue *v);
 FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r);
+
+FKL_NODISCARD
 int fklExecuteCgRmacro(FklCgCtx *ctx,
         FklGrammer *g,
         FklVMvalue *name,

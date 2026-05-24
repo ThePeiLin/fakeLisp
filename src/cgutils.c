@@ -745,10 +745,9 @@ static const FklVMvalueCgMacro *find_macro(FklVMvalue *exp,
         if (pm == NULL)
             continue;
 
-        for (FklVMvalue *cur_pair = pm->v; FKL_IS_PAIR(cur_pair);
-                cur_pair = FKL_VM_CDR(cur_pair)) {
-            FklVMvalueCgMacro *cur = as_macro(FKL_VM_CAR(cur_pair));
-            FklVMvalue *pattern_cdr = FKL_VM_CDR(cur->pattern);
+        for (FklVMvalue *p = pm->v; FKL_IS_PAIR(p); p = FKL_VM_CDR(p)) {
+            FklVMvalueCgMacro *cur = as_macro(FKL_VM_CAR(p));
+            FklVMvalue *pattern_cdr = cur->pattern;
             FklVMvalue *exp_cdr = FKL_VM_CDR(exp);
             if (fklPatternMatch1(header, pattern_cdr, exp_cdr, pht))
                 return cur;
@@ -3506,7 +3505,6 @@ static inline int rmacro_prod_sym_to_ig_sym(const FklCgCtx *ctx,
         IgSym *out,
         FklGrammer *g) {
     int err = 0;
-    const FklGrammer *builtin_g = &ctx->builtin_g;
     switch (in->type) {
     case FKL_TERM_NONTERM:
     case FKL_TERM_NONE:
@@ -3592,8 +3590,6 @@ int fklExecuteCgRmacro(FklCgCtx *ctx,
         FklGrammer *g,
         FklVMvalue *name,
         FklVMvalueCgRmacro *r) {
-    FklVM *vm = ctx->vm;
-    FklCgErrorState *errors = ctx->error_state;
     for (uint32_t i = 0; i < r->len; ++i) {
         int err = 0;
         const FklCgRmacroCmd *cmd = &r->cmds[i];

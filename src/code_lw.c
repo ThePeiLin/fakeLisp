@@ -1292,211 +1292,211 @@ static inline void write_production_rule_action_pass_2(
     }
 }
 
-static inline void write_grammer_in_binary_pass_1(const FklGrammer *g,
+static inline void write_rmacro_pass_1(const FklVMvalueCgRmacro *g,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
-    FKL_ASSERT(g->start.group == NULL && g->start.sid == NULL);
-    for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
-        FKL_ASSERT(!(cur->k.group == NULL && cur->k.sid == NULL));
-
-        write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_FIRST, vt, NULL);
-
-        for (const FklGrammerProduction *prod = cur->v; prod;
-                prod = prod->next) {
-            for (size_t i = 0; i < prod->len; ++i) {
-                const FklGrammerSym *cur = &prod->syms[i];
-                switch (cur->type) {
-                case FKL_TERM_NONTERM:
-                    write_nonterm(&cur->nt,
-                            FKL_WRITE_CODE_PASS_FIRST,
-                            vt,
-                            NULL);
-                    break;
-                case FKL_TERM_STRING:
-                case FKL_TERM_KEYWORD:
-                case FKL_TERM_REGEX:
-                case FKL_TERM_BUILTIN:
-                case FKL_TERM_IGNORE:
-                    break;
-                case FKL_TERM_EOF:
-                case FKL_TERM_NONE:
-                    FKL_UNREACHABLE();
-                }
-            }
-
-            write_production_rule_action_pass_1(prod,
-                    vt,
-                    proto_table,
-                    lib_table);
-        }
-    }
-}
-
-static inline void write_grammer_in_binary_pass_2(const FklGrammer *g,
-        FklValueTable *vt,
-        FklProtoTable *proto_table,
-        FklLibTable *lib_table,
-        FILE *fp) {
-    FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
-    fklWriteStringTable(&g->delimiters, fp);
-    uint64_t left_count = g->prods.count;
-    fwrite(&left_count, sizeof(left_count), 1, fp);
-    for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
-        FKL_ASSERT(!(cur->k.group == 0 && cur->k.sid == 0));
-
-        {
-            uint64_t prod_count = 0;
-            for (const FklGrammerProduction *prod = cur->v; prod;
-                    prod = prod->next, ++prod_count)
-                ;
-            fwrite(&prod_count, sizeof(prod_count), 1, fp);
-        }
-
-        write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_SECOND, vt, fp);
-
-        for (const FklGrammerProduction *prod = cur->v; prod;
-                prod = prod->next) {
-            uint64_t prod_len = prod->len;
-            fwrite(&prod_len, sizeof(prod_len), 1, fp);
-            for (size_t i = 0; i < prod_len; ++i) {
-                const FklGrammerSym *cur = &prod->syms[i];
-                fwrite(&cur->type, 1, 1, fp);
-                switch (cur->type) {
-                case FKL_TERM_NONTERM:
-                    write_nonterm(&cur->nt, FKL_WRITE_CODE_PASS_SECOND, vt, fp);
-                    break;
-                case FKL_TERM_STRING:
-                case FKL_TERM_KEYWORD: {
-                    const FklString *t = cur->str;
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                } break;
-
-                case FKL_TERM_REGEX: {
-                    const FklString *t =
-                            fklGetStringWithRegex(&g->regexes, cur->re, NULL);
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                } break;
-
-                case FKL_TERM_BUILTIN: {
-                    uint64_t str_len = strlen(cur->b.t->name);
-                    fwrite(&str_len, sizeof(str_len), 1, fp);
-                    fputs(cur->b.t->name, fp);
-
-                    uint64_t len = cur->b.len;
-                    fwrite(&len, sizeof(len), 1, fp);
-                    for (size_t i = 0; i < len; ++i) {
-                        const FklString *t = cur->b.args[i];
-                        fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                    }
-                } break;
-
-                case FKL_TERM_IGNORE:
-                    break;
-                case FKL_TERM_EOF:
-                case FKL_TERM_NONE:
-                    FKL_UNREACHABLE();
-                }
-            }
-
-            write_production_rule_action_pass_2(prod,
-                    vt,
-                    proto_table,
-                    lib_table,
-                    fp);
-        }
-    }
-
-    {
-        uint64_t ignore_count = 0;
-        for (const FklGrammerIgnore *ig = g->ignores; ig;
-                ig = ig->next, ++ignore_count)
-            ;
-        fwrite(&ignore_count, sizeof(ignore_count), 1, fp);
-    }
-
-    for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
-        uint64_t len = ig->len;
-        fwrite(&len, sizeof(len), 1, fp);
-        for (uint64_t i = 0; i < len; ++i) {
-            const FklGrammerIgnoreSym *cur = &ig->ig[i];
-            fwrite(&cur->term_type, 1, 1, fp);
-            switch (cur->term_type) {
-
-            case FKL_TERM_STRING: {
-                const FklString *t = cur->str;
-                fwrite(t, sizeof(t->size) + t->size, 1, fp);
-            } break;
-
-            case FKL_TERM_REGEX: {
-                const FklString *t =
-                        fklGetStringWithRegex(&g->regexes, cur->re, NULL);
-                fwrite(t, sizeof(t->size) + t->size, 1, fp);
-            } break;
-
-            case FKL_TERM_BUILTIN: {
-                uint64_t str_len = strlen(cur->b.t->name);
-                fwrite(&str_len, sizeof(str_len), 1, fp);
-                fputs(cur->b.t->name, fp);
-
-                uint64_t len = cur->b.len;
-                fwrite(&len, sizeof(len), 1, fp);
-                for (size_t i = 0; i < len; ++i) {
-                    const FklString *t = cur->b.args[i];
-                    fwrite(t, sizeof(t->size) + t->size, 1, fp);
-                }
-            } break;
-
-            case FKL_TERM_NONTERM:
-            case FKL_TERM_KEYWORD:
-            case FKL_TERM_IGNORE:
-            case FKL_TERM_EOF:
-            case FKL_TERM_NONE:
-                FKL_UNREACHABLE();
-            }
-        }
-    }
-}
-
-static inline void write_named_prods_pass_1(
-        const FklVMvalueCgRmacroHashMap *reader_macros,
-        FklValueTable *vt,
-        FklProtoTable *proto_table,
-        FklLibTable *lib_table) {
-    if (reader_macros == NULL)
-        return;
-
     FKL_TODO();
-    // for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-    //         list = list->next) {
-    //     fklTraverseSerializableValue(vt, list->k);
-    //     write_grammer_in_binary_pass_1(&list->v.g, vt, proto_table,
-    //     lib_table);
+    // FKL_ASSERT(g->start.group == NULL && g->start.sid == NULL);
+    // for (const FklProdHashMapNode *cur = g->prods.first; cur; cur =
+    // cur->next) {
+    //     FKL_ASSERT(!(cur->k.group == NULL && cur->k.sid == NULL));
+    //
+    //     write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_FIRST, vt, NULL);
+    //
+    //     for (const FklGrammerProduction *prod = cur->v; prod;
+    //             prod = prod->next) {
+    //         for (size_t i = 0; i < prod->len; ++i) {
+    //             const FklGrammerSym *cur = &prod->syms[i];
+    //             switch (cur->type) {
+    //             case FKL_TERM_NONTERM:
+    //                 write_nonterm(&cur->nt,
+    //                         FKL_WRITE_CODE_PASS_FIRST,
+    //                         vt,
+    //                         NULL);
+    //                 break;
+    //             case FKL_TERM_STRING:
+    //             case FKL_TERM_KEYWORD:
+    //             case FKL_TERM_REGEX:
+    //             case FKL_TERM_BUILTIN:
+    //             case FKL_TERM_IGNORE:
+    //                 break;
+    //             case FKL_TERM_EOF:
+    //             case FKL_TERM_NONE:
+    //                 FKL_UNREACHABLE();
+    //             }
+    //         }
+    //
+    //         write_production_rule_action_pass_1(prod,
+    //                 vt,
+    //                 proto_table,
+    //                 lib_table);
+    //     }
     // }
 }
 
-static inline void write_named_prods_pass_2(
-        const FklVMvalueCgRmacroHashMap *reader_macros,
+static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-    uint8_t has_content = reader_macros != NULL //
-                       && reader_macros->ht.buckets != NULL;
+    FKL_TODO();
+    // FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
+    // fklWriteStringTable(&g->delimiters, fp);
+    // uint64_t left_count = g->prods.count;
+    // fwrite(&left_count, sizeof(left_count), 1, fp);
+    // for (const FklProdHashMapNode *cur = g->prods.first; cur; cur =
+    // cur->next) {
+    //     FKL_ASSERT(!(cur->k.group == 0 && cur->k.sid == 0));
+    //
+    //     {
+    //         uint64_t prod_count = 0;
+    //         for (const FklGrammerProduction *prod = cur->v; prod;
+    //                 prod = prod->next, ++prod_count)
+    //             ;
+    //         fwrite(&prod_count, sizeof(prod_count), 1, fp);
+    //     }
+    //
+    //     write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_SECOND, vt, fp);
+    //
+    //     for (const FklGrammerProduction *prod = cur->v; prod;
+    //             prod = prod->next) {
+    //         uint64_t prod_len = prod->len;
+    //         fwrite(&prod_len, sizeof(prod_len), 1, fp);
+    //         for (size_t i = 0; i < prod_len; ++i) {
+    //             const FklGrammerSym *cur = &prod->syms[i];
+    //             fwrite(&cur->type, 1, 1, fp);
+    //             switch (cur->type) {
+    //             case FKL_TERM_NONTERM:
+    //                 write_nonterm(&cur->nt, FKL_WRITE_CODE_PASS_SECOND, vt,
+    //                 fp); break;
+    //             case FKL_TERM_STRING:
+    //             case FKL_TERM_KEYWORD: {
+    //                 const FklString *t = cur->str;
+    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //             } break;
+    //
+    //             case FKL_TERM_REGEX: {
+    //                 const FklString *t =
+    //                         fklGetStringWithRegex(&g->regexes, cur->re,
+    //                         NULL);
+    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //             } break;
+    //
+    //             case FKL_TERM_BUILTIN: {
+    //                 uint64_t str_len = strlen(cur->b.t->name);
+    //                 fwrite(&str_len, sizeof(str_len), 1, fp);
+    //                 fputs(cur->b.t->name, fp);
+    //
+    //                 uint64_t len = cur->b.len;
+    //                 fwrite(&len, sizeof(len), 1, fp);
+    //                 for (size_t i = 0; i < len; ++i) {
+    //                     const FklString *t = cur->b.args[i];
+    //                     fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //                 }
+    //             } break;
+    //
+    //             case FKL_TERM_IGNORE:
+    //                 break;
+    //             case FKL_TERM_EOF:
+    //             case FKL_TERM_NONE:
+    //                 FKL_UNREACHABLE();
+    //             }
+    //         }
+    //
+    //         write_production_rule_action_pass_2(prod,
+    //                 vt,
+    //                 proto_table,
+    //                 lib_table,
+    //                 fp);
+    //     }
+    // }
+    //
+    // {
+    //     uint64_t ignore_count = 0;
+    //     for (const FklGrammerIgnore *ig = g->ignores; ig;
+    //             ig = ig->next, ++ignore_count)
+    //         ;
+    //     fwrite(&ignore_count, sizeof(ignore_count), 1, fp);
+    // }
+    //
+    // for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
+    //     uint64_t len = ig->len;
+    //     fwrite(&len, sizeof(len), 1, fp);
+    //     for (uint64_t i = 0; i < len; ++i) {
+    //         const FklGrammerIgnoreSym *cur = &ig->ig[i];
+    //         fwrite(&cur->term_type, 1, 1, fp);
+    //         switch (cur->term_type) {
+    //
+    //         case FKL_TERM_STRING: {
+    //             const FklString *t = cur->str;
+    //             fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //         } break;
+    //
+    //         case FKL_TERM_REGEX: {
+    //             const FklString *t =
+    //                     fklGetStringWithRegex(&g->regexes, cur->re, NULL);
+    //             fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //         } break;
+    //
+    //         case FKL_TERM_BUILTIN: {
+    //             uint64_t str_len = strlen(cur->b.t->name);
+    //             fwrite(&str_len, sizeof(str_len), 1, fp);
+    //             fputs(cur->b.t->name, fp);
+    //
+    //             uint64_t len = cur->b.len;
+    //             fwrite(&len, sizeof(len), 1, fp);
+    //             for (size_t i = 0; i < len; ++i) {
+    //                 const FklString *t = cur->b.args[i];
+    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
+    //             }
+    //         } break;
+    //
+    //         case FKL_TERM_NONTERM:
+    //         case FKL_TERM_KEYWORD:
+    //         case FKL_TERM_IGNORE:
+    //         case FKL_TERM_EOF:
+    //         case FKL_TERM_NONE:
+    //             FKL_UNREACHABLE();
+    //         }
+    //     }
+    // }
+}
+
+static inline void write_rmacros_pass_1(
+        const FklVMvalueCgRmacroHashMap *rmacros,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table) {
+    if (rmacros == NULL)
+        return;
+
+    for (FklValueHashMapNode *cur = rmacros->ht.first; cur; cur = cur->next) {
+        FKL_TODO();
+        fklTraverseSerializableValue(vt, cur->k);
+        FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
+        write_rmacro_pass_1(rmacro, vt, proto_table, lib_table);
+    }
+}
+
+static inline void write_rmacros_pass_2(
+        const FklVMvalueCgRmacroHashMap *rmacros,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table,
+        FILE *fp) {
+    uint8_t has_content = rmacros != NULL //
+                       && rmacros->ht.buckets != NULL;
     fwrite(&has_content, sizeof(has_content), 1, fp);
     if (!has_content)
         return;
-    FKL_TODO();
-    // fwrite(&reader_macros->count, sizeof(reader_macros->count), 1, fp);
-    // for (FklGraProdGroupHashMapNode *list = named_prod_groups->first; list;
-    //         list = list->next) {
-    //     write_value_id(vt, 0, list->k, fp);
-    //     write_grammer_in_binary_pass_2(&list->v.g,
-    //             vt,
-    //             proto_table,
-    //             lib_table,
-    //             fp);
-    // }
+    MacroCount count = rmacros->ht.count;
+    fwrite(&count, sizeof(count), 1, fp);
+    for (FklValueHashMapNode *cur = rmacros->ht.first; cur; cur = cur->next) {
+        write_value_id(vt, 0, cur->k, fp);
+        FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
+        write_rmacro_pass_2(rmacro, vt, proto_table, lib_table, fp);
+    }
 }
 
 static inline void load_nonterm(FILE *fp,
@@ -1868,7 +1868,7 @@ static inline void write_compiler_macros_pass_1(
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
-    FKL_TODO();
+    // TODO: may be incomplete
     if (macros == NULL)
         return;
     for (const FklValueHashMapNode *cur = macros->ht.first; cur;
@@ -1894,7 +1894,7 @@ static inline void write_compiler_macros_pass_2(
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-    FKL_TODO();
+    // TODO: may be incomplete
     MacroCount count = 0;
     if (macros == NULL) {
         fwrite(&count, sizeof(count), 1, fp);
@@ -1912,14 +1912,14 @@ static inline void write_compiler_macros_pass_2(
 
         for (const FklVMvalue *cur_pair = cur->v; FKL_IS_PAIR(cur_pair);
                 cur_pair = FKL_VM_CDR(cur_pair)) {
-            FKL_TODO();
-            // write_value_id(vt, 0, c->pattern, fp);
-            // write_proc(FKL_VM_PROC(c->proc),
-            //         vt,
-            //         proto_table,
-            //         lib_table,
-            //         FKL_WRITE_CODE_PASS_SECOND,
-            //         fp);
+            FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
+            write_value_id(vt, 0, macro->pattern, fp);
+            write_proc(FKL_VM_PROC(macro->proc),
+                    vt,
+                    proto_table,
+                    lib_table,
+                    FKL_WRITE_CODE_PASS_SECOND,
+                    fp);
         }
     }
 }
@@ -1928,12 +1928,11 @@ static inline void write_replacements_pass_1(const FklVMvalueCgRplHashMap *ht,
         FklValueTable *vt) {
     if (ht == NULL)
         return;
-    FKL_TODO();
     for (const FklValueHashMapNode *rep_list = ht->ht.first; rep_list;
             rep_list = rep_list->next) {
-        FKL_TODO();
+        FklVMvalueCgRpl *rpl = fklVMvalueCgRpl(rep_list->v);
         fklTraverseSerializableValue(vt, rep_list->k);
-        fklTraverseSerializableValue(vt, rep_list->v);
+        fklTraverseSerializableValue(vt, rpl->value);
     }
 }
 
@@ -1949,9 +1948,9 @@ static inline void write_replacements_pass_2(const FklVMvalueCgRplHashMap *ht,
     fwrite(&count, sizeof(count), 1, fp);
     for (const FklValueHashMapNode *rep_list = ht->ht.first; rep_list;
             rep_list = rep_list->next) {
-        FKL_TODO();
+        FklVMvalueCgRpl *rpl = fklVMvalueCgRpl(rep_list->v);
         write_value_id(vt, 0, rep_list->k, fp);
-        write_value_id(vt, 0, rep_list->v, fp);
+        write_value_id(vt, 0, rpl->value, fp);
     }
 }
 
@@ -1972,7 +1971,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
                 proto_table,
                 lib_table);
         write_replacements_pass_1(codegen->export_replacement, value_table);
-        write_named_prods_pass_1(codegen->export_rmacros,
+        write_rmacros_pass_1(codegen->export_rmacros,
                 value_table,
                 proto_table,
                 lib_table);
@@ -1996,7 +1995,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         write_replacements_pass_2(codegen->export_replacement,
                 value_table,
                 outfp);
-        write_named_prods_pass_2(codegen->export_rmacros,
+        write_rmacros_pass_2(codegen->export_rmacros,
                 value_table,
                 proto_table,
                 lib_table,

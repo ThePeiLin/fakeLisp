@@ -2259,11 +2259,11 @@ struct TraverseSerializableArgs {
 static int traverse_serializable_value_cb(const FklVMvalue *v, void *ctx) {
     struct TraverseSerializableArgs *args = ctx;
     FKL_ASSERT(is_serializable_to_bytecode_value(v));
-    if (is_serializable_leaf_node(v))
-        fklValueVectorPushBack2(args->leafs, FKL_TYPE_CAST(FklVMvalue *, v));
-    else
-        fklValueVectorPushBack2(args->non_leafs,
-                FKL_TYPE_CAST(FklVMvalue *, v));
+    if (is_serializable_leaf_node(v)) {
+        fklValueVectorPushBack2(args->leafs, FKL_VM_VAL(v));
+    } else {
+        fklValueVectorPushBack2(args->non_leafs, FKL_VM_VAL(v));
+    }
     return 0;
 }
 
@@ -2271,8 +2271,10 @@ void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v) {
     if (v == NULL)
         return;
     if (is_serializable_leaf_node(v)) {
-        if (fklIsVMvalueSlot(v))
-            fklValueTableAdd(t, v);
+        if (fklIsVMvalueSlot(v)) {
+            FklVMvalueSlot *s = FKL_VM_SLOT(v);
+            fklValueTableAdd(t, s->s);
+        }
         fklValueTableAdd(t, v);
         return;
     }
@@ -2293,7 +2295,7 @@ void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v) {
     for (size_t i = 0; i < leafs.size; ++i) {
         FklVMvalue *v = leafs.base[i];
         if (fklIsVMvalueSlot(v)) {
-            FklVMvalueSlot *s = FKL_TYPE_CAST(FklVMvalueSlot *, v);
+            FklVMvalueSlot *s = FKL_VM_SLOT(v);
             fklValueTableAdd(t, s->s);
         }
         fklValueTableAdd(t, v);

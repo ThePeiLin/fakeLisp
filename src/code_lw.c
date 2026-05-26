@@ -1485,11 +1485,6 @@ static inline void write_rmacros_pass_2(
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-    uint8_t has_content = rmacros != NULL //
-                       && rmacros->ht.buckets != NULL;
-    fwrite(&has_content, sizeof(has_content), 1, fp);
-    if (!has_content)
-        return;
     MacroCount count = rmacros->ht.count;
     fwrite(&count, sizeof(count), 1, fp);
     for (FklValueHashMapNode *cur = rmacros->ht.first; cur; cur = cur->next) {
@@ -1728,28 +1723,23 @@ static inline void load_grammer_in_binary(FILE *fp,
     }
 }
 
-static inline FklVMvalueCgRmacroHashMap *load_named_prods(FILE *fp,
+static inline FklVMvalueCgRmacroHashMap *load_rmacros(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *protos) {
-    FKL_TODO();
-    uint8_t has_content = 0;
-    fread(&has_content, sizeof(has_content), 1, fp);
-    // FklGraProdGroupHashMap *ht = fklGraProdGroupHashMapCreate();
-    // if (!has_named_prod)
-    //     return ht;
-    //
-    // uint32_t num = 0;
-    // fread(&num, sizeof(num), 1, fp);
-    // for (; num > 0; num--) {
-    //     FklVMvalue *group_id = load_value_id(fp, values);
-    //     FklGrammerProdGroupItem *group = add_production_group(ht, //
-    //             ctx->vm,
-    //             group_id);
-    //     load_grammer_in_binary(fp, ctx, values, protos, &group->g);
-    // }
-    //
-    // return ht;
+    FklVMvalueCgRmacroHashMap *ht = fklCreateVMvalueCgRmacroHashMap(ctx);
+    MacroCount count = 0;
+    fread(&count, sizeof(count), 1, fp);
+    for (; count > 0; --count) {
+        FKL_TODO();
+        // FklVMvalue *group_id = load_value_id(fp, values);
+        // FklGrammerProdGroupItem *group = add_production_group(ht, //
+        //         ctx->vm,
+        //         group_id);
+        // load_grammer_in_binary(fp, ctx, values, protos, &group->g);
+    }
+
+    return ht;
 }
 
 static inline void load_export_sid_idx_table(FILE *fp,
@@ -1790,7 +1780,6 @@ static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
         FILE *fp,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos) {
-    FKL_TODO();
     FklVM *exe = ctx->vm;
     FklVMvalueCgMacroHashMap *macro_table = fklCreateVMvalueCgMacroHashMap(ctx);
     MacroCount count = 0;
@@ -1809,7 +1798,6 @@ static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
 static inline FklVMvalueCgRplHashMap *load_replacements(FklCgCtx *ctx,
         FILE *fp,
         const FklLoadValueArgs *const values) {
-    FKL_TODO();
     FklVMvalueCgRplHashMap *ht = fklCreateVMvalueCgRplHashMap(ctx);
     MacroCount count = 0;
     fread(&count, sizeof(count), 1, fp);
@@ -1832,7 +1820,7 @@ static inline void load_script_lib_from_pre_compile(FILE *fp,
     load_export_sid_idx_table(fp, values, &cg_lib->exports);
     cg_lib->macros = load_compiler_macros(args->ctx, fp, values, protos);
     cg_lib->replacements = load_replacements(args->ctx, fp, values);
-    cg_lib->rmacros = load_named_prods(fp, args->ctx, values, protos);
+    cg_lib->rmacros = load_rmacros(fp, args->ctx, values, protos);
 
     FklVMvalueProc *proc = load_proc(fp, values, protos);
     FklVMvalueVec *names = fklCreateCgNamesVec(values->vm, &cg_lib->exports);

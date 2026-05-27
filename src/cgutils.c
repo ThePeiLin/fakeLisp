@@ -1634,33 +1634,6 @@ FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
     return v;
 }
 
-FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms) {
-    FKL_TODO();
-    // FKL_DEPRECATED
-    // FklVMvalue *action_ctx = fklCreateCgRmacroCustomAction(cg_ctx,
-    //         fklComputeProdActualLen(len, syms));
-    //
-    // FklGrammerProduction *prod = fklCreateProduction(group,
-    //         sid,
-    //         len,
-    //         syms,
-    //         NULL,
-    //         custom_action,
-    //         action_ctx,
-    //         fklProdCtxDestroyDoNothing,
-    //         fklProdCtxCopyerDoNothing);
-    //
-    // return prod;
-}
-
-int fklIsCustomActionProd(const FklGrammerProduction *p) {
-    return p->func == custom_action;
-}
-
 static int simple_action_nth_check(FklVMvalue *rest[], size_t rest_len) {
     if (rest_len != 1 || !FKL_IS_FIX(rest[0]) || FKL_GET_FIX(rest[0]) < 0) {
         return 1;
@@ -2178,28 +2151,6 @@ static void *replace_action(FklProdActionArgs *action_ctx,
     return v;
 }
 
-FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        FklVMvalue *ast) {
-    FklGrammerProduction *prod = fklCreateProduction(group,
-            sid,
-            len,
-            syms,
-            NULL,
-            replace_action,
-            ast,
-            fklProdCtxDestroyDoNothing,
-            fklProdCtxCopyerDoNothing);
-
-    return prod;
-}
-
-int fklIsReplaceActionProd(const FklGrammerProduction *p) {
-    return p->func == replace_action;
-}
-
 static void *builtin_prod_action_nil(FklProdActionArgs *action_ctx,
         void *ctx,
         const FklAnalysisSymbol nodes[],
@@ -2488,29 +2439,6 @@ int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id) {
     return act != NULL;
 }
 
-FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        FklVMvalue *id) {
-    FklProdActionFunc action = id == NULL ? builtin_prod_action_first
-                                          : find_builtin_prod_action(ctx, id);
-    if (action == NULL) {
-        return NULL;
-    }
-
-    return fklCreateProduction(group,
-            sid,
-            len,
-            syms,
-            NULL,
-            action,
-            id,
-            fklProdCtxDestroyDoNothing,
-            fklProdCtxCopyerDoNothing);
-}
-
 static inline const struct FklSimpleProdAction *find_simple_prod_action(
         FklVMvalue *id,
         FklVMvalue *const simple_prod_action_id[]) {
@@ -2581,32 +2509,6 @@ FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
     v->mt = mt;
 
     return v;
-}
-
-FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        struct FklVMvalue *action) {
-    FKL_TODO();
-    // FKL_DEPRECATED
-    // FklVMvalue *action_ctx = fklCreateCgRmacroSimpleAction(cg_ctx, action);
-    // if (action_ctx == NULL)
-    //     return NULL;
-    // return fklCreateProduction(group,
-    //         sid,
-    //         len,
-    //         syms,
-    //         NULL,
-    //         simple_action,
-    //         action_ctx,
-    //         fklProdCtxDestroyDoNothing,
-    //         fklProdCtxCopyerDoNothing);
-}
-
-int fklIsSimpleActionProd(const FklGrammerProduction *p) {
-    return p->func == simple_action;
 }
 
 FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
@@ -3370,12 +3272,21 @@ static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
         const Nt *left,
         size_t len,
         FklVMvalue *id) {
-    return fklCreateBuiltinActionProd(ctx,
-            left->group,
+    FklProdActionFunc action = id == NULL ? builtin_prod_action_first
+                                          : find_builtin_prod_action(ctx, id);
+    if (action == NULL) {
+        return NULL;
+    }
+
+    return fklCreateProduction(left->group,
             left->sid,
             len,
             NULL,
-            id);
+            NULL,
+            action,
+            id,
+            fklProdCtxDestroyDoNothing,
+            fklProdCtxCopyerDoNothing);
 }
 
 static inline FklGrammerProduction *create_simple_act_prod(FklCgCtx *ctx,

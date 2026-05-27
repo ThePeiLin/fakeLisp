@@ -192,12 +192,6 @@ typedef enum {
     FKL_CG_PROD_ACT_CTX_TYPE_CUSTOM,
 } FklCgProdActCtxType;
 
-// FKL_DEPRECATED
-#define FKL_GRAMMER_GROUP_INITED (0x1)
-
-// FKL_DEPRECATED
-#define FKL_GRAMMER_GROUP_HAS_OUTER_REF (0x2)
-
 typedef enum {
     FKL_CG_RMACRO_NONE = 0,
     FKL_CG_RMACRO_ADD_PROD,
@@ -719,42 +713,6 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklPmatchRes *exp,
         const FklVMvalueCgInfo *,
         const FklVMvalueCgMacroScope *macros);
-
-FKL_DEPRECATED
-FklGrammerProduction *fklCreateCustomActionProd(FklCgCtx *cg_ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms);
-FKL_DEPRECATED
-int fklIsCustomActionProd(const FklGrammerProduction *p);
-
-FKL_DEPRECATED
-FklGrammerProduction *fklCreateSimpleActionProd(FklCgCtx *cg_ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        struct FklVMvalue *action);
-FKL_DEPRECATED
-int fklIsSimpleActionProd(const FklGrammerProduction *p);
-
-FKL_DEPRECATED
-FklGrammerProduction *fklCreateReplaceActionProd(struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        FklVMvalue *ast);
-FKL_DEPRECATED
-int fklIsReplaceActionProd(const FklGrammerProduction *p);
-
-FKL_DEPRECATED
-FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
-        struct FklVMvalue *group,
-        struct FklVMvalue *sid,
-        size_t len,
-        const FklGrammerSym *syms,
-        FklVMvalue *id);
 
 int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id);
 

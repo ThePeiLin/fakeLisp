@@ -385,20 +385,17 @@ static void print_compiler_macros_list(FklVM *vm,
 }
 
 static void print_reader_macro_action(FklVM *vm,
-        const FklGrammerProduction *prod,
+        FklVMvalue *act,
         FklCodeBuilder *build,
         const FklLibTable *lib_table) {
-    if (fklIsCustomActionProd(prod)) {
+    FKL_ASSERT(act != NULL);
+    if (fklIsVMvalueCustomActCtx(act)) {
         CB_LINE_END("custom");
-        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
+        FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(act);
         const FklVMvalueProc *proc = FKL_VM_PROC(ctx->proc);
         FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
     } else {
-        if (prod->ctx == NULL) {
-            CB_FMT("|first|");
-        } else {
-            fklPrin1VMvalue2((FklVMvalue *)prod->ctx, build, vm);
-        }
+        fklPrin1VMvalue2(act, build, vm);
         CB_LINE_END("");
     }
 }

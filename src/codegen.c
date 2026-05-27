@@ -7608,7 +7608,7 @@ typedef struct {
 #include <fakeLisp/cont/vector.h>
 
 static inline FklVMvalueCgRmacroProd *create_prod(FklVM *vm, uint64_t len) {
-    return fklCreateVMvalueCgRmacroProd(vm, NULL, NULL, NULL, 0, len);
+    return fklCreateVMvalueCgRmacroProd(vm, NULL, NULL, FKL_VM_NIL, 0, len);
 }
 
 static inline ValToGrammerSymErr
@@ -7786,7 +7786,7 @@ static inline ValToGrammerSymErr vec_to_prod(const FklVMvalue *vec,
         }
 
         FklVMvalueSimpleActCtx *action = NULL;
-        action = fklCreateCgRmacroSimpleAction(ctx, action_ast);
+        action = fklCreateVMvalueSimpleActCtx1(ctx, action_ast);
         if (action == NULL) {
             args->err_node = action_ast;
             err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;

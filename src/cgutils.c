@@ -1599,16 +1599,23 @@ static inline size_t compute_prod_actual_len(
     return prod->len - delim_len;
 }
 
+FklVMvalueCustomActCtx *fklCreateVMvalueCustomActCtx(FklVM *vm, size_t len) {
+    FklVMvalueCustomActCtx *v;
+    FklVMvalue *vv = fklCreateVMvalueUd2(vm,
+            &CustomActionCtxUdMetaTable,
+            len * sizeof(v->dollers[0]),
+            NULL);
+
+    v = fklVMvalueCustomActCtx(vv);
+    return v;
+}
+
 FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
         FklVMvalueCgRmacroProd *prod) {
     size_t actual_len = compute_prod_actual_len(prod);
-    FklVMvalueCustomActCtx *v = NULL;
-    FklVMvalue *vv = fklCreateVMvalueUd2(cg_ctx->vm,
-            &CustomActionCtxUdMetaTable,
-            actual_len * sizeof(v->dollers[0]),
-            NULL);
 
-    v = (FklVMvalueCustomActCtx *)vv;
+    FklVMvalueCustomActCtx *v;
+    v = fklCreateVMvalueCustomActCtx(cg_ctx->vm, actual_len);
 
     v->actual_len = actual_len;
 
@@ -2543,28 +2550,35 @@ static const FklVMudMetaTable SimpleActionCtxUdMetaTable = {
     .princ = simple_action_ctx_ud_as_print,
 };
 
-FklVMvalueSimpleActCtx *fklCreateCgRmacroSimpleAction(const FklCgCtx *cg_ctx,
-        FklVMvalue *action_ast) {
+FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx(FklVM *vm,
+        FklVMvalue *act) {
+    FKL_ASSERT(FKL_IS_VECTOR(act));
+    FklVMvalue *vv = fklCreateVMvalueUd(vm, &SimpleActionCtxUdMetaTable, NULL);
+
+    FklVMvalueSimpleActCtx *v = (FklVMvalueSimpleActCtx *)vv;
+    v->vec = act;
+    return v;
+}
+
+FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
+        FklVMvalue *act) {
     FklVM *vm = cg_ctx->vm;
-    FklVMvalue *sym = FKL_VM_VEC(action_ast)->base[0];
+    FklVMvalue *sym = FKL_VM_VEC(act)->base[0];
     FklVMvalue *const *ids = cg_ctx->simple_prod_action_id;
     const FklSimpleProdAction *mt = find_simple_prod_action(sym, ids);
     if (mt == NULL)
         return NULL;
 
-    FklVMvalue **rest = &FKL_VM_VEC(action_ast)->base[1];
-    size_t rest_len = FKL_VM_VEC(action_ast)->size - 1;
+    FklVMvalue **rest = &FKL_VM_VEC(act)->base[1];
+    size_t rest_len = FKL_VM_VEC(act)->size - 1;
 
-    FklVMvalue *vv = fklCreateVMvalueUd(vm, &SimpleActionCtxUdMetaTable, NULL);
-
-    FklVMvalueSimpleActCtx *v = (FklVMvalueSimpleActCtx *)vv;
+    FklVMvalueSimpleActCtx *v = fklCreateVMvalueSimpleActCtx(vm, act);
 
     int r = mt->check(rest, rest_len);
     if (r != 0) {
         return NULL;
     }
     v->mt = mt;
-    v->vec = action_ast;
 
     return v;
 }
@@ -3175,6 +3189,8 @@ FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *vm,
     size_t syms_size = len * sizeof(FklCgRmacroGraSym);
     FklVMvalue *v = fklCreateVMvalueUd2(vm, &RmacroProdMt, syms_size, NULL);
     FklVMvalueCgRmacroProd *r = as_prod(v);
+    FKL_ASSERT(action != NULL);
+
     r->left = left;
     r->action_type = action_type;
     r->action = action;

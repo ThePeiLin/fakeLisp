@@ -187,11 +187,10 @@ typedef struct FklSimpleProdAction {
 } FklSimpleProdAction;
 
 typedef enum {
-    FKL_CODEGEN_PROD_BUILTIN = 0,
-    FKL_CODEGEN_PROD_SIMPLE,
-    FKL_CODEGEN_PROD_CUSTOM,
-    FKL_CODEGEN_PROD_REPLACE,
-} FklCgProdActionType;
+    FKL_CG_PROD_ACT_CTX_TYPE_OTHER = 0,
+    FKL_CG_PROD_ACT_CTX_TYPE_SIMPLE,
+    FKL_CG_PROD_ACT_CTX_TYPE_CUSTOM,
+} FklCgProdActCtxType;
 
 // FKL_DEPRECATED
 #define FKL_GRAMMER_GROUP_INITED (0x1)
@@ -500,7 +499,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
 
     FklVMvalue *doller_s;
     FklVMvalue *line_s;
-    size_t actual_len;
+    uint64_t actual_len;
     FklVMvalue *dollers[];
 });
 
@@ -758,11 +757,17 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
         FklVMvalue *id);
 
 int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id);
-FklVMvalueSimpleActCtx *fklCreateCgRmacroSimpleAction(const FklCgCtx *cg_ctx,
+
+FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx(FklVM *v, FklVMvalue *act);
+FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
         FklVMvalue *action_ast);
 
 FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
         FklVMvalueCgRmacroProd *prod);
+
+FklVMvalueCustomActCtx *fklCreateVMvalueCustomActCtx(FklVM *vm,
+        size_t actual_len);
+
 int fklIsVMvalueCustomActCtx(const FklVMvalue *v);
 
 static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(

@@ -14,8 +14,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "codegen.h"
-
 // write and load value table
 
 typedef struct {
@@ -1223,28 +1221,20 @@ FklVMvalueProc *fklLoadCodeFile(FILE *fp,
 
 // write pre compile file
 
-static inline void write_nonterm(const FklGrammerNonterm *nt,
-        FklWriteCodePass pass,
-        FklValueTable *vt,
-        FILE *fp) {
-    switch (pass) {
-    case FKL_WRITE_CODE_PASS_FIRST:
-        fklTraverseSerializableValue(vt, nt->group);
-        fklTraverseSerializableValue(vt, nt->sid);
-        break;
-    case FKL_WRITE_CODE_PASS_SECOND:
-        write_value_id(vt, 0, nt->group, fp);
-        write_value_id(vt, 0, nt->sid, fp);
-        break;
-    }
-}
-
-static inline void write_prod_action_pass_1(FklVMvalue *ac,
+static inline void write_prod_action_pass_1(const FklVMvalue *ac,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
     if (fklIsVMvalueCustomActCtx(ac)) {
         FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(ac);
+
+        uint64_t len = ctx->actual_len;
+        fklTraverseSerializableValue(vt, ctx->doller_s);
+        fklTraverseSerializableValue(vt, ctx->line_s);
+        for (size_t i = 0; i < len; ++i) {
+            fklTraverseSerializableValue(vt, ctx->dollers[i]);
+        }
+
         write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
@@ -1260,33 +1250,41 @@ static inline void write_prod_action_pass_1(FklVMvalue *ac,
     }
 }
 
-static inline void write_production_rule_action_pass_2(
-        const FklGrammerProduction *prod,
+static inline void write_prod_action_pass_2(const FklVMvalue *ac,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
     uint8_t type;
-    if (fklIsCustomActionProd(prod)) {
-        type = FKL_CODEGEN_PROD_CUSTOM;
+
+    if (fklIsVMvalueCustomActCtx(ac)) {
+        type = FKL_CG_PROD_ACT_CTX_TYPE_CUSTOM;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
+        FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(ac);
+
+        MacroCount len = ctx->actual_len;
+        fwrite(&len, sizeof(len), 1, fp);
+        write_value_id(vt, 0, ctx->doller_s, fp);
+        write_value_id(vt, 0, ctx->line_s, fp);
+        for (size_t i = 0; i < len; ++i) {
+            write_value_id(vt, 0, ctx->dollers[i], fp);
+        }
+
         write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
                 lib_table,
                 FKL_WRITE_CODE_PASS_SECOND,
                 fp);
-    } else if (fklIsSimpleActionProd(prod)) {
-        type = FKL_CODEGEN_PROD_SIMPLE;
+    } else if (fklIsVMvalueSimpleActCtx(ac)) {
+        type = FKL_CG_PROD_ACT_CTX_TYPE_SIMPLE;
         fwrite(&type, sizeof(type), 1, fp);
-        FklVMvalueSimpleActCtx *ctx = (FklVMvalueSimpleActCtx *)prod->ctx;
+        FklVMvalueSimpleActCtx *ctx = fklVMvalueSimpleActCtx(ac);
         write_value_id(vt, 0, ctx->vec, fp);
     } else {
-        type = fklIsReplaceActionProd(prod) ? FKL_CODEGEN_PROD_REPLACE
-                                            : FKL_CODEGEN_PROD_BUILTIN;
+        type = FKL_CG_PROD_ACT_CTX_TYPE_OTHER;
         fwrite(&type, sizeof(type), 1, fp);
-        write_value_id(vt, 0, (FklVMvalue *)prod->ctx, fp);
+        write_value_id(vt, 0, ac, fp);
     }
 }
 
@@ -1336,12 +1334,54 @@ static inline void write_rmacro_pass_1(const FklVMvalueCgRmacro *g,
     }
 }
 
+static inline void write_rmacro_prod_pass_2(const FklVMvalueCgRmacroProd *prod,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table,
+        FILE *fp) {
+    write_value_id(vt, 0, prod->left, fp);
+    write_value_id(vt, 0, prod->action_type, fp);
+    write_prod_action_pass_2(prod->action, vt, proto_table, lib_table, fp);
+
+    uint8_t add_extra = prod->add_extra;
+    fwrite(&add_extra, sizeof(add_extra), 1, fp);
+
+    MacroCount len = prod->len;
+    fwrite(&len, sizeof(len), 1, fp);
+
+    for (size_t i = 0; i < len; ++i) {
+        const FklCgRmacroGraSym *sym = &prod->syms[i];
+        FklVMvalue *v = sym->v;
+        uint8_t type = sym->type;
+
+        fwrite(&type, sizeof(type), 1, fp);
+        write_value_id(vt, 0, v, fp);
+    }
+}
+
 static inline void write_rmacro_cmd_pass_2(const FklCgRmacroCmd *cmd,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-	FKL_TODO();
+    FklVMvalue *v = cmd->args;
+    uint8_t op = cmd->op;
+    fwrite(&op, sizeof(op), 1, fp);
+    switch (cmd->op) {
+    case FKL_CG_RMACRO_NONE:
+        FKL_UNREACHABLE();
+    case FKL_CG_RMACRO_ADD_PROD:
+    case FKL_CG_RMACRO_ADD_IGNORE:
+        write_rmacro_prod_pass_2(fklVMvalueCgRmacroProd(v),
+                vt,
+                proto_table,
+                lib_table,
+                fp);
+        break;
+    case FKL_CG_RMACRO_ADD_DELIM:
+        write_value_id(vt, 0, v, fp);
+        break;
+    }
 }
 
 static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
@@ -1353,132 +1393,8 @@ static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
     fwrite(&count, sizeof(count), 1, fp);
     for (size_t i = 0; i < count; ++i) {
         const FklCgRmacroCmd *cmd = &g->cmds[i];
-        uint8_t op = cmd->op;
-        fwrite(&op, sizeof(op), 1, fp);
-
         write_rmacro_cmd_pass_2(cmd, vt, proto_table, lib_table, fp);
     }
-
-    // FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
-    // fklWriteStringTable(&g->delimiters, fp);
-    // uint64_t left_count = g->prods.count;
-    // fwrite(&left_count, sizeof(left_count), 1, fp);
-    // for (const FklProdHashMapNode *cur = g->prods.first; cur; cur =
-    // cur->next) {
-    //     FKL_ASSERT(!(cur->k.group == 0 && cur->k.sid == 0));
-    //
-    //     {
-    //         uint64_t prod_count = 0;
-    //         for (const FklGrammerProduction *prod = cur->v; prod;
-    //                 prod = prod->next, ++prod_count)
-    //             ;
-    //         fwrite(&prod_count, sizeof(prod_count), 1, fp);
-    //     }
-    //
-    //     write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_SECOND, vt, fp);
-    //
-    //     for (const FklGrammerProduction *prod = cur->v; prod;
-    //             prod = prod->next) {
-    //         uint64_t prod_len = prod->len;
-    //         fwrite(&prod_len, sizeof(prod_len), 1, fp);
-    //         for (size_t i = 0; i < prod_len; ++i) {
-    //             const FklGrammerSym *cur = &prod->syms[i];
-    //             fwrite(&cur->type, 1, 1, fp);
-    //             switch (cur->type) {
-    //             case FKL_TERM_NONTERM:
-    //                 write_nonterm(&cur->nt, FKL_WRITE_CODE_PASS_SECOND, vt,
-    //                 fp); break;
-    //             case FKL_TERM_STRING:
-    //             case FKL_TERM_KEYWORD: {
-    //                 const FklString *t = cur->str;
-    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //             } break;
-    //
-    //             case FKL_TERM_REGEX: {
-    //                 const FklString *t =
-    //                         fklGetStringWithRegex(&g->regexes, cur->re,
-    //                         NULL);
-    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //             } break;
-    //
-    //             case FKL_TERM_BUILTIN: {
-    //                 uint64_t str_len = strlen(cur->b.t->name);
-    //                 fwrite(&str_len, sizeof(str_len), 1, fp);
-    //                 fputs(cur->b.t->name, fp);
-    //
-    //                 uint64_t len = cur->b.len;
-    //                 fwrite(&len, sizeof(len), 1, fp);
-    //                 for (size_t i = 0; i < len; ++i) {
-    //                     const FklString *t = cur->b.args[i];
-    //                     fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //                 }
-    //             } break;
-    //
-    //             case FKL_TERM_IGNORE:
-    //                 break;
-    //             case FKL_TERM_EOF:
-    //             case FKL_TERM_NONE:
-    //                 FKL_UNREACHABLE();
-    //             }
-    //         }
-    //
-    //         write_production_rule_action_pass_2(prod,
-    //                 vt,
-    //                 proto_table,
-    //                 lib_table,
-    //                 fp);
-    //     }
-    // }
-    //
-    // {
-    //     uint64_t ignore_count = 0;
-    //     for (const FklGrammerIgnore *ig = g->ignores; ig;
-    //             ig = ig->next, ++ignore_count)
-    //         ;
-    //     fwrite(&ignore_count, sizeof(ignore_count), 1, fp);
-    // }
-    //
-    // for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next) {
-    //     uint64_t len = ig->len;
-    //     fwrite(&len, sizeof(len), 1, fp);
-    //     for (uint64_t i = 0; i < len; ++i) {
-    //         const FklGrammerIgnoreSym *cur = &ig->ig[i];
-    //         fwrite(&cur->term_type, 1, 1, fp);
-    //         switch (cur->term_type) {
-    //
-    //         case FKL_TERM_STRING: {
-    //             const FklString *t = cur->str;
-    //             fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //         } break;
-    //
-    //         case FKL_TERM_REGEX: {
-    //             const FklString *t =
-    //                     fklGetStringWithRegex(&g->regexes, cur->re, NULL);
-    //             fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //         } break;
-    //
-    //         case FKL_TERM_BUILTIN: {
-    //             uint64_t str_len = strlen(cur->b.t->name);
-    //             fwrite(&str_len, sizeof(str_len), 1, fp);
-    //             fputs(cur->b.t->name, fp);
-    //
-    //             uint64_t len = cur->b.len;
-    //             fwrite(&len, sizeof(len), 1, fp);
-    //             for (size_t i = 0; i < len; ++i) {
-    //                 const FklString *t = cur->b.args[i];
-    //                 fwrite(t, sizeof(t->size) + t->size, 1, fp);
-    //             }
-    //         } break;
-    //
-    //         case FKL_TERM_NONTERM:
-    //         case FKL_TERM_KEYWORD:
-    //         case FKL_TERM_IGNORE:
-    //         case FKL_TERM_EOF:
-    //         case FKL_TERM_NONE:
-    //             FKL_UNREACHABLE();
-    //         }
-    //     }
-    // }
 }
 
 static inline void write_rmacros_pass_1(
@@ -1511,233 +1427,116 @@ static inline void write_rmacros_pass_2(
     }
 }
 
-static inline void load_nonterm(FILE *fp,
-        const FklLoadValueArgs *const values,
-        FklGrammerNonterm *nt) {
-    nt->group = load_value_id(fp, values);
-    nt->sid = load_value_id(fp, values);
-}
-
-static inline FklGrammerProduction *read_production_rule_action(FILE *fp,
-        uint64_t prod_len,
+static inline FklVMvalue *load_prod_action(FILE *fp,
         FklCgCtx *ctx,
-        const FklGrammerNonterm *nt,
-        const FklGrammerSym *syms,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos) {
     uint8_t type = 255;
     fread(&type, sizeof(type), 1, fp);
     FKL_ASSERT(type != 255);
-    FklGrammerProduction *prod = NULL;
-    switch ((FklCgProdActionType)type) {
-    default:
-        FKL_UNREACHABLE();
+    FklVMvalue *v = NULL;
+    switch ((FklCgProdActCtxType)type) {
+    case FKL_CG_PROD_ACT_CTX_TYPE_OTHER:
+        v = load_value_id(fp, values);
         break;
-    case FKL_CODEGEN_PROD_BUILTIN: {
-        FklVMvalue *id = load_value_id(fp, values);
-        prod = fklCreateBuiltinActionProd(ctx,
-                nt->group,
-                nt->sid,
-                prod_len,
-                syms,
-                id);
-        FKL_ASSERT(prod);
-    } break;
-
-    case FKL_CODEGEN_PROD_CUSTOM: {
-        prod = fklCreateCustomActionProd(ctx,
-                nt->group,
-                nt->sid,
-                prod_len,
-                syms);
-        FklVMvalueCustomActCtx *actx = (FklVMvalueCustomActCtx *)prod->ctx;
-        FklVMvalueProc *proc = load_proc(fp, values, protos);
-        actx->proc = FKL_VM_VAL(proc);
-    } break;
-
-    case FKL_CODEGEN_PROD_SIMPLE: {
-        FklVMvalue *action_ast = load_value_id(fp, values);
-        prod = fklCreateSimpleActionProd(ctx,
-                nt->group,
-                nt->sid,
-                prod_len,
-                syms,
-                action_ast);
-        FKL_ASSERT(prod);
-    } break;
-
-    case FKL_CODEGEN_PROD_REPLACE: {
-        FklVMvalue *v = load_value_id(fp, values);
-        prod = fklCreateReplaceActionProd(nt->group,
-                nt->sid,
-                prod_len,
-                syms,
-                v);
-        FKL_ASSERT(prod);
-    } break;
+    case FKL_CG_PROD_ACT_CTX_TYPE_SIMPLE: {
+        FklVMvalue *act = load_value_id(fp, values);
+        FklVMvalueSimpleActCtx *s = fklCreateVMvalueSimpleActCtx1(ctx, act);
+        FKL_ASSERT(s != NULL);
+        v = FKL_VM_VAL(s);
+        break;
     }
+    case FKL_CG_PROD_ACT_CTX_TYPE_CUSTOM: {
+        MacroCount len = 0;
+        fread(&len, sizeof(len), 1, fp);
+        FklVMvalueCustomActCtx *c = fklCreateVMvalueCustomActCtx(ctx->vm, len);
 
-    return prod;
+        c->doller_s = load_value_id(fp, values);
+        c->line_s = load_value_id(fp, values);
+        for (size_t i = 0; i < len; ++i) {
+            c->dollers[i] = load_value_id(fp, values);
+        }
+
+        FklVMvalueProc *proc = load_proc(fp, values, protos);
+        c->proc = FKL_VM_VAL(proc);
+
+        v = FKL_VM_VAL(c);
+        break;
+    }
+    }
+    return v;
 }
 
-static inline void load_grammer_in_binary(FILE *fp,
+static inline FklVMvalueCgRmacroProd *load_rmacro_prod(FILE *fp,
         FklCgCtx *ctx,
         const FklLoadValueArgs *const values,
-        const FklLoadProtoArgs *const protos,
-        FklGrammer *g) {
-    fklLoadStringTable(fp, &g->delimiters);
-    uint64_t left_count = 0;
-    fread(&left_count, sizeof(left_count), 1, fp);
-    for (uint64_t i = 0; i < left_count; ++i) {
-        FklGrammerNonterm nt;
-        uint64_t prod_count = 0;
-        fread(&prod_count, sizeof(prod_count), 1, fp);
+        const FklLoadProtoArgs *const protos) {
+    FklVMvalue *left = load_value_id(fp, values);
+    FklVMvalue *action_type = load_value_id(fp, values);
+    FklVMvalue *action = load_prod_action(fp, ctx, values, protos);
 
-        load_nonterm(fp, values, &nt);
-        FKL_ASSERT(!(nt.group == NULL && nt.sid == NULL));
+    uint8_t add_extra = 0;
+    fread(&add_extra, sizeof(add_extra), 1, fp);
 
-        for (uint64_t i = 0; i < prod_count; ++i) {
-            uint64_t prod_len;
-            fread(&prod_len, sizeof(prod_len), 1, fp);
+    MacroCount len = 0;
+    fread(&len, sizeof(len), 1, fp);
+    FklVMvalueCgRmacroProd *p = fklCreateVMvalueCgRmacroProd(ctx->vm,
+            left,
+            action_type,
+            action,
+            add_extra,
+            len);
 
-            size_t const total_size = prod_len * sizeof(FklGrammerSym);
-            FklGrammerSym *syms = (FklGrammerSym *)fklZmalloc(total_size);
-            FKL_ASSERT(syms);
+    for (size_t i = 0; i < len; ++i) {
+        uint8_t type = 0;
+        fread(&type, sizeof(type), 1, fp);
+        FklVMvalue *v = load_value_id(fp, values);
 
-            for (size_t i = 0; i < prod_len; ++i) {
-                uint8_t type;
-                fread(&type, sizeof(type), 1, fp);
-                FklGrammerSym *cur = &syms[i];
-                cur->type = type;
-                switch (cur->type) {
-                case FKL_TERM_NONTERM:
-                    load_nonterm(fp, values, &cur->nt);
-                    break;
-
-                case FKL_TERM_STRING:
-                case FKL_TERM_KEYWORD: {
-                    FklString *str = fklLoadString(fp);
-                    cur->str = fklAddString(&g->terminals, str);
-                    if (type == FKL_TERM_STRING)
-                        fklAddString(&g->delimiters, str);
-                    fklZfree(str);
-                } break;
-
-                case FKL_TERM_BUILTIN: {
-                    FklString *str = fklLoadString(fp);
-                    FklVMvalue *id = fklVMaddSymbol(ctx->vm, str);
-                    fklZfree(str);
-                    const FklLalrBuiltinMatch *t =
-                            fklGetBuiltinMatch(&g->builtins, id);
-                    FKL_ASSERT(t);
-                    cur->b.t = t;
-
-                    uint64_t len = 0;
-                    fread(&len, sizeof(len), 1, fp);
-                    cur->b.len = len;
-                    cur->b.args = fklZmalloc(len * sizeof(FklString *));
-                    FKL_ASSERT(cur->b.args);
-                    for (size_t i = 0; i < len; ++len) {
-                        FklString *s = fklLoadString(fp);
-                        cur->b.args[i] = fklAddString(&g->terminals, s);
-                        fklAddString(&g->delimiters, s);
-                        fklZfree(s);
-                    }
-                    fklZfree(str);
-                } break;
-
-                case FKL_TERM_REGEX: {
-                    FklString *s = fklLoadString(fp);
-                    cur->re = fklAddRegexStr(&g->regexes, s);
-                    FKL_ASSERT(cur->re);
-                    fklZfree(s);
-                } break;
-
-                case FKL_TERM_IGNORE:
-                    break;
-                case FKL_TERM_NONE:
-                case FKL_TERM_EOF:
-                    FKL_UNREACHABLE();
-                    break;
-                }
-            }
-
-            FklGrammerProduction *prod = read_production_rule_action(fp,
-                    prod_len,
-                    ctx,
-                    &nt,
-                    syms,
-                    values,
-                    protos);
-
-            if (fklAddProdToProdTableNoRepeat(g, prod)) {
-                FKL_UNREACHABLE();
-            }
-
-            fklZfree(syms);
-            syms = NULL;
-        }
+        FklCgRmacroGraSym *sym = &p->syms[i];
+        sym->type = type;
+        sym->v = v;
     }
 
-    uint64_t ignore_count = 0;
-    fread(&ignore_count, sizeof(ignore_count), 1, fp);
-    for (size_t i = 0; i < ignore_count; ++i) {
-        uint64_t len = 0;
-        fread(&len, sizeof(len), 1, fp);
-        FklGrammerIgnore *ig = fklCreateEmptyGrammerIgnore(len);
-        for (uint64_t i = 0; i < len; ++i) {
-            FklGrammerIgnoreSym *cur = &ig->ig[i];
-            fread(&cur->term_type, 1, 1, fp);
-            switch (cur->term_type) {
-            case FKL_TERM_STRING: {
-                FklString *str = fklLoadString(fp);
-                cur->str = fklAddString(&g->terminals, str);
-                fklAddString(&g->delimiters, str);
-                fklZfree(str);
-            } break;
-            case FKL_TERM_REGEX: {
-                FklString *str = fklLoadString(fp);
-                cur->re = fklAddRegexStr(&g->regexes, str);
-                FKL_ASSERT(cur->re);
-                fklZfree(str);
-            } break;
+    return p;
+}
 
-            case FKL_TERM_BUILTIN: {
-                FklString *str = fklLoadString(fp);
-                FklVMvalue *id = fklVMaddSymbol(ctx->vm, str);
-                fklZfree(str);
-                const FklLalrBuiltinMatch *t =
-                        fklGetBuiltinMatch(&g->builtins, id);
-                FKL_ASSERT(t);
-                cur->b.t = t;
-
-                uint64_t len = 0;
-                fread(&len, sizeof(len), 1, fp);
-                cur->b.len = len;
-                cur->b.args = fklZmalloc(len * sizeof(FklString *));
-                FKL_ASSERT(cur->b.args);
-                for (size_t i = 0; i < len; ++len) {
-                    FklString *s = fklLoadString(fp);
-                    cur->b.args[i] = fklAddString(&g->terminals, s);
-                    fklAddString(&g->delimiters, s);
-                    fklZfree(s);
-                }
-                fklZfree(str);
-            } break;
-
-            case FKL_TERM_NONTERM:
-            case FKL_TERM_KEYWORD:
-            case FKL_TERM_IGNORE:
-            case FKL_TERM_EOF:
-            case FKL_TERM_NONE:
-                FKL_UNREACHABLE();
-            }
-        }
-
-        if (fklAddIgnoreToIgnoreList(&g->ignores, ig)) {
-            fklDestroyIgnore(ig);
-        }
+static inline void load_rmacro_cmd(FklCgRmacroCmd *cmd,
+        FILE *fp,
+        FklCgCtx *ctx,
+        const FklLoadValueArgs *const values,
+        const FklLoadProtoArgs *const protos) {
+    uint8_t op = FKL_CG_RMACRO_NONE;
+    fread(&op, sizeof(op), 1, fp);
+    cmd->op = op;
+    switch (cmd->op) {
+    case FKL_CG_RMACRO_NONE:
+        FKL_UNREACHABLE();
+    case FKL_CG_RMACRO_ADD_PROD:
+    case FKL_CG_RMACRO_ADD_IGNORE: {
+        FklVMvalueCgRmacroProd *prod;
+        prod = load_rmacro_prod(fp, ctx, values, protos);
+        cmd->args = FKL_VM_VAL(prod);
+        break;
     }
+    case FKL_CG_RMACRO_ADD_DELIM:
+        cmd->args = load_value_id(fp, values);
+        break;
+    }
+}
+
+static inline FklVMvalueCgRmacro *load_rmacro(FILE *fp,
+        FklCgCtx *ctx,
+        const FklLoadValueArgs *const values,
+        const FklLoadProtoArgs *const protos) {
+    MacroCount count = 0;
+    fread(&count, sizeof(count), 1, fp);
+    FklVMvalueCgRmacro *g = fklCreateVMvalueCgRmacro(ctx->vm, count);
+    for (size_t i = 0; i < count; ++i) {
+        FklCgRmacroCmd *cmd = &g->cmds[i];
+        load_rmacro_cmd(cmd, fp, ctx, values, protos);
+    }
+
+    return g;
 }
 
 static inline FklVMvalueCgRmacroHashMap *load_rmacros(FILE *fp,
@@ -1748,12 +1547,10 @@ static inline FklVMvalueCgRmacroHashMap *load_rmacros(FILE *fp,
     MacroCount count = 0;
     fread(&count, sizeof(count), 1, fp);
     for (; count > 0; --count) {
-        FKL_TODO();
-        // FklVMvalue *group_id = load_value_id(fp, values);
-        // FklGrammerProdGroupItem *group = add_production_group(ht, //
-        //         ctx->vm,
-        //         group_id);
-        // load_grammer_in_binary(fp, ctx, values, protos, &group->g);
+        FklVMvalue *name = load_value_id(fp, values);
+        FklVMvalueCgRmacro *rmacro = load_rmacro(fp, ctx, values, protos);
+        FklValueHashMapElm *e = fklCgRmacroHashMapRef1(ht, name);
+        e->v = FKL_VM_VAL(rmacro);
     }
 
     return ht;
@@ -1797,7 +1594,6 @@ static inline FklVMvalueCgMacroHashMap *load_compiler_macros(FklCgCtx *ctx,
         FILE *fp,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos) {
-    FklVM *exe = ctx->vm;
     FklVMvalueCgMacroHashMap *macro_table = fklCreateVMvalueCgMacroHashMap(ctx);
     MacroCount count = 0;
     fread(&count, sizeof(count), 1, fp);

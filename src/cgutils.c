@@ -1505,6 +1505,8 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *as_custom_ctx(
     return FKL_TYPE_CAST(FklVMvalueCustomActCtx *, v);
 }
 
+int fklIsVMvalueCustomActCtx(const FklVMvalue *v) { return is_custom_ctx(v); }
+
 FKL_VM_USER_DATA_DEFAULT_PRINT(custom_action_ctx_ud_as_print,
         "custom-action-ctx")
 
@@ -2523,6 +2525,8 @@ static FKL_ALWAYS_INLINE FklVMvalueSimpleActCtx *as_simple_ctx(
     FKL_ASSERT(is_simple_ctx(v));
     return FKL_TYPE_CAST(FklVMvalueSimpleActCtx *, v);
 }
+
+int fklIsVMvalueSimpleActCtx(const FklVMvalue *v) { return is_simple_ctx(v); }
 
 static void simple_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueSimpleActCtx *c = as_simple_ctx(ud);

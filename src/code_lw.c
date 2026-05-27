@@ -1239,26 +1239,24 @@ static inline void write_nonterm(const FklGrammerNonterm *nt,
     }
 }
 
-static inline void write_production_rule_action_pass_1(
-        const FklGrammerProduction *prod,
+static inline void write_prod_action_pass_1(FklVMvalue *ac,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
-    if (fklIsCustomActionProd(prod)) {
-        FklVMvalueCustomActCtx *ctx = (FklVMvalueCustomActCtx *)prod->ctx;
+    if (fklIsVMvalueCustomActCtx(ac)) {
+        FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(ac);
         write_proc(FKL_VM_PROC(ctx->proc),
                 vt,
                 proto_table,
                 lib_table,
                 FKL_WRITE_CODE_PASS_FIRST,
                 NULL);
-    } else if (fklIsSimpleActionProd(prod)) {
-        FklVMvalueSimpleActCtx *ctx = (FklVMvalueSimpleActCtx *)prod->ctx;
+    } else if (fklIsVMvalueSimpleActCtx(ac)) {
+        FklVMvalueSimpleActCtx *ctx = fklVMvalueSimpleActCtx(ac);
         fklTraverseSerializableValue(vt, ctx->vec);
     } else {
         // is replace or builtin prod
-        FklVMvalue *r = (FklVMvalue *)prod->ctx;
-        fklTraverseSerializableValue(vt, r);
+        fklTraverseSerializableValue(vt, ac);
     }
 }
 
@@ -1292,47 +1290,58 @@ static inline void write_production_rule_action_pass_2(
     }
 }
 
+static inline void write_rmacro_prod_pass_1(const FklVMvalueCgRmacroProd *prod,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table) {
+    fklTraverseSerializableValue(vt, prod->left);
+    fklTraverseSerializableValue(vt, prod->action_type);
+    write_prod_action_pass_1(prod->action, vt, proto_table, lib_table);
+
+    for (size_t i = 0; i < prod->len; ++i) {
+        const FklCgRmacroGraSym *sym = &prod->syms[i];
+        fklTraverseSerializableValue(vt, sym->v);
+    }
+}
+
+static inline void write_rmacro_cmd_pass_1(const FklCgRmacroCmd *cmd,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table) {
+    FklVMvalue *v = cmd->args;
+    switch (cmd->op) {
+    case FKL_CG_RMACRO_NONE:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_CG_RMACRO_ADD_PROD:
+    case FKL_CG_RMACRO_ADD_IGNORE:
+        write_rmacro_prod_pass_1(fklVMvalueCgRmacroProd(v),
+                vt,
+                proto_table,
+                lib_table);
+        break;
+    case FKL_CG_RMACRO_ADD_DELIM:
+        fklTraverseSerializableValue(vt, v);
+        break;
+    }
+}
+
 static inline void write_rmacro_pass_1(const FklVMvalueCgRmacro *g,
         FklValueTable *vt,
         FklProtoTable *proto_table,
         FklLibTable *lib_table) {
-    FKL_TODO();
-    // FKL_ASSERT(g->start.group == NULL && g->start.sid == NULL);
-    // for (const FklProdHashMapNode *cur = g->prods.first; cur; cur =
-    // cur->next) {
-    //     FKL_ASSERT(!(cur->k.group == NULL && cur->k.sid == NULL));
-    //
-    //     write_nonterm(&cur->k, FKL_WRITE_CODE_PASS_FIRST, vt, NULL);
-    //
-    //     for (const FklGrammerProduction *prod = cur->v; prod;
-    //             prod = prod->next) {
-    //         for (size_t i = 0; i < prod->len; ++i) {
-    //             const FklGrammerSym *cur = &prod->syms[i];
-    //             switch (cur->type) {
-    //             case FKL_TERM_NONTERM:
-    //                 write_nonterm(&cur->nt,
-    //                         FKL_WRITE_CODE_PASS_FIRST,
-    //                         vt,
-    //                         NULL);
-    //                 break;
-    //             case FKL_TERM_STRING:
-    //             case FKL_TERM_KEYWORD:
-    //             case FKL_TERM_REGEX:
-    //             case FKL_TERM_BUILTIN:
-    //             case FKL_TERM_IGNORE:
-    //                 break;
-    //             case FKL_TERM_EOF:
-    //             case FKL_TERM_NONE:
-    //                 FKL_UNREACHABLE();
-    //             }
-    //         }
-    //
-    //         write_production_rule_action_pass_1(prod,
-    //                 vt,
-    //                 proto_table,
-    //                 lib_table);
-    //     }
-    // }
+    for (uint64_t i = 0; i < g->len; ++i) {
+        const FklCgRmacroCmd *cmd = &g->cmds[i];
+        write_rmacro_cmd_pass_1(cmd, vt, proto_table, lib_table);
+    }
+}
+
+static inline void write_rmacro_cmd_pass_2(const FklCgRmacroCmd *cmd,
+        FklValueTable *vt,
+        FklProtoTable *proto_table,
+        FklLibTable *lib_table,
+        FILE *fp) {
+	FKL_TODO();
 }
 
 static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
@@ -1340,7 +1349,16 @@ static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
         FklProtoTable *proto_table,
         FklLibTable *lib_table,
         FILE *fp) {
-    FKL_TODO();
+    MacroCount count = g->len;
+    fwrite(&count, sizeof(count), 1, fp);
+    for (size_t i = 0; i < count; ++i) {
+        const FklCgRmacroCmd *cmd = &g->cmds[i];
+        uint8_t op = cmd->op;
+        fwrite(&op, sizeof(op), 1, fp);
+
+        write_rmacro_cmd_pass_2(cmd, vt, proto_table, lib_table, fp);
+    }
+
     // FKL_ASSERT(g->start.group == 0 && g->start.sid == 0);
     // fklWriteStringTable(&g->delimiters, fp);
     // uint64_t left_count = g->prods.count;
@@ -1472,7 +1490,6 @@ static inline void write_rmacros_pass_1(
         return;
 
     for (FklValueHashMapNode *cur = rmacros->ht.first; cur; cur = cur->next) {
-        FKL_TODO();
         fklTraverseSerializableValue(vt, cur->k);
         FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
         write_rmacro_pass_1(rmacro, vt, proto_table, lib_table);

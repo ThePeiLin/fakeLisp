@@ -760,8 +760,24 @@ FklGrammerProduction *fklCreateBuiltinActionProd(FklCgCtx *ctx,
 int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id);
 FklVMvalueSimpleActCtx *fklCreateCgRmacroSimpleAction(const FklCgCtx *cg_ctx,
         FklVMvalue *action_ast);
+
 FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
         FklVMvalueCgRmacroProd *prod);
+int fklIsVMvalueCustomActCtx(const FklVMvalue *v);
+
+static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueCustomActCtx(v));
+    return (FklVMvalueCustomActCtx *)v;
+}
+
+int fklIsVMvalueSimpleActCtx(const FklVMvalue *v);
+
+static FKL_ALWAYS_INLINE FklVMvalueSimpleActCtx *fklVMvalueSimpleActCtx(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueSimpleActCtx(v));
+    return (FklVMvalueSimpleActCtx *)v;
+}
 
 FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
         FklVMvalue *group,

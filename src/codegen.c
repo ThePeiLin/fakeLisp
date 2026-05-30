@@ -5437,9 +5437,8 @@ static inline int merge_all_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
     FKL_ASSERT(info->rmacros != NULL);
     FKL_ASSERT(info->g != NULL);
 
-    FklGrammer *g = &info->g->g;
-
     // 尽量降低清空 grammer 的情况
+    FklGrammer *g = &info->g->g;
     fklClearGrammer(g);
     if (fklMergeGrammer(g, &ctx->builtin_g, NULL))
         FKL_UNREACHABLE();
@@ -5448,7 +5447,7 @@ static inline int merge_all_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
             cur = cur->next) {
         FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
 
-        if (fklExecuteCgRmacro(ctx, g, cur->k, rmacro)) {
+        if (fklExecuteCgRmacro(ctx, info, cur->k, rmacro)) {
             return 1;
         }
     }
@@ -5474,12 +5473,11 @@ static inline int update_grammer_impl(FklCgCtx *ctx,
         err = merge_all_grammer(ctx, info);
     } else {
         FKL_ASSERT(info->g != NULL);
-        FklGrammer *g = &info->g->g;
         for (size_t i = 0; i < new_rmacros->size; ++i) {
             FklVMvalue *name = new_rmacros->base[i].car;
             FklVMvalue *rmacro_v = new_rmacros->base[i].cdr;
             FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(rmacro_v);
-            int err = fklExecuteCgRmacro(ctx, g, name, rmacro);
+            int err = fklExecuteCgRmacro(ctx, info, name, rmacro);
             if (err)
                 break;
         }
@@ -7495,16 +7493,82 @@ static inline int is_builtin_gra_sym(const FklVMvalue *sym) {
         == sizeof(FKL_PG_SPECIAL_PREFIX) - 1;
 }
 
-static inline int is_valid_builtin_term(const FklGrammer *g,
+typedef FklLalrBuiltinMatch BtS;
+
+static FKL_ALWAYS_INLINE const BtS *is_valid_builtin_term(const FklGrammer *g,
         const FklVMvalue *sym) {
-    const FklLalrBuiltinMatch *builtin_terminal =
-            fklGetBuiltinMatch(&g->builtins, sym);
-    return builtin_terminal != NULL;
+    const BtS *builtin_terminal = fklGetBuiltinMatch(&g->builtins, sym);
+    return builtin_terminal;
 }
 
-static inline ValToGrammerSymErr vec_to_builtin_terminal(FklVMvalue *vec,
+typedef FklBuiltinTerminalInitError BtError;
+
+static FKL_ALWAYS_INLINE BtError do_check_bs_args(const BtS *bt,
+        const FklGrammer *g,
+        FklVMvalueVec *args_vec) {
+    size_t arg_count = 0;
+    FklString const **args = NULL;
+    BtError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+
+    if (args_vec != NULL) {
+        FKL_ASSERT(FKL_IS_VECTOR(FKL_VM_VAL(args_vec)));
+        FKL_ASSERT(args_vec->size > 0);
+
+        arg_count = args_vec->size - 1;
+        size_t total_size = arg_count * sizeof(FklString *);
+        args = fklZmalloc(total_size);
+
+        for (size_t i = 1; i < args_vec->size; ++i) {
+            const FklString *str_v = FKL_VM_STR(args_vec->base[i]);
+            args[i - 1] = str_v;
+        }
+    }
+
+    if (bt->args_check != NULL) {
+        err = bt->args_check(arg_count, args, g);
+    }
+
+    if (args != NULL) {
+        fklZfree(args);
+    }
+
+    arg_count = 0;
+
+    return err;
+}
+
+static inline FklVMvalue *
+make_BtS_args_check(FklVM *vm, BtError err, FklVMvalue *sym) {
+    FklVMvalue *err_v = NULL;
+    switch (err) {
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS:
+        err_v = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "Too many args passed to builtin terminal %S",
+                sym);
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS:
+        err_v = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "Too few args passed to builtin terminal %S",
+                sym);
+        break;
+    }
+
+    FKL_ASSERT(err_v != NULL);
+    return err_v;
+}
+
+FKL_NODISCARD
+static inline ValToGrammerSymErr vec_to_builtin_terminal(const FklCgCtx *ctx,
+        FklVMvalue *vec,
         FklCgRmacroGraSym *s,
         const FklGrammer *g) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
     if (FKL_VM_VEC(vec)->size == 0)
         return VAL_TO_GRAMMER_SYM_ERR_INVALID;
 
@@ -7513,12 +7577,19 @@ static inline ValToGrammerSymErr vec_to_builtin_terminal(FklVMvalue *vec,
         return VAL_TO_GRAMMER_SYM_ERR_INVALID;
 
     if (is_builtin_gra_sym(first)) {
-        if (!is_valid_builtin_term(g, first))
+        const BtS *bs = is_valid_builtin_term(g, first);
+        if (bs == NULL)
             return VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN;
 
         for (size_t i = 1; i < FKL_VM_VEC(vec)->size; ++i) {
             if (!FKL_IS_STR(FKL_VM_VEC(vec)->base[i]))
                 return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        }
+
+        BtError err = do_check_bs_args(bs, g, FKL_VM_VEC(vec));
+        if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+            errors->error = make_BtS_args_check(vm, err, first);
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
         }
 
         s->type = FKL_TERM_BUILTIN;
@@ -7542,8 +7613,9 @@ static inline ValToGrammerSymErr val_to_grammer_sym(const FklCgCtx *cg_ctx,
         FklCgRmacroGraSym *s) {
     const FklGrammer *g = &cg_ctx->builtin_g;
     FklVM *vm = cg_ctx->vm;
+    FklCgErrorState *errors = cg_ctx->error_state;
     if (FKL_IS_VECTOR(node)) {
-        return vec_to_builtin_terminal(node, s, g);
+        return vec_to_builtin_terminal(cg_ctx, node, s, g);
     } else if (FKL_IS_BYTEVECTOR(node)) {
         FklBytevector *bytes = FKL_VM_BVEC(node);
         s->type = FKL_TERM_KEYWORD;
@@ -7569,7 +7641,14 @@ static inline ValToGrammerSymErr val_to_grammer_sym(const FklCgCtx *cg_ctx,
         s->v = node;
     } else if (FKL_IS_SYM(node)) {
         if (is_builtin_gra_sym(node)) {
-            if (is_valid_builtin_term(g, node)) {
+            const BtS *bt = is_valid_builtin_term(g, node);
+            if (bt != NULL) {
+                BtError err = do_check_bs_args(bt, g, NULL);
+                if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+                    errors->error = make_BtS_args_check(vm, err, node);
+                    return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+                }
+
                 s->type = FKL_TERM_BUILTIN;
                 s->v = node;
             } else {
@@ -7862,9 +7941,13 @@ make_ignore(FklCgCtx *ctx, FklVMvalueCgInfo *info, FklVMvalue *vector_node) {
     FklVMvalueCgRmacroProd *prod = vec_to_ignore(ignore_obj, &args, &err);
 
     if (err) {
-        const char *msg = get_val_to_gra_sym_err_msg(err);
-        errors->error = make_grammer_create_error2(vm, msg, args.err_node);
-        errors->line = CURLINE(vector_node);
+        if (errors->error != NULL) {
+            errors->line = CURLINE(args.err_node);
+        } else {
+            const char *msg = get_val_to_gra_sym_err_msg(err);
+            errors->error = make_grammer_create_error2(vm, msg, args.err_node);
+            errors->line = CURLINE(vector_node);
+        }
         return NULL;
     }
 
@@ -8018,12 +8101,14 @@ static inline int process_add_production(FklCgCtx *ctx,
     }
 
     FklVMvalue *err_val = args.err_node == NULL ? base[2] : args.err_node;
-    const char *msg = get_val_to_gra_sym_err_msg(err);
-    errors->error = make_grammer_create_error2(vm, msg, err_val);
-    errors->line = CURLINE(vect);
+    if (errors->error != NULL) {
+        errors->line = CURLINE(args.err_node);
+    } else {
+        const char *msg = get_val_to_gra_sym_err_msg(err);
+        errors->error = make_grammer_create_error2(vm, msg, err_val);
+        errors->line = CURLINE(vect);
+    }
     return 1;
-
-    return 0;
 }
 
 typedef struct {
@@ -8339,8 +8424,10 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
 
     for (FklVMvalue *rv = rest->value; FKL_IS_PAIR(rv); rv = FKL_VM_CDR(rv)) {
         if (!is_valid_production_rule_node(FKL_VM_CAR(rv))) {
-            err_node =
-                    (FklPmatchRes){ .value = FKL_VM_CAR(rv), .container = rv };
+            err_node = (FklPmatchRes){
+                .value = FKL_VM_CAR(rv),
+                .container = rv,
+            };
             goto reader_macro_error;
         }
         fklValueQueuePush2(&prod_vector_queue, FKL_VM_CAR(rv));

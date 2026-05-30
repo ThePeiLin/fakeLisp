@@ -596,9 +596,9 @@ static inline void update_sorted_delimiters(FklGrammer *g) {
     }
 }
 
-static FklBuiltinTerminalInitError builtin_match_number_create(size_t len,
+static FklBuiltinTerminalInitError builtin_match_number_check(size_t len,
         const FklString **args,
-        struct FklGrammer *g) {
+        const FklGrammer *g) {
     if (len > 0)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
@@ -642,7 +642,7 @@ static void builtin_match_dec_int_print_src(const FklGrammer *g,
 static const FklLalrBuiltinMatch builtin_match_dec_int = {
     .name = "?dint",
     .match = builtin_match_dec_int_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_dec_int_print_src,
     .build_c_match_cond = builtin_match_dec_int_print_c_match_cond,
 };
@@ -675,7 +675,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_int);
 static const FklLalrBuiltinMatch builtin_match_hex_int = {
     .name = "?xint",
     .match = builtin_match_hex_int_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_hex_int_print_src,
     .build_c_match_cond = builtin_match_hex_int_print_c_match_cond,
 };
@@ -708,7 +708,7 @@ DEFINE_DEFAULT_C_MATCH_COND(oct_int);
 static const FklLalrBuiltinMatch builtin_match_oct_int = {
     .name = "?oint",
     .match = builtin_match_oct_int_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_oct_int_print_src,
     .build_c_match_cond = builtin_match_oct_int_print_c_match_cond,
 };
@@ -741,7 +741,7 @@ DEFINE_DEFAULT_C_MATCH_COND(dec_float);
 static const FklLalrBuiltinMatch builtin_match_dec_float = {
     .name = "?dfloat",
     .match = builtin_match_dec_float_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_dec_float_print_src,
     .build_c_match_cond = builtin_match_dec_float_print_c_match_cond,
 };
@@ -774,7 +774,7 @@ DEFINE_DEFAULT_C_MATCH_COND(hex_float);
 static const FklLalrBuiltinMatch builtin_match_hex_float = {
     .name = "?xfloat",
     .match = builtin_match_hex_float_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_hex_float_print_src,
     .build_c_match_cond = builtin_match_hex_float_print_c_match_cond,
 };
@@ -832,7 +832,7 @@ DEFINE_DEFAULT_C_MATCH_COND(identifier);
 static const FklLalrBuiltinMatch builtin_match_identifier = {
     .name = "?identifier",
     .match = builtin_match_identifier_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_identifier_print_src,
     .build_c_match_cond = builtin_match_identifier_print_c_match_cond,
 };
@@ -878,13 +878,13 @@ static int builtin_match_nodelimiter_func(
 static const FklLalrBuiltinMatch builtin_match_nodelimiter = {
     .name = "?nodelimiter",
     .match = builtin_match_nodelimiter_func,
-    .ctx_create = builtin_match_number_create,
+    .args_check = builtin_match_number_check,
     .build_src = builtin_match_nodelimiter_print_src,
     .build_c_match_cond = builtin_match_nodelimiter_print_c_match_cond,
 };
 
 static FklBuiltinTerminalInitError
-s_number_create(size_t len, const FklString **args, struct FklGrammer *g) {
+s_number_check(size_t len, const FklString **args, const FklGrammer *g) {
     if (len > 1)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
@@ -1038,7 +1038,7 @@ static int builtin_match_s_xfloat_func(const FklBuiltinTerminalMatchArgs *args,
 static const FklLalrBuiltinMatch builtin_match_s_dint = {
     .name = "?s-dint",
     .match = builtin_match_s_dint_func,
-    .ctx_create = s_number_create,
+    .args_check = s_number_check,
     .build_src = builtin_match_s_dint_print_src,
     .build_c_match_cond = builtin_match_s_dint_print_c_match_cond,
 };
@@ -1046,7 +1046,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dint = {
 static const FklLalrBuiltinMatch builtin_match_s_xint = {
     .name = "?s-xint",
     .match = builtin_match_s_xint_func,
-    .ctx_create = s_number_create,
+    .args_check = s_number_check,
     .build_src = builtin_match_s_xint_print_src,
     .build_c_match_cond = builtin_match_s_xint_print_c_match_cond,
 };
@@ -1054,7 +1054,7 @@ static const FklLalrBuiltinMatch builtin_match_s_xint = {
 static const FklLalrBuiltinMatch builtin_match_s_oint = {
     .name = "?s-oint",
     .match = builtin_match_s_oint_func,
-    .ctx_create = s_number_create,
+    .args_check = s_number_check,
     .build_src = builtin_match_s_oint_print_src,
     .build_c_match_cond = builtin_match_s_oint_print_c_match_cond,
 };
@@ -1062,7 +1062,7 @@ static const FklLalrBuiltinMatch builtin_match_s_oint = {
 static const FklLalrBuiltinMatch builtin_match_s_dfloat = {
     .name = "?s-dfloat",
     .match = builtin_match_s_dfloat_func,
-    .ctx_create = s_number_create,
+    .args_check = s_number_check,
     .build_src = builtin_match_s_dfloat_print_src,
     .build_c_match_cond = builtin_match_s_dfloat_print_c_match_cond,
 };
@@ -1070,7 +1070,7 @@ static const FklLalrBuiltinMatch builtin_match_s_dfloat = {
 static const FklLalrBuiltinMatch builtin_match_s_xfloat = {
     .name = "?s-xfloat",
     .match = builtin_match_s_xfloat_func,
-    .ctx_create = s_number_create,
+    .args_check = s_number_check,
     .build_src = builtin_match_s_xfloat_print_src,
     .build_c_match_cond = builtin_match_s_xfloat_print_c_match_cond,
 };
@@ -1127,7 +1127,7 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
 DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND(s_char);
 
 static FklBuiltinTerminalInitError
-s_char_create(size_t len, const FklString **args, struct FklGrammer *g) {
+s_char_check(size_t len, const FklString **args, const FklGrammer *g) {
     if (len > 1)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     else if (len < 1)
@@ -1138,7 +1138,7 @@ s_char_create(size_t len, const FklString **args, struct FklGrammer *g) {
 static const FklLalrBuiltinMatch builtin_match_s_char = {
     .name = "?s-char",
     .match = builtin_match_s_char_func,
-    .ctx_create = s_char_create,
+    .args_check = s_char_check,
     .build_src = builtin_match_s_char_print_src,
     .build_c_match_cond = builtin_match_s_char_print_c_match_cond,
 };
@@ -1310,9 +1310,9 @@ static void builtin_match_symbol_print_c_match_cond(
     }
 }
 
-static FklBuiltinTerminalInitError builtin_match_symbol_create(size_t len,
+static FklBuiltinTerminalInitError builtin_match_symbol_check(size_t len,
         const FklString **args,
-        struct FklGrammer *g) {
+        const FklGrammer *g) {
     if (len > 2)
         return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
     return 0;
@@ -1321,7 +1321,7 @@ static FklBuiltinTerminalInitError builtin_match_symbol_create(size_t len,
 static const FklLalrBuiltinMatch builtin_match_symbol = {
     .name = "?symbol",
     .match = builtin_match_symbol_func,
-    .ctx_create = builtin_match_symbol_create,
+    .args_check = builtin_match_symbol_check,
     .build_src = builtin_match_symbol_print_src,
     .build_c_match_cond = builtin_match_symbol_print_c_match_cond,
 };
@@ -4571,10 +4571,11 @@ void fklPrintGrammerProduction(FklVM *vm,
         CB_FMT(" ");
         print_prod_sym(vm, &syms[i], rt, build);
         ++i;
-        if (i < len && syms[i].type != FKL_TERM_IGNORE)
+        if (i < len && syms[i].type != FKL_TERM_IGNORE) {
             CB_FMT(" .. ");
-        else
+        } else {
             ++i;
+        }
     }
 }
 
@@ -4850,8 +4851,8 @@ void fklMergeGrammerIgnore(FklGrammer *to,
                 fklAddString(&to->delimiters, args[i]);
             }
             to_s->b.args = args;
-            if (to_s->b.t->ctx_create
-                    && to_s->b.t->ctx_create(to_s->b.len, to_s->b.args, to)) {
+            if (to_s->b.t->args_check
+                    && to_s->b.t->args_check(to_s->b.len, to_s->b.args, to)) {
                 FKL_UNREACHABLE();
             }
 
@@ -4915,8 +4916,8 @@ void fklMergeGrammerProd(FklGrammer *to,
             to_s->b.len = from_s->b.len;
             if (to_s->b.len == 0) {
                 to_s->b.args = NULL;
-                if (to_s->b.t->ctx_create
-                        && to_s->b.t->ctx_create(to_s->b.len,
+                if (to_s->b.t->args_check
+                        && to_s->b.t->args_check(to_s->b.len,
                                 to_s->b.args,
                                 to)) {
                     FKL_UNREACHABLE();
@@ -4931,8 +4932,8 @@ void fklMergeGrammerProd(FklGrammer *to,
                 fklAddString(&to->delimiters, args[i]);
             }
             to_s->b.args = args;
-            if (to_s->b.t->ctx_create
-                    && to_s->b.t->ctx_create(to_s->b.len, to_s->b.args, to)) {
+            if (to_s->b.t->args_check
+                    && to_s->b.t->args_check(to_s->b.len, to_s->b.args, to)) {
                 FKL_UNREACHABLE();
             }
         } break;

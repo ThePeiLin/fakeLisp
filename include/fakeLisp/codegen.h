@@ -669,7 +669,7 @@ FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r);
 
 FKL_NODISCARD
 int fklExecuteCgRmacro(FklCgCtx *ctx,
-        FklGrammer *g,
+        FklVMvalueCgInfo *info,
         FklVMvalue *name,
         FklVMvalueCgRmacro *r);
 const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op);
@@ -741,10 +741,6 @@ static FKL_ALWAYS_INLINE FklVMvalueSimpleActCtx *fklVMvalueSimpleActCtx(
     FKL_ASSERT(fklIsVMvalueSimpleActCtx(v));
     return (FklVMvalueSimpleActCtx *)v;
 }
-
-FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
-        FklVMvalue *group,
-        FklVMvalue *sid);
 
 #ifdef __cplusplus
 }

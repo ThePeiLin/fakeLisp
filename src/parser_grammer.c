@@ -614,10 +614,10 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                         s.b.args = NULL;
                     }
 
-                    if (s.b.t->ctx_create) {
+                    if (s.b.t->args_check) {
                         FklBuiltinTerminalInitError init_err =
                                 FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-                        init_err = s.b.t->ctx_create(s.b.len, s.b.args, arg->g);
+                        init_err = s.b.t->args_check(s.b.len, s.b.args, arg->g);
                         if (init_err) {
                             *err = ERR_BUILTIN_TERMINAL_INIT_FAILED;
                             builtin_terminal_init_failed_error(init_err,

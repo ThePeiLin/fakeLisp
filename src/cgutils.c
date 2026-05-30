@@ -2511,8 +2511,7 @@ FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
     return v;
 }
 
-FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
-        FklVMvalue *group,
+static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
         FklVMvalue *sid) {
     FklGrammerProduction *prod;
     prod = fklCreateEmptyProduction(ctx->builtin_g.start.group,
@@ -2528,7 +2527,7 @@ FklGrammerProduction *fklCreateExtraStartProduction(const FklCgCtx *ctx,
 
     FklGrammerSym *u = &prod->syms[0];
     u->type = FKL_TERM_NONTERM;
-    u->nt.group = group;
+    u->nt.group = NULL;
     u->nt.sid = sid;
     return prod;
 }
@@ -3127,9 +3126,9 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
     if (FKL_IS_SYM(v)) {
         bt = fklGetBuiltinMatch(&g->builtins, v);
         out->t = bt;
-        if (out->t->ctx_create)
-            err = out->t->ctx_create(out->len, out->args, g);
-
+        if (out->t->args_check) {
+            err = out->t->args_check(out->len, out->args, g);
+        }
     } else if (FKL_IS_VECTOR(v)) {
         FklVMvalue *first = FKL_VM_VEC(v)->base[0];
         bt = fklGetBuiltinMatch(&g->builtins, first);
@@ -3144,8 +3143,8 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
         }
 
         out->t = bt;
-        if (out->t->ctx_create)
-            err = out->t->ctx_create(arg_count, args, g);
+        if (out->t->args_check)
+            err = out->t->args_check(arg_count, args, g);
         if (err) {
             fklZfree(args);
             goto done;
@@ -3157,6 +3156,19 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
 
 done:
     return err;
+}
+
+static inline FklVMvalue *
+append_symbol(FklVM *vm, FklVMvalue *a, FklVMvalue *b) {
+    FklStrBuf buf = { 0 };
+    fklInitStrBuf(&buf);
+    fklStrBufConcatWithString(&buf, FKL_VM_SYM(a));
+    fklStrBufConcatWithCstr(&buf, ":");
+    fklStrBufConcatWithString(&buf, FKL_VM_SYM(b));
+
+    FklVMvalue *v = fklVMaddSymbolCharBuf(vm, buf.buf, buf.index);
+    fklUninitStrBuf(&buf);
+    return v;
 }
 
 static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
@@ -3178,6 +3190,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
         *out = (FklGrammerSym){ .type = FKL_TERM_BUILTIN };
         err = builtin_terminal_init(ctx, v, &out->b, g);
+        FKL_ASSERT(err == FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY);
         break;
     }
 
@@ -3220,8 +3233,8 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.group = group,
-                .nt.sid = v,
+                .nt.group = NULL,
+                .nt.sid = append_symbol(ctx->vm, group, v),
             };
         } else if (FKL_IS_PAIR(v)) {
             FKL_ASSERT(FKL_IS_SYM(FKL_VM_CAR(v)));
@@ -3229,8 +3242,8 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.group = FKL_VM_CAR(v),
-                .nt.sid = FKL_VM_CDR(v),
+                .nt.group = NULL,
+                .nt.sid = append_symbol(ctx->vm, FKL_VM_CAR(v), FKL_VM_CDR(v)),
             };
         } else {
             FKL_UNREACHABLE();
@@ -3256,7 +3269,6 @@ enum ActionType {
 };
 
 typedef FklGrammerNonterm Nt;
-
 static inline Nt rmacro_prod_left_get(FklCgCtx *ctx,
         FklVMvalue *group,
         FklVMvalueCgRmacroProd *in) {
@@ -3265,7 +3277,8 @@ static inline Nt rmacro_prod_left_get(FklCgCtx *ctx,
         return ctx->builtin_g.start;
     }
 
-    return (Nt){ .group = group, .sid = in->left };
+    return (Nt){ .group = NULL, append_symbol(ctx->vm, group, in->left) };
+    // return (Nt){ .group = group, .sid = in->left };
 }
 
 static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
@@ -3351,6 +3364,7 @@ static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
     } else if (in->action_type == ctx->builtin_sym_replace) {
         action_type = ACTION_TYPE_REPLACE;
     } else {
+        FKL_UNREACHABLE();
         return NULL;
     }
 
@@ -3363,6 +3377,7 @@ static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
         break;
     case ACTION_TYPE_BUILTIN:
         prod = create_builtin_act_prod(ctx, &left, in->len, in->action);
+        FKL_ASSERT(prod);
         break;
     case ACTION_TYPE_SIMPLE:
         prod = create_simple_act_prod(ctx, &left, in->len, in->action);
@@ -3390,38 +3405,56 @@ static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
 }
 
 static inline FklVMvalue *make_dup_prod_rule_error(FklVM *vm,
-        FklVMvalueCgRmacroProd *prod) {
+        const FklGrammer *g,
+        const FklGrammerProduction *prod) {
     FKL_ASSERT(prod != NULL);
-    FKL_TODO();
+
+    FklStrBuf buf = { 0 };
+    fklInitStrBuf(&buf);
+    FklCodeBuilder builder = { 0 };
+    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    fklPrintGrammerProduction(vm, prod, &g->regexes, &builder);
+
+    FklVMvalue *str_v = fklCreateVMvalueStr2(vm, buf.index, buf.buf);
+
+    FklVMvalue *err = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED, //
+            vm,
+            "duplicate production %s",
+            str_v);
+
+    fklUninitStrBuf(&buf);
+
+    return err;
 }
 
 static inline int do_rmacro_add_prod(FklCgCtx *ctx,
-        FklGrammer *g,
+        FklVMvalueCgInfo *info,
         FklVMvalue *name,
         FklVMvalue *args) {
+    FKL_ASSERT(info->g != NULL);
+    FklGrammer *g = &info->g->g;
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
     FklVMvalueCgRmacroProd *prod = fklVMvalueCgRmacroProd(args);
     FklGrammerProduction *out_prod = rmacro_prod_to_prod(ctx, g, name, prod);
     if (out_prod == NULL) {
-        FKL_TODO();
-        // args->err_node = other_args.err_node;
-        // other_args.len = 0;
-        // fklZfree(other_args.syms);
-        // other_args.syms = NULL;
-        // return err;
+        // should not happen
+        FKL_UNREACHABLE();
+        abort();
     }
 
     if (fklAddProdToProdTableNoRepeat(g, out_prod)) {
+        errors->error = make_dup_prod_rule_error(vm, g, out_prod);
         fklDestroyGrammerProduction(out_prod);
-        errors->error = make_dup_prod_rule_error(vm, prod);
-        // TODO:
-        errors->line = 114514;
+
+        errors->fid = info->fid;
+        errors->line = info->curline;
         return 1;
     }
 
     if (prod->add_extra) {
-        out_prod = fklCreateExtraStartProduction(ctx, name, prod->left);
+        FklVMvalue *left = append_symbol(vm, name, prod->left);
+        out_prod = create_extra_start_prod(ctx, left);
         int r = fklAddProdToProdTable(g, out_prod);
         FKL_ASSERT(r == 0);
         (void)r;
@@ -3451,6 +3484,7 @@ static inline int rmacro_prod_sym_to_ig_sym(const FklCgCtx *ctx,
 
         *out = (IgSym){ .term_type = FKL_TERM_BUILTIN };
         err = builtin_terminal_init(ctx, v, &out->b, g);
+        FKL_ASSERT(err == FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY);
         break;
     }
 
@@ -3503,10 +3537,8 @@ static inline int do_rmacro_add_ignore(FklCgCtx *ctx,
     FklVMvalueCgRmacroProd *prod = fklVMvalueCgRmacroProd(args);
     FklGrammerIgnore *ig = rmacro_prod_to_ig(ctx, g, prod);
     if (ig == NULL) {
-        FKL_TODO();
-        // const char *msg = get_nast_to_grammer_sym_err_msg(err);
-        // errors->error = make_grammer_create_error2(vm, msg, args.err_node);
-        // errors->line = CURLINE(vector_node);
+        // should not happen
+        FKL_UNREACHABLE();
         return 1;
     }
 
@@ -3518,9 +3550,12 @@ static inline int do_rmacro_add_ignore(FklCgCtx *ctx,
 }
 
 int fklExecuteCgRmacro(FklCgCtx *ctx,
-        FklGrammer *g,
+        FklVMvalueCgInfo *info,
         FklVMvalue *name,
         FklVMvalueCgRmacro *r) {
+    FKL_ASSERT(info->g != NULL);
+    FklGrammer *g = &info->g->g;
+
     for (uint32_t i = 0; i < r->len; ++i) {
         int err = 0;
         const FklCgRmacroCmd *cmd = &r->cmds[i];
@@ -3533,7 +3568,7 @@ int fklExecuteCgRmacro(FklCgCtx *ctx,
         } break;
 
         case FKL_CG_RMACRO_ADD_PROD:
-            err = do_rmacro_add_prod(ctx, g, name, cmd->args);
+            err = do_rmacro_add_prod(ctx, info, name, cmd->args);
             break;
 
         case FKL_CG_RMACRO_ADD_IGNORE:

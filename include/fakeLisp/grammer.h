@@ -42,6 +42,10 @@ typedef struct {
     FklString const **args;
 } FklBuiltinTerminalMatchArgs;
 
+typedef FklBuiltinTerminalInitError (*FklLalrBuiltinMatchArgChecker)(size_t len,
+        const FklString **args,
+        const struct FklGrammer *g);
+
 typedef struct {
     int (*match)(const FklBuiltinTerminalMatchArgs *args,
             const char *start,
@@ -51,9 +55,7 @@ typedef struct {
             FklGrammerMatchCtx *ctx,
             int *is_waiting_for_more);
 
-    FklBuiltinTerminalInitError (*ctx_create)(size_t len,
-            const FklString **args,
-            struct FklGrammer *g);
+    FklLalrBuiltinMatchArgChecker args_check;
     const char *name;
     void (*build_src)(const struct FklGrammer *g, FklCodeBuilder *build);
     void (*build_c_match_cond)(const FklBuiltinTerminalMatchArgs *args,

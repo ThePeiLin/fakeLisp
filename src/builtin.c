@@ -2085,6 +2085,14 @@ static inline int is_concat_sym(const FklString *str) {
     return fklStringCstrCmp(str, FKL_PG_TERM_CONCAT) == 0;
 }
 
+static inline int is_special_sym(const FklString *str) {
+    return fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
+                   sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
+                   str->str,
+                   str->size)
+        == sizeof(FKL_PG_SPECIAL_PREFIX) - 1;
+}
+
 static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
         FklVMvalueVec *vec,
         FklVMgc *gc,
@@ -2099,12 +2107,7 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
 
     const FklString *builtin_term_name = FKL_VM_SYM(first);
 
-    if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
-                sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
-                builtin_term_name->str,
-                builtin_term_name->size)
-            == sizeof(FKL_PG_SPECIAL_PREFIX) - 1) {
-
+    if (is_special_sym(builtin_term_name)) {
         const FklLalrBuiltinMatch *builtin_terminal =
                 fklGetBuiltinMatch(&g->builtins, first);
         if (builtin_terminal == NULL)
@@ -2115,8 +2118,8 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
                 return VALUE_TO_GRAMMER_SYM_ERR_INVALID;
         }
 
-        FklString const **args =
-                fklZmalloc((vec->size - 1) * sizeof(FklString *));
+        size_t total_size = (vec->size - 1) * sizeof(FklString *);
+        FklString const **args = (FklString const **)fklZmalloc(total_size);
 
         for (size_t i = 1; i < vec->size; ++i)
             args[i - 1] = fklAddString(&g->terminals, FKL_VM_STR(vec->base[i]));
@@ -2127,8 +2130,8 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
         s->b.args = NULL;
 
         FklBuiltinTerminalInitError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-        if (s->b.t->ctx_create)
-            err = s->b.t->ctx_create(vec->size - 1, args, g);
+        if (s->b.t->args_check)
+            err = s->b.t->args_check(vec->size - 1, args, g);
         if (err) {
             fklZfree(args);
             return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
@@ -2168,12 +2171,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         fklAddString(&g->delimiters, FKL_VM_STR(v));
     } else if (FKL_IS_SYM(v)) {
         const FklString *str = FKL_VM_SYM(FKL_GET_SYM(v));
-
-        if (fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
-                    sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
-                    str->str,
-                    str->size)
-                == sizeof(FKL_PG_SPECIAL_PREFIX) - 1) {
+        if (is_special_sym(str)) {
             const FklLalrBuiltinMatch *builtin_terminal =
                     fklGetBuiltinMatch(&g->builtins, FKL_GET_SYM(v));
             if (builtin_terminal) {
@@ -2183,8 +2181,8 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
                 s->b.len = 0;
                 FklBuiltinTerminalInitError err =
                         FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-                if (s->b.t->ctx_create)
-                    err = s->b.t->ctx_create(s->b.len, s->b.args, g);
+                if (s->b.t->args_check)
+                    err = s->b.t->args_check(s->b.len, s->b.args, g);
                 if (err) {
                     return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
                          | (err << CHAR_BIT);

@@ -119,4 +119,179 @@ static inline uint64_t get_curline(const FklVMvalueCgInfo *info,
     return info->curline;
 }
 
+static inline FklVMvalue *make_syntax_error(FklVM *exe, FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
+            exe,
+            "Invalid syntax %S",
+            place);
+}
+
+static inline FklVMvalue *
+make_grammer_create_error2(FklVM *exe, const char *s, FklVMvalue *place) {
+    if (place == NULL) {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s",
+                fklCreateVMvalueStr1(exe, s));
+    } else {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s %S",
+                fklCreateVMvalueStr1(exe, s),
+                place);
+    }
+}
+
+#define CURLINE(V) get_curline(info, V)
+
+static inline FklVMvalueCgInfo *macro_compile_prepare(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklValueHashSet *symbol_set,
+        FklVMvalueCgEnv **penv,
+        uint64_t line) {
+    FklVMvalueCgInfo *macro_info = fklCreateVMvalueCgInfo(ctx,
+            info,
+            NULL,
+            &(FklCgInfoArgs){
+                .is_macro = 1,
+                .macro_scope = macro_scope,
+            });
+
+    FklVMvalueCgEnv *macro_main_env = fklCreateVMvalueCgEnv(ctx, //
+            &(const FklCgEnvCreateArgs){
+                .prev_env = macro_info->global_env,
+                .prev_ms = macro_scope,
+                .parent_scope = 1,
+                .filename = info->fid,
+                .name = FKL_VM_NIL,
+                .line = line,
+            });
+
+    *penv = macro_main_env;
+    if (symbol_set == NULL)
+        return macro_info;
+
+    for (FklValueHashSetNode *list = symbol_set->first; list;
+            list = list->next) {
+        FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
+        fklAddCgDefBySid(id, 1, macro_main_env);
+    }
+
+    return macro_info;
+}
+
+// FKL_DEPRECATED start
+typedef FklCgExpQueue CgExpQueue;
+typedef FklCgExpQueueNode CgExpQueueNode;
+
+#define cgExpQueuePop fklCgExpQueuePop
+#define cgExpQueuePush fklCgExpQueuePush
+#define cgExpQueuePush2 fklCgExpQueuePush2
+
+#define cgExpQueueCreate fklCgExpQueueCreate
+#define cgExpQueueDestroy fklCgExpQueueDestroy
+#define cgExpQueueInit fklCgExpQueueInit
+#define cgExpQueueUninit fklCgExpQueueUninit
+// FKL_DEPRECATED end
+
+#define DO_NOT_NEED_RETVAL (0)
+#define ALL_MUST_HAS_RETVAL (1)
+#define FIRST_MUST_HAS_RETVAL (2)
+
+static inline FklCgNextExp *createCgNextExp(
+        const FklNextExpressionMethodTable *t,
+        void *context,
+        uint8_t must_has_retval) {
+    FklCgNextExp *r = (FklCgNextExp *)fklZmalloc(sizeof(FklCgNextExp));
+    FKL_ASSERT(r);
+    r->t = t;
+    r->context = context;
+    r->must_has_retval = must_has_retval;
+    return r;
+}
+
+static int _default_codegen_get_next_expression(FklCgCtx *ctx,
+        void *context,
+        FklPmatchRes *out) {
+    FklPmatchRes *head = cgExpQueuePop(FKL_TYPE_CAST(CgExpQueue *, context));
+    if (head == NULL)
+        return 0;
+    *out = *head;
+    return 1;
+}
+
+static void _default_codegen_next_expression_finalizer(void *context) {
+    CgExpQueue *q = FKL_TYPE_CAST(CgExpQueue *, context);
+    cgExpQueueDestroy(q);
+}
+
+static void _default_codegen_next_expression_atomic(FklVMgc *gc, void *ctx) {
+    CgExpQueue *q = FKL_TYPE_CAST(CgExpQueue *, ctx);
+    for (const CgExpQueueNode *c = q->head; c; c = c->next) {
+        fklVMgcToGray(c->data.value, gc);
+        fklVMgcToGray(c->data.container, gc);
+    }
+}
+
+static const FklNextExpressionMethodTable
+        _default_codegen_next_expression_method_table = {
+            .get_next_exp = _default_codegen_get_next_expression,
+            .finalize = _default_codegen_next_expression_finalizer,
+            .atomic = _default_codegen_next_expression_atomic,
+        };
+
+static inline FklCgNextExp *createDefaultQueueNextExpression(
+        CgExpQueue *queue) {
+    return createCgNextExp(&_default_codegen_next_expression_method_table,
+            queue,
+            DO_NOT_NEED_RETVAL);
+}
+
+static inline FklCgNextExp *createMustHasRetvalQueueNextExpression(
+        CgExpQueue *queue) {
+    return createCgNextExp(&_default_codegen_next_expression_method_table,
+            queue,
+            ALL_MUST_HAS_RETVAL);
+}
+
+static inline FklCgNextExp *createFirstHasRetvalQueueNextExpression(
+        CgExpQueue *queue) {
+    return createCgNextExp(&_default_codegen_next_expression_method_table,
+            queue,
+            FIRST_MUST_HAS_RETVAL);
+}
+
+static inline FklCgActCtx *createCgActCtx(const FklCgActCtxMethodTable *t) {
+    FklCgActCtx *r = NULL;
+    r = (FklCgActCtx *)fklZcalloc(1, sizeof(FklCgActCtx) + t->size);
+    FKL_ASSERT(r);
+    r->t = t;
+    return r;
+}
+
+static inline FklCgAct *make_cg_act(FklCgActCb f,
+        FklCgActCtx *context,
+        FklCgNextExp *nextExpression,
+        uint32_t scope,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklVMvalueCgEnv *env,
+        uint64_t curline,
+        FklCgAct *prev,
+        FklVMvalueCgInfo *info) {
+    FklCgAct *r = (FklCgAct *)fklZmalloc(sizeof(FklCgAct));
+    FKL_ASSERT(r);
+    r->scope = scope;
+    r->macros = macro_scope;
+    r->cb = f;
+    r->ctx = context;
+    r->exps = nextExpression;
+    r->env = env;
+    r->curline = curline;
+    r->info = info;
+    r->prev = prev;
+    fklValueVectorInit(&r->bcl_vector, 0);
+    return r;
+}
+
 #endif

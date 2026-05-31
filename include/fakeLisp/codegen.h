@@ -461,6 +461,11 @@ typedef struct FklCgAct {
 #define FKL_VECTOR_ELM_TYPE_NAME CgAct
 #include "cont/vector.h"
 
+// FklCgExpQueue
+#define FKL_QUEUE_ELM_TYPE FklPmatchRes
+#define FKL_QUEUE_ELM_TYPE_NAME CgExp
+#include "cont/queue.h"
+
 void fklInitProdActionList(FklCgCtx *ctx);
 
 void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
@@ -733,6 +738,12 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
     FKL_ASSERT(fklIsVMvalueCustomActCtx(v));
     return (FklVMvalueCustomActCtx *)v;
 }
+
+FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
+        FklCgActVector *actions,
+        FklVMvalue *rest,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgMacroScope *ms);
 
 int fklIsVMvalueSimpleActCtx(const FklVMvalue *v);
 

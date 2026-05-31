@@ -7,6 +7,7 @@
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/parser.h>
+#include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/str_buf.h>
 #include <fakeLisp/symbol.h>
@@ -18,7 +19,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 static void uninit_cg_lib(FklCgLib *lib);
 
@@ -773,8 +773,6 @@ void fklClearCgLibMacros2(const FklCgCtx *ctx) {
         fklClearCgLibMacros(&cur->v);
 }
 
-#define CURLINE(V) get_curline(codegen, V)
-
 static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
         FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_MACROEXPANDFAILED,
@@ -860,7 +858,7 @@ static int execute_macro_expand_procedure(FklCgCtx *ctx,
 
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueCgInfo *info,
         const FklVMvalueCgMacroScope *macros) {
     FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
@@ -876,7 +874,7 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
     for (const FklVMvalueCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
-        if (expand_all_macro_arg(ctx, &ht, codegen, macros))
+        if (expand_all_macro_arg(ctx, &ht, info, macros))
             return NULL;
 
         fklPmatchHashMapAdd2(&ht,
@@ -888,7 +886,7 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         FklVMvalue *retval = NULL;
 
         int e = execute_macro_expand_procedure(ctx,
-                codegen->dir,
+                info->dir,
                 macro->proc,
                 &ht,
                 curline,
@@ -914,7 +912,7 @@ FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
 
 FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklPmatchRes *exp,
-        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueCgInfo *info,
         const FklVMvalueCgMacroScope *macros) {
     FklCgErrorState *error_state = ctx->error_state;
     FklVMvalue *r = exp->value;
@@ -931,7 +929,7 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
     for (const FklVMvalueCgMacro *macro = find_macro(r, macros, &ht);
             !error_state->error && macro;
             macro = find_macro(r, macros, &ht)) {
-        if (expand_all_macro_arg(ctx, &ht, codegen, macros))
+        if (expand_all_macro_arg(ctx, &ht, info, macros))
             return NULL;
 
         fklPmatchHashMapAdd2(&ht,
@@ -943,7 +941,7 @@ FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         FklVMvalue *retval = NULL;
 
         int e = execute_macro_expand_procedure(ctx,
-                codegen->dir,
+                info->dir,
                 macro->proc,
                 &ht,
                 curline,
@@ -3585,4 +3583,759 @@ int fklExecuteCgRmacro(FklCgCtx *ctx,
             return err;
     }
     return 0;
+}
+
+typedef enum {
+    VAL_TO_GRAMMER_SYM_ERR_DUMMY = 0,
+    VAL_TO_GRAMMER_SYM_ERR_INVALID,
+    VAL_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED,
+    VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN,
+    VAL_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED,
+    VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE,
+    VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST,
+} ValToGrammerSymErr;
+
+static inline const char *get_val_to_gra_sym_err_msg(ValToGrammerSymErr err) {
+    FklBuiltinTerminalInitError builtin_terminal_err = err >> CHAR_BIT;
+    err &= 0xff;
+
+    switch (err) {
+    case VAL_TO_GRAMMER_SYM_ERR_DUMMY:
+        FKL_UNREACHABLE();
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_INVALID:
+        return "invalid syntax";
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST:
+        return "invalid action syntax";
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE:
+        return "invalid action type";
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED:
+        switch (builtin_terminal_err) {
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY:
+            FKL_UNREACHABLE();
+            break;
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS:
+            return "init builtin terminal with too many arguments";
+            break;
+        case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS:
+            return "init builtin terminal with too few arguments";
+            break;
+        }
+        return fklBuiltinTerminalInitErrorToCstr(builtin_terminal_err);
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN:
+        return "unresolved builtin terminal";
+        break;
+    case VAL_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED:
+        return "failed to compile regex";
+        break;
+    }
+
+    return NULL;
+}
+
+static inline int is_builtin_gra_sym(const FklVMvalue *sym) {
+    const FklString *s = FKL_VM_SYM(sym);
+    return fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
+                   sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
+                   s->str,
+                   s->size)
+        == sizeof(FKL_PG_SPECIAL_PREFIX) - 1;
+}
+
+typedef FklLalrBuiltinMatch BtS;
+
+static FKL_ALWAYS_INLINE const BtS *is_valid_builtin_term(const FklGrammer *g,
+        const FklVMvalue *sym) {
+    const BtS *builtin_terminal = fklGetBuiltinMatch(&g->builtins, sym);
+    return builtin_terminal;
+}
+
+static inline int is_valid_production_rule_node(const FklVMvalue *n) {
+    return FKL_IS_VECTOR(n)                                //
+        || FKL_IS_STR(n)                                   //
+        || (FKL_IS_BOX(n) && FKL_IS_VECTOR(FKL_VM_BOX(n))) //
+        || is_string_list(n);
+}
+
+typedef FklBuiltinTerminalInitError BtError;
+
+static FKL_ALWAYS_INLINE BtError do_check_bs_args(const BtS *bt,
+        const FklGrammer *g,
+        FklVMvalueVec *args_vec) {
+    size_t arg_count = 0;
+    FklString const **args = NULL;
+    BtError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+
+    if (args_vec != NULL) {
+        FKL_ASSERT(FKL_IS_VECTOR(FKL_VM_VAL(args_vec)));
+        FKL_ASSERT(args_vec->size > 0);
+
+        arg_count = args_vec->size - 1;
+        size_t total_size = arg_count * sizeof(FklString *);
+        args = fklZmalloc(total_size);
+
+        for (size_t i = 1; i < args_vec->size; ++i) {
+            const FklString *str_v = FKL_VM_STR(args_vec->base[i]);
+            args[i - 1] = str_v;
+        }
+    }
+
+    if (bt->args_check != NULL) {
+        err = bt->args_check(arg_count, args, g);
+    }
+
+    if (args != NULL) {
+        fklZfree(args);
+    }
+
+    arg_count = 0;
+
+    return err;
+}
+
+static inline FklVMvalue *
+make_BtS_args_check(FklVM *vm, BtError err, FklVMvalue *sym) {
+    FklVMvalue *err_v = NULL;
+    switch (err) {
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS:
+        err_v = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "Too many args passed to builtin terminal %S",
+                sym);
+        break;
+    case FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS:
+        err_v = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "Too few args passed to builtin terminal %S",
+                sym);
+        break;
+    }
+
+    FKL_ASSERT(err_v != NULL);
+    return err_v;
+}
+
+FKL_NODISCARD
+static inline ValToGrammerSymErr vec_to_builtin_terminal(const FklCgCtx *ctx,
+        FklVMvalue *vec,
+        FklCgRmacroGraSym *s,
+        const FklGrammer *g) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+    if (FKL_VM_VEC(vec)->size == 0)
+        return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+
+    FklVMvalue *first = FKL_VM_VEC(vec)->base[0];
+    if (!FKL_IS_SYM(first))
+        return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+
+    if (is_builtin_gra_sym(first)) {
+        const BtS *bs = is_valid_builtin_term(g, first);
+        if (bs == NULL)
+            return VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN;
+
+        for (size_t i = 1; i < FKL_VM_VEC(vec)->size; ++i) {
+            if (!FKL_IS_STR(FKL_VM_VEC(vec)->base[i]))
+                return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        }
+
+        BtError err = do_check_bs_args(bs, g, FKL_VM_VEC(vec));
+        if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+            errors->error = make_BtS_args_check(vm, err, first);
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        }
+
+        s->type = FKL_TERM_BUILTIN;
+        s->v = vec;
+        return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+    } else {
+        return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+    }
+}
+
+static inline int is_regex_str_valid(const FklString *s) {
+    FklRegexCode *re = fklRegexCompileCharBuf(s->str, s->size);
+    if (re == NULL)
+        return 1;
+    fklRegexFree(re);
+    return 1;
+}
+
+static inline ValToGrammerSymErr val_to_grammer_sym(const FklCgCtx *cg_ctx,
+        FklVMvalue *node,
+        FklCgRmacroGraSym *s) {
+    const FklGrammer *g = &cg_ctx->builtin_g;
+    FklVM *vm = cg_ctx->vm;
+    FklCgErrorState *errors = cg_ctx->error_state;
+    if (FKL_IS_VECTOR(node)) {
+        return vec_to_builtin_terminal(cg_ctx, node, s, g);
+    } else if (FKL_IS_BYTEVECTOR(node)) {
+        FklBytevector *bytes = FKL_VM_BVEC(node);
+        s->type = FKL_TERM_KEYWORD;
+        s->v = fklCreateVMvalueStr2(vm, bytes->size, (const char *)bytes->ptr);
+    } else if (FKL_IS_BOX(node)) {
+        FklVMvalue *v = FKL_VM_BOX(node);
+        if (!FKL_IS_STR(v))
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        s->type = FKL_TERM_REGEX;
+        s->v = v;
+        if (!is_regex_str_valid(FKL_VM_STR(v))) {
+            return VAL_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED;
+        }
+    } else if (FKL_IS_STR(node)) {
+        s->type = FKL_TERM_STRING;
+        s->v = node;
+    } else if (FKL_IS_PAIR(node)) {
+        FklVMvalue *car = FKL_VM_CAR(node);
+        FklVMvalue *cdr = FKL_VM_CDR(node);
+        if (!FKL_IS_SYM(car) || !FKL_IS_SYM(cdr))
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        s->type = FKL_TERM_NONTERM;
+        s->v = node;
+    } else if (FKL_IS_SYM(node)) {
+        if (is_builtin_gra_sym(node)) {
+            const BtS *bt = is_valid_builtin_term(g, node);
+            if (bt != NULL) {
+                BtError err = do_check_bs_args(bt, g, NULL);
+                if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+                    errors->error = make_BtS_args_check(vm, err, node);
+                    return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+                }
+
+                s->type = FKL_TERM_BUILTIN;
+                s->v = node;
+            } else {
+                return VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN;
+            }
+        } else {
+            s->type = FKL_TERM_NONTERM;
+            s->v = node;
+        }
+    } else {
+        return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+    }
+
+    return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+}
+
+static inline int is_concat_sym(const FklString *str) {
+    return fklStringCstrCmp(str, FKL_PG_TERM_CONCAT) == 0;
+}
+
+typedef struct {
+    // in
+    const FklCgCtx *ctx;
+
+    // out
+    FklVMvalue *err_node;
+    FklVMvalueCgRmacroProd *prod;
+    int adding_ignore;
+} VecToGrammerSymArgs;
+
+// CgRmacroGraSymVector
+#define FKL_VECTOR_TYPE_PREFIX Cg
+#define FKL_VECTOR_METHOD_PREFIX cg
+#define FKL_VECTOR_ELM_TYPE FklCgRmacroGraSym
+#define FKL_VECTOR_ELM_TYPE_NAME RmacroGraSym
+#include <fakeLisp/cont/vector.h>
+
+static inline FklVMvalueCgRmacroProd *create_prod(FklVM *vm, uint64_t len) {
+    return fklCreateVMvalueCgRmacroProd(vm, NULL, NULL, FKL_VM_NIL, 0, len);
+}
+
+static inline ValToGrammerSymErr
+vec_to_prod_right_part(VecToGrammerSymArgs *args, const FklVMvalue *vec) {
+    const FklCgCtx *ctx = args->ctx;
+    if (FKL_VM_VEC(vec)->size == 0) {
+        args->prod = create_prod(ctx->vm, 0);
+        return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+    }
+
+    ValToGrammerSymErr err = VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+    CgRmacroGraSymVector gsym_vector;
+    cgRmacroGraSymVectorInit(&gsym_vector, 2);
+
+    int has_ignore = 0;
+    for (size_t i = 0; i < FKL_VM_VEC(vec)->size; ++i) {
+        FklCgRmacroGraSym s = { .type = FKL_TERM_NONE };
+        FklVMvalue *cur = FKL_VM_VEC(vec)->base[i];
+        if (FKL_IS_SYM(cur) && is_concat_sym(FKL_VM_SYM(cur))) {
+            if (!has_ignore) {
+                args->err_node = cur;
+                err = VAL_TO_GRAMMER_SYM_ERR_INVALID;
+                goto error_happened;
+            } else {
+                has_ignore = 0;
+            }
+            continue;
+        } else {
+            err = val_to_grammer_sym(ctx, cur, &s);
+            if (err) {
+                args->err_node = cur;
+                goto error_happened;
+            }
+        }
+
+        if (has_ignore) {
+            FklCgRmacroGraSym s = { .type = FKL_TERM_IGNORE };
+            cgRmacroGraSymVectorPushBack(&gsym_vector, &s);
+        }
+
+        if (args->adding_ignore && s.type == FKL_TERM_NONTERM) {
+            args->err_node = cur;
+            err = VAL_TO_GRAMMER_SYM_ERR_INVALID;
+            goto error_happened;
+        }
+
+        cgRmacroGraSymVectorPushBack(&gsym_vector, &s);
+        has_ignore = !args->adding_ignore;
+    }
+
+    args->prod = create_prod(ctx->vm, gsym_vector.size);
+
+    for (size_t i = 0; i < args->prod->len; ++i) {
+        args->prod->syms[i] = gsym_vector.base[i];
+    }
+
+    cgRmacroGraSymVectorUninit(&gsym_vector);
+
+    return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+
+error_happened:
+    cgRmacroGraSymVectorUninit(&gsym_vector);
+    return err;
+}
+
+static inline FklVMvalueCgRmacroProd *vec_to_ignore(const FklVMvalue *vec,
+        VecToGrammerSymArgs *args,
+        ValToGrammerSymErr *perr) {
+
+    args->adding_ignore = 1;
+    ValToGrammerSymErr err = vec_to_prod_right_part(args, vec);
+    *perr = err;
+    if (err)
+        return NULL;
+    return args->prod;
+}
+
+typedef struct {
+    // in
+    uint32_t line;
+    uint8_t add_extra;
+    FklVMvalue *left_sid;
+    FklVMvalue *action_type;
+    FklVMvalue *action_ast;
+    FklVMvalue *group_id;
+    FklVMvalueCgInfo *info;
+    FklVMvalueCgMacroScope *macro_scope;
+    FklCgActVector *actions;
+    FklCgCtx *ctx;
+
+    // out
+    FklVMvalueCgRmacro *const g;
+    FklVMvalue *err_node;
+    FklVMvalueCgRmacroProd *prod;
+} NastToProductionArgs;
+
+struct RmacroCtx {
+    FklVMvalueCustomActCtx *action_ctx;
+};
+
+static inline void init_reader_macro_context(struct RmacroCtx *r,
+        FklVMvalueCustomActCtx *ctx) {
+    r->action_ctx = ctx;
+}
+
+static void _reader_macro_stack_context_atomic(FklVMgc *gc, void *data) {
+    struct RmacroCtx *d = (struct RmacroCtx *)data;
+    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, d->action_ctx), gc);
+}
+
+static const FklCgActCtxMethodTable RmacroStackContextMethodTable = {
+    .size = sizeof(struct RmacroCtx),
+    .atomic = _reader_macro_stack_context_atomic,
+};
+
+static inline FklCgActCtx *createRmacroActionContext(
+        FklVMvalueCustomActCtx *ctx) {
+    FklCgActCtx *r = createCgActCtx(&RmacroStackContextMethodTable);
+
+    init_reader_macro_context(FKL_TYPE_CAST(struct RmacroCtx *, r->d), ctx);
+
+    return r;
+}
+
+static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
+    void *data = args->data;
+    FklCgCtx *ctx = args->ctx;
+    FklVMvalueCgEnv *env = args->env;
+    uint32_t scope = args->scope;
+    FklValueVector *bcl_vec = args->bcl_vec;
+    FklVMvalue *fid = args->fid;
+    uint64_t line = args->line;
+
+    struct RmacroCtx *d = FKL_TYPE_CAST(struct RmacroCtx *, data);
+    FklVMvalueCustomActCtx *custom_ctx = d->action_ctx;
+    d->action_ctx = NULL;
+
+    FklVMvalueProto *pt = fklCreateVMvalueProto2(ctx->vm, env);
+    fklPrintUndefinedRef(env->prev, &ctx->vm->gc->err_out);
+
+    FklVMvalue *macro_bcl = *fklValueVectorPopBackNonNull(bcl_vec);
+    FklIns ret = FKL_MAKE_INS_I(FKL_OP_RET);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(macro_bcl), ret, fid, line, scope);
+
+    fklPeepholeOptimize(FKL_VM_CO(macro_bcl));
+
+    FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, macro_bcl, pt);
+    fklInitMainProcRefs(ctx->vm, proc);
+
+    custom_ctx->proc = proc;
+    return NULL;
+}
+
+static inline ValToGrammerSymErr vec_to_prod(const FklVMvalue *vec,
+        NastToProductionArgs *args) {
+    FklCgCtx *ctx = args->ctx;
+    VecToGrammerSymArgs other_args = { .ctx = ctx };
+    ValToGrammerSymErr err = vec_to_prod_right_part(&other_args, vec);
+    if (err) {
+        args->err_node = other_args.err_node;
+        return err;
+    }
+
+    FKL_ASSERT(other_args.prod != NULL);
+    FklVMvalue *action_type = args->action_type;
+    FklVMvalueCgInfo *info = args->info;
+    FklVMvalue *action_ast = args->action_ast;
+    FklVMvalue *left_sid = args->left_sid;
+
+    FklVMvalueCgRmacroProd *prod = other_args.prod;
+
+    args->prod = prod;
+    prod->left = left_sid;
+    prod->add_extra = args->add_extra;
+    prod->action_type = action_type;
+
+    if (action_type == ctx->builtin_sym_builtin) {
+        if (!FKL_IS_SYM(action_ast)
+                || !fklIsCgRmacroBuiltinActionValid(ctx, action_ast)) {
+            args->err_node = action_ast;
+            err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
+
+        prod->action = action_ast;
+    } else if (action_type == ctx->builtin_sym_simple) {
+        if (!FKL_IS_VECTOR(action_ast)               //
+                || FKL_VM_VEC(action_ast)->size == 0 //
+                || !FKL_IS_SYM(FKL_VM_VEC(action_ast)->base[0])) {
+            args->err_node = action_ast;
+            err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
+
+        FklVMvalueSimpleActCtx *action = NULL;
+        action = fklCreateVMvalueSimpleActCtx1(ctx, action_ast);
+        if (action == NULL) {
+            args->err_node = action_ast;
+            err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
+
+        prod->action = FKL_VM_VAL(action);
+    } else if (action_type == ctx->builtin_sym_custom) {
+        FklVMvalueCgEnv *macro_env = NULL;
+        FklVMvalueCgInfo *macro_info = macro_compile_prepare(ctx,
+                info,
+                args->macro_scope,
+                NULL,
+                &macro_env,
+                CURLINE(action_ast));
+
+        CgExpQueue *queue = cgExpQueueCreate();
+        int failed = 0;
+        if (failed) {
+            args->err_node = action_ast;
+            err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST;
+            goto error_happened;
+        }
+
+        FklVMvalueCustomActCtx *act_ctx = NULL;
+
+        act_ctx = fklCreateCgRmacroCustomAction(ctx, prod);
+
+        prod->action = FKL_VM_VAL(act_ctx);
+
+        for (size_t i = 0; i < act_ctx->actual_len; ++i) {
+            fklAddCgDefBySid(act_ctx->dollers[i], 1, macro_env);
+        }
+        fklAddCgDefBySid(act_ctx->doller_s, 1, macro_env);
+        fklAddCgDefBySid(act_ctx->line_s, 1, macro_env);
+
+        cgExpQueuePush2(queue,
+                (FklPmatchRes){
+                    .value = action_ast,
+                    .container = action_ast,
+                });
+
+        FklCgAct *new_act = make_cg_act(_reader_macro_bc_process,
+                createRmacroActionContext(act_ctx),
+                createMustHasRetvalQueueNextExpression(queue),
+                1,
+                macro_env->macros,
+                macro_env,
+                CURLINE(action_ast),
+                NULL,
+                macro_info);
+        fklCgActVectorPushBack2(args->actions, new_act);
+    } else if (action_type == ctx->builtin_sym_replace) {
+        prod->action = action_ast;
+    } else {
+        args->err_node = NULL;
+        err = VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_TYPE;
+    error_happened:
+        return err;
+    }
+
+    return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
+}
+
+static inline FklVMvalueCgRmacroProd *
+make_ignore(FklCgCtx *ctx, FklVMvalueCgInfo *info, FklVMvalue *vector_node) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+    FklVMvalue *ignore_obj = FKL_VM_BOX(vector_node);
+    FKL_ASSERT(FKL_IS_VECTOR(ignore_obj));
+
+    VecToGrammerSymArgs args = { .ctx = ctx };
+
+    ValToGrammerSymErr err = 0;
+    FklVMvalueCgRmacroProd *prod = vec_to_ignore(ignore_obj, &args, &err);
+
+    if (err) {
+        if (errors->error != NULL) {
+            errors->line = CURLINE(args.err_node);
+        } else {
+            const char *msg = get_val_to_gra_sym_err_msg(err);
+            errors->error = make_grammer_create_error2(vm, msg, args.err_node);
+            errors->line = CURLINE(vector_node);
+        }
+        return NULL;
+    }
+
+    return prod;
+}
+
+// CgRmacroCmdVector
+#define FKL_VECTOR_TYPE_PREFIX Cg
+#define FKL_VECTOR_METHOD_PREFIX cg
+#define FKL_VECTOR_ELM_TYPE FklCgRmacroCmd
+#define FKL_VECTOR_ELM_TYPE_NAME RmacroCmd
+#include <fakeLisp/cont/vector.h>
+
+static int add_delimiters(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
+        FklVMvalue *vector_node,
+        CgRmacroCmdVector *cmds) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+    if (FKL_IS_STR(vector_node)) {
+        FklCgRmacroCmd cmd = {
+            .op = FKL_CG_RMACRO_ADD_DELIM,
+            .args = vector_node,
+        };
+        cgRmacroCmdVectorPushBack(cmds, &cmd);
+        return 0;
+    }
+
+    if (FKL_IS_PAIR(vector_node)) {
+        const FklVMvalue *cur = vector_node;
+        for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
+            FKL_ASSERT(FKL_IS_STR(FKL_VM_CAR(cur)));
+            FklCgRmacroCmd cmd = {
+                .op = FKL_CG_RMACRO_ADD_DELIM,
+                .args = FKL_VM_CAR(cur),
+            };
+            cgRmacroCmdVectorPushBack(cmds, &cmd);
+        }
+
+        if (cur != FKL_VM_NIL) {
+            errors->error = make_syntax_error(vm, vector_node);
+            errors->line = CURLINE(vector_node);
+            return 1;
+        }
+
+        return 0;
+    }
+
+    if (FKL_IS_BOX(vector_node)) {
+        FklVMvalueCgRmacroProd *ignore = make_ignore(ctx, info, vector_node);
+        if (ignore == NULL)
+            return 1;
+
+        FklCgRmacroCmd cmd = {
+            .op = FKL_CG_RMACRO_ADD_IGNORE,
+            .args = FKL_VM_VAL(ignore),
+        };
+
+        cgRmacroCmdVectorPushBack(cmds, &cmd);
+        return 0;
+    }
+
+    errors->error = make_syntax_error(vm, vector_node);
+    errors->line = CURLINE(vector_node);
+
+    return 1;
+}
+
+static inline int process_add_production(FklCgCtx *ctx,
+        CgRmacroCmdVector *cmds,
+        FklVMvalueCgInfo *info,
+        FklVMvalue *vector_node,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklCgActVector *actions) {
+    FklVM *vm = ctx->vm;
+    FklCgErrorState *errors = ctx->error_state;
+
+    if (!FKL_IS_VECTOR(vector_node)) {
+        if (add_delimiters(ctx, info, vector_node, cmds))
+            return 1;
+
+        return 0;
+    }
+
+    FklVMvalue *error_node = NULL;
+    FklVMvalue *vec = vector_node;
+
+    if (FKL_VM_VEC(vec)->size != 4) {
+        error_node = vector_node;
+    reader_macro_syntax_error:
+        errors->error = make_syntax_error(vm, error_node);
+        errors->line = CURLINE(vec);
+        return 1;
+    }
+
+    FklVMvalue **base = FKL_VM_VEC(vec)->base;
+
+    if (!FKL_IS_SYM(base[2])) {
+        error_node = base[2];
+        goto reader_macro_syntax_error;
+    }
+
+    FklVMvalue *vect = NULL;
+    NastToProductionArgs args = {
+        .line = CURLINE(vec),
+        .add_extra = 1,
+        .action_type = base[2],
+        .action_ast = base[3],
+        .info = info,
+        .macro_scope = macro_scope,
+        .actions = actions,
+        .ctx = ctx,
+    };
+
+    args.left_sid = FKL_VM_NIL;
+
+    if (base[0] == FKL_VM_NIL && FKL_IS_VECTOR(base[1])) {
+        vect = base[1];
+        args.add_extra = 0;
+    } else if (FKL_IS_SYM(base[0]) && FKL_IS_VECTOR(base[1])) {
+        vect = base[1];
+        FklVMvalue *sid = base[0];
+
+        args.left_sid = sid;
+    } else if (FKL_IS_VECTOR(base[0]) && FKL_IS_SYM(base[1])) {
+        vect = base[0];
+        FklVMvalue *sid = base[1];
+
+        args.left_sid = sid;
+        args.add_extra = 0;
+    } else {
+        error_node = vector_node;
+        goto reader_macro_syntax_error;
+    }
+
+    ValToGrammerSymErr err = vec_to_prod(vect, &args);
+    if (err == VAL_TO_GRAMMER_SYM_ERR_DUMMY) {
+        FklCgRmacroCmd cmd = {
+            .op = FKL_CG_RMACRO_ADD_PROD,
+            .args = FKL_VM_VAL(args.prod),
+        };
+        cgRmacroCmdVectorPushBack(cmds, &cmd);
+        return 0;
+    }
+
+    FklVMvalue *err_val = args.err_node == NULL ? base[2] : args.err_node;
+    if (errors->error != NULL) {
+        errors->line = CURLINE(args.err_node);
+    } else {
+        const char *msg = get_val_to_gra_sym_err_msg(err);
+        errors->error = make_grammer_create_error2(vm, msg, err_val);
+        errors->line = CURLINE(vect);
+    }
+    return 1;
+}
+
+static inline FklVMvalueCgRmacro *make_rmacro(FklCgCtx *ctx,
+        CgRmacroCmdVector *cmds) {
+    FklVM *vm = ctx->vm;
+    uint32_t len = cmds->size;
+    FklVMvalueCgRmacro *rmacro = fklCreateVMvalueCgRmacro(vm, len);
+    for (uint32_t i = 0; i < len; ++i) {
+        rmacro->cmds[i] = cmds->base[i];
+    }
+
+    return rmacro;
+}
+
+FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
+        FklCgActVector *actions,
+        FklVMvalue *rest,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgMacroScope *ms) {
+    FklVM *vm = ctx->vm;
+
+
+    FklCgErrorState *errors = ctx->error_state;
+    FKL_ASSERT(errors);
+
+    FklVMvalue *rv = rest;
+
+    for (; FKL_IS_PAIR(rv); rv = FKL_VM_CDR(rv)) {
+        if (!is_valid_production_rule_node(FKL_VM_CAR(rv))) {
+            errors->error = make_syntax_error(vm, FKL_VM_CAR(rv));
+            errors->line = get_curline(info, rv);
+            return NULL;
+        }
+    }
+
+    if (!FKL_IS_NIL(rv)) {
+        errors->error = make_syntax_error(vm, FKL_VM_CAR(rest));
+        errors->line = get_curline(info, rest);
+    }
+
+    CgRmacroCmdVector cmd_vec = { 0 };
+    cgRmacroCmdVectorInit(&cmd_vec, 8);
+
+    for (rv = rest; FKL_IS_PAIR(rv); rv = FKL_VM_CDR(rv)) {
+        FklVMvalue *cur = FKL_VM_CAR(rv);
+        if (process_add_production(ctx, &cmd_vec, info, cur, ms, actions)) {
+            cgRmacroCmdVectorUninit(&cmd_vec);
+            return NULL;
+        }
+    }
+
+    FklVMvalueCgRmacro *rmacro = make_rmacro(ctx, &cmd_vec);
+
+    cgRmacroCmdVectorUninit(&cmd_vec);
+
+    return rmacro;
 }

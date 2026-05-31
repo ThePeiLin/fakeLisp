@@ -663,7 +663,13 @@ static FklVMvalue *_funcall_exp_bc_process(const FklCgActCbArgs *args) {
     }
 }
 
-#define CURLINE(V) get_curline(info, V)
+static inline FklVMvalue *make_not_in_top_level_error(FklVM *exe,
+        FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
+            exe,
+            "Expression %S should in top level",
+            place);
+}
 
 static inline FklVMvalue *make_assign_const_error(FklVM *exe,
         FklVMvalue *place) {
@@ -7361,6 +7367,15 @@ static inline int check_export_symbol_interned(FklVM *vm,
     return 1;
 }
 
+static FKL_ALWAYS_INLINE int is_top_level(FklVMvalueCgInfo *info,
+        FklVMvalueCgEnv *env,
+        FklVMvalueCgMacroScope *ms,
+        uint32_t scope) {
+    return env->prev == info->global_env //
+        && scope < 2                     //
+        && ms->prev == info->global_env->macros;
+}
+
 static void codegen_defmacro_impl(const CgCbArgs *args,
         FklVMvalueCgInfo *lib_info) {
     FklPmatchHashMap *ht = args->ht;
@@ -7378,6 +7393,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
         errors->line = CURLINE(orig->container);
         return;
     }
+
     const FklPmatchRes *name = fklPmatchHashMapGet2(ht, ctx->builtin_sym_name);
     const FklPmatchRes *value =
             fklPmatchHashMapGet2(ht, ctx->builtin_sym_value);
@@ -7483,13 +7499,13 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
     FklVMvalueCgMacroScope *macro_scope = args->macro_scope;
     FklVMvalueCgInfo *info = args->info;
     FklCgActVector *actions = args->actions;
-    FklCgErrorState *error_state = ctx->error_state;
+    FklCgErrorState *errors = ctx->error_state;
     uint8_t const must_has_retval = args->must_has_retval;
     const FklPmatchRes *orig = args->orig;
 
     if (must_has_retval) {
-        error_state->error = make_has_no_value_error(vm, orig->value);
-        error_state->line = CURLINE(orig->container);
+        errors->error = make_has_no_value_error(vm, orig->value);
+        errors->line = CURLINE(orig->container);
         return;
     }
 
@@ -7505,10 +7521,10 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
     if (!FKL_IS_SYM(group_id)) {
         err_node = *name;
     reader_macro_error:
-        if (error_state->error != NULL)
+        if (errors->error != NULL)
             return;
-        error_state->error = make_syntax_error(vm, err_node.value);
-        error_state->line = CURLINE(err_node.container);
+        errors->error = make_syntax_error(vm, err_node.value);
+        errors->line = CURLINE(err_node.container);
         return;
     }
 
@@ -7516,7 +7532,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
             && !check_export_symbol_interned(vm,
                     group_id,
                     CURLINE(name->container),
-                    error_state)) {
+                    errors)) {
         goto reader_macro_error;
     }
 
@@ -7559,11 +7575,8 @@ static void codegen_export_single(const CgCbArgs *args) {
     FklPmatchRes orig = *args->orig;
 
     FklVMvalueCgInfo *lib_info = get_lib_info(info);
-    if (!lib_info                            //
-            || env->prev != info->global_env //
-            || scope > 1                     //
-            || macro_scope->prev != info->global_env->macros) {
-        errors->error = make_syntax_error(vm, orig.value);
+    if (!lib_info || !is_top_level(info, env, macro_scope, scope)) {
+        errors->error = make_not_in_top_level_error(vm, orig.value);
         errors->line = CURLINE(orig.container);
         return;
     }
@@ -7626,16 +7639,17 @@ static void codegen_export_single(const CgCbArgs *args) {
                     .container = v.container,
                 });
 
-        fklCgActVectorPushBack2(actions,
-                make_cg_act(exports_bc_process,
-                        create_export_sequnce_context(&orig, must_has_retval),
-                        createDefaultQueueNextExpression(queue),
-                        1,
-                        macro_scope,
-                        env,
-                        CURLINE(orig.container),
-                        NULL,
-                        info));
+        FklCgAct *act = make_cg_act(exports_bc_process,
+                create_export_sequnce_context(&orig, must_has_retval),
+                createDefaultQueueNextExpression(queue),
+                1,
+                macro_scope,
+                env,
+                CURLINE(orig.container),
+                NULL,
+                info);
+        fklCgActVectorPushBack2(actions, act);
+
         return;
     } else if (isExportDefunExp(v.value, patterns)) {
         name = caadr(v.value);

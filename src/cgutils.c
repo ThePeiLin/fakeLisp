@@ -3232,8 +3232,9 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
                 .nt.group = NULL,
-                .nt.sid = append_symbol(ctx->vm, group, v),
+                .nt.sid = group == NULL ? v : append_symbol(ctx->vm, group, v),
             };
+
         } else if (FKL_IS_PAIR(v)) {
             FKL_ASSERT(FKL_IS_SYM(FKL_VM_CAR(v)));
             FKL_ASSERT(FKL_IS_SYM(FKL_VM_CDR(v)));
@@ -4302,7 +4303,6 @@ FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalueCgMacroScope *ms) {
     FklVM *vm = ctx->vm;
-
 
     FklCgErrorState *errors = ctx->error_state;
     FKL_ASSERT(errors);

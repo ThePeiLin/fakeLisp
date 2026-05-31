@@ -42,6 +42,7 @@ typedef struct {
 FKL_NODISCARD
 static int load_proto_table(FILE *fp,
         const FklLoadValueArgs *values,
+        FklValueVector *ph_vec,
         FklLoadProtoArgs *args);
 
 typedef struct {
@@ -131,13 +132,27 @@ static FklVMudMetaTable const LibPlaceholderUserDataMetaTable = {
     .prin1 = lib_placeholder_print,
 };
 
-static inline FklVMvalueLibPlaceholder *create_lib_placeholder(FklVM *vm,
-        LibIdx idx) {
-    FklVMvalueLibPlaceholder *p =
-            (FklVMvalueLibPlaceholder *)fklCreateVMvalueUd(vm,
-                    &LibPlaceholderUserDataMetaTable,
-                    NULL);
+static inline FklVMvalueLibPlaceholder *
+create_lib_placeholder(FklVM *vm, LibIdx idx, FklValueVector *ph_vec) {
+    FKL_ASSERT(idx > 0);
+    fklValueVectorReserve(ph_vec, idx);
+    if (ph_vec->size < idx) {
+        size_t clean_size = (idx - ph_vec->size) * sizeof(*ph_vec->base);
+        memset(&ph_vec->base[ph_vec->size], 0, clean_size);
+        ph_vec->size = idx;
+    }
+
+    FklVMvalue *v = ph_vec->base[idx - 1];
+    if (v != NULL) {
+        FKL_ASSERT(is_lib_placeholder(v));
+        return (FklVMvalueLibPlaceholder *)v;
+    }
+
+    v = fklCreateVMvalueUd(vm, &LibPlaceholderUserDataMetaTable, NULL);
+    FklVMvalueLibPlaceholder *p = (FklVMvalueLibPlaceholder *)v;
     p->idx = idx;
+
+    ph_vec->base[idx - 1] = v;
     return p;
 }
 
@@ -506,7 +521,8 @@ load_symbol_def(FILE *fp, const FklLoadValueArgs *values, FklVarRefDef *def) {
 
 static inline FklVMvalueProto *load_prototype(FILE *fp,
         const FklLoadValueArgs *values,
-        const FklLoadProtoArgs *protos) {
+        const FklLoadProtoArgs *protos,
+        FklValueVector *ph_vec) {
     TotalValCount total_val_count = 0;
     fread(&total_val_count, sizeof(total_val_count), 1, fp);
     FklVMvalueProto *pt = fklCreateVMvalueProto(values->vm, total_val_count);
@@ -548,7 +564,8 @@ static inline FklVMvalueProto *load_prototype(FILE *fp,
     FklVMvalue **libs = &pt->vals[pt->used_libraries_offset];
     for (uint32_t i = 0; i < pt->used_libraries_count; ++i) {
         FklValueId u = read_lib_id(fp);
-        FklVMvalueLibPlaceholder *p = create_lib_placeholder(values->vm, u);
+        FklVMvalueLibPlaceholder *p;
+        p = create_lib_placeholder(values->vm, u, ph_vec);
         libs[i] = FKL_VM_VAL(p);
     }
 
@@ -612,6 +629,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
 
 static int load_proto_table(FILE *fp,
         const FklLoadValueArgs *values,
+        FklValueVector *ph_vec,
         FklLoadProtoArgs *args) {
     fread(&args->count, sizeof(args->count), 1, fp);
 
@@ -627,7 +645,7 @@ static int load_proto_table(FILE *fp,
 
     args->protos = protos;
     for (FklValueId id = args->count; id > 0; --id) {
-        args->protos[id - 1] = load_prototype(fp, values, args);
+        args->protos[id - 1] = load_prototype(fp, values, args, ph_vec);
     }
     return 0;
 }
@@ -1189,8 +1207,13 @@ FklVMvalueProc *fklLoadCodeFile(FILE *fp,
     (void)r;
     FKL_ASSERT(r == 0);
 
-    r = load_proto_table(fp, &values, &protos);
+    FklValueVector ph_vec = { 0 };
+    fklValueVectorInit(&ph_vec, 8);
+
+    r = load_proto_table(fp, &values, &ph_vec, &protos);
     FKL_ASSERT(r == 0);
+
+    fklValueVectorUninit(&ph_vec);
 
     r = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(r == 0);
@@ -1890,8 +1913,13 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     (void)err;
     FKL_ASSERT(err == 0);
 
-    err = load_proto_table(fp, &values, &protos);
+    FklValueVector ph_vec = { 0 };
+    fklValueVectorInit(&ph_vec, 8);
+
+    err = load_proto_table(fp, &values, &ph_vec, &protos);
     FKL_ASSERT(err == 0);
+
+    fklValueVectorUninit(&ph_vec);
 
     err = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(err == 0);

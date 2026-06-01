@@ -69,6 +69,7 @@ typedef struct {
 } FklLalrBuiltinGrammerSym;
 
 typedef struct {
+	// FKL_DEPRECATED
     FklVMvalue *group;
     FklVMvalue *sid;
 } FklGrammerNonterm;

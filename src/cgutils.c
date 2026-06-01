@@ -3040,7 +3040,7 @@ FklValueHashMapElm *fklCgRmacroHashMapRef1(FklVMvalueCgRmacroHashMap *map,
 FklVMvalueCgRmacro *fklCgRmacroHashMapDel(FklVMvalueCgRmacroHashMap *map,
         const FklVMvalue *s) {
     FklVMvalue *macro = NULL;
-    int has = fklVMhashTableDel(map, FKL_VM_VAL(s), NULL, &macro);
+    int has = fklVMhashTableDel(map, FKL_VM_VAL(s), &macro, NULL);
     return has ? fklVMvalueCgRmacro(macro) : NULL;
 }
 
@@ -3157,16 +3157,52 @@ done:
 }
 
 static inline FklVMvalue *
-append_symbol(FklVM *vm, FklVMvalue *a, FklVMvalue *b) {
+make_qualified_sym(FklVM *vm, FklVMvalue *a, FklVMvalue *b) {
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
     fklStrBufConcatWithString(&buf, FKL_VM_SYM(a));
-    fklStrBufConcatWithCstr(&buf, ":");
+    fklStrBufConcatWithCstr(&buf, FKL_QUALIFIED_NONTERM_SEP_STR);
     fklStrBufConcatWithString(&buf, FKL_VM_SYM(b));
 
     FklVMvalue *v = fklVMaddSymbolCharBuf(vm, buf.buf, buf.index);
     fklUninitStrBuf(&buf);
     return v;
+}
+
+// return the pos of qualified seperator or start of symbol
+static inline const char *is_valid_nonterm_sym(const FklVMvalue *sym) {
+    FKL_ASSERT(FKL_IS_SYM(sym));
+    FklString const *const s = FKL_VM_SYM(sym);
+    const char *const start = s->str;
+    const char *const end = &s->str[s->size];
+    size_t len = s->size;
+
+    const char *r = start;
+    const char *pos = memchr(start, FKL_QUALIFIED_NONTERM_SEP, len);
+    if (pos == NULL)
+        return r;
+
+    r = pos;
+    if (pos == start)
+        return NULL;
+
+    if (pos == end)
+        return NULL;
+
+    ++pos;
+
+    size_t offset = pos - start;
+    const char *other = memchr(pos, FKL_QUALIFIED_NONTERM_SEP, len - offset);
+    if (other != NULL)
+        return NULL;
+
+    return r;
+}
+
+static FKL_ALWAYS_INLINE int is_qualified_sym(const FklVMvalue *s) {
+    const char *pos = is_valid_nonterm_sym(s);
+    FKL_ASSERT(pos != NULL);
+    return *pos == FKL_QUALIFIED_NONTERM_SEP;
 }
 
 static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
@@ -3225,14 +3261,20 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
     case FKL_TERM_NONTERM: {
         FklVMvalue *v = in->v;
         if (FKL_IS_SYM(v)) {
-            FklVMvalue *group = fklIsNonterminalExist(builtin_g, NULL, v) //
-                                      ? NULL
-                                      : name;
+            FklVMvalue *left;
+
+            if (is_qualified_sym(v)) {
+                left = v;
+            } else if (fklIsNonterminalExist(builtin_g, NULL, v)) {
+                left = v;
+            } else {
+                left = make_qualified_sym(ctx->vm, name, v);
+            }
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
                 .nt.group = NULL,
-                .nt.sid = group == NULL ? v : append_symbol(ctx->vm, group, v),
+                .nt.sid = left,
             };
 
         } else if (FKL_IS_PAIR(v)) {
@@ -3242,7 +3284,9 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
                 .nt.group = NULL,
-                .nt.sid = append_symbol(ctx->vm, FKL_VM_CAR(v), FKL_VM_CDR(v)),
+                .nt.sid = make_qualified_sym(ctx->vm,
+                        FKL_VM_CAR(v),
+                        FKL_VM_CDR(v)),
             };
         } else {
             FKL_UNREACHABLE();
@@ -3268,7 +3312,7 @@ enum ActionType {
 };
 
 typedef FklGrammerNonterm Nt;
-static inline Nt rmacro_prod_left_get(FklCgCtx *ctx,
+static inline Nt get_rmacro_prod_left(FklCgCtx *ctx,
         FklVMvalue *group,
         FklVMvalueCgRmacroProd *in) {
     FKL_ASSERT(in->left != NULL);
@@ -3276,7 +3320,9 @@ static inline Nt rmacro_prod_left_get(FklCgCtx *ctx,
         return ctx->builtin_g.start;
     }
 
-    return (Nt){ .group = NULL, append_symbol(ctx->vm, group, in->left) };
+    FKL_ASSERT(!fklIsNonterminalExist(&ctx->builtin_g, group, in->left));
+
+    return (Nt){ .group = NULL, make_qualified_sym(ctx->vm, group, in->left) };
     // return (Nt){ .group = group, .sid = in->left };
 }
 
@@ -3367,7 +3413,7 @@ static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
         return NULL;
     }
 
-    Nt left = rmacro_prod_left_get(ctx, name, in);
+    Nt left = get_rmacro_prod_left(ctx, name, in);
 
     FklGrammerProduction *prod = NULL;
     switch (action_type) {
@@ -3452,7 +3498,7 @@ static inline int do_rmacro_add_prod(FklCgCtx *ctx,
     }
 
     if (prod->add_extra) {
-        FklVMvalue *left = append_symbol(vm, name, prod->left);
+        FklVMvalue *left = make_qualified_sym(vm, name, prod->left);
         out_prod = create_extra_start_prod(ctx, left);
         int r = fklAddProdToProdTable(g, out_prod);
         FKL_ASSERT(r == 0);
@@ -3801,24 +3847,29 @@ static inline ValToGrammerSymErr val_to_grammer_sym(const FklCgCtx *cg_ctx,
         s->type = FKL_TERM_NONTERM;
         s->v = node;
     } else if (FKL_IS_SYM(node)) {
-        if (is_builtin_gra_sym(node)) {
-            const BtS *bt = is_valid_builtin_term(g, node);
-            if (bt != NULL) {
-                BtError err = do_check_bs_args(bt, g, NULL);
-                if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
-                    errors->error = make_BtS_args_check(vm, err, node);
-                    return VAL_TO_GRAMMER_SYM_ERR_INVALID;
-                }
+        if (!is_valid_nonterm_sym(node)) {
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        }
 
-                s->type = FKL_TERM_BUILTIN;
-                s->v = node;
-            } else {
-                return VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN;
-            }
-        } else {
+        if (!is_builtin_gra_sym(node)) {
             s->type = FKL_TERM_NONTERM;
             s->v = node;
+            return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
         }
+
+        const BtS *bt = is_valid_builtin_term(g, node);
+        if (bt == NULL)
+            return VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN;
+
+        BtError err = do_check_bs_args(bt, g, NULL);
+        if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+            errors->error = make_BtS_args_check(vm, err, node);
+            return VAL_TO_GRAMMER_SYM_ERR_INVALID;
+        }
+
+        s->type = FKL_TERM_BUILTIN;
+        s->v = node;
+
     } else {
         return VAL_TO_GRAMMER_SYM_ERR_INVALID;
     }
@@ -4005,6 +4056,7 @@ static FklVMvalue *_reader_macro_bc_process(const FklCgActCbArgs *args) {
 static inline ValToGrammerSymErr vec_to_prod(const FklVMvalue *vec,
         NastToProductionArgs *args) {
     FklCgCtx *ctx = args->ctx;
+
     VecToGrammerSymArgs other_args = { .ctx = ctx };
     ValToGrammerSymErr err = vec_to_prod_right_part(&other_args, vec);
     if (err) {
@@ -4197,7 +4249,7 @@ static int add_delimiters(FklCgCtx *ctx,
     return 1;
 }
 
-static inline int process_add_production(FklCgCtx *ctx,
+static inline int parse_rmacro_cmds(FklCgCtx *ctx,
         CgRmacroCmdVector *cmds,
         FklVMvalueCgInfo *info,
         FklVMvalue *vector_node,
@@ -4264,6 +4316,25 @@ static inline int process_add_production(FklCgCtx *ctx,
         goto reader_macro_syntax_error;
     }
 
+    if (fklIsNonterminalExist(&ctx->builtin_g, NULL, args.left_sid)) {
+        errors->error = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "cannot redefine builtin non-terminal %S",
+                args.left_sid);
+
+        errors->line = CURLINE(vect);
+        return 1;
+    }
+
+    if (is_valid_builtin_term(&ctx->builtin_g, args.left_sid)) {
+        errors->error = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                vm,
+                "cannot redefine builtin special terminal %S",
+                args.left_sid);
+        errors->line = CURLINE(vect);
+        return 1;
+    }
+
     ValToGrammerSymErr err = vec_to_prod(vect, &args);
     if (err == VAL_TO_GRAMMER_SYM_ERR_DUMMY) {
         FklCgRmacroCmd cmd = {
@@ -4327,7 +4398,7 @@ FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
 
     for (rv = rest; FKL_IS_PAIR(rv); rv = FKL_VM_CDR(rv)) {
         FklVMvalue *cur = FKL_VM_CAR(rv);
-        if (process_add_production(ctx, &cmd_vec, info, cur, ms, actions)) {
+        if (parse_rmacro_cmds(ctx, &cmd_vec, info, cur, ms, actions)) {
             cgRmacroCmdVectorUninit(&cmd_vec);
             return NULL;
         }

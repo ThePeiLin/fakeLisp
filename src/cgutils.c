@@ -2512,8 +2512,7 @@ FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
 static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
         FklVMvalue *sid) {
     FklGrammerProduction *prod;
-    prod = fklCreateEmptyProduction(ctx->builtin_g.start.group,
-            ctx->builtin_g.start.sid,
+    prod = fklCreateEmptyProduction(ctx->builtin_g.start.sid,
             1,
             NULL,
             NULL,
@@ -2525,7 +2524,6 @@ static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
 
     FklGrammerSym *u = &prod->syms[0];
     u->type = FKL_TERM_NONTERM;
-    u->nt.group = NULL;
     u->nt.sid = sid;
     return prod;
 }
@@ -3265,7 +3263,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             if (is_qualified_sym(v)) {
                 left = v;
-            } else if (fklIsNonterminalExist(builtin_g, NULL, v)) {
+            } else if (fklIsNonterminalExist(builtin_g, v)) {
                 left = v;
             } else {
                 left = make_qualified_sym(ctx->vm, name, v);
@@ -3273,7 +3271,6 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.group = NULL,
                 .nt.sid = left,
             };
 
@@ -3283,7 +3280,6 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.group = NULL,
                 .nt.sid = make_qualified_sym(ctx->vm,
                         FKL_VM_CAR(v),
                         FKL_VM_CDR(v)),
@@ -3313,17 +3309,17 @@ enum ActionType {
 
 typedef FklGrammerNonterm Nt;
 static inline Nt get_rmacro_prod_left(FklCgCtx *ctx,
-        FklVMvalue *group,
+        FklVMvalue *name,
         FklVMvalueCgRmacroProd *in) {
     FKL_ASSERT(in->left != NULL);
     if (in->left == FKL_VM_NIL) {
         return ctx->builtin_g.start;
     }
 
-    FKL_ASSERT(!fklIsNonterminalExist(&ctx->builtin_g, group, in->left));
+    FklVMvalue *left = make_qualified_sym(ctx->vm, name, in->left);
+    FKL_ASSERT(!fklIsNonterminalExist(&ctx->builtin_g, left));
 
-    return (Nt){ .group = NULL, make_qualified_sym(ctx->vm, group, in->left) };
-    // return (Nt){ .group = group, .sid = in->left };
+    return (Nt){ .sid = left };
 }
 
 static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
@@ -3336,8 +3332,7 @@ static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
         return NULL;
     }
 
-    return fklCreateProduction(left->group,
-            left->sid,
+    return fklCreateProduction(left->sid,
             len,
             NULL,
             NULL,
@@ -3351,8 +3346,7 @@ static inline FklGrammerProduction *create_simple_act_prod(FklCgCtx *ctx,
         const Nt *left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->group,
-            left->sid,
+    return fklCreateProduction(left->sid,
             len,
             NULL,
             NULL,
@@ -3366,8 +3360,7 @@ static inline FklGrammerProduction *create_custom_act_prod(FklCgCtx *ctx,
         const Nt *left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->group,
-            left->sid,
+    return fklCreateProduction(left->sid,
             len,
             NULL,
             NULL,
@@ -3381,8 +3374,7 @@ static inline FklGrammerProduction *create_replace_act_prod(FklCgCtx *ctx,
         const Nt *left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->group,
-            left->sid,
+    return fklCreateProduction(left->sid,
             len,
             NULL,
             NULL,
@@ -3984,7 +3976,6 @@ typedef struct {
     FklVMvalue *left_sid;
     FklVMvalue *action_type;
     FklVMvalue *action_ast;
-    FklVMvalue *group_id;
     FklVMvalueCgInfo *info;
     FklVMvalueCgMacroScope *macro_scope;
     FklCgActVector *actions;
@@ -4316,7 +4307,7 @@ static inline int parse_rmacro_cmds(FklCgCtx *ctx,
         goto reader_macro_syntax_error;
     }
 
-    if (fklIsNonterminalExist(&ctx->builtin_g, NULL, args.left_sid)) {
+    if (fklIsNonterminalExist(&ctx->builtin_g, args.left_sid)) {
         errors->error = FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
                 vm,
                 "cannot redefine builtin non-terminal %S",

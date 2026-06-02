@@ -1893,7 +1893,6 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
         fklInitNontermAnalysisSymbol(
                 fklAnalysisSymbolVectorPushBack(&pctx->symbolStack, NULL),
-                0,
                 pctx->reducing_sid,
                 ast,
                 pctx->start_with_ignore,
@@ -2192,7 +2191,6 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
             }
         } else {
             s->type = FKL_TERM_NONTERM;
-            s->nt.group = 0;
             s->nt.sid = FKL_GET_SYM(v);
         }
     } else {
@@ -2296,8 +2294,7 @@ static inline FklGrammerProduction *vm_vec_to_production(FklVMvalue *left,
     if (err)
         return NULL;
 
-    FklGrammerProduction *prod = fklCreateProduction(0,
-            left,
+    FklGrammerProduction *prod = fklCreateProduction(left,
             args->len,
             args->syms,
             NULL,
@@ -2322,8 +2319,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     fklInitEmptyGrammer(grammer, exe);
 
-    grammer->start =
-            (FklGrammerNonterm){ .group = 0, .sid = FKL_GET_SYM(start) };
+    grammer->start = (FklGrammerNonterm){ .sid = FKL_GET_SYM(start) };
 
     if (fklAddExtraProdToGrammer(grammer))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
@@ -2490,7 +2486,6 @@ static int custom_parse_frame_step(void *d, FklVM *exe) {
         FklVMvalue *ast = FKL_VM_POP_TOP_VALUE(exe);
         fklInitNontermAnalysisSymbol(
                 fklAnalysisSymbolVectorPushBack(&pctx->symbolStack, NULL),
-                0,
                 pctx->reducing_sid,
                 ast,
                 pctx->start_with_ignore,

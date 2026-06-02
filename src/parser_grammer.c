@@ -735,8 +735,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
     }
 loop_break:;
 
-    FklGrammerProduction *prod = fklCreateEmptyProduction(0,
-            arg->current_nonterm,
+    FklGrammerProduction *prod = fklCreateEmptyProduction(arg->current_nonterm,
             gsym_vector.size,
             action_name,
             action_func,

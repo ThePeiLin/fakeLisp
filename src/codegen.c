@@ -5319,7 +5319,7 @@ static inline int merge_all_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
     // 尽量降低清空 grammer 的情况
     FklGrammer *g = &info->g->g;
     fklClearGrammer(g);
-    if (fklMergeGrammer(g, &ctx->builtin_g, NULL))
+    if (fklMergeGrammer(g, &ctx->builtin_g))
         FKL_UNREACHABLE();
 
     for (FklValueHashMapNode *cur = info->rmacros->ht.first; cur;
@@ -5370,12 +5370,7 @@ static inline int update_grammer_impl(FklCgCtx *ctx,
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         FKL_ASSERT(nonterm.sid);
-        FklVMvalue *place = NULL;
-        if (nonterm.group != NULL) {
-            place = fklCreateVMvaluePair(vm, nonterm.group, nonterm.sid);
-        } else {
-            place = nonterm.sid;
-        }
+        FklVMvalue *place = nonterm.sid;
 
         errors->error = make_grammer_create_error2(vm, //
                 "Undefined non-terminal",
@@ -5410,9 +5405,7 @@ static inline FklVMvalueCgInfo *get_reader_start_info(
     return lib_info;
 }
 
-static inline void init_builtin_grammer_and_prod_group(FklCgCtx *ctx,
-        FklVMvalueCgInfo *info) {
-    // 将清理过程延迟到 add_all_group_to_grammer
+static inline void init_builtin_grammer(FklCgCtx *ctx, FklVMvalueCgInfo *info) {
     if (info->g == NULL) {
         FklVMvalueCgInfo *reader_start_info = get_reader_start_info(info);
         FKL_ASSERT(reader_start_info != NULL);
@@ -5428,7 +5421,7 @@ static inline void init_builtin_grammer_and_prod_group(FklCgCtx *ctx,
         }
 
         FklGrammer *g = &info->g->g;
-        if (fklMergeGrammer(g, &ctx->builtin_g, NULL))
+        if (fklMergeGrammer(g, &ctx->builtin_g))
             FKL_UNREACHABLE();
     }
 }
@@ -5452,7 +5445,7 @@ static inline int import_reader_macro(FklCgCtx *ctx,
         FklVMvalueCgRmacro *item,
         FklVMvalue *new_id,
         FklVMvalueCgInfo *lib_info) {
-    init_builtin_grammer_and_prod_group(ctx, info);
+    init_builtin_grammer(ctx, info);
 
     FklVMvalueCgRmacroHashMap *map = info->rmacros;
     int need_rebuild_all = do_add_rmacro(ctx, map, item, new_id);
@@ -7323,7 +7316,7 @@ static inline void add_new_rmacro(FklVMvalueCgInfo *lib_info,
     FklVMvalueCgInfo *info = args->info;
     const FklPmatchRes *orig = args->orig;
 
-    init_builtin_grammer_and_prod_group(args->ctx, info);
+    init_builtin_grammer(args->ctx, info);
 
     // 使用一个空的 reader macro 对象替换原来已有的 reader macro
     // 如果发生了替换，清空整个原本的 grammer ，重新添加所有 reader macro

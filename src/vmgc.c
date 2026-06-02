@@ -71,7 +71,6 @@ void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
 }
 
 static void mark_nonterm(FklVMgc *gc, const FklGrammerNonterm *nt) {
-    fklVMgcToGray(nt->group, gc);
     fklVMgcToGray(nt->sid, gc);
 }
 

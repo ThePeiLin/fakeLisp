@@ -254,7 +254,7 @@ static inline int do_reduce_action(FklParseStateVector *stateStack,
 
     fklInitNontermAnalysisSymbol(
             fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
-            left.sid,
+            left,
             ast,
             len && base[0].start_with_ignore,
             line);

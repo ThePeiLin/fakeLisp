@@ -70,21 +70,21 @@ void fklVMgcMarkCodeObject(FklVMgc *gc, const FklByteCodelnt *t) {
         fklVMgcToGray(t->l[i].fid, gc);
 }
 
-static void mark_nonterm(FklVMgc *gc, const FklGrammerNonterm *nt) {
-    fklVMgcToGray(nt->sid, gc);
+static void mark_nonterm(FklVMgc *gc, const FklGrammerNonterm nt) {
+    fklVMgcToGray(nt, gc);
 }
 
 void fklVMgcMarkGrammerProd(FklVMgc *gc,
         const FklGrammerProduction *prod,
         void (*ctx_atomic)(FklVMgc *gc, void *ctx)) {
 
-    mark_nonterm(gc, &prod->left);
+    mark_nonterm(gc, prod->left);
     const FklGrammerSym *cur = prod->syms;
     const FklGrammerSym *const end = cur + prod->len;
     for (; cur < end; ++cur) {
         switch (cur->type) {
         case FKL_TERM_NONTERM:
-            mark_nonterm(gc, &cur->nt);
+            mark_nonterm(gc, cur->nt);
             break;
         default:
             break;
@@ -106,10 +106,10 @@ void fklVMgcMarkGrammer(FklVMgc *gc,
         fklVMgcToGray(cur->k, gc);
     }
 
-    mark_nonterm(gc, &g->start);
+    mark_nonterm(gc, g->start);
 
     for (const FklProdHashMapNode *cur = g->prods.first; cur; cur = cur->next) {
-        mark_nonterm(gc, &cur->k);
+        mark_nonterm(gc, cur->k);
         for (const FklGrammerProduction *prod = cur->v; prod;
                 prod = prod->next) {
             fklVMgcMarkGrammerProd(gc, prod, ctx_atomic);

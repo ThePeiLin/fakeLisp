@@ -5369,8 +5369,8 @@ static inline int update_grammer_impl(FklCgCtx *ctx,
 
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
-        FKL_ASSERT(nonterm.sid);
-        FklVMvalue *place = nonterm.sid;
+        FKL_ASSERT(nonterm);
+        FklVMvalue *place = nonterm;
 
         errors->error = make_grammer_create_error2(vm, //
                 "Undefined non-terminal",

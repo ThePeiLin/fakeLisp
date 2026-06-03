@@ -124,7 +124,7 @@ static inline FklGrammer *create_grammer_with_cstr(FklVM *vm,
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
         fklCodeBuilderPuts(&err_out, "nonterm: ");
-        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm.sid), &err_out);
+        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm), &err_out);
         fklCodeBuilderPuts(&err_out, " is not defined\n");
         fklDestroyGrammer(g);
         return NULL;

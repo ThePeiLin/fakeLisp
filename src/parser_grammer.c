@@ -652,7 +652,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                 FklVMvalue *id =
                         fklVMaddSymbolCharBuf(vm, token.str, token.len);
                 s.type = FKL_TERM_NONTERM;
-                s.nt.sid = id;
+                s.nt = id;
             }
         } break;
         case TOKEN_TERM_STRING: {

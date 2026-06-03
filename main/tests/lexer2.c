@@ -57,7 +57,7 @@ int main() {
     if (fklCheckAndInitGrammerSymbols(g, &nonterm)) {
 
         fklCodeBuilderPuts(&err_out, "nonterm: ");
-        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm.sid), &err_out);
+        fklPrintSymbolLiteral2(FKL_VM_SYM(nonterm), &err_out);
         fklCodeBuilderPuts(&err_out, " is not defined\n");
 
         fklDestroyVMgc(gc);

@@ -1826,10 +1826,10 @@ static inline int do_custom_parser_reduce_action(
     FklAnalysisStateGoto *gt =
             fklParseStateVectorBackNonNull(stateStack)->state->state.gt;
     const FklAnalysisState *state = NULL;
-    FklVMvalue *left = prod->left.sid;
+    FklVMvalue *left = prod->left;
     for (; gt; gt = gt->next) {
         if ((gt->allow_ignore || !len || !base[0].start_with_ignore)
-                && gt->nt.sid == left) {
+                && gt->nt == left) {
             state = gt->state;
             break;
         }
@@ -1866,7 +1866,7 @@ static inline void parse_with_custom_parser_for_char_buf(const FklGrammer *g,
     return;
 #define PARSE_REDUCE()                                                         \
     *parse_state = PARSE_REDUCING;                                             \
-    *reducing_sid = action->prod->left.sid;                                    \
+    *reducing_sid = action->prod->left;                                        \
     if (do_custom_parser_reduce_action(stateStack,                             \
                 symbolStack,                                                   \
                 action->prod,                                                  \
@@ -2191,7 +2191,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
             }
         } else {
             s->type = FKL_TERM_NONTERM;
-            s->nt.sid = FKL_GET_SYM(v);
+            s->nt = FKL_GET_SYM(v);
         }
     } else {
         return VALUE_TO_GRAMMER_SYM_ERR_INVALID;
@@ -2319,7 +2319,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     fklInitEmptyGrammer(grammer, exe);
 
-    grammer->start = (FklGrammerNonterm){ .sid = FKL_GET_SYM(start) };
+    grammer->start = FKL_GET_SYM(start);
 
     if (fklAddExtraProdToGrammer(grammer))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
@@ -2431,7 +2431,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_GRAMMER_CREATE_FAILED,
                 exe,
                 "unresolved non-terminal %S",
-                nonterm.sid);
+                nonterm);
     }
 
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(grammer);

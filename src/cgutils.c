@@ -2512,7 +2512,7 @@ FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
 static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
         FklVMvalue *sid) {
     FklGrammerProduction *prod;
-    prod = fklCreateEmptyProduction(ctx->builtin_g.start.sid,
+    prod = fklCreateEmptyProduction(ctx->builtin_g.start,
             1,
             NULL,
             NULL,
@@ -2524,7 +2524,7 @@ static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
 
     FklGrammerSym *u = &prod->syms[0];
     u->type = FKL_TERM_NONTERM;
-    u->nt.sid = sid;
+    u->nt = sid;
     return prod;
 }
 
@@ -3271,7 +3271,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.sid = left,
+                .nt = left,
             };
 
         } else if (FKL_IS_PAIR(v)) {
@@ -3280,9 +3280,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
             *out = (FklGrammerSym){
                 .type = FKL_TERM_NONTERM,
-                .nt.sid = make_qualified_sym(ctx->vm,
-                        FKL_VM_CAR(v),
-                        FKL_VM_CDR(v)),
+                .nt = make_qualified_sym(ctx->vm, FKL_VM_CAR(v), FKL_VM_CDR(v)),
             };
         } else {
             FKL_UNREACHABLE();
@@ -3319,11 +3317,11 @@ static inline Nt get_rmacro_prod_left(FklCgCtx *ctx,
     FklVMvalue *left = make_qualified_sym(ctx->vm, name, in->left);
     FKL_ASSERT(!fklIsNonterminalExist(&ctx->builtin_g, left));
 
-    return (Nt){ .sid = left };
+    return left;
 }
 
 static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
-        const Nt *left,
+        const Nt left,
         size_t len,
         FklVMvalue *id) {
     FklProdActionFunc action = id == NULL ? builtin_prod_action_first
@@ -3332,7 +3330,7 @@ static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
         return NULL;
     }
 
-    return fklCreateProduction(left->sid,
+    return fklCreateProduction(left,
             len,
             NULL,
             NULL,
@@ -3343,10 +3341,10 @@ static inline FklGrammerProduction *create_builtin_act_prod(FklCgCtx *ctx,
 }
 
 static inline FklGrammerProduction *create_simple_act_prod(FklCgCtx *ctx,
-        const Nt *left,
+        const Nt left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->sid,
+    return fklCreateProduction(left,
             len,
             NULL,
             NULL,
@@ -3357,10 +3355,10 @@ static inline FklGrammerProduction *create_simple_act_prod(FklCgCtx *ctx,
 }
 
 static inline FklGrammerProduction *create_custom_act_prod(FklCgCtx *ctx,
-        const Nt *left,
+        const Nt left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->sid,
+    return fklCreateProduction(left,
             len,
             NULL,
             NULL,
@@ -3371,10 +3369,10 @@ static inline FklGrammerProduction *create_custom_act_prod(FklCgCtx *ctx,
 }
 
 static inline FklGrammerProduction *create_replace_act_prod(FklCgCtx *ctx,
-        const Nt *left,
+        const Nt left,
         size_t len,
         FklVMvalue *action) {
-    return fklCreateProduction(left->sid,
+    return fklCreateProduction(left,
             len,
             NULL,
             NULL,
@@ -3413,17 +3411,17 @@ static inline FklGrammerProduction *rmacro_prod_to_prod(FklCgCtx *ctx,
         return NULL;
         break;
     case ACTION_TYPE_BUILTIN:
-        prod = create_builtin_act_prod(ctx, &left, in->len, in->action);
+        prod = create_builtin_act_prod(ctx, left, in->len, in->action);
         FKL_ASSERT(prod);
         break;
     case ACTION_TYPE_SIMPLE:
-        prod = create_simple_act_prod(ctx, &left, in->len, in->action);
+        prod = create_simple_act_prod(ctx, left, in->len, in->action);
         break;
     case ACTION_TYPE_CUSTOM:
-        prod = create_custom_act_prod(ctx, &left, in->len, in->action);
+        prod = create_custom_act_prod(ctx, left, in->len, in->action);
         break;
     case ACTION_TYPE_REPLACE:
-        prod = create_replace_act_prod(ctx, &left, in->len, in->action);
+        prod = create_replace_act_prod(ctx, left, in->len, in->action);
         break;
     }
 

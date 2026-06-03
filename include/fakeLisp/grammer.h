@@ -68,17 +68,15 @@ typedef struct {
     FklString const **args;
 } FklLalrBuiltinGrammerSym;
 
-typedef struct {
-    FklVMvalue *sid;
-} FklGrammerNonterm;
+typedef FklVMvalue *FklGrammerNonterm;
 
 static inline int fklNontermEqual(const FklGrammerNonterm *nt0,
         const FklGrammerNonterm *nt1) {
-    return nt0->sid == nt1->sid;
+    return *nt0 == *nt1;
 }
 
 static inline uintptr_t fklNontermHash(const FklGrammerNonterm *pk) {
-    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, pk->sid));
+    return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, *pk));
 }
 
 // FklNontermHashSet
@@ -527,7 +525,7 @@ static inline void fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym,
         uint8_t start_with_ignore,
         uint64_t line) {
     void *ast = ctx->create(s, len, ctx->line, ctx->ctx);
-    sym->nt.sid = NULL;
+    sym->nt = NULL;
     sym->ast = ast;
     sym->start_with_ignore = start_with_ignore;
     sym->line = line;
@@ -538,7 +536,7 @@ static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
         void *ast,
         uint8_t start_with_ignore,
         uint64_t line) {
-    sym->nt.sid = id;
+    sym->nt = id;
     sym->ast = ast;
     sym->start_with_ignore = start_with_ignore;
     sym->line = line;

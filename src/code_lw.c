@@ -16,6 +16,8 @@
 
 // write and load value table
 
+typedef FklVMvalueCgLib FklCgLib;
+
 typedef struct {
     // in
     FklVM *const vm;
@@ -103,20 +105,19 @@ typedef uint32_t LibIdx;
 typedef uint8_t LibType;
 #define PRIu_LIBIDX PRIu32
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueLibPlaceholder, { LibIdx idx; });
+FKL_VM_DEF_UD_STRUCT(LibPlaceholder, { LibIdx idx; });
 
-static FklVMudMetaTable const LibPlaceholderUserDataMetaTable;
+static FklVMudMetaTable const LibPlaceholderMt;
 
 static FKL_ALWAYS_INLINE FKL_UNUSED int is_lib_placeholder(
         const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v)
-        && FKL_VM_UD(v)->mt_ == &LibPlaceholderUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LibPlaceholderMt;
 }
 
-static FKL_ALWAYS_INLINE FklVMvalueLibPlaceholder *as_lib_placeholder(
+static FKL_ALWAYS_INLINE LibPlaceholder *as_lib_placeholder(
         const FklVMvalue *v) {
     FKL_ASSERT(is_lib_placeholder(v));
-    return FKL_TYPE_CAST(FklVMvalueLibPlaceholder *, v);
+    return FKL_TYPE_CAST(LibPlaceholder *, v);
 }
 
 static void
@@ -126,13 +127,13 @@ lib_placeholder_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
             as_lib_placeholder(ud)->idx);
 }
 
-static FklVMudMetaTable const LibPlaceholderUserDataMetaTable = {
-    .size = sizeof(FklVMvalueLibPlaceholder),
+static FklVMudMetaTable const LibPlaceholderMt = {
+    .size = sizeof(LibPlaceholder),
     .princ = lib_placeholder_print,
     .prin1 = lib_placeholder_print,
 };
 
-static inline FklVMvalueLibPlaceholder *
+static inline LibPlaceholder *
 create_lib_placeholder(FklVM *vm, LibIdx idx, FklValueVector *ph_vec) {
     FKL_ASSERT(idx > 0);
     fklValueVectorReserve(ph_vec, idx);
@@ -145,11 +146,11 @@ create_lib_placeholder(FklVM *vm, LibIdx idx, FklValueVector *ph_vec) {
     FklVMvalue *v = ph_vec->base[idx - 1];
     if (v != NULL) {
         FKL_ASSERT(is_lib_placeholder(v));
-        return (FklVMvalueLibPlaceholder *)v;
+        return (LibPlaceholder *)v;
     }
 
-    v = fklCreateVMvalueUd(vm, &LibPlaceholderUserDataMetaTable, NULL);
-    FklVMvalueLibPlaceholder *p = (FklVMvalueLibPlaceholder *)v;
+    v = fklCreateVMvalueUd(vm, &LibPlaceholderMt, NULL);
+    LibPlaceholder *p = (LibPlaceholder *)v;
     p->idx = idx;
 
     ph_vec->base[idx - 1] = v;
@@ -564,8 +565,7 @@ static inline FklVMvalueProto *load_prototype(FILE *fp,
     FklVMvalue **libs = &pt->vals[pt->used_libraries_offset];
     for (uint32_t i = 0; i < pt->used_libraries_count; ++i) {
         FklValueId u = read_lib_id(fp);
-        FklVMvalueLibPlaceholder *p;
-        p = create_lib_placeholder(values->vm, u, ph_vec);
+        LibPlaceholder *p = create_lib_placeholder(values->vm, u, ph_vec);
         libs[i] = FKL_VM_VAL(p);
     }
 
@@ -588,17 +588,17 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, //
             name,
             FKL_VM_VEC(names));
-    LibType lib_type = 0;
-    fread(&lib_type, sizeof(lib_type), 1, fp);
-    switch ((FklCgLibType)lib_type) {
+    LibType mod_type = 0;
+    fread(&mod_type, sizeof(mod_type), 1, fp);
+    switch ((FklLibRefType)mod_type) {
     default:
         FKL_UNREACHABLE();
         break;
-    case FKL_CODEGEN_LIB_SCRIPT: {
+    case FKL_LIB_REF_SCRIPT_EMBEDDED: {
         FklVMvalueProc *proc = load_proc(fp, values, protos);
         lib->proc = FKL_VM_VAL(proc);
     } break;
-    case FKL_CODEGEN_LIB_DLL:
+    case FKL_LIB_REF_DLL_INTERNAL:
         lib->proc = load_value_id(fp, values);
         if (FKL_IS_SYM(lib->proc)) {
             FklStrBuf buf = { 0 };
@@ -680,6 +680,34 @@ static inline void write_symbol_def_pass_1(const FklVarRefDef *def,
     fklTraverseSerializableValue(vt, def->is_local);
 }
 
+static inline void write_vm_lib_pass_1(const FklVMvalueLib *l,
+        FklValueTable *vt,
+        FklLibTable *lib_table,
+        FklValueVector *pending) {
+    FklValueId id = fklLibTableGet(lib_table, l);
+    if (id != 0)
+        return;
+
+    fklLibTableAdd(lib_table, l);
+
+    FklVMvalue *proc_v = l->proc;
+
+    fklValueTableAdd(vt, l->name);
+
+    FklVMvalue *const *names = fklVMvalueLibNames(l);
+    for (size_t i = 0; i < l->count; ++i) {
+        fklValueTableAdd(vt, names[i]);
+    }
+
+    if (FKL_IS_PROC(proc_v)) {
+        FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
+        fklValueVectorPushBack2(pending, FKL_VM_VAL(proc->proto));
+        write_bc_lnt(FKL_VM_CO(proc->bcl), vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
+    } else if (!FKL_IS_STR(proc_v) && !fklIsVMvalueDll(proc_v)) {
+        FKL_UNREACHABLE();
+    }
+}
+
 static inline void write_prototype_pass_1(const FklVMvalueProto *pt,
         FklValueTable *vt,
         FklProtoTable *proto_table,
@@ -719,31 +747,7 @@ static inline void write_prototype_pass_1(const FklVMvalueProto *pt,
         FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);
         for (uint32_t i = 0; i < pt->used_libraries_count; ++i) {
             FklVMvalueLib *const l = libs[i];
-            FklValueId id = fklLibTableGet(lib_table, l);
-            if (id != 0)
-                continue;
-
-            fklLibTableAdd(lib_table, l);
-
-            FklVMvalue *proc_v = l->proc;
-
-            fklValueTableAdd(vt, l->name);
-
-            FklVMvalue *const *names = fklVMvalueLibNames(l);
-            for (size_t i = 0; i < l->count; ++i) {
-                fklValueTableAdd(vt, names[i]);
-            }
-
-            if (FKL_IS_PROC(proc_v)) {
-                FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
-                fklValueVectorPushBack2(&pending, FKL_VM_VAL(proc->proto));
-                write_bc_lnt(FKL_VM_CO(proc->bcl),
-                        vt,
-                        FKL_WRITE_CODE_PASS_FIRST,
-                        NULL);
-            } else if (!FKL_IS_STR(proc_v) && !fklIsVMvalueDll(proc_v)) {
-                FKL_UNREACHABLE();
-            }
+            write_vm_lib_pass_1(l, vt, lib_table, &pending);
         }
     }
 
@@ -1082,15 +1086,17 @@ static inline void write_prototype_table(const FklProtoTable *proto_table,
 }
 
 static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
+        const FklLibTable *lib_table,
         const FklValueTable *value_table,
         const FklProtoTable *proto_table,
-        const FklLibTable *lib_table,
+        const FklLibTable *external_lib_table,
         FILE *fp) {
     FKL_ASSERT(FKL_IS_PROC(lib->proc)   //
                || FKL_IS_STR(lib->proc) //
                || fklIsVMvalueDll(lib->proc));
-    LibType type_byte = FKL_IS_PROC(lib->proc) ? FKL_CODEGEN_LIB_SCRIPT
-                                               : FKL_CODEGEN_LIB_DLL;
+
+    LibType type_byte = FKL_IS_PROC(lib->proc) ? FKL_LIB_REF_SCRIPT_EMBEDDED
+                                               : FKL_LIB_REF_DLL_INTERNAL;
 
     write_value_id(value_table, 0, lib->name, fp);
 
@@ -1103,8 +1109,11 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     }
 
     fwrite(&type_byte, sizeof(type_byte), 1, fp);
-    switch (type_byte) {
-    case FKL_CODEGEN_LIB_SCRIPT: {
+    switch ((FklLibRefType)type_byte) {
+    default:
+        FKL_TODO();
+        break;
+    case FKL_LIB_REF_SCRIPT_EMBEDDED: {
         FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
         write_proc(proc,
                 FKL_TYPE_CAST(FklValueTable *, value_table),
@@ -1113,7 +1122,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
                 FKL_WRITE_CODE_PASS_SECOND,
                 fp);
     } break;
-    case FKL_CODEGEN_LIB_DLL: {
+    case FKL_LIB_REF_DLL_INTERNAL: {
         FklVMvalue *proc = lib->proc;
         if (FKL_IS_STR(proc) || fklIsVMvalueDll(proc)) {
             write_value_id(value_table, 0, lib->name, fp);
@@ -1127,6 +1136,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
 static inline void write_lib_table(const FklLibTable *lib_table,
         const FklValueTable *value_table,
         const FklProtoTable *proto_table,
+        const FklLibTable *external_lib_table,
         FILE *fp) {
     FklValueId count = lib_table->vt.next_id - 1;
     fwrite(&count, sizeof(count), 1, fp);
@@ -1134,9 +1144,10 @@ static inline void write_lib_table(const FklLibTable *lib_table,
             cur = cur->prev) {
         const FklVMvalue *lib_v = cur->k;
         write_vm_lib_pass_2(fklVMvalueLib(lib_v),
+                lib_table,
                 value_table,
                 proto_table,
-                lib_table,
+                external_lib_table,
                 fp);
     }
 }
@@ -1162,7 +1173,7 @@ void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const main_func) {
 
     write_prototype_table(&proto_table, &value_table, &lib_table, fp);
 
-    write_lib_table(&lib_table, &value_table, &proto_table, fp);
+    write_lib_table(&lib_table, &value_table, &proto_table, NULL, fp);
 
     write_proc(main_func,
             &value_table,
@@ -1176,7 +1187,7 @@ void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const main_func) {
     fklUninitValueTable(&value_table);
 }
 
-static int fix_proto_lib_refs(const FklLoadProtoArgs *protos,
+static int fixup_proto_lib_refs(const FklLoadProtoArgs *protos,
         const FklLoadLibArgs *args) {
     FklVMvalueProto *const *cur = protos->protos;
     FklVMvalueProto *const *const end = cur + protos->count;
@@ -1218,7 +1229,7 @@ FklVMvalueProc *fklLoadCodeFile(FILE *fp,
     r = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(r == 0);
 
-    fix_proto_lib_refs(&protos, &libs);
+    fixup_proto_lib_refs(&protos, &libs);
 
     FklVMvalueProc *main_func = load_proc(fp, &values, &protos);
 
@@ -1856,9 +1867,40 @@ static inline void write_pre_compile_passes(FILE *fp,
             args->main_proc);
 }
 
+static FKL_ALWAYS_INLINE int is_internal_module(const char *main_dir,
+        const FklCgLib *l) {
+    const char *rp = fklCgLibRp(l);
+    return fklStrStartWith(rp, main_dir);
+}
+
+static void collect_internal_modules(const FklVMvalueCgInfo *main_info,
+        FklLibTable *lib_table) {
+    FKL_TODO();
+}
+
+static void collect_direct_reference_modules(const FklVMvalueCgInfo *main_info,
+        FklLibTable *lib_table) {
+    FKL_TODO();
+}
+
 void fklWritePreCompile(FILE *fp,
         const char *target_dir,
         const FklWritePreCompileArgs *const args) {
+    const FklVMvalueCgInfo *info = args->main_info;
+
+    const char *main_dir = info->dir;
+    fprintf(stderr, "[DEBUG] main dir: %s\n", main_dir);
+
+    for (const FklValueHashMapNode *c = info->libraries->ht.first; c != NULL;
+            c = c->next) {
+        const FklCgLib *l = fklVMvalueCgLib(c->v);
+        const char *rp = fklCgLibRp(l);
+        fprintf(stderr,
+                "[DEBUG] lib rp: %s, is internal module: %d\n",
+                rp,
+                is_internal_module(main_dir, l));
+    }
+
     FklValueTable value_table;
     fklInitValueTable(&value_table);
 
@@ -1867,6 +1909,11 @@ void fklWritePreCompile(FILE *fp,
 
     FklLibTable lib_table;
     fklInitLibTable(&lib_table);
+
+    FklLibTable internal_lib_table;
+    fklInitLibTable(&internal_lib_table);
+
+    // collect_internal_modules(info, &internal_lib_table);
 
     write_pre_compile_passes(fp,
             &value_table,
@@ -1880,7 +1927,7 @@ void fklWritePreCompile(FILE *fp,
 
     write_prototype_table(&proto_table, &value_table, &lib_table, fp);
 
-    write_lib_table(&lib_table, &value_table, &proto_table, fp);
+    write_lib_table(&lib_table, &value_table, &proto_table, NULL, fp);
 
     write_pre_compile_passes(fp,
             &value_table,
@@ -1893,6 +1940,7 @@ void fklWritePreCompile(FILE *fp,
     fklUninitValueTable(&value_table);
     fklUninitProtoTable(&proto_table);
     fklUninitLibTable(&lib_table);
+    fklUninitLibTable(&internal_lib_table);
 }
 
 const FklCgLib *
@@ -1924,9 +1972,9 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     err = load_lib_table(fp, &values, &protos, &libs);
     FKL_ASSERT(err == 0);
 
-    fix_proto_lib_refs(&protos, &libs);
+    fixup_proto_lib_refs(&protos, &libs);
 
-    FklCgLib *lib = fklVMvalueCgLibsAdd(args->libraries, rp);
+    FklCgLib *lib = fklVMvalueCgLibsAdd(args->ctx, args->libraries, rp);
     load_script_lib_from_pre_compile(fp, &values, &protos, lib, args);
 
     values.count = 0;

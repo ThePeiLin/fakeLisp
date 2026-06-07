@@ -19,7 +19,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
+// FKL_DEPRECATED
+#if 0
 static void uninit_cg_lib(FklCgLib *lib);
 
 // FklCgLibHashMap
@@ -34,6 +37,7 @@ static void uninit_cg_lib(FklCgLib *lib);
 #include <fakeLisp/cont/hash.h>
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap libs; });
+#endif
 
 static FklVMframe *init_macro_expand_frame(FklVM *exe,
         FklCgCtx *ctx,
@@ -621,12 +625,13 @@ FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
 
 static FklVMvalueLib *create_script_lib(FklVM *vm,
         FklVMvalue *name,
-        FklCgLib *clib,
+        FklVMvalueCgLib *clib,
         FklVMvalueProc *proc) {
-    FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_SCRIPT);
     FKL_ASSERT(FKL_IS_SYM(name));
-    if (clib->lib)
+    if (clib->lib) {
+        FKL_ASSERT(FKL_IS_PROC(clib->lib->proc));
         return clib->lib;
+    }
 
     FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
@@ -636,11 +641,14 @@ static FklVMvalueLib *create_script_lib(FklVM *vm,
 }
 
 static FklVMvalueLib *
-create_dll_lib(FklVM *vm, FklVMvalue *name, FklCgLib *clib) {
-    FKL_ASSERT(clib->type == FKL_CODEGEN_LIB_DLL);
+create_dll_lib(FklVM *vm, FklVMvalue *name, FklVMvalueCgLib *clib) {
     FKL_ASSERT(FKL_IS_SYM(name));
-    if (clib->lib)
+    if (clib->lib) {
+        FklVMvalue *proc = clib->lib->proc;
+        FKL_ASSERT(fklIsVMvalueDll(proc) || FKL_IS_STR(proc));
         return clib->lib;
+    }
+
     FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);
     const char *rp = fklCgLibRp(clib);
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
@@ -651,26 +659,11 @@ create_dll_lib(FklVM *vm, FklVMvalue *name, FklCgLib *clib) {
     return l;
 }
 
-static inline void uninit_codegen_lib_exports(FklCgLib *lib) {
-    if (lib->exports.buckets)
-        fklCgExportSidIdxHashMapUninit(&lib->exports);
-}
-
-static void uninit_cg_lib(FklCgLib *lib) {
-    if (lib == NULL)
-        return;
-    uninit_codegen_lib_exports(lib);
-    fklClearCgLibMacros(lib);
-}
-
 void fklInitCgDllLib(const FklCgCtx *ctx,
         FklVMvalue *name,
-        FklCgLib *lib,
+        FklVMvalueCgLib *lib,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init) {
-    memset(lib, 0, sizeof(*lib));
-    lib->type = FKL_CODEGEN_LIB_DLL;
-
     uint32_t num = 0;
     FklVMvalue **exports = init(ctx->vm, &num);
     FklCgExportSidIdxHashMap *exports_idx = &lib->exports;
@@ -682,20 +675,19 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
                     &(FklCgExportIdx){ .idx = i });
         }
     }
-    if (exports)
+
+    if (exports) {
         fklZfree(exports);
+    }
+
     lib->lib = create_dll_lib(ctx->vm, name, lib);
 }
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,
-        FklCgLib *lib,
+        FklVMvalueCgLib *lib,
         FklVMvalue *mod_name,
         FklVMvalueCgInfo *info,
         FklVMvalue *proc) {
-    memset(lib, 0, sizeof(*lib));
-
-    lib->type = FKL_CODEGEN_LIB_SCRIPT;
-
     if (info == NULL) {
         lib->macros = NULL;
         lib->replacements = NULL;
@@ -756,21 +748,6 @@ static const FklVMvalueCgMacro *find_macro(FklVMvalue *exp,
         }
     }
     return NULL;
-}
-
-void fklClearCgLibMacros(FklCgLib *lib) {
-    lib->macros = NULL;
-    lib->replacements = NULL;
-    lib->rmacros = NULL;
-}
-
-void fklClearCgLibMacros2(const FklCgCtx *ctx) {
-    for (FklCgLibHashMapNode *cur = ctx->libraries->libs.first; cur;
-            cur = cur->next)
-        fklClearCgLibMacros(&cur->v);
-    for (FklCgLibHashMapNode *cur = ctx->macro_libraries->libs.first; cur;
-            cur = cur->next)
-        fklClearCgLibMacros(&cur->v);
 }
 
 static inline FklVMvalue *make_macroexpand_error(FklVM *exe,
@@ -1336,11 +1313,11 @@ static FKL_ALWAYS_INLINE FklVMvalueCgInfo *as_info(const FklVMvalue *r) {
 
 static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgInfo *e = as_info(ud);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->lnt), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->prev), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->global_env), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->libraries), gc);
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->g), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->lnt), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->prev), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->global_env), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->libraries), gc);
+    fklVMgcToGray(FKL_VM_VAL(e->g), gc);
 
     fklVMgcToGray(e->fid, gc);
 
@@ -2534,111 +2511,45 @@ int fklIsVMvalueCgLibs(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CgLibsUserDataMetaTable;
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
-
-static inline void mark_codegen_lib(FklVMgc *gc, const FklCgLib *lib) {
-    fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, lib->lib), gc);
-    mark_export_sid_map(&lib->exports, gc);
-
-    switch (lib->type) {
-    case FKL_CODEGEN_LIB_SCRIPT:
-        fklVMgcToGray(FKL_VM_VAL(lib->macros), gc);
-        fklVMgcToGray(FKL_VM_VAL(lib->replacements), gc);
-        fklVMgcToGray(FKL_VM_VAL(lib->rmacros), gc);
-        break;
-    case FKL_CODEGEN_LIB_DLL:
-        break;
-    case FKL_CODEGEN_LIB_UNINIT:
-        FKL_UNREACHABLE();
-        break;
-    }
-}
-
-static inline void mark_codegen_lib_hash_map(FklVMgc *gc,
-        const FklCgLibHashMap *libs) {
-    for (const FklCgLibHashMapNode *cur = libs->first; cur; cur = cur->next) {
-        mark_codegen_lib(gc, &cur->v);
-    }
-}
-
-static FklVMvalueCgLibs *as_cg_libs(const FklVMvalue *ud) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(ud));
-    return FKL_TYPE_CAST(FklVMvalueCgLibs *, ud);
-}
-
-static void cg_libs_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    FklVMvalueCgLibs *libs = as_cg_libs(ud);
-    mark_codegen_lib_hash_map(gc, &libs->libs);
-}
-
-static int cg_libs_finalize(FklVMvalue *ud, FklVMgc *gc) {
-    FklVMvalueCgLibs *libs = as_cg_libs(ud);
-    fklCgLibHashMapUninit(&libs->libs);
-    return FKL_VM_UD_FINALIZE_NOW;
-}
-
-static FklVMudMetaTable const CgLibsUserDataMetaTable = {
-    .size = sizeof(FklVMvalueCgLibs),
-    .princ = cg_libs_print,
-    .prin1 = cg_libs_print,
-    .atomic = cg_libs_atomic,
-    .finalize = cg_libs_finalize,
-};
-
 FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm) {
-    FklVMvalueCgLibs *r = (FklVMvalueCgLibs *)fklCreateVMvalueUd(vm,
-            &CgLibsUserDataMetaTable,
-            NULL);
-
-    fklCgLibHashMapInit(&r->libs);
-    return r;
+    FklVMvalue *r = fklCreateVMvalueHashEq(vm);
+    return FKL_TYPE_CAST(FklVMvalueCgLibs *, r);
 }
 
-FklVMvalueCgLibs *fklCreateVMvalueCgLibs1(FklVM *vm, size_t num) {
-    FklVMvalueCgLibs *r = (FklVMvalueCgLibs *)fklCreateVMvalueUd(vm,
-            &CgLibsUserDataMetaTable,
-            NULL);
-
-    fklCgLibHashMapInit(&r->libs);
-    return r;
+FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklCgCtx *c,
+        const FklVMvalueCgLibs *libs,
+        const char *rp) {
+    FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+    FklValueHashMapElm *e = fklVMhashTableGet(libs, rp_s);
+    return e == NULL ? NULL : fklVMvalueCgLib(e->v);
 }
 
-FklCgLib *fklVMvalueCgLibsGet(const FklVMvalueCgLibs *libs, const char *rp) {
-    return fklCgLibHashMapGet2(&libs->libs, rp);
+FklVMvalueCgLib *
+fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *libs, const char *rp) {
+    FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+
+    FklValueHashMapElm *e = fklVMhashTableRef1(libs, rp_s, NULL);
+    if (e->v == NULL) {
+        FklVMvalueCgLib *l = fklCreateVMvalueCgLib(c->vm, rp_s);
+        e->v = FKL_VM_VAL(l);
+    }
+
+    return fklVMvalueCgLib(e->v);
 }
 
-FklCgLib *fklVMvalueCgLibsAdd(FklVMvalueCgLibs *libs, const char *rp) {
-    return &fklCgLibHashMapInsert(&libs->libs, &rp, NULL)->v;
+void fklVMvalueCgLibsRemove(FklCgCtx *c,
+        FklVMvalueCgLibs *libs,
+        const char *rp) {
+    FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+
+    fklVMhashTableDel(libs, rp_s, NULL, NULL);
 }
 
-void fklVMvalueCgLibsRemove(FklVMvalueCgLibs *libs, const char *rp) {
-    fklCgLibHashMapDel2(&libs->libs, rp);
-}
-
-size_t fklVMvalueCgLibsCount(FklVMvalueCgLibs *v) {
-    FKL_ASSERT(fklIsVMvalueCgLibs(FKL_TYPE_CAST(FklVMvalue *, v)));
-    return v->libs.count;
-}
-
-FklCgLib *fklVMvalueCgLibsIter(const FklVMvalueCgLibs *v) {
-    return (v->libs.first) ? &v->libs.first->v : NULL;
-}
-
-FklCgLib *fklCgLibNext(const FklCgLib *c) {
+const char *fklCgLibRp(const FklVMvalueCgLib *c) {
     if (c == NULL)
         return NULL;
-    FklCgLibHashMapNode *n = FKL_CONTAINER_OF(c, FklCgLibHashMapNode, v);
-    if (n->next == NULL)
-        return NULL;
-    n = n->next;
-    return &n->v;
-}
-
-const char *fklCgLibRp(const FklCgLib *c) {
-    if (c == NULL)
-        return NULL;
-    FklCgLibHashMapNode *n = FKL_CONTAINER_OF(c, FklCgLibHashMapNode, v);
-    return n->k;
+    FKL_ASSERT(c->rp);
+    return FKL_VM_SYM(c->rp)->str;
 }
 
 FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
@@ -4398,4 +4309,49 @@ FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
     cgRmacroCmdVectorUninit(&cmd_vec);
 
     return rmacro;
+}
+
+static void cg_lib_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgLib *l = fklVMvalueCgLib(ud);
+
+    fklVMgcToGray(FKL_VM_VAL(l->lib), gc);
+
+    mark_export_sid_map(&l->exports, gc);
+
+    fklVMgcToGray(FKL_VM_VAL(l->macros), gc);
+    fklVMgcToGray(FKL_VM_VAL(l->replacements), gc);
+    fklVMgcToGray(FKL_VM_VAL(l->rmacros), gc);
+    fklVMgcToGray(l->rp, gc);
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(cg_lib_print, "cg-lib");
+
+static int cg_lib_finalize(FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgLib *l = fklVMvalueCgLib(ud);
+    fklCgExportSidIdxHashMapUninit(&l->exports);
+    l->macros = NULL;
+    l->replacements = NULL;
+    l->rmacros = NULL;
+
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable const CgLibMt = {
+    .size = sizeof(FklVMvalueCgLib),
+    .princ = cg_lib_print,
+    .prin1 = cg_lib_print,
+    .atomic = cg_lib_atomic,
+    .finalize = cg_lib_finalize,
+};
+
+int fklIsVMvalueCgLib(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CgLibMt;
+}
+
+FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s) {
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &CgLibMt, NULL);
+    FklVMvalueCgLib *l = fklVMvalueCgLib(v);
+
+    l->rp = rp_s;
+    return l;
 }

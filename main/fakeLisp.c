@@ -136,7 +136,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         .libraries = ctx.libraries,
     };
 
-    const FklCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
+    const FklVMvalueCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
     fklZfree(rp);
 

@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
                 .lib_table = &lib_table,
             };
 
-            const FklCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
+            const FklVMvalueCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
             char *dir = fklDupDir(rp);
             fklZfree(rp);
@@ -294,7 +294,6 @@ int main(int argc, char **argv) {
             fklInitCodeBuilderFp(&builder, stdout, NULL);
             FklCodeBuilder *const build = &builder;
 
-            FKL_ASSERT(cg_lib->type == FKL_CODEGEN_LIB_SCRIPT);
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
 

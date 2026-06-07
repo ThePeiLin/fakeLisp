@@ -800,8 +800,7 @@ int fklVMhashTableDel(FklVMvalueHash *ht,
                 *pk = (*pp)->k;
             if (pv)
                 *pv = (*pp)->v;
-            fklValueHashMapDelNode(&ht->ht,
-                    FKL_TYPE_CAST(FklValueHashMapNode **, pp));
+            fklValueHashMapDelNode(&ht->ht, (FklValueHashMapNode **)pp);
             return 1;
         }
     }

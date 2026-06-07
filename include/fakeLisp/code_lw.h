@@ -16,6 +16,14 @@ typedef enum FklWriteCodePass {
     FKL_WRITE_CODE_PASS_SECOND,
 } FklWriteCodePass;
 
+// module reference type
+typedef enum {
+    FKL_LIB_REF_SCRIPT_EMBEDDED = 0,
+    FKL_LIB_REF_DLL_INTERNAL,
+    FKL_LIB_REF_DLL_ABSOLUTE,
+    FKL_LIB_REF_EXTERNAL,
+} FklLibRefType;
+
 // write and load byte code files
 void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const proc);
 
@@ -43,14 +51,14 @@ typedef struct {
 
     // out
     FklLibTable *lib_table;
-    FklCgLib *cg_lib;
+    FklVMvalueCgLib *cg_lib;
 
     const char *error_fmt;
     FklVMvalue *error_obj;
 } FklLoadPreCompileArgs;
 
 FKL_NODISCARD
-const FklCgLib *
+const FklVMvalueCgLib *
 fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args);
 
 #ifdef __cplusplus

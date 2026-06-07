@@ -34,6 +34,8 @@
 
 #include "codegen.h"
 
+typedef FklVMvalueCgLib FklCgLib;
+
 static FklVMvalue *gen_push_literal_code(FklVM *exe,
         const FklPmatchRes *node,
         FklVMvalueCgInfo *info,
@@ -6051,7 +6053,7 @@ static FklVMvalue *_library_bc_process(const FklCgActCbArgs *args) {
     FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, co, pt);
     fklInitMainProcRefs(ctx->vm, proc);
 
-    FklCgLib *lib = fklVMvalueCgLibsAdd(info->libraries, info->realpath);
+    FklCgLib *lib = fklVMvalueCgLibsAdd(ctx, info->libraries, info->realpath);
     fklInitCgScriptLib(ctx, lib, d->mod_name, info, proc);
 
     return d->import_cb(ctx,
@@ -6334,8 +6336,8 @@ static inline void process_import_script_helper(const CgCbArgs *args,
         errors->line = CURLINE(orig);
         return;
     }
-    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, //
-            next_info->realpath);
+
+    const FklCgLib *lib = fklVMvalueCgLibsGet(ctx, info->libraries, rp);
     if (lib == NULL) {
         FILE *fp = fopen(filename, "r");
         if (!fp) {
@@ -6425,7 +6427,7 @@ static inline int import_pre_compile_impl(const CgCbArgs *args,
     }
 
     const char *rp = FKL_VM_STR(rp_v)->str;
-    const FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, rp);
+    const FklCgLib *lib = fklVMvalueCgLibsGet(ctx, info->libraries, rp);
 
     if (lib == NULL) {
         FILE *fp = fopen(rp, "rb");
@@ -6442,7 +6444,7 @@ static inline int import_pre_compile_impl(const CgCbArgs *args,
 
         lib = fklLoadPreCompile(fp, rp, &args);
         if (lib == NULL) {
-            fklVMvalueCgLibsRemove(info->libraries, rp);
+            fklVMvalueCgLibsRemove(ctx, info->libraries, rp);
             if (args.error_fmt) {
                 errors->error = make_import_failed_error2(vm,
                         args.error_fmt,
@@ -6499,7 +6501,7 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
     }
     const char *rp = FKL_VM_STR(rp_v)->str;
 
-    FklCgLib *lib = fklVMvalueCgLibsGet(info->libraries, rp);
+    FklCgLib *lib = fklVMvalueCgLibsGet(ctx, info->libraries, rp);
     if (lib != NULL) {
         return lib;
     }
@@ -6521,7 +6523,7 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
     }
 
     FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
-    lib = fklVMvalueCgLibsAdd(info->libraries, rp);
+    lib = fklVMvalueCgLibsAdd(ctx, info->libraries, rp);
     fklInitCgDllLib(ctx, module_name, lib, dll, initExport);
     uv_dlclose(&dll);
 

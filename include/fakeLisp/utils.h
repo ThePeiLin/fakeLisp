@@ -76,6 +76,7 @@ char *fklStrCat(char *, const char *);
 // steal from glib: https://gitlab.gnome.org/GNOME/glib
 char *fklStrrstr(const char *haystack, const char *needle);
 char *fklStrEndWith(const char *str, const char *sub);
+int fklStrStartWith(const char *haystack, const char *needle);
 
 char *fklCharBufToCstr(const char *buf, size_t size);
 

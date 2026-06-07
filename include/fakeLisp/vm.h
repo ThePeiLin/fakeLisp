@@ -1482,8 +1482,6 @@ void fklVMreleaseWq(FklVMgc *);
 void fklQueueWorkInIdleThread(FklVM *vm,
         void (*cb)(FklVM *, void *),
         void *arg);
-void fklResumeQueueWorkThread(FklVM *, uv_cond_t *);
-void fklResumeQueueIdleThread(FklVM *, uv_cond_t *);
 
 static FKL_ALWAYS_INLINE void fklVMyield(FklVM *exe) {
     if (exe->is_single_thread || !atomic_load(&(exe)->notice_lock)) {

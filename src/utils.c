@@ -544,6 +544,22 @@ char *fklStrEndWith(const char *str, const char *suffix) {
     return (char *)suffix_pos;
 }
 
+int fklStrStartWith(const char *haystack, const char *needle) {
+    if (haystack == needle)
+        return 1;
+    if (haystack == NULL)
+        return 0;
+    if (needle == NULL)
+        return 0;
+    size_t haystack_len = strlen(haystack);
+    size_t needle_len = strlen(needle);
+
+    if (haystack_len < needle_len)
+        return 0;
+    int r = memcmp(haystack, needle, needle_len);
+    return r == 0;
+}
+
 char *fklCharBufToCstr(const char *buf, size_t size) {
     char *str = (char *)fklZmalloc((size + 1) * sizeof(char));
     FKL_ASSERT(str);

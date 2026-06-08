@@ -334,6 +334,8 @@ typedef struct FklCgCtx {
     FklPmatchRes cur_exp;
 
     char *cwd;
+
+	// TODO: rename to main_dir
     char *main_file_real_path_dir;
     const char *cur_file_dir;
 

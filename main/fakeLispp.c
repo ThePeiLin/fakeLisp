@@ -405,6 +405,7 @@ static void print_reader_macros(FklVM *vm,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     FKL_ASSERT(ht);
+    return;
     FKL_TODO();
     // if (ht->first == NULL)
     //     return;
@@ -442,7 +443,6 @@ static void print_reader_macros(FklVM *vm,
 static void print_replacements(FklVM *vm,
         const FklVMvalueCgRplHashMap *replacements,
         FklCodeBuilder *build) {
-    FKL_TODO();
     if (replacements->ht.count == 0)
         return;
     CB_LINE("\nreplacements:");

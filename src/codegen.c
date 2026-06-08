@@ -8020,12 +8020,10 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     }
 }
 
-void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *gc) {
+void fklInitCgCtx(FklCgCtx *ctx, char *main_dir, FklVM *gc) {
     fklInitCgCtxExceptPattern(ctx, gc);
     ctx->cwd = fklSysgetcwd();
-    ctx->main_file_real_path_dir = main_file_real_path_dir
-                                         ? main_file_real_path_dir
-                                         : fklZstrdup(ctx->cwd);
+    ctx->main_file_real_path_dir = main_dir ? main_dir : fklZstrdup(ctx->cwd);
 
 #define XX(A) ctx->builtin_sym_##A = add_symbol_cstr(ctx, #A);
     FKL_CODEGEN_SYMBOL_MAP

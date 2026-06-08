@@ -11,11 +11,6 @@
 extern "C" {
 #endif
 
-typedef enum FklWriteCodePass {
-    FKL_WRITE_CODE_PASS_FIRST = 0,
-    FKL_WRITE_CODE_PASS_SECOND,
-} FklWriteCodePass;
-
 // module reference type
 typedef enum {
     FKL_LIB_REF_SCRIPT_EMBEDDED = 0,

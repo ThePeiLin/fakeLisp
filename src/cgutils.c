@@ -681,6 +681,10 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     }
 
     lib->lib = create_dll_lib(ctx->vm, name, lib);
+
+    lib->macros = ctx->hash_singleton;
+    lib->replacements = ctx->hash_singleton;
+    lib->rmacros = ctx->hash_singleton;
 }
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,
@@ -2520,6 +2524,11 @@ FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklCgCtx *c,
         const FklVMvalueCgLibs *libs,
         const char *rp) {
     FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+    return fklVMvalueCgLibsGet1(libs, rp_s);
+}
+
+FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s) {
     FklValueHashMapElm *e = fklVMhashTableGet(libs, rp_s);
     return e == NULL ? NULL : fklVMvalueCgLib(e->v);
 }
@@ -4354,4 +4363,9 @@ FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s) {
 
     l->rp = rp_s;
     return l;
+}
+
+FklCgAct *
+fklMakeImportAct(FklCgCtx *, const char *rp, FklFileType ft, FklCgAct *prev) {
+    FKL_TODO();
 }

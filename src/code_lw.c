@@ -26,6 +26,8 @@ typedef enum FklWriteCodePass {
 typedef struct {
     int is_writting_pre_compile;
     const FklLibTable *internal_lib_table;
+    const FklLibTable *imported_by_macros;
+
     const FklVMvalueHash *map;
 
     FklValueTable *value_table;
@@ -64,8 +66,12 @@ static int load_proto_table(FILE *fp,
 
 typedef struct {
     // in
+    int is_loading_pre_compile;
     FklVM *const vm;
     const char *main_dir;
+    FklPreCompileFixup *fixup;
+
+    const FklCgCtx *cg_ctx;
 
     // out
     FklValueId count;
@@ -116,6 +122,7 @@ typedef uint32_t TotalValCount;
 typedef uint32_t LibIdx;
 
 typedef uint8_t LibType;
+
 #define PRIu_LIBIDX PRIu32
 
 FKL_VM_DEF_UD_STRUCT(LibPlaceholder, { LibIdx idx; });
@@ -598,43 +605,100 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         FKL_VM_VEC(names)->base[i] = load_value_id(fp, values);
     }
 
-    FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, //
-            name,
-            FKL_VM_VEC(names));
+    FklVM *vm = values->vm;
+
     LibType mod_type = 0;
     fread(&mod_type, sizeof(mod_type), 1, fp);
+
+    FklVMvalueLib *lib = NULL;
+    if (mod_type != FKL_LIB_REF_EXTERNAL) {
+        lib = fklCreateVMvalueLib(vm, name, FKL_VM_VEC(names));
+    }
+
     switch ((FklLibRefType)mod_type) {
     default:
         FKL_UNREACHABLE();
         break;
+
+    case FKL_LIB_REF_EXTERNAL: {
+        FKL_ASSERT(libs->is_loading_pre_compile != 0);
+        uint8_t is_imported_by_macro = 0;
+        fread(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
+
+        FklFileType ft = FKL_FILE_NONE;
+        FklVMvalue *rp = fklResolveLibPath(libs->vm, libs->main_dir, name, &ft);
+        if (rp == NULL) {
+            goto mod_not_imported;
+        }
+
+        printf("[DEBUG] external lib rp: %s\n", FKL_VM_SYM(rp)->str);
+
+        const FklCgCtx *cg_ctx = libs->cg_ctx;
+        FklVMvalueCgLibs *cg_libs = is_imported_by_macro
+                                          ? cg_ctx->macro_libraries
+                                          : cg_ctx->libraries;
+
+        const FklCgLib *l = fklVMvalueCgLibsGet1(cg_libs, rp);
+        if (l != NULL) {
+            lib = l->lib;
+            break;
+        }
+
+    mod_not_imported:
+        lib = fklCreateVMvalueLib(vm, name, FKL_VM_VEC(names));
+
+        if (libs->fixup == NULL) {
+            break;
+        }
+
+        FklPreCompileFixup *fixup = libs->fixup;
+
+        lib->proc = FKL_MAKE_VM_FIX(fixup->pendings.size);
+
+        FklPcDep dep = {
+            .is_imported_by_macro = is_imported_by_macro,
+            .name = name,
+            .rp = rp,
+            .ft = ft,
+        };
+
+        fklPcDepVectorPushBack(&fixup->pendings, &dep);
+    } break;
+
     case FKL_LIB_REF_SCRIPT_EMBEDDED: {
         FklVMvalueProc *proc = load_proc(fp, values, protos);
         lib->proc = FKL_VM_VAL(proc);
     } break;
-    case FKL_LIB_REF_DLL_INTERNAL:
+
+    case FKL_LIB_REF_DLL_INTERNAL: {
         lib->proc = load_value_id(fp, values);
-        if (FKL_IS_SYM(lib->proc)) {
-            FklStrBuf buf = { 0 };
-            fklInitStrBuf(&buf);
-            fklStrBufPrintf(&buf,
-                    "%s%c%s",
-                    libs->main_dir,
-                    FKL_PATH_SEPARATOR,
-                    FKL_VM_SYM(lib->proc)->str);
+        FKL_ASSERT(FKL_IS_SYM(lib->proc));
 
-            char *rp = fklRealpath(fklStrBufBody(&buf));
-            FklVMvalue *p = NULL;
-            if (rp == NULL) {
-                p = fklCreateVMvalueStr(values->vm, FKL_VM_SYM(lib->proc));
-            } else {
-                p = fklCreateVMvalueStr1(values->vm, rp);
-            }
+        FklFileType ft = FKL_FILE_NONE;
+        FklVMvalue *rp = fklResolveLibPath(vm, libs->main_dir, lib->proc, &ft);
+        if (rp == NULL || ft != FKL_FILE_DLL) {
+            if (libs->fixup == NULL)
+                break;
 
-            fklZfree(rp);
-            fklUninitStrBuf(&buf);
-            lib->proc = p;
+            FklPreCompileFixup *fixup = libs->fixup;
+
+            lib->proc = FKL_MAKE_VM_FIX(fixup->pendings.size);
+
+            FklPcDep dep = {
+                .is_imported_by_macro = 0,
+                .name = name,
+                .rp = rp,
+                .ft = ft,
+            };
+
+            fklPcDepVectorPushBack(&fixup->pendings, &dep);
+            break;
         }
-        break;
+
+        FklVMvalue *p = fklCreateVMvalueStr(values->vm, FKL_VM_SYM(rp));
+
+        lib->proc = p;
+    } break;
 
     case FKL_LIB_REF_DLL_ABSOLUTE:
         lib->proc = load_value_id(fp, values);
@@ -720,12 +784,19 @@ static inline void write_vm_lib_pass_1(const FklVMvalueLib *l,
         fklValueTableAdd(vt, names[i]);
     }
 
+    int is_writting_pre_compile = extra_args->is_writting_pre_compile;
+    const FklLibTable *internal_lib_table = extra_args->internal_lib_table;
+
+    if (is_writting_pre_compile && fklLibTableGet(internal_lib_table, l) == 0) {
+        return;
+    }
+
     if (FKL_IS_PROC(proc_v)) {
         FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
         fklValueVectorPushBack2(pending, FKL_VM_VAL(proc->proto));
         write_bc_lnt(FKL_VM_CO(proc->bcl), vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
     } else if (FKL_IS_STR(proc_v)) {
-        if (!extra_args->is_writting_pre_compile)
+        if (!is_writting_pre_compile)
             fklValueTableAdd(vt, proc_v);
     } else if (!fklIsVMvalueDll(proc_v)) {
         FKL_UNREACHABLE();
@@ -1157,6 +1228,18 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
 
     write_value_id(value_table, 0, lib->name, fp);
 
+    if (type_byte == FKL_LIB_REF_EXTERNAL) {
+        static const char *lib_ref_type_names[] = {
+            [FKL_LIB_REF_EXTERNAL] = "external",
+            [FKL_LIB_REF_SCRIPT_EMBEDDED] = "script-embedded",
+            [FKL_LIB_REF_DLL_ABSOLUTE] = "dll-absolute",
+            [FKL_LIB_REF_DLL_INTERNAL] = "dll-internal",
+        };
+        printf("[DEBUG] writting \"%s\" lib: %s\n",
+                lib_ref_type_names[type_byte],
+                FKL_VM_SYM(lib->name)->str);
+    }
+
     TotalValCount val_count = lib->count;
     fwrite(&val_count, sizeof(val_count), 1, fp);
 
@@ -1168,12 +1251,14 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
     fwrite(&type_byte, sizeof(type_byte), 1, fp);
     switch ((FklLibRefType)type_byte) {
     default:
-        FKL_TODO();
+        FKL_UNREACHABLE();
         break;
+
     case FKL_LIB_REF_SCRIPT_EMBEDDED: {
         FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
         write_proc(proc, FKL_WRITE_CODE_PASS_SECOND, extra_args, fp);
     } break;
+
     case FKL_LIB_REF_DLL_INTERNAL: {
         FklVMvalue *proc = lib->proc;
         if (FKL_IS_STR(proc) || fklIsVMvalueDll(proc)) {
@@ -1187,6 +1272,13 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
         FklVMvalue *rp = lib->proc;
         FKL_ASSERT(FKL_IS_STR(lib->proc));
         write_value_id(value_table, 0, rp, fp);
+    } break;
+
+    case FKL_LIB_REF_EXTERNAL: {
+        LibIdx idx = fklLibTableGet(extra_args->imported_by_macros, lib);
+        uint8_t is_imported_by_macro = idx != 0;
+        fwrite(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
+        printf("[DEBUG] is imported by macros: %d\n", is_imported_by_macro);
     } break;
     }
 }
@@ -1266,6 +1358,7 @@ FklVMvalueProc *fklLoadCodeFile(FILE *fp,
     FklLoadValueArgs values = { .vm = vm };
     FklLoadProtoArgs protos = { .vm = vm };
     FklLoadLibArgs libs = {
+        .is_loading_pre_compile = 0,
         .vm = vm,
         .main_dir = main_dir,
     };
@@ -1881,10 +1974,22 @@ static void collect_internal_modules(const FklVMvalueCgInfo *info,
             fklLibTableAdd(intern, l->lib);
         }
 
-        fprintf(stderr,
-                "[DEBUG] lib rp: %s, is internal module: %d\n",
+        printf("[DEBUG] lib rp: %s, is internal module: %d\n",
                 rp,
                 is_internal_module(main_dir, l));
+    }
+}
+
+static void collect_libs_imported_by_macros(const FklCgCtx *ctx,
+        FklLibTable *out) {
+    const char *main_dir = ctx->main_file_real_path_dir;
+    for (const FklValueHashMapNode *c = ctx->macro_libraries->ht.first;
+            c != NULL;
+            c = c->next) {
+        const FklCgLib *l = fklVMvalueCgLib(c->v);
+        if (!is_internal_module(main_dir, l)) {
+            fklLibTableAdd(out, l->lib);
+        }
     }
 }
 
@@ -1966,12 +2071,17 @@ void fklWritePreCompile(FILE *fp,
     FklValueTable macro_table;
     fklInitValueTable(&macro_table);
 
+    FklLibTable libs_imported_by_macros;
+    fklInitLibTable(&libs_imported_by_macros);
+
     collect_internal_modules(info, &internal_lib_table);
     collect_external_macros(args->ctx, &macro_table);
+    collect_libs_imported_by_macros(args->ctx, &libs_imported_by_macros);
 
     WriteLibExtraArgs extra_args = {
         .is_writting_pre_compile = 1,
         .internal_lib_table = &internal_lib_table,
+        .imported_by_macros = &libs_imported_by_macros,
 
         .value_table = &value_table,
         .proto_table = &proto_table,
@@ -2002,6 +2112,21 @@ void fklWritePreCompile(FILE *fp,
     fklUninitProtoTable(&proto_table);
     fklUninitLibTable(&lib_table);
     fklUninitLibTable(&internal_lib_table);
+    fklUninitLibTable(&libs_imported_by_macros);
+}
+
+FKL_NODISCARD
+static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(
+        const FklPreCompileFixup *fixup) {
+    const FklPcDepVector *pendings = &fixup->pendings;
+    for (size_t i = 0; i < pendings->size; ++i) {
+        const FklPcDep *dep = &pendings->base[i];
+        if (dep->ft == FKL_FILE_NONE) {
+            return dep->name;
+        }
+    }
+
+    return NULL;
 }
 
 const FklCgLib *
@@ -2014,8 +2139,11 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     FklLoadProtoArgs protos = { .vm = ctx->vm };
     char *main_dir = fklDupDir(rp);
     FklLoadLibArgs libs = {
+        .is_loading_pre_compile = 1,
         .vm = ctx->vm,
+        .cg_ctx = ctx,
         .main_dir = main_dir,
+        .fixup = args->fixup,
     };
 
     err = load_value_table(fp, &values);
@@ -2038,6 +2166,13 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     FklCgLib *lib = fklVMvalueCgLibsAdd(args->ctx, args->libraries, rp);
     load_script_lib_from_pre_compile(fp, &values, &protos, lib, args);
 
+    if (args->fixup) {
+        for (size_t i = 0; i < protos.count; ++i) {
+            FklVMvalue *v = FKL_VM_VAL(protos.protos[i]);
+            fklValueVectorPushBack2(&args->fixup->protos, v);
+        }
+    }
+
     values.count = 0;
     fklZfree(values.values);
     values.values = NULL;
@@ -2057,5 +2192,56 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 
     fklZfree(main_dir);
     lib->lib->name = fklCgRealpathToModuleName(ctx, rp);
+
+    FklVMvalue *mod_name = has_unimportable_mod(args->fixup);
+    if (mod_name != NULL) {
+        args->error_fmt = "failed to import %S for %S";
+        args->error_obj = mod_name;
+    }
+
     return lib;
+}
+
+void fklPreCompileFixupInit(FklPreCompileFixup *fixup) {
+    fklPcDepVectorInit(&fixup->pendings, 8);
+    fklValueVectorInit(&fixup->protos, 8);
+
+    fklValueVectorInit(&fixup->libs, 8);
+}
+
+void fklPreCompileFixupUninit(FklPreCompileFixup *fixup) {
+    fklPcDepVectorUninit(&fixup->pendings);
+    fklValueVectorUninit(&fixup->protos);
+
+    fklValueVectorUninit(&fixup->libs);
+}
+
+static FKL_ALWAYS_INLINE void fixup_proto_external_libs(FklVMvalueProto *p,
+        const FklPreCompileFixup *fixup) {
+    LibIdx count = p->used_libraries_count;
+    FklVMvalue **libs = &p->vals[p->used_libraries_offset];
+    for (LibIdx j = 0; j < count; ++j) {
+        FklVMvalueLib *old_l = fklVMvalueLib(libs[j]);
+        FklVMvalue *idx_v = old_l->proc;
+        if (!FKL_IS_FIX(old_l))
+            continue;
+        int64_t idx = FKL_GET_FIX(idx_v);
+        FKL_ASSERT(idx >= 0 && idx < (int64_t)fixup->libs.size);
+        FklVMvalue *new_l = fixup->libs.base[idx];
+        FKL_ASSERT(fklIsVMvalueLib(new_l));
+        libs[j] = FKL_VM_VAL(new_l);
+    }
+}
+
+int fklPreCompileFixup(const FklPreCompileFixup *fixup) {
+    if (fixup->pendings.size != fixup->libs.size)
+        return -1;
+
+    const FklValueVector *protos = &fixup->protos;
+    for (size_t i = 0; i < protos->size; ++i) {
+        FklVMvalueProto *p = fklVMvalueProto(protos->base[i]);
+        fixup_proto_external_libs(p, fixup);
+    }
+
+    return 0;
 }

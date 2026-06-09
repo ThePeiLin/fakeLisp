@@ -40,7 +40,7 @@ static inline int pre_compile(const char *main_file_name,
     const char *main_dir = ctx.main_file_real_path_dir;
     fklChdir(main_dir);
 
-    FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
+    FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
             NULL,
             rp,
             &(FklCgInfoArgs){
@@ -49,10 +49,7 @@ static inline int pre_compile(const char *main_file_name,
                 .is_precompile = 1,
             });
 
-    FklVMvalue *co = fklGenExpressionCodeWithFpForPrecompile(&ctx,
-            fp,
-            codegen,
-            ctx.main_env);
+    FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.main_env);
 
     fklChdir(ctx.cwd);
 
@@ -97,7 +94,7 @@ static inline int pre_compile(const char *main_file_name,
             output_dir,
             &(FklWritePreCompileArgs){
                 .ctx = &ctx,
-                .main_info = codegen,
+                .main_info = info,
                 .main_proc = FKL_VM_PROC(proc),
             });
 
@@ -131,7 +128,7 @@ static inline int compile(const char *filename,
     fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
-    FklVMvalueCgInfo *codegen = fklCreateVMvalueCgInfo(&ctx,
+    FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
             NULL,
             rp,
             &(FklCgInfoArgs){
@@ -141,10 +138,7 @@ static inline int compile(const char *filename,
 
     char *outputname = NULL;
     FklVM *vm = NULL;
-    FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, //
-            fp,
-            codegen,
-            ctx.main_env);
+    FklVMvalue *co = fklGenExpressionCodeWithFp(&ctx, fp, info, ctx.main_env);
 
     fklChdir(ctx.cwd);
     fklUnregisterCgCtx(&ctx);

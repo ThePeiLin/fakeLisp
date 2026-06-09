@@ -40,9 +40,9 @@ long fklStrBufPrintf(FklStrBuf *, const char *fmt, ...);
 
 int fklStrBufCmp(const FklStrBuf *a, const FklStrBuf *b);
 
-static inline uint32_t fklStrBufLen(FklStrBuf *b) { return b->index; }
+static inline uint32_t fklStrBufLen(const FklStrBuf *b) { return b->index; }
 
-static inline char *fklStrBufBody(FklStrBuf *b) { return b->buf; }
+static inline char *fklStrBufBody(const FklStrBuf *b) { return b->buf; }
 
 static inline void fklStrBufPuts(FklStrBuf *b, const char *s) {
     fklStrBufBincpy(b, s, strlen(s));

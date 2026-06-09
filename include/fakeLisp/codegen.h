@@ -335,7 +335,7 @@ typedef struct FklCgCtx {
 
     char *cwd;
 
-	// TODO: rename to main_dir
+    // TODO: rename to main_dir
     char *main_file_real_path_dir;
     const char *cur_file_dir;
 
@@ -344,6 +344,9 @@ typedef struct FklCgCtx {
     FklVMvalueCgLibs *libraries;
 
     FklVMvalueCgLibs *macro_libraries;
+
+    // for dll lib
+    FklVMvalueHash *hash_singleton;
 
     FklVM *vm;
 
@@ -367,6 +370,14 @@ typedef struct FklCgCtx {
 } FklCgCtx;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgGrammer, { FklGrammer g; });
+
+typedef enum {
+    FKL_FILE_NONE,
+    FKL_FILE_SCRIPT,
+    FKL_FILE_PACKAGE,
+    FKL_FILE_PRECOMPILE,
+    FKL_FILE_DLL,
+} FklFileType;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueLnt *lnt;
@@ -501,6 +512,11 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
 FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
         const FklCgExportSidIdxHashMap *map);
 
+FklVMvalue *fklResolveLibPath(FklVM *vm,
+        const char *main_dir,
+        FklVMvalue *name,
+        FklFileType *ft);
+
 int fklIsVMvalueCgLibs(const FklVMvalue *v);
 FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
 
@@ -514,6 +530,9 @@ static FKL_ALWAYS_INLINE FklVMvalueCgLib *fklVMvalueCgLib(const FklVMvalue *v) {
 FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklCgCtx *c,
         const FklVMvalueCgLibs *,
         const char *rp);
+
+FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *, FklVMvalue *rp);
+
 FklVMvalueCgLib *
 fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 
@@ -538,20 +557,17 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
 FklVMvalue *fklGenExpressionCode(FklCgCtx *ctx,
         FklVMvalue *exp,
-        FklVMvalueCgEnv *cur_env,
-        FklVMvalueCgInfo *codegen);
-FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx,
-        FklCgAct *,
-        FklVMvalueCgInfo *codegen);
+        FklVMvalueCgEnv *env,
+        FklVMvalueCgInfo *info);
+FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx, FklCgAct *);
 FklVMvalue *fklGenExpressionCodeWithFp(FklCgCtx *ctx,
         FILE *,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalueCgEnv *cur_env);
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgEnv *env);
 
-FklVMvalue *fklGenExpressionCodeWithFpForPrecompile(FklCgCtx *ctx,
-        FILE *fp,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalueCgEnv *cur_env);
+FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *, size_t, FklCgAct *const *);
+
+FklCgAct *fklMakeImportAct(FklCgCtx *, const char *, FklFileType, FklCgAct *);
 
 FklSymDefHashMapElm *
 fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);

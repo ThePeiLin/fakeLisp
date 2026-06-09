@@ -39,6 +39,32 @@ void fklWritePreCompile(FILE *fp,
         const char *target_dir,
         const FklWritePreCompileArgs *const args);
 
+// pre-compile dependence
+typedef struct {
+    FklVMvalue *name;
+    FklVMvalue *rp;
+	FklFileType ft;
+
+    int is_imported_by_macro;
+} FklPcDep;
+
+// FklPcDepVector
+#define FKL_VECTOR_ELM_TYPE FklPcDep
+#define FKL_VECTOR_ELM_TYPE_NAME PcDep
+#include "cont/vector.h"
+
+typedef struct {
+    FklPcDepVector pendings;
+    FklValueVector protos;
+
+    // 实际值
+    FklValueVector libs;
+} FklPreCompileFixup;
+
+void fklPreCompileFixupInit(FklPreCompileFixup *);
+void fklPreCompileFixupUninit(FklPreCompileFixup *);
+int fklPreCompileFixup(const FklPreCompileFixup *fixup);
+
 typedef struct {
     // in
     FklCgCtx *const ctx;
@@ -47,6 +73,8 @@ typedef struct {
     // out
     FklLibTable *lib_table;
     FklVMvalueCgLib *cg_lib;
+
+    FklPreCompileFixup *fixup;
 
     const char *error_fmt;
     FklVMvalue *error_obj;

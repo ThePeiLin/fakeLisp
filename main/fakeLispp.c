@@ -41,7 +41,6 @@ static void print_compiler_macros(FklVM *vm,
         const FklLibTable *lib_table) {
     for (const FklValueHashMapNode *cur = macros->ht.first; cur;
             cur = cur->next) {
-        FKL_TODO();
         print_compiler_macros_list(vm, cur->v, build, opcode_count, lib_table);
     }
 }
@@ -139,6 +138,11 @@ static inline void print_lib_table(FklVM *vm,
         uint64_t id = cur->v;
         print_lib_name(vm, l, id, build);
         print_export_symbols(vm, l, build);
+
+        if (l->proc == NULL) {
+            CB_LINE("<external>");
+            continue;
+        }
 
         if (FKL_IS_PROC(l->proc)) {
             FKL_DIS_PROC(vm,

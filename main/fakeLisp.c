@@ -131,12 +131,36 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     char *rp = fklRealpath(filename);
     fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
 
+    FklPreCompileFixup fixup;
+    fklPreCompileFixupInit(&fixup);
+
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
         .libraries = ctx.libraries,
+        .fixup = &fixup,
     };
 
     const FklVMvalueCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
+
+    const FklPcDepVector *pendings = &fixup.pendings;
+
+    for (size_t i = 0; i < pendings->size; ++i) {
+        const FklPcDep *dep = &pendings->base[i];
+        fprintf(stderr,
+                "[DEBUG] lib %s, imported by macro: %d\n",
+                FKL_VM_SYM(dep->name)->str,
+                dep->is_imported_by_macro);
+    }
+
+    for (size_t i = 0; i < pendings->size; ++i) {
+        const FklPcDep *dep = &pendings->base[i];
+        FklCgAct *act;
+        act = fklMakeImportAct(&ctx, FKL_VM_SYM(dep->rp)->str, dep->ft, NULL);
+        FklVMvalue *co = fklGenExpressionCodeWithAction(&ctx, act);
+        FKL_ASSERT(co);
+    }
+
+    fklPreCompileFixupUninit(&fixup);
 
     fklZfree(rp);
 
@@ -152,9 +176,22 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
                     args.error_obj);
             fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
         }
+
+        goto load_failed;
+    }
+
+    if (args.error_fmt != NULL) {
+        FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                &gc->gcvm,
+                args.error_fmt,
+                args.error_obj,
+                fklVMaddSymbolCstr(&gc->gcvm, filename));
+        fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+
+    load_failed:
         fklUninitCgCtx(&ctx);
         fklDestroyVMgc(gc);
-        fprintf(stderr, "%s: Load pre-compile file failed.\n", filename);
+        fprintf(stderr, "\n%s: Load pre-compile file failed.\n", filename);
         return 1;
     }
 

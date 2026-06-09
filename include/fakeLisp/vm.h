@@ -1283,20 +1283,24 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CDR(const FklVMvalue *V) {
 #define FKL_VM_CDR(V) (*FKL_VM_CDR(V))
 
 static FKL_ALWAYS_INLINE FklString *FKL_VM_STR(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_STR(V));
     return (&((FklVMvalueStr *)(V))->str);
 }
 
 static FKL_ALWAYS_INLINE FklString *FKL_VM_SYM(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_SYM(V));
     return (&((FklVMvalueSym *)(V))->str);
 }
 
 static FKL_ALWAYS_INLINE uint8_t *FKL_VM_SYM_INTERNED(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_SYM(V));
     return &(((FklVMvalueSym *)(V))->interned);
 }
 
 #define FKL_VM_SYM_INTERNED(V) (*FKL_VM_SYM_INTERNED(V))
 
 static FKL_ALWAYS_INLINE FklBytevector *FKL_VM_BVEC(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_BYTEVECTOR(V));
     return (&((FklVMvalueBvec *)(V))->bvec);
 }
 
@@ -1312,6 +1316,7 @@ static FKL_ALWAYS_INLINE FklVMvalueVec *FKL_VM_VEC(const FklVMvalue *V) {
             (N)))
 
 static FKL_ALWAYS_INLINE double *FKL_VM_F64(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_F64(V));
     return &(((FklVMvalueF64 *)(V))->f64);
 }
 

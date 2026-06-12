@@ -262,7 +262,7 @@ static inline FklCgNextExp *createFirstHasRetvalQueueNextExpression(
             FIRST_MUST_HAS_RETVAL);
 }
 
-static inline FklCgActCtx *createCgActCtx(const FklCgActCtxMethodTable *t) {
+static inline FklCgActCtx *createCgActCtx(const FklCgActCtxMt *t) {
     FklCgActCtx *r = NULL;
     r = (FklCgActCtx *)fklZcalloc(1, sizeof(FklCgActCtx) + t->size);
     FKL_ASSERT(r);

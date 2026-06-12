@@ -2534,16 +2534,20 @@ FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *libs,
 }
 
 FklVMvalueCgLib *
-fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *libs, const char *rp) {
-    FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
-
+fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s) {
     FklValueHashMapElm *e = fklVMhashTableRef1(libs, rp_s, NULL);
     if (e->v == NULL) {
-        FklVMvalueCgLib *l = fklCreateVMvalueCgLib(c->vm, rp_s);
+        FklVMvalueCgLib *l = fklCreateVMvalueCgLib(vm, rp_s);
         e->v = FKL_VM_VAL(l);
     }
 
     return fklVMvalueCgLib(e->v);
+}
+
+FklVMvalueCgLib *
+fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *libs, const char *rp) {
+    FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+    return fklVMvalueCgLibsAdd1(c->vm, libs, rp_s);
 }
 
 void fklVMvalueCgLibsRemove(FklCgCtx *c,
@@ -3919,7 +3923,7 @@ static void _reader_macro_stack_context_atomic(FklVMgc *gc, void *data) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, d->action_ctx), gc);
 }
 
-static const FklCgActCtxMethodTable RmacroStackContextMethodTable = {
+static const FklCgActCtxMt RmacroStackContextMethodTable = {
     .size = sizeof(struct RmacroCtx),
     .atomic = _reader_macro_stack_context_atomic,
 };
@@ -4363,9 +4367,4 @@ FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s) {
 
     l->rp = rp_s;
     return l;
-}
-
-FklCgAct *
-fklMakeImportAct(FklCgCtx *, const char *rp, FklFileType ft, FklCgAct *prev) {
-    FKL_TODO();
 }

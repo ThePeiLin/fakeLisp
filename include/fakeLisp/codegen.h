@@ -407,10 +407,10 @@ typedef struct {
     size_t size;
     void (*finalize)(void *);
     void (*atomic)(FklVMgc *, void *);
-} FklCgActCtxMethodTable;
+} FklCgActCtxMt;
 
 typedef struct FklCgActCtx {
-    const FklCgActCtxMethodTable *t;
+    const FklCgActCtxMt *t;
     alignas(void *) uint8_t d[];
 } FklCgActCtx;
 
@@ -535,6 +535,8 @@ FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *, FklVMvalue *rp);
 
 FklVMvalueCgLib *
 fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
+FklVMvalueCgLib *
+fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s);
 
 void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 
@@ -567,7 +569,12 @@ FklVMvalue *fklGenExpressionCodeWithFp(FklCgCtx *ctx,
 
 FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *, size_t, FklCgAct *const *);
 
-FklCgAct *fklMakeImportAct(FklCgCtx *, const char *, FklFileType, FklCgAct *);
+FklCgAct *fklMakeImportAct(FklCgCtx *,
+        FklVMvalue *name,
+        FklFileType,
+        FklVMvalue *rp,
+        FklVMvalueCgInfo *info,
+        FklCgAct *);
 
 FklSymDefHashMapElm *
 fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);

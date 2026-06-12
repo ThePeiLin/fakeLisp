@@ -155,7 +155,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     for (size_t i = 0; i < pendings->size; ++i) {
         const FklPcDep *dep = &pendings->base[i];
         FklCgAct *act;
-        act = fklMakeImportAct(&ctx, FKL_VM_SYM(dep->rp)->str, dep->ft, NULL);
+        act = fklMakeImportAct(&ctx, dep->name, dep->ft, dep->rp, NULL, NULL);
         FklVMvalue *co = fklGenExpressionCodeWithAction(&ctx, act);
         FKL_ASSERT(co);
     }

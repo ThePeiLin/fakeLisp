@@ -640,9 +640,11 @@ static FklVMvalueLib *create_script_lib(FklVM *vm,
     return l;
 }
 
-static FklVMvalueLib *
-create_dll_lib(FklVM *vm, FklVMvalue *name, FklVMvalueCgLib *clib) {
-    FKL_ASSERT(FKL_IS_SYM(name));
+static FklVMvalueLib *create_dll_lib(FklVM *vm,
+        FklVMvalue *name,
+        FklVMvalueCgLib *clib,
+        FklVMvalue *rp) {
+    FKL_ASSERT(FKL_IS_SYM(rp));
     if (clib->lib) {
         FklVMvalue *proc = clib->lib->proc;
         FKL_ASSERT(fklIsVMvalueDll(proc) || FKL_IS_STR(proc));
@@ -650,11 +652,8 @@ create_dll_lib(FklVM *vm, FklVMvalue *name, FklVMvalueCgLib *clib) {
     }
 
     FklVMvalueVec *names = fklCreateCgNamesVec(vm, &clib->exports);
-    const char *rp = fklCgLibRp(clib);
     FklVMvalueLib *l = fklCreateVMvalueLib(vm, name, names);
-    l->proc = fklCreateVMvalueStr2(vm,
-            strlen(rp) - strlen(FKL_DLL_FILE_EXTENSION),
-            rp);
+    l->proc = rp;
     clib->lib = l;
     return l;
 }
@@ -662,6 +661,7 @@ create_dll_lib(FklVM *vm, FklVMvalue *name, FklVMvalueCgLib *clib) {
 void fklInitCgDllLib(const FklCgCtx *ctx,
         FklVMvalue *name,
         FklVMvalueCgLib *lib,
+        FklVMvalue *rp,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init) {
     uint32_t num = 0;
@@ -680,7 +680,7 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
         fklZfree(exports);
     }
 
-    lib->lib = create_dll_lib(ctx->vm, name, lib);
+    lib->lib = create_dll_lib(ctx->vm, name, lib, rp);
 
     lib->macros = ctx->hash_singleton;
     lib->replacements = ctx->hash_singleton;
@@ -1332,6 +1332,8 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(e->rmacros), gc);
 
     mark_export_sid_map(&e->exports, gc);
+
+    fklVMgcToGray(e->user_data, gc);
 }
 
 static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1372,6 +1374,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     int is_debugging = args == NULL ? 0 : args->is_debugging;
     int is_precompile = args == NULL ? 0 : args->is_precompile;
 
+    FklVMvalue *user_data = args == NULL ? NULL : args->user_data;
+
     FKL_ASSERT(prev == NULL || fklIsVMvalueCgInfo((FklVMvalue *)prev));
 
     if (is_main && is_debugging)
@@ -1393,6 +1397,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     filename = filename ? filename       //
              : prev     ? prev->filename //
                         : NULL;
+
+    r->user_data = user_data;
 
     if (filename != NULL) {
         r->dir = fklDupDir(rp);

@@ -695,14 +695,12 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             break;
         }
 
-        FklVMvalue *p = fklCreateVMvalueStr(values->vm, FKL_VM_SYM(rp));
-
-        lib->proc = p;
+        lib->proc = rp;
     } break;
 
     case FKL_LIB_REF_DLL_ABSOLUTE:
         lib->proc = load_value_id(fp, values);
-        FKL_ASSERT(FKL_IS_STR(lib->proc));
+        FKL_ASSERT(FKL_IS_SYM(lib->proc));
         break;
     }
 
@@ -795,7 +793,7 @@ static inline void write_vm_lib_pass_1(const FklVMvalueLib *l,
         FklVMvalueProc *proc = FKL_VM_PROC(proc_v);
         fklValueVectorPushBack2(pending, FKL_VM_VAL(proc->proto));
         write_bc_lnt(FKL_VM_CO(proc->bcl), vt, FKL_WRITE_CODE_PASS_FIRST, NULL);
-    } else if (FKL_IS_STR(proc_v)) {
+    } else if (FKL_IS_SYM(proc_v)) {
         if (!is_writting_pre_compile)
             fklValueTableAdd(vt, proc_v);
     } else if (!fklIsVMvalueDll(proc_v)) {
@@ -1218,7 +1216,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
         const WriteLibExtraArgs *extra_args,
         FILE *fp) {
     FKL_ASSERT(FKL_IS_PROC(lib->proc)   //
-               || FKL_IS_STR(lib->proc) //
+               || FKL_IS_SYM(lib->proc) //
                || fklIsVMvalueDll(lib->proc));
 
     LibType type_byte = FKL_IS_PROC(lib->proc) ? FKL_LIB_REF_SCRIPT_EMBEDDED
@@ -1261,7 +1259,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
 
     case FKL_LIB_REF_DLL_INTERNAL: {
         FklVMvalue *proc = lib->proc;
-        if (FKL_IS_STR(proc) || fklIsVMvalueDll(proc)) {
+        if (FKL_IS_SYM(proc) || fklIsVMvalueDll(proc)) {
             write_value_id(value_table, 0, lib->name, fp);
         } else {
             FKL_UNREACHABLE();
@@ -1270,7 +1268,7 @@ static inline void write_vm_lib_pass_2(const FklVMvalueLib *lib,
 
     case FKL_LIB_REF_DLL_ABSOLUTE: {
         FklVMvalue *rp = lib->proc;
-        FKL_ASSERT(FKL_IS_STR(lib->proc));
+        FKL_ASSERT(FKL_IS_SYM(lib->proc));
         write_value_id(value_table, 0, rp, fp);
     } break;
 
@@ -2118,6 +2116,8 @@ void fklWritePreCompile(FILE *fp,
 FKL_NODISCARD
 static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(
         const FklPreCompileFixup *fixup) {
+	if(fixup == NULL)
+		return NULL;
     const FklPcDepVector *pendings = &fixup->pendings;
     for (size_t i = 0; i < pendings->size; ++i) {
         const FklPcDep *dep = &pendings->base[i];
@@ -2205,43 +2205,101 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 void fklPreCompileFixupInit(FklPreCompileFixup *fixup) {
     fklPcDepVectorInit(&fixup->pendings, 8);
     fklValueVectorInit(&fixup->protos, 8);
-
-    fklValueVectorInit(&fixup->libs, 8);
 }
 
 void fklPreCompileFixupUninit(FklPreCompileFixup *fixup) {
     fklPcDepVectorUninit(&fixup->pendings);
     fklValueVectorUninit(&fixup->protos);
-
-    fklValueVectorUninit(&fixup->libs);
 }
 
 static FKL_ALWAYS_INLINE void fixup_proto_external_libs(FklVMvalueProto *p,
-        const FklPreCompileFixup *fixup) {
+        const FklPreCompileFixup *fixup,
+        const FklValueVector *lib_vec) {
     LibIdx count = p->used_libraries_count;
     FklVMvalue **libs = &p->vals[p->used_libraries_offset];
     for (LibIdx j = 0; j < count; ++j) {
         FklVMvalueLib *old_l = fklVMvalueLib(libs[j]);
         FklVMvalue *idx_v = old_l->proc;
-        if (!FKL_IS_FIX(old_l))
+        if (!FKL_IS_FIX(idx_v))
             continue;
         int64_t idx = FKL_GET_FIX(idx_v);
-        FKL_ASSERT(idx >= 0 && idx < (int64_t)fixup->libs.size);
-        FklVMvalue *new_l = fixup->libs.base[idx];
-        FKL_ASSERT(fklIsVMvalueLib(new_l));
-        libs[j] = FKL_VM_VAL(new_l);
+        FKL_ASSERT(idx >= 0 && idx < (int64_t)lib_vec->size);
+        FklVMvalueCgLib *new_cg_l = fklVMvalueCgLib(lib_vec->base[idx]);
+        libs[j] = FKL_VM_VAL(new_cg_l->lib);
     }
 }
 
-int fklPreCompileFixup(const FklPreCompileFixup *fixup) {
-    if (fixup->pendings.size != fixup->libs.size)
-        return -1;
+int fklPreCompileFixup(const FklPreCompileFixup *fixup, const FklCgCtx *ctx) {
+    const FklPcDepVector *dep_vec = &fixup->pendings;
+    FklValueVector lib_vec = { 0 };
+    fklValueVectorInit(&lib_vec, fixup->pendings.size);
+
+    for (size_t i = 0; i < dep_vec->size; ++i) {
+        const FklPcDep *dep = &dep_vec->base[i];
+        FklVMvalue *rp = dep->rp;
+        FklVMvalueCgLibs *libs = dep->is_imported_by_macro
+                                       ? ctx->macro_libraries
+                                       : ctx->libraries;
+        FklCgLib *l = fklVMvalueCgLibsGet1(libs, rp);
+        if (l == NULL) {
+            fklValueVectorUninit(&lib_vec);
+            return -1;
+        }
+
+        fklValueVectorPushBack2(&lib_vec, FKL_VM_VAL(l));
+    }
 
     const FklValueVector *protos = &fixup->protos;
     for (size_t i = 0; i < protos->size; ++i) {
         FklVMvalueProto *p = fklVMvalueProto(protos->base[i]);
-        fixup_proto_external_libs(p, fixup);
+        fixup_proto_external_libs(p, fixup, &lib_vec);
     }
 
+    fklValueVectorUninit(&lib_vec);
+
     return 0;
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(fixup_print, "fix-up");
+
+static void fixup_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvaluePcFixup *f = fklVMvaluePcFixup(ud);
+    FklPreCompileFixup *fixup = &f->f;
+
+    FklPcDepVector *dep_vec = &fixup->pendings;
+    for (size_t i = 0; i < dep_vec->size; ++i) {
+        const FklPcDep *dep = &dep_vec->base[i];
+        fklVMgcToGray(dep->name, gc);
+        fklVMgcToGray(dep->rp, gc);
+    }
+
+    FklValueVector *proto_vec = &fixup->protos;
+    for (size_t i = 0; i < proto_vec->size; ++i) {
+        fklVMgcToGray(proto_vec->base[i], gc);
+    }
+}
+
+static int fixup_finalize(FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvaluePcFixup *f = fklVMvaluePcFixup(ud);
+    fklPreCompileFixupUninit(&f->f);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+static FklVMudMetaTable const FixupMt = {
+    .size = sizeof(FklVMvaluePcFixup),
+    .princ = fixup_print,
+    .prin1 = fixup_print,
+    .atomic = fixup_atomic,
+    .finalize = fixup_finalize,
+};
+
+FklVMvaluePcFixup *fklCreateVMvaluePcFixup(FklVM *vm) {
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &FixupMt, NULL);
+    FklVMvaluePcFixup *f = fklVMvaluePcFixup(v);
+    fklPreCompileFixupInit(&f->f);
+    return f;
+}
+
+int fklIsVMvaluePcFixup(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FixupMt;
 }

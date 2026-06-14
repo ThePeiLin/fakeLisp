@@ -692,7 +692,7 @@ static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
     FklVMvalue *error_msg = NULL;
     FklVMvalue *dll;
     FklImportDllInitFunc initFunc = NULL;
-    if (FKL_IS_STR(l->proc)) {
+    if (FKL_IS_SYM(l->proc)) {
         dll = fklCreateVMvalueDll(exe, l->proc, &error_msg);
     } else {
         dll = l->proc;

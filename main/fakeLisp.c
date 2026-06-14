@@ -128,41 +128,103 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     FklVMgc *gc = fklCreateVMgc();
 
     FklCgCtx ctx = { 0 };
-    char *rp = fklRealpath(filename);
+    FklVMvalue *rp_v = NULL;
+    {
+        char *rp = fklRealpath(filename);
+        rp_v = fklVMaddSymbolCstr(&gc->gcvm, rp);
+        fklZfree(rp);
+    }
+
+    const char *rp = FKL_VM_SYM(rp_v)->str;
+
     fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
 
-    FklPreCompileFixup fixup;
-    fklPreCompileFixupInit(&fixup);
+    FklVMvaluePcFixup *f = fklCreateVMvaluePcFixup(ctx.vm);
 
     FklLoadPreCompileArgs args = {
         .ctx = &ctx,
         .libraries = ctx.libraries,
-        .fixup = &fixup,
+        .fixup = &f->f,
     };
 
     const FklVMvalueCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
-    const FklPcDepVector *pendings = &fixup.pendings;
+    const FklPcDepVector *pendings = &f->f.pendings;
+
+    FklVMvalueCgInfo *main_info = fklCreateVMvalueCgInfo(&ctx,
+            NULL,
+            rp,
+            &(FklCgInfoArgs){
+                .is_lib = 1,
+                .is_main = 1,
+                .user_data = FKL_VM_VAL(f),
+            });
+
+    FklVMvalueCgInfo *info1 = fklCreateVMvalueCgInfo(&ctx,
+            main_info,
+            rp,
+            &(FklCgInfoArgs){
+                .is_lib = 1,
+            });
+
+    FklVMvalueCgInfo *macro_info = fklCreateVMvalueCgInfo(&ctx,
+            main_info,
+            rp,
+            &(FklCgInfoArgs){
+                .is_lib = 1,
+                .is_macro = 1,
+            });
+
+    if (args.error_fmt != NULL) {
+        FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                &gc->gcvm,
+                args.error_fmt,
+                args.error_obj,
+                fklVMaddSymbolCstr(&gc->gcvm, filename));
+        fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+
+        goto load_failed;
+    }
+
+    FklCgActVector act_vec = { 0 };
+    fklCgActVectorInit(&act_vec, pendings->size);
 
     for (size_t i = 0; i < pendings->size; ++i) {
         const FklPcDep *dep = &pendings->base[i];
+
+        FklVMvalueCgInfo *info = dep->is_imported_by_macro ? macro_info : info1;
+
+        FklVMvalue *rp = dep->rp;
+        FklFileType ft = dep->ft;
+        FklVMvalue *name = dep->name;
+
         fprintf(stderr,
                 "[DEBUG] lib %s, imported by macro: %d\n",
-                FKL_VM_SYM(dep->name)->str,
+                FKL_VM_SYM(name)->str,
                 dep->is_imported_by_macro);
+
+        if (ft == FKL_FILE_NONE) {
+            FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                    &gc->gcvm,
+                    args.error_fmt,
+                    args.error_obj,
+                    fklVMaddSymbolCstr(&gc->gcvm, filename));
+            fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+            goto load_failed;
+        }
+
+        FklCgAct *a = fklMakeImportAct(&ctx, name, ft, rp, info, NULL);
+        fklCgActVectorPushBack2(&act_vec, a);
     }
 
-    for (size_t i = 0; i < pendings->size; ++i) {
-        const FklPcDep *dep = &pendings->base[i];
-        FklCgAct *act;
-        act = fklMakeImportAct(&ctx, dep->name, dep->ft, dep->rp, NULL, NULL);
-        FklVMvalue *co = fklGenExpressionCodeWithAction(&ctx, act);
-        FKL_ASSERT(co);
-    }
+    FklVMvalue *rv = fklGenExpressionCodeExt(&ctx, act_vec.size, act_vec.base);
+    (void)rv;
 
-    fklPreCompileFixupUninit(&fixup);
+    fklCgActVectorUninit(&act_vec);
 
-    fklZfree(rp);
+    int fixup_result = fklPreCompileFixup(&f->f, &ctx);
+    FKL_ASSERT(fixup_result == 0);
+    (void)fixup_result;
 
     fklUnregisterCgCtx(&ctx);
 
@@ -176,17 +238,6 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
                     args.error_obj);
             fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
         }
-
-        goto load_failed;
-    }
-
-    if (args.error_fmt != NULL) {
-        FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
-                &gc->gcvm,
-                args.error_fmt,
-                args.error_obj,
-                fklVMaddSymbolCstr(&gc->gcvm, filename));
-        fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
 
     load_failed:
         fklUninitCgCtx(&ctx);

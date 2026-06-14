@@ -152,8 +152,8 @@ static inline void print_lib_table(FklVM *vm,
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(FKL_VM_PROC(l->proc)->bcl),
                         opcode_count);
-        } else if (FKL_IS_STR(l->proc)) {
-            CB_LINE("%s", FKL_VM_STR(l->proc)->str);
+        } else if (FKL_IS_SYM(l->proc)) {
+            CB_LINE("%s", FKL_VM_SYM(l->proc)->str);
         } else {
             FKL_UNREACHABLE();
         }

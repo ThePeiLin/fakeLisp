@@ -43,7 +43,7 @@ void fklWritePreCompile(FILE *fp,
 typedef struct {
     FklVMvalue *name;
     FklVMvalue *rp;
-	FklFileType ft;
+    FklFileType ft;
 
     int is_imported_by_macro;
 } FklPcDep;
@@ -56,14 +56,21 @@ typedef struct {
 typedef struct {
     FklPcDepVector pendings;
     FklValueVector protos;
-
-    // 实际值
-    FklValueVector libs;
 } FklPreCompileFixup;
 
 void fklPreCompileFixupInit(FklPreCompileFixup *);
 void fklPreCompileFixupUninit(FklPreCompileFixup *);
-int fklPreCompileFixup(const FklPreCompileFixup *fixup);
+int fklPreCompileFixup(const FklPreCompileFixup *fixup, const FklCgCtx *cg_ctx);
+
+FKL_VM_DEF_UD_STRUCT(FklVMvaluePcFixup, { FklPreCompileFixup f; });
+FklVMvaluePcFixup *fklCreateVMvaluePcFixup(FklVM *vm);
+
+int fklIsVMvaluePcFixup(const FklVMvalue *v);
+static FKL_ALWAYS_INLINE FklVMvaluePcFixup *fklVMvaluePcFixup(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvaluePcFixup(v));
+    return FKL_TYPE_CAST(FklVMvaluePcFixup *, v);
+}
 
 typedef struct {
     // in

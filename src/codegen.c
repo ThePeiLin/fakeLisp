@@ -6500,7 +6500,7 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
 
     FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
     lib = fklVMvalueCgLibsAdd1(vm, libs, rp_v);
-    fklInitCgDllLib(ctx, module_name, lib, dll, initExport);
+    fklInitCgDllLib(ctx, module_name, lib, rp_v, dll, initExport);
     uv_dlclose(&dll);
 
     return lib;
@@ -6613,7 +6613,8 @@ static FklVMvalue *lib_create_cb(const FklCgActCbArgs *args) {
     fklInitMainProcRefs(ctx->vm, proc);
 
     FklCgLib *lib = fklVMvalueCgLibsAdd1(vm, d->info->libraries, d->rp);
-    fklInitCgScriptLib(ctx, lib, d->name, info, proc);
+    FklVMvalue *name = fklCgRealpathToModuleName(ctx, FKL_VM_SYM(d->rp)->str);
+    fklInitCgScriptLib(ctx, lib, name, info, proc);
 
     return FKL_VM_VAL(lib);
 }
@@ -6648,7 +6649,7 @@ static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
                         .is_lib = 1,
                     });
 
-            FklVMvalueCgEnv *libEnv = fklCreateVMvalueCgEnv(ctx,
+            FklVMvalueCgEnv *env = fklCreateVMvalueCgEnv(ctx,
                     &(const FklCgEnvCreateArgs){
                         .prev_env = info->global_env,
                         .prev_ms = info->global_env->macros,
@@ -6663,10 +6664,10 @@ static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
                     act_ctx,
                     createFpNextExpression(fp, next_info),
                     1,
-                    libEnv->macros,
-                    libEnv,
+                    env->macros,
+                    env,
                     args->line,
-                    NULL,
+                    args->prev,
                     next_info);
             fklCgActVectorPushBack2(ctx->action_vector, act);
         } break;
@@ -6697,6 +6698,27 @@ FklCgAct *fklMakeImportAct(FklCgCtx *ctx,
     FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp, info);
     FklCgAct *r = make_cg_act(check_imported_cb,
             act_ctx,
+            NULL,
+            1,
+            info->global_env->macros,
+            info->global_env,
+            0,
+            prev,
+            info);
+    return r;
+}
+
+static FklVMvalue *collect_val_vec_cb(const FklCgActCbArgs *args) {
+    FklVM *vm = args->ctx->vm;
+    FklValueVector *bcl_vec = args->bcl_vec;
+    FklVMvalue *r = fklCreateVMvalueVec2(vm, bcl_vec->size, bcl_vec->base);
+    return r;
+}
+
+FklCgAct *
+fklMakeCollectAct(FklCgCtx *ctx, FklVMvalueCgInfo *info, FklCgAct *prev) {
+    FklCgAct *r = make_cg_act(collect_val_vec_cb,
+            createStackCtx(),
             NULL,
             1,
             info->global_env->macros,
@@ -8211,6 +8233,7 @@ FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *ctx,
                 .bcl_vec = &cur_action->bcl_vector,
                 .fid = cur_action->info->fid,
                 .line = cur_action->curline,
+                .prev = cur_action->prev,
             };
 
             FklVMvalue *result = cur_action->cb(&args);

@@ -399,6 +399,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueCgRmacroHashMap *export_rmacros;
 
     FklVMvalueCgLibs *libraries;
+    FklVMvalue *user_data;
+
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
 });
@@ -430,6 +432,7 @@ typedef struct {
     FklValueVector *bcl_vec;
     FklVMvalue *fid;
     uint64_t line;
+    struct FklCgAct *prev;
 } FklCgActCbArgs;
 
 typedef FklVMvalue *(*FklCgActCb)(const FklCgActCbArgs *args);
@@ -486,6 +489,7 @@ void fklUninitCgCtx(FklCgCtx *ctx);
 typedef struct {
     FklVMvalueCgLibs *libraries;
     FklVMvalueCgMacroScope *macro_scope;
+    FklVMvalue *user_data;
 
     int8_t is_debugging;
     int8_t is_lib;
@@ -575,6 +579,7 @@ FklCgAct *fklMakeImportAct(FklCgCtx *,
         FklVMvalue *rp,
         FklVMvalueCgInfo *info,
         FklCgAct *);
+FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);
 
 FklSymDefHashMapElm *
 fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);
@@ -656,6 +661,7 @@ FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 void fklInitCgDllLib(const FklCgCtx *ctx,
         FklVMvalue *name,
         FklVMvalueCgLib *lib,
+        FklVMvalue *rp,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init);
 

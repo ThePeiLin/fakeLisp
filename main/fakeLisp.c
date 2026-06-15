@@ -149,6 +149,22 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     const FklVMvalueCgLib *cg_lib = fklLoadPreCompile(fp, rp, &args);
 
+    fclose(fp);
+
+    if (cg_lib == NULL || args.error_fmt != NULL) {
+        FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
+                &gc->gcvm,
+                args.error_fmt,
+                args.error_obj,
+                fklVMaddSymbolCstr(&gc->gcvm, filename));
+        fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
+
+        fklUninitCgCtx(&ctx);
+        fklDestroyVMgc(gc);
+        fprintf(stderr, "\n%s: Load pre-compile file failed.\n", filename);
+        return 1;
+    }
+
     const FklPcDepVector *pendings = &f->f.pendings;
 
     FklVMvalueCgInfo *main_info = fklCreateVMvalueCgInfo(&ctx,
@@ -175,17 +191,6 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
                 .is_macro = 1,
             });
 
-    if (args.error_fmt != NULL) {
-        FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
-                &gc->gcvm,
-                args.error_fmt,
-                args.error_obj,
-                fklVMaddSymbolCstr(&gc->gcvm, filename));
-        fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
-
-        goto load_failed;
-    }
-
     FklCgActVector act_vec = { 0 };
     fklCgActVectorInit(&act_vec, pendings->size);
 
@@ -203,15 +208,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
                 FKL_VM_SYM(name)->str,
                 dep->is_imported_by_macro);
 
-        if (ft == FKL_FILE_NONE) {
-            FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
-                    &gc->gcvm,
-                    args.error_fmt,
-                    args.error_obj,
-                    fklVMaddSymbolCstr(&gc->gcvm, filename));
-            fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
-            goto load_failed;
-        }
+        FKL_ASSERT(ft != FKL_FILE_NONE);
 
         FklCgAct *a = fklMakeImportAct(&ctx, name, ft, rp, info, NULL);
         fklCgActVectorPushBack2(&act_vec, a);
@@ -227,24 +224,6 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     (void)fixup_result;
 
     fklUnregisterCgCtx(&ctx);
-
-    fclose(fp);
-
-    if (cg_lib == NULL) {
-        if (args.error_fmt) {
-            FklVMvalue *error = FKL_MAKE_VM_ERR(FKL_ERR_IMPORTFAILED,
-                    &gc->gcvm,
-                    args.error_fmt,
-                    args.error_obj);
-            fklPrincVMvalue(FKL_VM_ERR(error)->message, stderr, NULL);
-        }
-
-    load_failed:
-        fklUninitCgCtx(&ctx);
-        fklDestroyVMgc(gc);
-        fprintf(stderr, "\n%s: Load pre-compile file failed.\n", filename);
-        return 1;
-    }
 
     FklVM *vm = fklCreateVM(cg_lib->lib->proc, gc);
 

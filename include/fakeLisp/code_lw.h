@@ -88,7 +88,7 @@ typedef struct {
 } FklLoadPreCompileArgs;
 
 FKL_NODISCARD
-const FklVMvalueCgLib *
+FklVMvalueCgLib *
 fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args);
 
 #ifdef __cplusplus

@@ -2550,6 +2550,13 @@ fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s) {
     return fklVMvalueCgLib(e->v);
 }
 
+FklVMvalueCgLib *fklVMvalueCgLibsAdd2(FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklVMvalueCgLib *l) {
+    fklVMhashTableSet(libs, rp_s, FKL_VM_VAL(l));
+    return l;
+}
+
 FklVMvalueCgLib *
 fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *libs, const char *rp) {
     FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);

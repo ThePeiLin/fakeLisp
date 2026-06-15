@@ -695,6 +695,10 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             break;
         }
 
+        printf("[DEBUG] dll internal: %s, rp %s\n",
+                FKL_VM_SYM(lib->proc)->str,
+                FKL_VM_SYM(rp)->str);
+
         lib->proc = rp;
     } break;
 
@@ -2116,8 +2120,8 @@ void fklWritePreCompile(FILE *fp,
 FKL_NODISCARD
 static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(
         const FklPreCompileFixup *fixup) {
-	if(fixup == NULL)
-		return NULL;
+    if (fixup == NULL)
+        return NULL;
     const FklPcDepVector *pendings = &fixup->pendings;
     for (size_t i = 0; i < pendings->size; ++i) {
         const FklPcDep *dep = &pendings->base[i];
@@ -2129,7 +2133,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(
     return NULL;
 }
 
-const FklCgLib *
+FklCgLib *
 fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     int err = 0;
 
@@ -2163,7 +2167,8 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 
     fixup_proto_lib_refs(&protos, &libs);
 
-    FklCgLib *lib = fklVMvalueCgLibsAdd(args->ctx, args->libraries, rp);
+    FklVMvalue *rp_s = fklVMaddSymbolCstr(ctx->vm, rp);
+    FklCgLib *lib = fklCreateVMvalueCgLib(ctx->vm, rp_s);
     load_script_lib_from_pre_compile(fp, &values, &protos, lib, args);
 
     if (args->fixup) {
@@ -2195,6 +2200,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 
     FklVMvalue *mod_name = has_unimportable_mod(args->fixup);
     if (mod_name != NULL) {
+		lib = NULL;
         args->error_fmt = "failed to import %S for %S";
         args->error_obj = mod_name;
     }

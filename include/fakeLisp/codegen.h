@@ -523,6 +523,10 @@ FklVMvalue *fklResolveLibPath(FklVM *vm,
 
 int fklIsVMvalueCgLibs(const FklVMvalue *v);
 FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
+static FKL_ALWAYS_INLINE FklVMvalueCgLibs *fklVMvalueCgLibs(
+        const FklVMvalue *v) {
+    return FKL_VM_HASH(v);
+}
 
 FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s);
 int fklIsVMvalueCgLib(const FklVMvalue *v);
@@ -541,6 +545,10 @@ FklVMvalueCgLib *
 fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 FklVMvalueCgLib *
 fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s);
+
+FklVMvalueCgLib *fklVMvalueCgLibsAdd2(FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklVMvalueCgLib *l);
 
 void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 

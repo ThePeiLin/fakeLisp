@@ -2868,6 +2868,13 @@ FklVMvalueCgRpl *fklCgRplHashMapGet(const FklVMvalueCgRplHashMap *map,
     return elm ? fklVMvalueCgRpl(elm->v) : NULL;
 }
 
+FklVMvalueCgRpl *fklCgRplHashMapDel(FklVMvalueCgRplHashMap *map,
+        FklVMvalue *s) {
+    FklVMvalue *v = NULL;
+    fklVMhashTableDel(map, s, &v, NULL);
+    return fklVMvalueCgRpl(v);
+}
+
 void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *map,
         const FklVMvalue *sym,
         FklVMvalueCgRpl *rep) {

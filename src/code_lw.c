@@ -27,6 +27,7 @@ typedef struct {
     int is_writting_pre_compile;
     const FklLibTable *internal_lib_table;
     const FklLibTable *imported_by_macros;
+    const FklValueTable *external_macros;
 
     const FklVMvalueHash *map;
 
@@ -1882,15 +1883,24 @@ static inline void write_compiler_macros_pass_2(
     }
 }
 
-static inline void write_replacements_pass_1(const FklVMvalueCgRplHashMap *ht,
-        FklValueTable *vt) {
+static inline void write_replacements_pass_1(FklVMvalueCgRplHashMap *ht,
+        const WriteLibExtraArgs *extra_args) {
     if (ht == NULL)
         return;
-    for (const FklValueHashMapNode *rep_list = ht->ht.first; rep_list;
-            rep_list = rep_list->next) {
-        FklVMvalueCgRpl *rpl = fklVMvalueCgRpl(rep_list->v);
-        fklTraverseSerializableValue(vt, rep_list->k);
-        fklTraverseSerializableValue(vt, rpl->value);
+    FklValueTable *vt = extra_args->value_table;
+    const FklValueTable *external_macros = extra_args->external_macros;
+    for (const FklValueHashMapNode *rep_list = ht->ht.first; rep_list;) {
+        const FklValueHashMapNode *next = rep_list->next;
+        if (fklValueTableGet(external_macros, rep_list->v) != 0) {
+            FklVMvalue *k = rep_list->k;
+            fklCgRplHashMapDel(ht, k);
+        } else {
+            FklVMvalueCgRpl *rpl = fklVMvalueCgRpl(rep_list->v);
+            fklTraverseSerializableValue(vt, rep_list->k);
+            fklTraverseSerializableValue(vt, rpl->value);
+        }
+
+        rep_list = next;
     }
 }
 
@@ -1925,7 +1935,7 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         fklValueTableAdd(value_table, info->fid);
         write_export_sid_idx_table_pass_1(&info->exports, value_table);
         write_compiler_macros_pass_1(info->export_macros, extra_args);
-        write_replacements_pass_1(info->export_replacement, value_table);
+        write_replacements_pass_1(info->export_replacement, extra_args);
         write_rmacros_pass_1(info->export_rmacros, extra_args);
         write_proc(proc, FKL_WRITE_CODE_PASS_FIRST, extra_args, NULL);
         break;
@@ -2070,20 +2080,21 @@ void fklWritePreCompile(FILE *fp,
     FklLibTable internal_lib_table;
     fklInitLibTable(&internal_lib_table);
 
-    FklValueTable macro_table;
-    fklInitValueTable(&macro_table);
+    FklValueTable external_macro_table;
+    fklInitValueTable(&external_macro_table);
 
     FklLibTable libs_imported_by_macros;
     fklInitLibTable(&libs_imported_by_macros);
 
     collect_internal_modules(info, &internal_lib_table);
-    collect_external_macros(args->ctx, &macro_table);
+    collect_external_macros(args->ctx, &external_macro_table);
     collect_libs_imported_by_macros(args->ctx, &libs_imported_by_macros);
 
     WriteLibExtraArgs extra_args = {
         .is_writting_pre_compile = 1,
         .internal_lib_table = &internal_lib_table,
         .imported_by_macros = &libs_imported_by_macros,
+        .external_macros = &external_macro_table,
 
         .value_table = &value_table,
         .proto_table = &proto_table,
@@ -2109,7 +2120,7 @@ void fklWritePreCompile(FILE *fp,
             &extra_args);
 
     fklUninitValueTable(&value_table);
-    fklUninitValueTable(&macro_table);
+    fklUninitValueTable(&external_macro_table);
 
     fklUninitProtoTable(&proto_table);
     fklUninitLibTable(&lib_table);
@@ -2200,7 +2211,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 
     FklVMvalue *mod_name = has_unimportable_mod(args->fixup);
     if (mod_name != NULL) {
-		lib = NULL;
+        lib = NULL;
         args->error_fmt = "failed to import %S for %S";
         args->error_obj = mod_name;
     }

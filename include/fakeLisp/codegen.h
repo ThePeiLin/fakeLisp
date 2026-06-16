@@ -701,6 +701,8 @@ void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *,
         const FklVMvalue *sym,
         FklVMvalueCgRpl *rep);
 
+FklVMvalueCgRpl *fklCgRplHashMapDel(FklVMvalueCgRplHashMap *, FklVMvalue *sym);
+
 FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *c,
         FklVMvalue *left,
         FklVMvalue *action_type,

@@ -689,6 +689,7 @@ FklValueHashMapElm *fklCgMacroHashMapGet(const FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
 FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
+void fklCgMacroHashMapDel(FklVMvalueCgMacroHashMap *map, FklVMvalue *s);
 
 FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c, FklVMvalue *value);
 int fklIsVMvalueCgRpl(const FklVMvalue *v);

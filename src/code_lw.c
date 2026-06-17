@@ -1828,25 +1828,45 @@ static inline void write_export_sid_idx_table_pass_1(
 }
 
 static inline void write_compiler_macros_pass_1(
-        const FklVMvalueCgMacroHashMap *macros,
+        FklVMvalueCgMacroHashMap *macros,
         const WriteLibExtraArgs *extra_args) {
 
     FklValueTable *vt = extra_args->value_table;
     // TODO: may be incomplete
     if (macros == NULL)
         return;
-    for (const FklValueHashMapNode *cur = macros->ht.first; cur;
-            cur = cur->next) {
-        fklTraverseSerializableValue(vt, cur->k);
-        for (const FklVMvalue *c = cur->v; FKL_IS_PAIR(c); c = FKL_VM_CDR(c)) {
-            FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(c));
-            fklTraverseSerializableValue(vt, macro->pattern);
+    const FklValueTable *external_macros = extra_args->external_macros;
 
-            write_proc(FKL_VM_PROC(macro->proc),
-                    FKL_WRITE_CODE_PASS_FIRST,
-                    extra_args,
-                    NULL);
+    for (FklValueHashMapNode *cur = macros->ht.first; cur;) {
+        FklValueHashMapNode *next = cur->next;
+
+        FklVMvalue **p_cdr = &cur->v;
+        while (FKL_IS_PAIR(*p_cdr)) {
+            const FklVMvalue *p = *p_cdr;
+
+            FklVMvalue *macro_v = FKL_VM_CAR(p);
+            if (fklValueTableGet(external_macros, macro_v) != 0) {
+                *p_cdr = FKL_VM_CDR(p);
+            } else {
+                FklVMvalueCgMacro *macro = fklVMvalueCgMacro(macro_v);
+                fklTraverseSerializableValue(vt, macro->pattern);
+
+                write_proc(FKL_VM_PROC(macro->proc),
+                        FKL_WRITE_CODE_PASS_FIRST,
+                        extra_args,
+                        NULL);
+                p_cdr = &FKL_VM_CDR(p);
+            }
         }
+
+        if (cur->v == FKL_VM_NIL) {
+            FklVMvalue *k = cur->k;
+            fklCgMacroHashMapDel(macros, k);
+        } else {
+            fklTraverseSerializableValue(vt, cur->k);
+        }
+
+        cur = next;
     }
 }
 

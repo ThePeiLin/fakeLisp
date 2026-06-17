@@ -2824,6 +2824,11 @@ FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *map,
     return fklVMhashTableRef1(map, FKL_VM_VAL(s), FKL_VM_NIL);
 }
 
+void fklCgMacroHashMapDel(FklVMvalueCgMacroHashMap *map, FklVMvalue *s) {
+    FklVMvalue *v = NULL;
+    fklVMhashTableDel(map, s, &v, NULL);
+}
+
 static FklVMudMetaTable const RplUserDataMetaTable;
 int fklIsVMvalueCgRpl(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &RplUserDataMetaTable;

@@ -1562,17 +1562,24 @@ static inline void write_rmacro_pass_2(const FklVMvalueCgRmacro *g,
     }
 }
 
-static inline void write_rmacros_pass_1(
-        const FklVMvalueCgRmacroHashMap *rmacros,
+static inline void write_rmacros_pass_1(FklVMvalueCgRmacroHashMap *rmacros,
         const WriteLibExtraArgs *extra_args) {
     if (rmacros == NULL)
         return;
 
     FklValueTable *vt = extra_args->value_table;
-    for (FklValueHashMapNode *cur = rmacros->ht.first; cur; cur = cur->next) {
-        fklTraverseSerializableValue(vt, cur->k);
-        FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
-        write_rmacro_pass_1(rmacro, extra_args);
+    const FklValueTable *external_macros = extra_args->external_macros;
+    for (const FklValueHashMapNode *cur = rmacros->ht.first; cur;) {
+        const FklValueHashMapNode *next = cur->next;
+        if (fklValueTableGet(external_macros, cur->v) != 0) {
+            FklVMvalue *k = cur->k;
+            fklCgRmacroHashMapDel(rmacros, k);
+        } else {
+            fklTraverseSerializableValue(vt, cur->k);
+            FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(cur->v);
+            write_rmacro_pass_1(rmacro, extra_args);
+        }
+        cur = next;
     }
 }
 

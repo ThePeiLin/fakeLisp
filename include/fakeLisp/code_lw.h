@@ -53,9 +53,26 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE_NAME PcDep
 #include "cont/vector.h"
 
+typedef enum {
+    FKL_RE_EXPORT_OP_PUSH_LIB,
+    FKL_RE_EXPORT_OP_POP,
+    FKL_RE_EXPORT_OP_APPEND,
+} FklReExportOp;
+
+typedef struct {
+    FklReExportOp op;
+    FklVMvalue *args;
+} FklReExportCmd;
+
+// FklReExportCmdVector
+#define FKL_VECTOR_ELM_TYPE FklReExportCmd
+#define FKL_VECTOR_ELM_TYPE_NAME ReExportCmd
+#include "cont/vector.h"
+
 typedef struct {
     FklPcDepVector pendings;
     FklValueVector protos;
+    FklReExportCmdVector re_exports;
 } FklPreCompileFixup;
 
 void fklPreCompileFixupInit(FklPreCompileFixup *);

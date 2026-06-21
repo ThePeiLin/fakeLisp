@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "pattern.h"
 #include "symbol.h"
+#include "utils.h"
 #include "vm.h"
 
 #include <uv.h>
@@ -220,7 +221,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacro, {
 
 typedef FklVMvalueHash FklVMvalueCgRmacroHashMap;
 
-typedef enum FklCgImportType {
+typedef enum {
     FKL_CG_IMPORT_NONE = 0, // invalid value
     FKL_CG_IMPORT_COMMON,
     FKL_CG_IMPORT_PREFIX,
@@ -231,7 +232,7 @@ typedef enum FklCgImportType {
 
 // 我们使用 PAIR 来实现链表的功能
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgReExport, {
-    struct FklVMvalueCgLib *lib; // realpath
+    struct FklVMvalueCgLib *lib; // cg_lib
     FklCgImportType type;
     FklVMvalue *args; // import args, like prefix or only symbol list
 });
@@ -424,6 +425,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
 
     unsigned int is_lib : 1;
     unsigned int is_macro : 1;
+    unsigned int is_precompile : 1;
 });
 
 typedef struct {
@@ -575,6 +577,11 @@ void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 
 const char *fklCgLibRp(const FklVMvalueCgLib *c);
 
+static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
+        const char *rp) {
+    return fklStrStartWith(rp, ctx->main_file_real_path_dir);
+}
+
 FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp);
 
 FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
@@ -602,7 +609,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCgReExport *fklVMvalueCgReExport(
     return FKL_TYPE_CAST(FklVMvalueCgReExport *, v);
 }
 
-void fklCgAppendReExport(FklVM *vm,
+FklVMvalue *fklCgAppendReExport(FklVM *vm,
         FklVMvalueCgInfo *info,
         const FklVMvalueCgReExport *re_export);
 

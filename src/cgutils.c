@@ -21,24 +21,6 @@
 #include <string.h>
 #include <time.h>
 
-// FKL_DEPRECATED
-#if 0
-static void uninit_cg_lib(FklCgLib *lib);
-
-// FklCgLibHashMap
-#define FKL_HASH_KEY_TYPE const char *
-#define FKL_HASH_VAL_TYPE FklCgLib
-#define FKL_HASH_ELM_NAME CgLib
-#define FKL_HASH_KEY_HASH return fklCharBufHash(*pk, strlen(*pk));
-#define FKL_HASH_KEY_EQUAL(A, B) (!(strcmp(*(A), *(B))))
-#define FKL_HASH_KEY_INIT(X, K) *(X) = fklZstrdup(*(K))
-#define FKL_HASH_KEY_UNINIT(K) fklZfree((void *)*(K));
-#define FKL_HASH_VAL_UNINIT(V) uninit_cg_lib((V));
-#include <fakeLisp/cont/hash.h>
-
-FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap libs; });
-#endif
-
 static FklVMframe *init_macro_expand_frame(FklVM *exe,
         FklCgCtx *ctx,
         FklVMvalue *proc,
@@ -714,7 +696,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
     lib->replacements = info->export_replacement;
     lib->rmacros = info->export_rmacros;
 
-    info->re_exports = info->re_exports;
+    lib->re_exports = info->re_exports;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCgMacro *as_macro(const FklVMvalue *r) {
@@ -1330,6 +1312,9 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     mark_export_sid_map(&e->exports, gc);
 
     fklVMgcToGray(e->user_data, gc);
+
+    fklVMgcToGray(e->re_exports, gc);
+    fklVMgcToGray(e->last_re_export, gc);
 }
 
 static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1395,6 +1380,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                         : NULL;
 
     r->user_data = user_data;
+    r->re_exports = FKL_VM_NIL;
+    r->last_re_export = FKL_VM_NIL;
 
     if (filename != NULL) {
         r->dir = fklDupDir(rp);
@@ -1417,6 +1404,9 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     r->exports.buckets = NULL;
     r->is_lib = is_lib;
     r->is_macro = is_macro;
+
+    r->is_precompile = is_precompile;
+    r->is_precompile |= prev && !prev->is_macro && prev->is_precompile;
 
     r->export_macros = is_lib ? fklCreateVMvalueCgMacroHashMap(ctx) : NULL;
     r->export_replacement = is_lib ? fklCreateVMvalueCgRplHashMap(ctx) : NULL;
@@ -4356,6 +4346,7 @@ static void cg_lib_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(l->replacements), gc);
     fklVMgcToGray(FKL_VM_VAL(l->rmacros), gc);
     fklVMgcToGray(l->rp, gc);
+    fklVMgcToGray(l->re_exports, gc);
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(cg_lib_print, "cg-lib");
@@ -4387,5 +4378,58 @@ FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s) {
     FklVMvalueCgLib *l = fklVMvalueCgLib(v);
 
     l->rp = rp_s;
+    l->re_exports = FKL_VM_NIL;
     return l;
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(cg_re_export_print, "cg-re-export");
+
+static void cg_re_export_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueCgReExport *l = fklVMvalueCgReExport(ud);
+
+    fklVMgcToGray(FKL_VM_VAL(l->lib), gc);
+    fklVMgcToGray(l->args, gc);
+}
+
+static FklVMudMetaTable const CgReExportMt = {
+    .size = sizeof(FklVMvalueCgReExport),
+    .princ = cg_re_export_print,
+    .prin1 = cg_re_export_print,
+    .atomic = cg_re_export_atomic,
+};
+
+int fklIsVMvalueCgReExport(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CgReExportMt;
+}
+
+FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
+        FklVMvalueCgLib *lib,
+        FklCgImportType type,
+        FklVMvalue *args) {
+    FKL_ASSERT(lib != NULL);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &CgReExportMt, NULL);
+    FklVMvalueCgReExport *r = fklVMvalueCgReExport(v);
+
+    r->lib = lib;
+    r->type = type;
+    r->args = args;
+
+    return r;
+}
+
+FklVMvalue *fklCgAppendReExport(FklVM *vm,
+        FklVMvalueCgInfo *info,
+        const FklVMvalueCgReExport *re_export) {
+    FklVMvalue *new_pair = fklCreateVMvaluePair1(vm, FKL_VM_VAL(re_export));
+
+    if (info->re_exports == FKL_VM_NIL) {
+        info->re_exports = new_pair;
+        info->last_re_export = new_pair;
+    } else {
+        FklVMvalue *last_pair = info->last_re_export;
+        FKL_VM_CDR(last_pair) = new_pair;
+        info->last_re_export = new_pair;
+    }
+
+    return new_pair;
 }

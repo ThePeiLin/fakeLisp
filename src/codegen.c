@@ -5153,7 +5153,9 @@ static void codegen_load(const CgCbArgs *args) {
     FklVMvalueCgInfo *next_info = fklCreateVMvalueCgInfo(ctx,
             info,
             filename_str->str,
-            &(FklCgInfoArgs){ .inherit_grammer = 1 });
+            &(FklCgInfoArgs){
+                .inherit_grammer = 1,
+            });
 
     if (hasLoadSameFile(next_info->realpath, info)) {
         error_state->error = make_circular_load_error(vm, filename->value);
@@ -5594,7 +5596,7 @@ static inline void import_macro_list(const FklCgCtx *c,
     }
 }
 
-static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
+static inline FklVMvalue *import_lib_common_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
@@ -5660,7 +5662,7 @@ static inline FklVMvalue *process_import_imported_lib_common(FklCgCtx *ctx,
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
+static inline FklVMvalue *import_lib_prefix_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
@@ -5735,7 +5737,7 @@ static inline FklVMvalue *process_import_imported_lib_prefix(FklCgCtx *ctx,
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
+static inline FklVMvalue *import_lib_only_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
@@ -5835,7 +5837,7 @@ static inline FklVMvalue *process_import_imported_lib_only(FklCgCtx *ctx,
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_except(FklCgCtx *ctx,
+static inline FklVMvalue *import_lib_except_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
@@ -5938,7 +5940,7 @@ exit:
     return load_lib;
 }
 
-static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
+static inline FklVMvalue *import_lib_alias_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib,
         FklVMvalueCgInfo *info,
         const FklCgLib *lib,
@@ -6038,6 +6040,21 @@ static inline FklVMvalue *process_import_imported_lib_alias(FklCgCtx *ctx,
     return load_lib;
 }
 
+static FKL_ALWAYS_INLINE FklCgImportType map_import_type(ImportLibCb cb) {
+    if (cb == import_lib_common_cb)
+        return FKL_CG_IMPORT_COMMON;
+    else if (cb == import_lib_prefix_cb)
+        return FKL_CG_IMPORT_PREFIX;
+    else if (cb == import_lib_only_cb)
+        return FKL_CG_IMPORT_ONLY;
+    else if (cb == import_lib_alias_cb)
+        return FKL_CG_IMPORT_ALIAS;
+    else if (cb == import_lib_except_cb)
+        return FKL_CG_IMPORT_EXCEPT;
+    else
+        return FKL_CG_IMPORT_NONE;
+}
+
 static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklCgCtx *ctx = args->ctx;
@@ -6061,6 +6078,17 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
             fid,
             line,
             d->scope);
+
+    if (d->lib_info != NULL && d->lib_info->is_precompile) {
+        FklCgImportType import_type = map_import_type(d->import_cb);
+        FKL_ASSERT(import_type != FKL_CG_IMPORT_NONE);
+        FklVMvalueCgReExport *re_export = fklCreateVMvalueCgReExport(vm,
+                lib,
+                import_type,
+                d->import_cb_args);
+
+        fklCgAppendReExport(vm, d->lib_info, re_export);
+    }
 
     return d->import_cb(ctx,
             load_lib,
@@ -6504,7 +6532,7 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
     FklVM *vm = ctx->vm;
 
     FklVMvalueCgInfo *info = d->info;
-    FklVMvalue *rp = d->rp;
+    FklVMvalue *rp_v = d->rp;
     FklFileType ft = d->ft;
     FklVMvalue *name = d->name;
 
@@ -6515,12 +6543,17 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
         return NULL;
     }
 
+    const char *rp = FKL_VM_SYM(d->rp)->str;
     FklVMvalueCgInfo *next_info = fklCreateVMvalueCgInfo(ctx,
             info,
-            FKL_VM_SYM(d->rp)->str,
+            rp,
             &(FklCgInfoArgs){
                 .is_lib = 1,
             });
+
+    if (!fklIsInternalModule(ctx, rp)) {
+        next_info->is_precompile = 0;
+    }
 
     FklVMvalueCgEnv *env = fklCreateVMvalueCgEnv(ctx,
             &(const FklCgEnvCreateArgs){
@@ -6532,7 +6565,7 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
                 .line = 1,
             });
 
-    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp, info);
+    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp_v, info);
     FklCgAct *act = make_cg_act(lib_create_cb,
             act_ctx,
             createFpNextExpression(fp, next_info),
@@ -6956,7 +6989,7 @@ static void codegen_import_common_impl(const CgCbArgs *args,
         .rest = rest->value,
 
         .import_cb_args = NULL,
-        .import_cb = process_import_imported_lib_common,
+        .import_cb = import_lib_common_cb,
     };
 
     codegen_import_impl(args, &import_args, lib_info);
@@ -6976,7 +7009,7 @@ static void codegen_import_prefix_impl(const CgCbArgs *args,
         .rest = rest->value,
 
         .import_check_cb = FKL_IS_SYM,
-        .import_cb = process_import_imported_lib_prefix,
+        .import_cb = import_lib_prefix_cb,
         .import_cb_args = pref->value,
     };
 
@@ -7001,7 +7034,7 @@ static void codegen_import_only_impl(const CgCbArgs *args,
         .rest = rest->value,
 
         .import_check_cb = is_symbol_list,
-        .import_cb = process_import_imported_lib_only,
+        .import_cb = import_lib_only_cb,
         .import_cb_args = only->value,
     };
 
@@ -7026,7 +7059,7 @@ static void codegen_import_alias_impl(const CgCbArgs *args,
         .rest = rest->value,
 
         .import_check_cb = is_valid_alias_sym_list,
-        .import_cb = process_import_imported_lib_alias,
+        .import_cb = import_lib_alias_cb,
         .import_cb_args = alias->value,
     };
 
@@ -7051,7 +7084,7 @@ static void codegen_import_except_impl(const CgCbArgs *args,
         .rest = rest->value,
 
         .import_check_cb = is_symbol_list,
-        .import_cb = process_import_imported_lib_except,
+        .import_cb = import_lib_except_cb,
         .import_cb_args = exce->value,
     };
 

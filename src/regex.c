@@ -49,7 +49,7 @@ static inline uint32_t count_number_esc_char(const char *pat, uint32_t len) {
 
 static inline int esc_char_to_char(const char *pat, uint32_t len) {
     char tmp[4];
-    strncpy(tmp, pat, len > 3 ? 3 : len);
+    memcpy(tmp, pat, len > 3 ? 3 : len);
     tmp[3] = '\0';
     if (toupper(*pat) == 'X' && len > 1)
         return strtol(&tmp[1], NULL, 16);

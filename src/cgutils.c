@@ -685,6 +685,8 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     lib->macros = ctx->hash_singleton;
     lib->replacements = ctx->hash_singleton;
     lib->rmacros = ctx->hash_singleton;
+
+    lib->re_exports = FKL_VM_NIL;
 }
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,
@@ -692,11 +694,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklVMvalue *mod_name,
         FklVMvalueCgInfo *info,
         FklVMvalue *proc) {
-    if (info == NULL) {
-        lib->macros = NULL;
-        lib->replacements = NULL;
-        return;
-    }
+    FKL_ASSERT(info != NULL);
 
     FklCgExportSidIdxHashMap *exports_index = &lib->exports;
     fklCgExportSidIdxHashMapInit(exports_index);
@@ -716,9 +714,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
     lib->replacements = info->export_replacement;
     lib->rmacros = info->export_rmacros;
 
-    info->export_macros = NULL;
-    info->export_replacement = NULL;
-    info->export_rmacros = NULL;
+    info->re_exports = info->re_exports;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueCgMacro *as_macro(const FklVMvalue *r) {
@@ -1533,7 +1529,7 @@ static void *custom_action(FklProdActionArgs *c,
     FklPmatchStorage storage = { .ht = &ht };
     fklPushCgPmatchStorage(cg_ctx, &storage);
 
-    FklVMvalue *line_node = fklMakeVMuint(line, cg_ctx->vm);
+    FklVMvalue *line_node = fklMakeVMintU(cg_ctx->vm, line);
 
     put_line_number(pctx->ln, nodes_vector, line);
     for (size_t i = 0; i < num; ++i) {

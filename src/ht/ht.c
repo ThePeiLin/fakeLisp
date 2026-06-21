@@ -10,7 +10,7 @@ static int ht_hashv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqHashv(key);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, hashv));
     return 0;
 }
 
@@ -18,7 +18,7 @@ static int ht_eqv_hashv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqvHashv(key);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, hashv));
     return 0;
 }
 
@@ -26,7 +26,7 @@ static int ht_equal_hashv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *key = FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint64_t hashv = fklVMvalueEqualHashv(key);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(hashv, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, hashv));
     return 0;
 }
 

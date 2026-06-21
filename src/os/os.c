@@ -10,19 +10,19 @@ static int os_system(FKL_CPROC_ARGL) {
     FklVMvalue *cmd = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(cmd, FKL_IS_STR, exe);
     const FklString *cmd_str = FKL_VM_STR(cmd);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(system(cmd_str->str), exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(exe, system(cmd_str->str)));
     return 0;
 }
 
 static int os_time(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint((int64_t)time(NULL), exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(exe, (int64_t)time(NULL)));
     return 0;
 }
 
 static int os_clock(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint((int64_t)clock(), exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(exe, (int64_t)clock()));
     return 0;
 }
 

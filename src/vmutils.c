@@ -17,27 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-FklVMvalue *fklMakeVMint(int64_t r64, FklVM *vm) {
-    if (r64 > FKL_FIX_INT_MAX || r64 < FKL_FIX_INT_MIN)
-        return fklCreateVMvalueBigIntWithI64(vm, r64);
-    else
-        return FKL_MAKE_VM_FIX(r64);
-}
-
-FklVMvalue *fklMakeVMuint(uint64_t r64, FklVM *vm) {
-    if (r64 > FKL_FIX_INT_MAX)
-        return fklCreateVMvalueBigIntWithU64(vm, r64);
-    else
-        return FKL_MAKE_VM_FIX(r64);
-}
-
-FklVMvalue *fklMakeVMintD(double r64, FklVM *vm) {
-    if (isgreater(r64, (double)FKL_FIX_INT_MAX) || isless(r64, FKL_FIX_INT_MIN))
-        return fklCreateVMvalueBigIntWithF64(vm, r64);
-    else
-        return FKL_MAKE_VM_FIX(r64);
-}
-
 static inline FklVMvalue *get_initial_fast_value(const FklVMvalue *pr) {
     return FKL_IS_PAIR(pr) ? FKL_VM_CDR(pr) : FKL_VM_NIL;
 }
@@ -2122,7 +2101,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
             }
             FklVMvalue *box_obj = *(cur_val++);
             if (FKL_IS_BOX(box_obj)) {
-                FklVMvalue *len_obj = fklMakeVMuint(length, exe);
+                FklVMvalue *len_obj = fklMakeVMintU(exe, length);
                 FKL_VM_BOX(box_obj) = len_obj;
             } else {
                 err = FKL_ERR_INCORRECT_TYPE_VALUE;

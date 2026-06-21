@@ -279,7 +279,7 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 

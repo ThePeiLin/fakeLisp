@@ -6743,12 +6743,12 @@ static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
             lib = load_dll(args->ctx, name, info->libraries, rp, args->line);
             break;
 
-        case FKL_FILE_PRECOMPILE:
+        case FKL_FILE_PRECOMPILE: {
             FklCgAct *act = make_fixup_act(d, args);
             if (act == NULL)
                 break;
             fklCgActVectorPushBack2(ctx->action_vector, act);
-            break;
+        } break;
 
         case FKL_FILE_NONE:
             FKL_UNREACHABLE();

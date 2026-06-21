@@ -56,8 +56,8 @@ static int math_srand(FKL_CPROC_ARGL) {
     FKL_CPROC_RETURN(exe,
             ctx,
             fklCreateVMvaluePair(exe,
-                    fklMakeVMint(seed1, exe),
-                    fklMakeVMint(seed2, exe)));
+                    fklMakeVMint(exe, seed1),
+                    fklMakeVMint(exe, seed2)));
     return 0;
 }
 
@@ -102,7 +102,7 @@ static int math_rand(FKL_CPROC_ARGL) {
         up = fklVMgetInt(up_v);
         if (up == 0) {
             rv = next_rand(exe->rand_state);
-            FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(TRIM64(rv), exe));
+            FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(exe, TRIM64(rv)));
             return 0;
         }
         up -= 1;
@@ -125,7 +125,7 @@ static int math_rand(FKL_CPROC_ARGL) {
     uint64_t p = project(rv,
             FKL_TYPE_CAST(uint64_t, up) - FKL_TYPE_CAST(uint64_t, low),
             exe->rand_state);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(p + (uint64_t)low, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMint(exe, p + (uint64_t)low));
     return 0;
 }
 

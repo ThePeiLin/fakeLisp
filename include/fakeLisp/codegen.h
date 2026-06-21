@@ -220,11 +220,29 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacro, {
 
 typedef FklVMvalueHash FklVMvalueCgRmacroHashMap;
 
+typedef enum FklCgImportType {
+    FKL_CG_IMPORT_NONE = 0, // invalid value
+    FKL_CG_IMPORT_COMMON,
+    FKL_CG_IMPORT_PREFIX,
+    FKL_CG_IMPORT_ONLY,
+    FKL_CG_IMPORT_ALIAS,
+    FKL_CG_IMPORT_EXCEPT,
+} FklCgImportType;
+
+// 我们使用 PAIR 来实现链表的功能
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgReExport, {
+    struct FklVMvalueCgLib *lib; // realpath
+    FklCgImportType type;
+    FklVMvalue *args; // import args, like prefix or only symbol list
+});
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLib, {
     FklCgExportSidIdxHashMap exports;
     FklVMvalueCgMacroHashMap *macros;
     FklVMvalueCgRplHashMap *replacements;
     FklVMvalueCgRmacroHashMap *rmacros;
+
+    FklVMvalue *re_exports;
 
     FklVMvalue *rp;
     FklVMvalueLib *lib;
@@ -398,6 +416,9 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgInfo, {
     FklVMvalueCgRplHashMap *export_replacement;
     FklVMvalueCgRmacroHashMap *export_rmacros;
 
+    FklVMvalue *re_exports;
+    FklVMvalue *last_re_export;
+
     FklVMvalueCgLibs *libraries;
     FklVMvalue *user_data;
 
@@ -569,6 +590,22 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         const char *filename,
         const FklCgInfoArgs *args);
 
+int fklIsVMvalueCgReExport(const FklVMvalue *v);
+FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
+        FklVMvalueCgLib *lib,
+        FklCgImportType type,
+        FklVMvalue *args);
+
+static FKL_ALWAYS_INLINE FklVMvalueCgReExport *fklVMvalueCgReExport(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueCgReExport(v));
+    return FKL_TYPE_CAST(FklVMvalueCgReExport *, v);
+}
+
+void fklCgAppendReExport(FklVM *vm,
+        FklVMvalueCgInfo *info,
+        const FklVMvalueCgReExport *re_export);
+
 FklVMvalue *fklGenExpressionCode(FklCgCtx *ctx,
         FklVMvalue *exp,
         FklVMvalueCgEnv *env,
@@ -672,11 +709,6 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
         FklVMvalue *rp,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init);
-
-FKL_DEPRECATED
-void fklClearCgLibMacros(FklVMvalueCgLib *lib);
-FKL_DEPRECATED
-void fklClearCgLibMacros2(const FklCgCtx *ctx);
 
 FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
         FklVMvalue *pattern,

@@ -352,7 +352,7 @@ static int export_strbuf_capacity(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_strbuf_ud, exe);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(as_strbuf(obj)->buf.size, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, as_strbuf(obj)->buf.size));
     return 0;
 }
 

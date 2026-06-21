@@ -34,11 +34,11 @@
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
     TYPE r;                                                                    \
     memcpy(&r, &bv->ptr[index], sizeof(r));                                    \
-    FKL_CPROC_RETURN(exe, ctx, MAKER(r, exe));                                 \
+    FKL_CPROC_RETURN(exe, ctx, MAKER(exe, r));                                 \
     return 0;
 
 #define BV_S_REF(TYPE) BV_REF(TYPE, fklMakeVMint)
-#define BV_U_REF(TYPE) BV_REF(TYPE, fklMakeVMuint)
+#define BV_U_REF(TYPE) BV_REF(TYPE, fklMakeVMintU)
 
 static int export_bvs8ref(FKL_CPROC_ARGL) { BV_U_S_8_REF(int8_t) }
 static int export_bvs16ref(FKL_CPROC_ARGL) { BV_S_REF(int16_t) }

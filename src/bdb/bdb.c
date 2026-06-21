@@ -854,7 +854,7 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
         BdbWrapper proc) {
     const FklByteCode *const bc = &bdbBcl(proc)->bc;
     const FklIns *ins = &bc->code[ins_pc];
-    FklVMvalue *num_val = fklMakeVMuint(ins_pc, exe);
+    FklVMvalue *num_val = fklMakeVMintU(exe, ins_pc);
     FklVMvalue *is_cur_ins = is_cur_pc ? FKL_VM_TRUE : FKL_VM_NIL;
     if (OP(*ins) == FKL_OP_DUMMY) {
         ins = &bdbGetCodepoint(dctx, ins)->origin_ins;
@@ -908,26 +908,26 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
         case FKL_OP_MODE_IsC:
         case FKL_OP_MODE_IsBB:
         case FKL_OP_MODE_IsCCB:
-            imm1 = fklMakeVMint(arg.ix, exe);
+            imm1 = fklMakeVMint(exe, arg.ix);
             break;
 
         case FKL_OP_MODE_IuB:
         case FKL_OP_MODE_IuC:
         case FKL_OP_MODE_IuBB:
         case FKL_OP_MODE_IuCCB:
-            imm1 = fklMakeVMuint(arg.ux, exe);
+            imm1 = fklMakeVMintU(exe, arg.ux);
             break;
 
         case FKL_OP_MODE_IsAuB:
-            imm1 = fklMakeVMint(arg.ix, exe);
-            imm2 = fklMakeVMuint(arg.uy, exe);
+            imm1 = fklMakeVMint(exe, arg.ix);
+            imm2 = fklMakeVMintU(exe, arg.uy);
             break;
         case FKL_OP_MODE_IxAxB:
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
-            imm1 = fklMakeVMuint(arg.ux, exe);
-            imm2 = fklMakeVMuint(arg.uy, exe);
+            imm1 = fklMakeVMintU(exe, arg.ux);
+            imm2 = fklMakeVMintU(exe, arg.uy);
             break;
         }
         break;
@@ -1186,7 +1186,7 @@ FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const BdbBp *bp) {
             filename,
             line,
             exp_str,
-            fklMakeVMuint(bp->count, exe),
+            fklMakeVMintU(exe, bp->count),
             fklCreateVMvaluePair(exe,
                     bp->is_disabled ? FKL_VM_NIL : FKL_VM_TRUE,
                     bp->is_temporary ? FKL_VM_TRUE : FKL_VM_NIL));

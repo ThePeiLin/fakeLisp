@@ -1294,7 +1294,7 @@ static int builtin_number_to_integer(FKL_CPROC_ARGL) {
         if (isgreater(d, (double)FKL_FIX_INT_MAX) || isless(d, FKL_FIX_INT_MIN))
             FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueBigIntWithF64(exe, d));
         else
-            FKL_CPROC_RETURN(exe, ctx, fklMakeVMintD(d, exe));
+            FKL_CPROC_RETURN(exe, ctx, fklMakeVMintD(exe, d));
     } else if (FKL_IS_BIGINT(obj)) {
         const FklBigInt bigint = fklVMbigIntToBigInt(FKL_VM_BI(obj));
         if (fklIsBigIntGtLtFix(&bigint))
@@ -1608,7 +1608,7 @@ static int builtin_length(FKL_CPROC_ARGL) {
     size_t len = 0;
     if (fklVMvalueLength(obj, &len))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 
@@ -2708,7 +2708,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, node);
         if (box) {
             uint64_t offset = ss->size - restLen;
-            FKL_VM_BOX(box) = fklMakeVMuint(offset, exe);
+            FKL_VM_BOX(box) = fklMakeVMintU(exe, offset);
         }
         return 0;
     }
@@ -2892,7 +2892,7 @@ static int builtin_printf(FKL_CPROC_ARGL) {
     if (err_type)
         FKL_RAISE_BUILTIN_ERROR(err_type, exe);
 
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 
@@ -3185,7 +3185,7 @@ static int builtin_chanl_msg_num(FKL_CPROC_ARGL) {
         len = fklVMchanlMessageNum(FKL_VM_CHANL(obj));
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 
@@ -3197,7 +3197,7 @@ static int builtin_chanl_send_num(FKL_CPROC_ARGL) {
         len = fklVMchanlSendqLen(FKL_VM_CHANL(obj));
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 
@@ -3209,7 +3209,7 @@ static int builtin_chanl_recv_num(FKL_CPROC_ARGL) {
         len = fklVMchanlRecvqLen(FKL_VM_CHANL(obj));
     else
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FKL_CPROC_RETURN(exe, ctx, fklMakeVMuint(len, exe));
+    FKL_CPROC_RETURN(exe, ctx, fklMakeVMintU(exe, len));
     return 0;
 }
 

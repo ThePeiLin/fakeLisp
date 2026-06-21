@@ -8,6 +8,7 @@
 #include "parser.h"
 #include "vm_fwd.h"
 
+#include <math.h>
 #include <setjmp.h>
 #include <stdalign.h>
 #include <stdatomic.h>
@@ -16,6 +17,7 @@
 #include <stdio.h>
 #include <stdnoreturn.h>
 #include <string.h>
+
 #include <uv.h>
 
 #ifdef __cplusplus
@@ -1007,9 +1009,6 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)
 
-FklVMvalue *fklMakeVMint(int64_t r64, FklVM *);
-FklVMvalue *fklMakeVMuint(uint64_t r64, FklVM *);
-FklVMvalue *fklMakeVMintD(double r64, FklVM *);
 int fklIsList(const FklVMvalue *p);
 int fklIsList2(const FklVMvalue *p, size_t *len);
 int64_t fklVMgetInt(const FklVMvalue *p);
@@ -1277,6 +1276,11 @@ static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CAR(const FklVMvalue *V) {
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_CDR(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_PAIR(V));
     return &FKL_TYPE_CAST(FklVMvaluePair *, V)->cdr;
+}
+
+static FKL_ALWAYS_INLINE FklVMvaluePair *FKL_VM_PAIR(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_PAIR(V));
+    return FKL_TYPE_CAST(FklVMvaluePair *, V);
 }
 
 #define FKL_VM_CAR(V) (*FKL_VM_CAR(V))
@@ -1684,6 +1688,28 @@ static FKL_ALWAYS_INLINE int FKL_IS_NIL(const void *P) {
     }
 
 // inlines
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklMakeVMint(FklVM *vm, int64_t r64) {
+    if (r64 > FKL_FIX_INT_MAX || r64 < FKL_FIX_INT_MIN)
+        return fklCreateVMvalueBigIntWithI64(vm, r64);
+    else
+        return FKL_MAKE_VM_FIX(r64);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklMakeVMintU(FklVM *vm, uint64_t r64) {
+    if (r64 > FKL_FIX_INT_MAX)
+        return fklCreateVMvalueBigIntWithU64(vm, r64);
+    else
+        return FKL_MAKE_VM_FIX(r64);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklMakeVMintD(FklVM *vm, double r64) {
+    if (isgreater(r64, (double)FKL_FIX_INT_MAX) || isless(r64, FKL_FIX_INT_MIN))
+        return fklCreateVMvalueBigIntWithF64(vm, r64);
+    else
+        return FKL_MAKE_VM_FIX(r64);
+}
+
 static FKL_ALWAYS_INLINE void fklVMgcToGray(const FklVMvalue *v_, FklVMgc *gc) {
     FklVMvalue *v = FKL_TYPE_CAST(FklVMvalue *, v_);
     if (v && FKL_IS_PTR(v) && v->mark_ < FKL_MARK_G) {

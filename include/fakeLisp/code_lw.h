@@ -54,14 +54,18 @@ typedef struct {
 #include "cont/vector.h"
 
 typedef enum {
-    FKL_RE_EXPORT_OP_PUSH_LIB,
+    FKL_RE_EXPORT_OP_PUSH_LIB = 0,
     FKL_RE_EXPORT_OP_POP,
-    FKL_RE_EXPORT_OP_APPEND,
+    FKL_RE_EXPORT_OP_IMPORT,
+    FKL_RE_EXPORT_OP_PUSH_CTX,
+    FKL_RE_EXPORT_OP_POP_CTX,
 } FklReExportOp;
 
 typedef struct {
     FklReExportOp op;
-    FklVMvalue *args;
+    FklCgImportType type;
+    FklVMvalue *arg0;
+    FklVMvalue *arg1;
 } FklReExportCmd;
 
 // FklReExportCmdVector
@@ -69,10 +73,24 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE_NAME ReExportCmd
 #include "cont/vector.h"
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueReExportCmds, {
+    uint64_t count;
+    FklReExportCmd cmds[];
+});
+
+FklVMvalueReExportCmds *fklCreateVMvalueReExportCmds(FklVM *vm, uint64_t count);
+
+int fklIsVMvalueReExportCmds(const FklVMvalue *);
+static FKL_ALWAYS_INLINE FklVMvalueReExportCmds *fklVMvalueReExportCmds(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueReExportCmds(v));
+    return FKL_TYPE_CAST(FklVMvalueReExportCmds *, v);
+}
+
 typedef struct {
+    FklVMvalueCgLib *lib;
     FklPcDepVector pendings;
     FklValueVector protos;
-    FklReExportCmdVector re_exports;
 } FklPreCompileFixup;
 
 void fklPreCompileFixupInit(FklPreCompileFixup *);

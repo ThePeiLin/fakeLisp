@@ -4349,7 +4349,14 @@ static void cg_lib_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(l->re_exports, gc);
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(cg_lib_print, "cg-lib");
+static void
+cg_lib_print(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+    const FklVMvalueCgLib *lib = fklVMvalueCgLib(ud);
+    FKL_ASSERT(FKL_IS_SYM(lib->rp));
+
+    FklVMvalue *const values[] = { lib->rp };
+    fklVMformat(exe, build, "#<cg-lib %S>", NULL, 1, values);
+}
 
 static int cg_lib_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgLib *l = fklVMvalueCgLib(ud);

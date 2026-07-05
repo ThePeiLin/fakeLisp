@@ -919,14 +919,14 @@ FklBuiltinErrorType fklVMformat(FklVM *,
         const char *fmt,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]);
+        FklVMvalue *const values[]);
 
 FklBuiltinErrorType fklVMformat2(FklVM *,
         FklCodeBuilder *buf,
         const FklString *fmt,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]);
+        FklVMvalue *const values[]);
 
 FklBuiltinErrorType fklVMformat3(FklVM *,
         FklCodeBuilder *result,
@@ -934,12 +934,12 @@ FklBuiltinErrorType fklVMformat3(FklVM *,
         const char *fmt,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]);
+        FklVMvalue *const values[]);
 
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         size_t len,
-        FklVMvalue *base[]);
+        FklVMvalue *const base[]);
 
 FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
 

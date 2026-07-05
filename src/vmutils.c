@@ -1849,8 +1849,8 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         void (*outs)(void *, const char *, size_t len),
         void *arg,
         uint64_t *plen,
-        FklVMvalue **cur_val,
-        FklVMvalue **const val_end) {
+        FklVMvalue *const *cur_val,
+        FklVMvalue *const *const val_end) {
     uint32_t base;
     uint32_t flags;
     uint64_t width;
@@ -2135,7 +2135,7 @@ FklBuiltinErrorType fklVMformat(FklVM *exe,
         const char *fmt_str,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]) {
+        FklVMvalue *const values[]) {
     return vm_format_to_buf(exe,
             fmt_str,
             &fmt_str[strlen(fmt_str)],
@@ -2152,7 +2152,7 @@ FklBuiltinErrorType fklVMformat2(FklVM *exe,
         const FklString *fmt_str,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]) {
+        FklVMvalue *const values[]) {
     return vm_format_to_buf(exe,
             fmt_str->str,
             &fmt_str->str[fmt_str->size],
@@ -2170,7 +2170,7 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
         const char *fmt,
         uint64_t *plen,
         size_t value_count,
-        FklVMvalue *values[]) {
+        FklVMvalue *const values[]) {
     return vm_format_to_buf(exe,
             fmt,
             &fmt[fmt_len],
@@ -2185,7 +2185,7 @@ FklBuiltinErrorType fklVMformat3(FklVM *exe,
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         size_t len,
-        FklVMvalue *base[]) {
+        FklVMvalue *const base[]) {
     FklStrBuf buf;
     fklInitStrBuf(&buf);
     FklCodeBuilder builder = { 0 };

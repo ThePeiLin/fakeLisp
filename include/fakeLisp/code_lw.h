@@ -95,6 +95,8 @@ typedef struct {
 
 void fklPreCompileFixupInit(FklPreCompileFixup *);
 void fklPreCompileFixupUninit(FklPreCompileFixup *);
+
+FKL_NODISCARD
 int fklPreCompileFixup(const FklPreCompileFixup *fixup, const FklCgCtx *cg_ctx);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvaluePcFixup, { FklPreCompileFixup f; });

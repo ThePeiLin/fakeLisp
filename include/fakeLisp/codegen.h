@@ -633,6 +633,36 @@ FklCgAct *fklMakeImportAct(FklCgCtx *,
         FklCgAct *);
 FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);
 
+typedef struct {
+    // in
+    FklCgImportType type;
+    int no_replace;
+    FklVMvalue *args;
+
+    FklValueHashSet const *excepts;
+
+    // out
+    FklVMvalueCgMacroHashMap *const macros[2];
+    FklVMvalueCgRplHashMap *const replacements[2];
+
+    int need_rebuild[2];
+    FklVMvalueCgRmacroHashMap *const rmacros[2];
+    FklPairVector *const rmacro_vec;
+
+    FklValueVector *const missing_syms;
+} FklCgImportMacrosArgs;
+
+/// import macros from cg lib
+/// @param[in] vm The visual mechine
+/// @param[in] from The cg lib
+/// @param[inout] args The extra args
+/// @return < 0 falied
+/// @return == 0 succed
+FKL_NODISCARD
+int fklCgImportMacros(FklVM *vm,
+        const FklVMvalueCgLib *from,
+        FklCgImportMacrosArgs *to);
+
 FklSymDefHashMapElm *
 fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
@@ -723,7 +753,7 @@ FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
 int fklIsVMvalueCgMacro(const FklVMvalue *v);
 FklVMvalueCgMacro *fklVMvalueCgMacro(const FklVMvalue *r);
 
-FklVMvalueCgMacroHashMap *fklCreateVMvalueCgMacroHashMap(const FklCgCtx *c);
+FklVMvalueCgMacroHashMap *fklCreateVMvalueCgMacroHashMap(FklVM *vm);
 FklValueHashMapElm *fklCgMacroHashMapGet(const FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
 FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *,
@@ -734,7 +764,7 @@ FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c, FklVMvalue *value);
 int fklIsVMvalueCgRpl(const FklVMvalue *v);
 FklVMvalueCgRpl *fklVMvalueCgRpl(const FklVMvalue *r);
 
-FklVMvalueCgRplHashMap *fklCreateVMvalueCgRplHashMap(const FklCgCtx *c);
+FklVMvalueCgRplHashMap *fklCreateVMvalueCgRplHashMap(FklVM *vm);
 FklVMvalueCgRpl *fklCgRplHashMapGet(const FklVMvalueCgRplHashMap *,
         const FklVMvalue *sym);
 void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *,
@@ -764,7 +794,7 @@ int fklExecuteCgRmacro(FklCgCtx *ctx,
         FklVMvalueCgRmacro *r);
 const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op);
 
-FklVMvalueCgRmacroHashMap *fklCreateVMvalueCgRmacroHashMap(const FklCgCtx *c);
+FklVMvalueCgRmacroHashMap *fklCreateVMvalueCgRmacroHashMap(FklVM *vm);
 
 FklValueHashMapElm *fklCgRmacroHashMapGet(const FklVMvalueCgRmacroHashMap *,
         const FklVMvalue *s);

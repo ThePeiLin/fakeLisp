@@ -44,6 +44,7 @@ typedef struct {
     FklLibTable *lib_table;
 
     FklReExportCmdVector *re_exports;
+    FklLibTable *meaningless_libs;
 } WriteLibExtraArgs;
 
 typedef struct {
@@ -2111,29 +2112,6 @@ typedef int (*ReExportVisitor)(FklVMvalue *v,
         FklLibTable *visited,
         void *args);
 
-static void _re_export_sentinl_print(const FklVMvalue *ud,
-        FklCodeBuilder *buf,
-        FklVM *exe) {
-    fklCodeBuilderPuts(buf, "#<eof>");
-}
-
-static FklVMudMetaTable const SentinelMt = {
-    .size = sizeof(FklVMvalueUd),
-    .princ = _re_export_sentinl_print,
-    .prin1 = _re_export_sentinl_print,
-};
-
-static const alignas(8) FklVMvalueUd SentinelUd = {
-    .next_ = NULL,
-    .gray_next_ = NULL,
-    .mark_ = FKL_MARK_B,
-    .type_ = FKL_TYPE_USERDATA,
-    .mt_ = &SentinelMt,
-    .dll_ = NULL,
-};
-
-static FklVMvalue *const Sentinel = (FklVMvalue *)&SentinelUd;
-
 static void traverse_re_export_chain_impl(FklVMvalue *re,
         const WriteLibExtraArgs *extra_args,
         FklLibTable *visited,
@@ -2159,21 +2137,21 @@ static void traverse_re_export_chain_impl(FklVMvalue *re,
 
         const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
 
-        const FklCgLib *lib = re->lib;
-        if (fklLibTableGet(internal_lib_table, lib->lib) == 0)
+        const FklCgLib *cg_lib = re->lib;
+        if (fklLibTableGet(internal_lib_table, cg_lib->lib) == 0)
             continue;
-        if (fklLibTableGet(visited, lib->lib) != 0)
+        if (fklLibTableGet(visited, cg_lib->lib) != 0)
             continue;
 
-        fklLibTableAdd(visited, lib->lib);
+        fklLibTableAdd(visited, cg_lib->lib);
 
-        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(lib));
-        for (FklVMvalue *cur = lib->re_exports; FKL_IS_PAIR(cur);
+        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib->lib));
+        for (FklVMvalue *cur = cg_lib->re_exports; FKL_IS_PAIR(cur);
                 cur = FKL_VM_CDR(cur)) {
             FklVMvalue *v = FKL_VM_CAR(cur);
             fklValueVectorPushBack2(&stack1, v);
         }
-        fklValueVectorPushBack2(&stack1, Sentinel);
+        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib));
     }
 
     while (!fklValueVectorIsEmpty(&stack2)) {
@@ -2218,17 +2196,17 @@ static int dbg_print_re_export_chain_cb(FklVMvalue *v,
         const WriteLibExtraArgs *extra_args,
         FklLibTable *visited,
         void *args) {
-    if (fklIsVMvalueCgLib(v)) {
-        const FklCgLib *l = fklVMvalueCgLib(v);
+    if (fklIsVMvalueLib(v)) {
+        const FklVMvalueLib *l = fklVMvalueLib(v);
         fklCodeBuilderLine(g_build,
                 "[DEBUG] push, make lib: %s",
-                FKL_VM_SYM(l->lib->name)->str);
+                FKL_VM_SYM(l->name)->str);
     } else if (fklIsVMvalueCgReExport(v)) {
         const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
         dbg_print_re_export(re);
     } else if (fklIsVMvalueReExportCmds(v)) {
         fklCodeBuilderLine(g_build, "[DEBUG] expanding cmds");
-    } else if (v == Sentinel) {
+    } else if (fklIsVMvalueCgLib(v)) {
         fklCodeBuilderLine(g_build, "[DEBUG] pop");
     } else {
         FKL_UNREACHABLE();
@@ -2646,16 +2624,32 @@ static void collect_external_macros(const FklCgCtx *ctx, FklValueTable *t) {
     collect_external_macros1(ctx->main_file_real_path_dir, ctx->libraries, t);
 }
 
+static inline void append_re_export_cmds(FklReExportCmdVector *cmd_vec,
+        FklVMvalueReExportCmds *cmds) {
+    for (size_t i = 0; i < cmds->count; ++i) {
+        const FklReExportCmd *cmd = &cmds->cmds[i];
+        fklReExportCmdVectorPushBack(cmd_vec, cmd);
+    }
+}
+
 static int collect_re_export_chain_cmds_cb(FklVMvalue *v,
         const WriteLibExtraArgs *extra_args,
         FklLibTable *visited,
         void *args) {
-    FklReExportCmdVector *cmd_vec = extra_args->re_exports;
-    if (fklIsVMvalueCgLib(v)) {
-        const FklCgLib *l = fklVMvalueCgLib(v);
+    const FklLibTable *internal_libs = extra_args->internal_lib_table;
+    const FklLibTable *meaningless_libs = extra_args->meaningless_libs;
+    FklLibTable *libs = args;
 
-        FklValueId id = fklLibTableGet(visited, l->lib);
-        FklVMvalue *arg0 = id == 0 ? l->rp : FKL_MAKE_VM_FIX(id);
+    FklReExportCmdVector *cmd_vec = extra_args->re_exports;
+    if (fklIsVMvalueLib(v)) {
+        const FklVMvalueLib *l = fklVMvalueLib(v);
+        FklValueId id = fklLibTableGet(internal_libs, l);
+        FKL_ASSERT(id != 0);
+        if (fklLibTableGet(meaningless_libs, l) != 0)
+            return 0;
+
+        id = fklLibTableAdd(libs, l);
+        FklVMvalue *arg0 = FKL_MAKE_VM_FIX(id);
 
         FklReExportCmd cmd = {
             .op = FKL_RE_EXPORT_OP_PUSH_LIB,
@@ -2663,12 +2657,16 @@ static int collect_re_export_chain_cmds_cb(FklVMvalue *v,
         };
 
         fklReExportCmdVectorPushBack(cmd_vec, &cmd);
-
     } else if (fklIsVMvalueCgReExport(v)) {
         const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
 
-        FklValueId id = fklLibTableGet(visited, re->lib->lib);
-        FklVMvalue *arg0 = id == 0 ? FKL_VM_VAL(re->lib) : FKL_MAKE_VM_FIX(id);
+        const FklCgLib *cg_lib = re->lib;
+        const FklVMvalueLib *l = cg_lib->lib;
+        if (fklLibTableGet(meaningless_libs, l) != 0)
+            return 0;
+
+        FklValueId id = fklLibTableGet(libs, l);
+        FklVMvalue *arg0 = id == 0 ? FKL_VM_VAL(cg_lib) : FKL_MAKE_VM_FIX(id);
 
         FklReExportCmd cmd = {
             .op = FKL_RE_EXPORT_OP_IMPORT,
@@ -2680,12 +2678,29 @@ static int collect_re_export_chain_cmds_cb(FklVMvalue *v,
         fklReExportCmdVectorPushBack(cmd_vec, &cmd);
 
     } else if (fklIsVMvalueReExportCmds(v)) {
-        FKL_TODO();
-    } else {
+        FklReExportCmd cmd = { 0 };
+        cmd.op = FKL_RE_EXPORT_OP_PUSH_CTX,
+        fklReExportCmdVectorPushBack(cmd_vec, &cmd);
+
+        FklVMvalueReExportCmds *re = fklVMvalueReExportCmds(v);
+        append_re_export_cmds(cmd_vec, re);
+
+        cmd.op = FKL_RE_EXPORT_OP_POP_CTX;
+        fklReExportCmdVectorPushBack(cmd_vec, &cmd);
+    } else if (fklIsVMvalueCgLib(v)) {
+        const FklVMvalueLib *l = fklVMvalueCgLib(v)->lib;
+        FklValueId id = fklLibTableGet(internal_libs, l);
+        FKL_ASSERT(id != 0);
+
+        if (fklLibTableGet(meaningless_libs, l) != 0)
+            return 0;
+
         FklReExportCmd cmd = {
             .op = FKL_RE_EXPORT_OP_POP,
         };
         fklReExportCmdVectorPushBack(cmd_vec, &cmd);
+    } else {
+        FKL_UNREACHABLE();
     }
 
     return 0;
@@ -2693,9 +2708,65 @@ static int collect_re_export_chain_cmds_cb(FklVMvalue *v,
 
 static void collect_re_export_chain_cmds(const FklVMvalueCgInfo *info,
         const WriteLibExtraArgs *extra_args) {
+    FklLibTable libs = { 0 };
+    fklInitLibTable(&libs);
     traverse_re_export_chain(info->re_exports,
             extra_args,
             collect_re_export_chain_cmds_cb,
+            &libs);
+    fklUninitLibTable(&libs);
+}
+
+static int collect_meaningless_libs_cb(FklVMvalue *v,
+        const WriteLibExtraArgs *extra_args,
+        FklLibTable *visited,
+        void *args) {
+    FklLibTable *meaningless_libs = extra_args->meaningless_libs;
+    if (fklIsVMvalueCgLib(v)) {
+        const FklCgLib *l = fklVMvalueCgLib(v);
+
+        FklValueId id = fklLibTableGet(visited, l->lib);
+        if (id == 0)
+            return 0;
+        FklVMvalue *cur = l->re_exports;
+        for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
+            FklVMvalue *v = FKL_VM_CAR(cur);
+            FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
+
+            FklVMvalueLib *l = re->lib->lib;
+            FklValueId id = fklLibTableGet(meaningless_libs, l);
+            if (id == 0)
+                return 0;
+        }
+
+        FKL_ASSERT(cur == FKL_VM_NIL);
+        fklLibTableAdd(meaningless_libs, l->lib);
+    }
+
+    return 0;
+}
+
+static void dbg_print_all_meaningless_libs(const FklVMvalueCgInfo *info,
+        const WriteLibExtraArgs *extra_args) {
+    const FklLibTable *meaningless_libs = extra_args->meaningless_libs;
+    const FklValueIdHashMapNode *cur = meaningless_libs->vt.ht.first;
+    fklCodeBuilderLine(g_build,
+            "\033[41;30m[DEBUG] === meaningless libs ===\033[0m");
+    for (; cur; cur = cur->next) {
+        FklVMvalueLib *l = fklVMvalueLib(cur->k);
+        fklCodeBuilderLine(g_build,
+                "[DEBUG] meaningless lib: %s",
+                FKL_VM_SYM(l->name)->str);
+    }
+
+    fklCodeBuilderFmt(g_build, "\033[0m");
+}
+
+static void collect_meaningless_libs(const FklVMvalueCgInfo *info,
+        const WriteLibExtraArgs *extra_args) {
+    traverse_re_export_chain(info->re_exports,
+            extra_args,
+            collect_meaningless_libs_cb,
             NULL);
 }
 
@@ -2724,6 +2795,9 @@ void fklWritePreCompile(FILE *fp,
     FklLibTable libs_imported_by_macros;
     fklInitLibTable(&libs_imported_by_macros);
 
+    FklLibTable meaningless_libs;
+    fklInitLibTable(&meaningless_libs);
+
     collect_internal_modules(info, &internal_lib_table);
     collect_external_macros(args->ctx, &external_macro_table);
     collect_libs_imported_by_macros(args->ctx, &libs_imported_by_macros);
@@ -2741,12 +2815,18 @@ void fklWritePreCompile(FILE *fp,
         .proto_table = &proto_table,
         .lib_table = &lib_table,
         .re_exports = &re_exports,
+
+        .meaningless_libs = &meaningless_libs,
     };
 
     fklCodeBuilderLine(g_build, "");
     dbg_print_all_re_export_chains(args->ctx, &extra_args);
 
     dbg_print_re_export_chain_of_main(info, &extra_args);
+
+    collect_meaningless_libs(info, &extra_args);
+
+    dbg_print_all_meaningless_libs(info, &extra_args);
 
     collect_re_export_chain_cmds(info, &extra_args);
 
@@ -2781,6 +2861,7 @@ void fklWritePreCompile(FILE *fp,
     fklUninitLibTable(&lib_table);
     fklUninitLibTable(&internal_lib_table);
     fklUninitLibTable(&libs_imported_by_macros);
+    fklUninitLibTable(&meaningless_libs);
 }
 
 FKL_NODISCARD
@@ -3009,6 +3090,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         case FKL_RE_EXPORT_OP_PUSH_LIB: {
             FklVMvalue *idx_v = cmd->arg0;
             int64_t idx = FKL_GET_FIX(idx_v);
+            FKL_ASSERT(idx > 0);
             fklValueVectorPushBack2(&stack, FKL_VM_VAL(cur_lib));
             cur_lib = create_new_cg_lib1(vm, &cg_lib_vec, start_idx, idx);
             break;
@@ -3020,9 +3102,9 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
             FklValueVector *missing_import = NULL;
 
             if (FKL_IS_FIX(cg_lib)) {
-                cg_lib = get_cg_lib(&cg_lib_vec,
-                        start_idx,
-                        FKL_GET_FIX(cmd->arg0));
+                int64_t idx = FKL_GET_FIX(cmd->arg0);
+                FKL_ASSERT(idx > 0);
+                cg_lib = get_cg_lib(&cg_lib_vec, start_idx, idx);
             } else {
                 fklValueVectorInit(&missing_syms, 8);
                 missing_import = &missing_syms;

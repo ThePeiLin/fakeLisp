@@ -4482,7 +4482,7 @@ static void add_compiler_macro(FklVM *vm,
 static void import_macro_list(FklVM *vm,
         FklVMvalue *sym,
         FklVMvalue *list,
-        const FklCgImportMacrosArgs *to) {
+        const FklCgImportArgs *to) {
     FklVMvalue *cur_pair = list;
     for (; FKL_IS_PAIR(cur_pair); cur_pair = FKL_VM_CDR(cur_pair)) {
         FklVMvalueCgMacro *macro = fklVMvalueCgMacro(FKL_VM_CAR(cur_pair));
@@ -4501,7 +4501,7 @@ static void import_macro_list(FklVM *vm,
 static void import_replacement(FklVM *vm,
         FklVMvalue *sym,
         FklVMvalueCgRpl *rpl,
-        const FklCgImportMacrosArgs *to) {
+        const FklCgImportArgs *to) {
     size_t const count = sizeof(to->replacements) / sizeof(to->replacements[0]);
     for (size_t i = 0; i < count; ++i) {
         FklVMvalueCgRplHashMap *rpls = to->replacements[i];
@@ -4537,7 +4537,7 @@ static inline int do_add_rmacro(FklVM *vm,
 static void import_reader_macro(FklVM *vm,
         FklVMvalue *sym,
         FklVMvalueCgRmacro *rmacro,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     size_t const count = sizeof(to->rmacros) / sizeof(to->rmacros[0]);
     for (size_t i = 0; i < count; ++i) {
         FklVMvalueCgRmacroHashMap *rmacros = to->rmacros[i];
@@ -4560,9 +4560,28 @@ static void import_reader_macro(FklVM *vm,
     fklPairVectorPushBack(to->rmacro_vec, &pair);
 }
 
+static void import_symbol(FklVM *vm,
+        FklVMvalue *new_head,
+        FklVMvalue *old,
+        FklCgImportArgs *to) {
+    if (to->exports != NULL) {
+        const FklCgExportIdx item = { .idx = to->exports->count };
+        fklCgExportSidIdxHashMapAdd(to->exports, &new_head, &item);
+    }
+
+    if (to->env != NULL) {
+        fklAddCgDefBySid(new_head, to->scope, to->env);
+    }
+
+    if (to->import_cache != NULL) {
+        FklPair p = { .car = new_head, .cdr = old };
+        fklPairVectorPushBack(to->import_cache, &p);
+    }
+}
+
 static int do_import_macros_common(FklVM *vm,
         const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     const FklVMvalueCgMacroHashMap *macros = from->macros;
     for (const FklValueHashMapNode *cur = macros->ht.first; cur;
             cur = cur->next) {
@@ -4582,6 +4601,12 @@ static int do_import_macros_common(FklVM *vm,
         import_reader_macro(vm, cur->k, fklVMvalueCgRmacro(cur->v), to);
     }
 
+    const FklCgExportSidIdxHashMap *exports = &from->exports;
+    for (const FklCgExportSidIdxHashMapNode *cur = exports->first; cur;
+            cur = cur->next) {
+        import_symbol(vm, cur->k, cur->k, to);
+    }
+
     return 0;
 }
 
@@ -4599,7 +4624,7 @@ static inline FklVMvalue *append_symbol_prefix(FklVM *vm,
 
 static int do_import_macros_prefix(FklVM *vm,
         const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
 
@@ -4631,19 +4656,29 @@ static int do_import_macros_prefix(FklVM *vm,
         import_reader_macro(vm, new_head, fklVMvalueCgRmacro(cur->v), to);
     }
 
+    const FklCgExportSidIdxHashMap *exports = &from->exports;
+    for (const FklCgExportSidIdxHashMapNode *cur = exports->first; cur;
+            cur = cur->next) {
+        FklVMvalue *head = cur->k;
+        FklVMvalue *new_head = append_symbol_prefix(vm, prefix, head, &buf);
+
+        import_symbol(vm, new_head, head, to);
+    }
+
     fklUninitStrBuf(&buf);
     return 0;
 }
 
 static int do_import_macros_only(FklVM *vm,
         const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     FklVMvalue *sym_list = to->args;
     FklVMvalue *cur = sym_list;
 
     const FklVMvalueCgMacroHashMap *macros = from->macros;
     const FklVMvalueCgRplHashMap *rpls = from->replacements;
     const FklVMvalueCgRmacroHashMap *rmacros = from->rmacros;
+    const FklCgExportSidIdxHashMap *exports = &from->exports;
 
     int import_missing = 0;
     for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
@@ -4667,6 +4702,12 @@ static int do_import_macros_only(FklVM *vm,
             import_reader_macro(vm, sym, fklVMvalueCgRmacro(kv->v), to);
         }
 
+        const FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, sym);
+        if (item != NULL) {
+            has_entity = 1;
+            import_symbol(vm, sym, sym, to);
+        }
+
         if (!has_entity && to->missing_syms != NULL) {
             import_missing = 1;
             fklValueVectorPushBack2(to->missing_syms, sym);
@@ -4680,13 +4721,14 @@ static int do_import_macros_only(FklVM *vm,
 
 static int do_import_macros_alias(FklVM *vm,
         const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     FklVMvalue *sym_list = to->args;
     FklVMvalue *cur = sym_list;
 
     const FklVMvalueCgMacroHashMap *macros = from->macros;
     const FklVMvalueCgRplHashMap *rpls = from->replacements;
     const FklVMvalueCgRmacroHashMap *rmacros = from->rmacros;
+    const FklCgExportSidIdxHashMap *exports = &from->exports;
 
     int import_missing = 0;
     for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
@@ -4716,6 +4758,12 @@ static int do_import_macros_alias(FklVM *vm,
             import_reader_macro(vm, alias, fklVMvalueCgRmacro(kv->v), to);
         }
 
+        const FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, sym);
+        if (item != NULL) {
+            has_entity = 1;
+            import_symbol(vm, alias, sym, to);
+        }
+
         if (!has_entity && to->missing_syms != NULL) {
             import_missing = 1;
             fklValueVectorPushBack2(to->missing_syms, sym);
@@ -4730,7 +4778,7 @@ static int do_import_macros_alias(FklVM *vm,
 static int do_import_macros_except_impl(FklVM *vm,
         const FklVMvalueCgLib *const from,
         const FklValueHashSet *const excepts,
-        FklCgImportMacrosArgs *const to) {
+        FklCgImportArgs *const to) {
     const FklVMvalueCgMacroHashMap *macros = from->macros;
     for (const FklValueHashMapNode *cur = macros->ht.first; cur;
             cur = cur->next) {
@@ -4758,6 +4806,15 @@ static int do_import_macros_except_impl(FklVM *vm,
         import_reader_macro(vm, cur->k, fklVMvalueCgRmacro(cur->v), to);
     }
 
+    const FklCgExportSidIdxHashMap *exports = &from->exports;
+    for (const FklCgExportSidIdxHashMapNode *cur = exports->first; cur;
+            cur = cur->next) {
+        if (fklValueHashSetHas2(excepts, cur->k))
+            continue;
+
+        import_symbol(vm, cur->k, cur->k, to);
+    }
+
     return 0;
 }
 
@@ -4781,7 +4838,7 @@ static FKL_ALWAYS_INLINE int except_cache_verify(const FklValueHashSet *excepts,
 
 static int do_import_macros_except(FklVM *vm,
         const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+        FklCgImportArgs *to) {
     if (to->excepts == NULL) {
         FklValueHashSet excepts;
         fklValueHashSetInit(&excepts);
@@ -4803,9 +4860,7 @@ static int do_import_macros_except(FklVM *vm,
     return 0;
 }
 
-int fklCgImportMacros(FklVM *vm,
-        const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to) {
+int fklCgImport(FklVM *vm, const FklVMvalueCgLib *from, FklCgImportArgs *to) {
     FKL_ASSERT(from->rmacros);
     FKL_ASSERT(from->replacements);
     FKL_ASSERT(from->macros);

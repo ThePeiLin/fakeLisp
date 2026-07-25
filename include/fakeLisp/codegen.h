@@ -165,6 +165,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
 
 typedef struct {
     uint32_t idx;
+
+    FKL_DEPRECATED
     uint32_t oidx;
 } FklCgExportIdx;
 
@@ -635,9 +637,10 @@ FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);
 
 typedef struct {
     // in
-    FklCgImportType type;
-    int no_replace;
-    FklVMvalue *args;
+    FklCgImportType const type;
+    int const no_replace;
+    uint32_t const scope;
+    FklVMvalue *const args;
 
     FklValueHashSet const *excepts;
 
@@ -650,18 +653,20 @@ typedef struct {
     FklPairVector *const rmacro_vec;
 
     FklValueVector *const missing_syms;
-} FklCgImportMacrosArgs;
+
+    FklVMvalueCgEnv *const env;
+    FklCgExportSidIdxHashMap *const exports;
+    FklPairVector *const import_cache;
+} FklCgImportArgs;
 
 /// import macros from cg lib
-/// @param[in] vm The visual mechine
-/// @param[in] from The cg lib
-/// @param[inout] args The extra args
-/// @return < 0 falied
-/// @return == 0 succed
+/// @param[in]    vm     The virtual mechine
+/// @param[in]    from   The cg lib
+/// @param[inout] to     The extra args
+/// @return < 0   falied
+/// @return == 0  succed
 FKL_NODISCARD
-int fklCgImportMacros(FklVM *vm,
-        const FklVMvalueCgLib *from,
-        FklCgImportMacrosArgs *to);
+int fklCgImport(FklVM *vm, const FklVMvalueCgLib *from, FklCgImportArgs *to);
 
 FklSymDefHashMapElm *
 fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);

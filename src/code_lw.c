@@ -20,6 +20,7 @@
 
 typedef FklVMvalueCgLib FklCgLib;
 typedef FklVMvalueReExportCmds ReExportCmds;
+typedef FklPreCompileFixup Fixup;
 
 typedef enum FklWriteCodePass {
     FKL_WRITE_CODE_PASS_FIRST = 0,
@@ -81,7 +82,7 @@ typedef struct {
     int is_loading_pre_compile;
     FklVM *const vm;
     const char *main_dir;
-    FklPreCompileFixup *fixup;
+    Fixup *fixup;
 
     const FklCgCtx *cg_ctx;
 
@@ -679,7 +680,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             break;
         }
 
-        FklPreCompileFixup *fixup = libs->fixup;
+        Fixup *fixup = libs->fixup;
 
         as_lib_placeholder(ph)->idx = fixup->pendings.size;
 
@@ -708,7 +709,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             if (libs->fixup == NULL)
                 break;
 
-            FklPreCompileFixup *fixup = libs->fixup;
+            Fixup *fixup = libs->fixup;
 
             lib->proc = FKL_MAKE_VM_FIX(fixup->pendings.size);
 
@@ -2865,8 +2866,7 @@ void fklWritePreCompile(FILE *fp,
 }
 
 FKL_NODISCARD
-static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(
-        const FklPreCompileFixup *fixup) {
+static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(const Fixup *fixup) {
     if (fixup == NULL)
         return NULL;
     const FklPcDepVector *pendings = &fixup->pendings;
@@ -2961,18 +2961,18 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     return lib;
 }
 
-void fklPreCompileFixupInit(FklPreCompileFixup *fixup) {
+void fklPreCompileFixupInit(Fixup *fixup) {
     fklPcDepVectorInit(&fixup->pendings, 8);
     fklValueVectorInit(&fixup->protos, 8);
 }
 
-void fklPreCompileFixupUninit(FklPreCompileFixup *fixup) {
+void fklPreCompileFixupUninit(Fixup *fixup) {
     fklPcDepVectorUninit(&fixup->pendings);
     fklValueVectorUninit(&fixup->protos);
 }
 
 static inline void fixup_proto_external_libs(FklVMvalueProto *p,
-        const FklPreCompileFixup *fixup,
+        const Fixup *fixup,
         const FklValueVector *lib_vec) {
     LibIdx count = p->used_libraries_count;
     FklVMvalue **libs = &p->vals[p->used_libraries_offset];
@@ -2989,7 +2989,7 @@ static inline void fixup_proto_external_libs(FklVMvalueProto *p,
 }
 
 static inline void fixup_re_export_cmds_external_libs(ReExportCmds *cmds,
-        const FklPreCompileFixup *fixup,
+        const Fixup *fixup,
         const FklValueVector *lib_vec) {
     MacroCount len = cmds->count;
     LibIdx idx = 0;
@@ -3056,7 +3056,7 @@ static inline int cg_lib_has(FklVMvalue *cg_lib, FklVMvalue *s) {
 FKL_NODISCARD
 static int execute_re_export_cmds(ReExportCmds *cmds,
         const FklCgCtx *ctx,
-        const FklPreCompileFixup *fixup,
+        const Fixup *fixup,
         const FklValueVector *lib_vec) {
     FklValueVector stack = { 0 };
     fklValueVectorInit(&stack, lib_vec->capacity);
@@ -3112,7 +3112,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
 
             FKL_ASSERT(fklIsVMvalueCgLib(cg_lib));
 
-            FklCgImportMacrosArgs args = {
+            FklCgImportArgs args = {
                 .type = cmd->type,
                 .no_replace = 0,
                 .args = cmd->arg1,
@@ -3122,9 +3122,10 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
                 .rmacros = { cur_lib->rmacros },
 
                 .missing_syms = missing_import,
+                .exports = &cur_lib->exports,
             };
 
-            int r = fklCgImportMacros(vm, fklVMvalueCgLib(cg_lib), &args);
+            int r = fklCgImport(vm, fklVMvalueCgLib(cg_lib), &args);
 
             if (r < 0 && missing_import != NULL) {
                 // 我们只在导入外部模块的时候检查缺失的导入
@@ -3155,7 +3156,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     FKL_ASSERT(cur_lib == last_lib);
 
     FklVMvalueCgLib *lib = fixup->lib;
-    FklCgImportMacrosArgs args = {
+    FklCgImportArgs args = {
         .type = FKL_CG_IMPORT_COMMON,
         .no_replace = 1,
 
@@ -3164,7 +3165,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         .rmacros = { lib->rmacros },
     };
 
-    int r = fklCgImportMacros(vm, cur_lib, &args);
+    int r = fklCgImport(vm, cur_lib, &args);
 
     fklUintVectorUninit(&idx_stack);
     fklValueVectorUninit(&cg_lib_vec);
@@ -3172,7 +3173,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     return r;
 }
 
-int fklPreCompileFixup(const FklPreCompileFixup *fixup, const FklCgCtx *ctx) {
+int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
     const FklPcDepVector *dep_vec = &fixup->pendings;
     FklValueVector lib_vec = { 0 };
     fklValueVectorInit(&lib_vec, fixup->pendings.size);
@@ -3212,7 +3213,7 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(fixup_print, "fix-up");
 
 static void fixup_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvaluePcFixup *f = fklVMvaluePcFixup(ud);
-    FklPreCompileFixup *fixup = &f->f;
+    Fixup *fixup = &f->f;
 
     FklPcDepVector *dep_vec = &fixup->pendings;
     for (size_t i = 0; i < dep_vec->size; ++i) {

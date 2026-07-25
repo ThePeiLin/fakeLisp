@@ -9,6 +9,7 @@ int main() {
             sizeof(FklVMvalueCgMacroScope));
     printf("sizeof(FklVMvalue) = %zu\n", sizeof(FklVMvalue));
     printf("sizeof(FklVMvalueProc) = %zu\n", sizeof(FklVMvalueProc));
+    printf("sizeof(FklVMframe ) = %zu\n", sizeof(FklVMframe));
     printf("FKL_OPCODE_NUM = %u\n", FKL_OPCODE_NUM);
     return 0;
 }

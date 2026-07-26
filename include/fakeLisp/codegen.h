@@ -166,7 +166,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
 typedef struct {
     uint32_t idx;
 
-    FKL_DEPRECATED
+    // 即使这个成员已经没有用处了
+    // 但是我总觉得这个成员可能还有大用处
     uint32_t oidx;
 } FklCgExportIdx;
 

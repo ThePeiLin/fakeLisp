@@ -21,6 +21,8 @@
 typedef FklVMvalueCgLib FklCgLib;
 typedef FklVMvalueReExportCmds ReExportCmds;
 typedef FklPreCompileFixup Fixup;
+typedef FklVMvalueCgRmacroHashMap Rmacros;
+typedef FklVMvalueCgMacroHashMap Macros;
 
 typedef enum FklWriteCodePass {
     FKL_WRITE_CODE_PASS_FIRST = 0,
@@ -2482,12 +2484,14 @@ static void write_re_export_cmds_pass_2(const FklVMvalueCgInfo *info,
     return;
 }
 
-static inline void write_lib_main_file_passes(FILE *outfp,
-        const char *main_dir,
+static inline void write_pre_compile_passes(FILE *fp,
+        const char *target_dir,
         FklWriteCodePass pass,
-        const FklVMvalueCgInfo *info,
-        const FklVMvalueProc *proc,
+        const FklWritePreCompileArgs *const args,
         const WriteLibExtraArgs *extra_args) {
+    const FklVMvalueCgInfo *info = args->main_info;
+    const FklVMvalueProc *proc = args->main_proc;
+
     FklValueTable *value_table = extra_args->value_table;
 
     switch (pass) {
@@ -2501,33 +2505,17 @@ static inline void write_lib_main_file_passes(FILE *outfp,
         write_proc(proc, FKL_WRITE_CODE_PASS_FIRST, extra_args, NULL);
         break;
     case FKL_WRITE_CODE_PASS_SECOND:
-        write_value_id(value_table, 0, info->fid, outfp);
-        write_export_sid_idx_table_pass_2(&info->exports, value_table, outfp);
-        write_re_export_cmds_pass_2(info, extra_args, outfp);
-        write_compiler_macros_pass_2(info->export_macros, extra_args, outfp);
-        write_replacements_pass_2(info->export_replacement, value_table, outfp);
-        write_rmacros_pass_2(info->export_rmacros, extra_args, outfp);
+        write_value_id(value_table, 0, info->fid, fp);
+        write_export_sid_idx_table_pass_2(&info->exports, value_table, fp);
+        write_re_export_cmds_pass_2(info, extra_args, fp);
+        write_compiler_macros_pass_2(info->export_macros, extra_args, fp);
+        write_replacements_pass_2(info->export_replacement, value_table, fp);
+        write_rmacros_pass_2(info->export_rmacros, extra_args, fp);
 
-        write_proc(proc, FKL_WRITE_CODE_PASS_SECOND, extra_args, outfp);
+        write_proc(proc, FKL_WRITE_CODE_PASS_SECOND, extra_args, fp);
 
         break;
     }
-}
-
-static inline void write_pre_compile_passes(FILE *fp,
-        const char *target_dir,
-        FklWriteCodePass pass,
-        const FklWritePreCompileArgs *const args,
-        const WriteLibExtraArgs *extra_args) {
-    const FklCgCtx *const ctx = args->ctx;
-    const char *main_dir = ctx->main_file_real_path_dir;
-
-    write_lib_main_file_passes(fp,
-            main_dir,
-            pass,
-            args->main_info,
-            args->main_proc,
-            extra_args);
 }
 
 static FKL_ALWAYS_INLINE int is_internal_module(const char *main_dir,
@@ -2771,6 +2759,58 @@ static void collect_meaningless_libs(const FklVMvalueCgInfo *info,
             NULL);
 }
 
+static void collect_relocations_impl(const FklVMvalueProc *proc,
+        const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *extra_args) {
+    FKL_TODO();
+}
+
+static void collect_relocations_in_macros(const Macros *macros,
+        const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *extra_args) {
+    if (macros == NULL)
+        return;
+
+    const FklValueTable *external_macros = extra_args->external_macros;
+    const FklValueHashMapNode *cur = macros->ht.first;
+    for (; cur; cur = cur->next) {
+        for (FklVMvalue *p = cur->v; FKL_IS_PAIR(p); p = FKL_VM_CDR(p)) {
+            FklVMvalue *macro_v = FKL_VM_CAR(p);
+            // is external macro
+            if (fklValueTableGet(external_macros, macro_v) != 0)
+                continue;
+            FKL_TODO();
+        }
+    }
+}
+
+static void collect_relocations_in_rmacros(const Rmacros *rmacros,
+        const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *extra_args) {
+    if (rmacros == NULL)
+        return;
+
+    const FklValueTable *external_macros = extra_args->external_macros;
+    const FklValueHashMapNode *cur = rmacros->ht.first;
+    for (; cur; cur = cur->next) {
+        // is external macro
+        if (fklValueTableGet(external_macros, cur->v) != 0)
+            continue;
+        FKL_TODO();
+    }
+}
+
+static void collect_relocations(const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *extra_args) {
+    collect_relocations_impl(args->main_proc, args, extra_args);
+
+    const Macros *macros = args->main_info->export_macros;
+    const Rmacros *rmacros = args->main_info->export_rmacros;
+
+    collect_relocations_in_macros(macros, args, extra_args);
+    collect_relocations_in_rmacros(rmacros, args, extra_args);
+}
+
 void fklWritePreCompile(FILE *fp,
         const char *target_dir,
         const FklWritePreCompileArgs *const args) {
@@ -2830,6 +2870,8 @@ void fklWritePreCompile(FILE *fp,
     dbg_print_all_meaningless_libs(info, &extra_args);
 
     collect_re_export_chain_cmds(info, &extra_args);
+
+    collect_relocations(args, &extra_args);
 
     write_pre_compile_passes(fp,
             target_dir,

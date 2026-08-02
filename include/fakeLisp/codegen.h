@@ -600,6 +600,12 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         const char *filename,
         const FklCgInfoArgs *args);
 
+static FKL_ALWAYS_INLINE FklVMvalueCgInfo *fklVMvalueCgInfo(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueCgInfo(v));
+    return FKL_TYPE_CAST(FklVMvalueCgInfo *, v);
+}
+
 int fklIsVMvalueCgReExport(const FklVMvalue *v);
 FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
         FklVMvalueCgLib *lib,
@@ -741,8 +747,8 @@ FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklVMvalueCgLib *lib,
         FklVMvalue *mod_name,
-        FklVMvalueCgInfo *codegen,
-        FklVMvalue *proc);
+        const FklVMvalueCgInfo *codegen,
+        const FklVMvalueProc *proc);
 
 FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 

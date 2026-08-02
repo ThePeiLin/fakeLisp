@@ -180,7 +180,7 @@ static inline int compile(const char *filename,
 
     fklVMgcCheck(vm, 1);
 
-    fklWriteCodeFile(outfp, FKL_VM_PROC(proc));
+    fklWriteCodeFile(vm, outfp, FKL_VM_PROC(proc));
 
     fclose(outfp);
 compile_exit:

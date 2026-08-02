@@ -608,7 +608,7 @@ FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
 static FklVMvalueLib *create_script_lib(FklVM *vm,
         FklVMvalue *name,
         FklVMvalueCgLib *clib,
-        FklVMvalueProc *proc) {
+        const FklVMvalueProc *proc) {
     FKL_ASSERT(FKL_IS_SYM(name));
     if (clib->lib) {
         FKL_ASSERT(FKL_IS_PROC(clib->lib->proc));
@@ -675,13 +675,13 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklVMvalueCgLib *lib,
         FklVMvalue *mod_name,
-        FklVMvalueCgInfo *info,
-        FklVMvalue *proc) {
+        const FklVMvalueCgInfo *info,
+        const FklVMvalueProc *proc) {
     FKL_ASSERT(info != NULL);
 
     FklCgExportSidIdxHashMap *exports_index = &lib->exports;
     fklCgExportSidIdxHashMapInit(exports_index);
-    FklCgExportSidIdxHashMap *export_sid_set = &info->exports;
+    const FklCgExportSidIdxHashMap *export_sid_set = &info->exports;
     for (const FklCgExportSidIdxHashMapNode *sid_idx_list =
                     export_sid_set->first;
             sid_idx_list;
@@ -691,7 +691,7 @@ void fklInitCgScriptLib(const FklCgCtx *ctx,
                 &sid_idx_list->v);
     }
 
-    lib->lib = create_script_lib(ctx->vm, mod_name, lib, FKL_VM_PROC(proc));
+    lib->lib = create_script_lib(ctx->vm, mod_name, lib, proc);
 
     lib->macros = info->export_macros;
     lib->replacements = info->export_replacement;

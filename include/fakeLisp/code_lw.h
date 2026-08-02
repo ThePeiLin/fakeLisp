@@ -20,7 +20,7 @@ typedef enum {
 } FklLibRefType;
 
 // write and load byte code files
-void fklWriteCodeFile(FILE *fp, const FklVMvalueProc *const proc);
+void fklWriteCodeFile(FklVM *vm, FILE *fp, const FklVMvalueProc *const proc);
 
 FKL_NODISCARD
 FklVMvalueProc *fklLoadCodeFile(FILE *fp,

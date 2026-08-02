@@ -6306,7 +6306,7 @@ static FklVMvalue *lib_create_cb(const FklCgActCbArgs *args) {
 
     FklCgLib *lib = fklVMvalueCgLibsAdd1(vm, d->info->libraries, d->rp);
     FklVMvalue *name = fklCgRealpathToModuleName(ctx, FKL_VM_SYM(d->rp)->str);
-    fklInitCgScriptLib(ctx, lib, name, info, proc);
+    fklInitCgScriptLib(ctx, lib, name, info, FKL_VM_PROC(proc));
 
     return FKL_VM_VAL(lib);
 }

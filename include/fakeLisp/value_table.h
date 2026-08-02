@@ -73,6 +73,39 @@ static FKL_ALWAYS_INLINE FklValueIdHashMapNode *fklLibTableLast(
     return t->vt.ht.last;
 }
 
+// for type-safe
+typedef struct {
+    FklValueTable vt;
+} FklProcTable;
+
+static FKL_ALWAYS_INLINE void fklInitProcTable(FklProcTable *t) {
+    fklInitValueTable(&t->vt);
+}
+
+static FKL_ALWAYS_INLINE void fklUninitProcTable(FklProcTable *t) {
+    fklUninitValueTable(&t->vt);
+}
+
+static FKL_ALWAYS_INLINE FklValueId fklProcTableAdd(FklProcTable *t,
+        const FklVMvalueProc *v) {
+    return fklValueTableAdd(&t->vt, FKL_VM_VAL(v));
+}
+
+static FKL_ALWAYS_INLINE FklValueId fklProcTableGet(const FklProcTable *t,
+        const FklVMvalueProc *v) {
+    return fklValueTableGet(&t->vt, FKL_VM_VAL(v));
+}
+
+static FKL_ALWAYS_INLINE FklValueIdHashMapNode *fklProcTableFirst(
+        const FklProcTable *t) {
+    return t->vt.ht.first;
+}
+
+static FKL_ALWAYS_INLINE FklValueIdHashMapNode *fklProcTableLast(
+        const FklProcTable *t) {
+    return t->vt.ht.last;
+}
+
 #ifdef __cplusplus
 }
 #endif

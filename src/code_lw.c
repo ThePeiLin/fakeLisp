@@ -44,6 +44,8 @@ typedef struct {
 
     FklReExportCmdVector *re_exports;
     FklLibTable *meaningless_libs;
+
+    FklRelocVector *relocations;
 } WriteLibExtraArgs;
 
 typedef struct {
@@ -2833,6 +2835,9 @@ void fklWritePreCompile(FILE *fp,
     FklReExportCmdVector re_exports = { 0 };
     fklReExportCmdVectorInit(&re_exports, 8);
 
+    FklRelocVector relocations = { 0 };
+    fklRelocVectorInit(&relocations, 8);
+
     WriteLibExtraArgs extra_args = {
         .is_writting_pre_compile = 1,
         .internal_lib_table = &internal_lib_table,
@@ -2846,6 +2851,7 @@ void fklWritePreCompile(FILE *fp,
         .re_exports = &re_exports,
 
         .meaningless_libs = &meaningless_libs,
+        .relocations = &relocations,
     };
 
     fklCodeBuilderLine(g_build, "");
@@ -2878,6 +2884,8 @@ void fklWritePreCompile(FILE *fp,
     memset(&extra_args, 0, sizeof(extra_args));
 
     fklReExportCmdVectorUninit(&re_exports);
+    fklRelocVectorUninit(&relocations);
+
     fklUninitValueTable(&value_table);
     fklUninitValueTable(&external_macro_table);
 
@@ -2989,11 +2997,17 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 void fklPreCompileFixupInit(Fixup *fixup) {
     fklPcDepVectorInit(&fixup->pendings, 8);
     fklValueVectorInit(&fixup->protos, 8);
+
+    fklInitProcTable(&fixup->proc_table);
+    fklRelocVectorInit(&fixup->relocations, 8);
 }
 
 void fklPreCompileFixupUninit(Fixup *fixup) {
     fklPcDepVectorUninit(&fixup->pendings);
     fklValueVectorUninit(&fixup->protos);
+
+    fklUninitProcTable(&fixup->proc_table);
+    fklRelocVectorUninit(&fixup->relocations);
 }
 
 static inline void fixup_proto_external_libs(FklVMvalueProto *p,

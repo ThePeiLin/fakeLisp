@@ -88,9 +88,23 @@ static FKL_ALWAYS_INLINE FklVMvalueReExportCmds *fklVMvalueReExportCmds(
 }
 
 typedef struct {
+    FklVMvalueProc *proc;
+    FklVMvalue *sym;
+    uint64_t ins;
+} FklReloc;
+
+// FklRelocVector
+#define FKL_VECTOR_ELM_TYPE FklReloc
+#define FKL_VECTOR_ELM_TYPE_NAME Reloc
+#include "cont/vector.h"
+
+typedef struct {
     FklVMvalueCgLib *lib;
     FklPcDepVector pendings;
     FklValueVector protos;
+
+    FklProcTable proc_table;
+    FklRelocVector relocations;
 } FklPreCompileFixup;
 
 void fklPreCompileFixupInit(FklPreCompileFixup *);

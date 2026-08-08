@@ -11,6 +11,8 @@
 #include <fakeLisp/value_table.h>
 #include <fakeLisp/vm.h>
 
+#include <fakeLisp/ins_helper.h>
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,7 +70,7 @@ typedef struct {
 
     // out
     FklValueId count;
-    FklVMvalueProto **protos;
+    FklPair *protos;
 } FklLoadProtoArgs;
 
 FKL_NODISCARD
@@ -248,15 +250,14 @@ static inline void write_proto_id(const FklProtoTable *t,
     fwrite(&u, sizeof(u), 1, fp);
 }
 
-static inline FklVMvalueProto *load_proto_id(FILE *fp,
-        const FklLoadProtoArgs *protos) {
+static inline FklPair *load_proto_id(FILE *fp, const FklLoadProtoArgs *protos) {
     FklValueId id = 0;
     fread(&id, sizeof(id), 1, fp);
     if (id == 0)
         return NULL;
 
-    FklVMvalueProto *r = protos->protos[id - 1];
-    FKL_ASSERT(r);
+    FklPair *r = &protos->protos[id - 1];
+    FKL_ASSERT(r->car);
 
     return r;
 }
@@ -592,7 +593,8 @@ static inline FklVMvalueProto *load_prototype(FILE *fp,
             (FklVMvalueProto **)fklVMvalueProtoChildren(pt);
 
     for (uint32_t i = 0; i < pt->child_proto_count; ++i) {
-        child_protos[i] = load_proto_id(fp, protos);
+        FklVMvalue *p = load_proto_id(fp, protos)->car;
+        child_protos[i] = fklVMvalueProto(p);
     }
 
     fread(&pt->used_libraries_count, sizeof(pt->used_libraries_count), 1, fp);
@@ -629,10 +631,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     LibType mod_type = 0;
     fread(&mod_type, sizeof(mod_type), 1, fp);
 
-    FklVMvalueLib *lib = NULL;
-    if (mod_type != FKL_LIB_REF_EXTERNAL) {
-        lib = fklCreateVMvalueLib(vm, name, FKL_VM_VEC(names));
-    }
+    FklVMvalueLib *lib = fklCreateVMvalueLib(vm, name, FKL_VM_VEC(names));
 
     switch ((FklLibRefType)mod_type) {
     default:
@@ -640,7 +639,6 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         break;
 
     case FKL_LIB_REF_EXTERNAL: {
-        FklVMvalue *ph = NULL;
         FKL_ASSERT(libs->is_loading_pre_compile != 0);
         uint8_t is_imported_by_macro = 0;
         fread(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
@@ -667,16 +665,13 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         }
 
     mod_not_imported:
-        ph = create_lib_placeholder(vm, 0);
-        lib = FKL_TYPE_CAST(FklVMvalueLib *, ph);
-
         if (libs->fixup == NULL) {
             break;
         }
 
         Fixup *fixup = libs->fixup;
 
-        as_lib_placeholder(ph)->idx = fixup->pendings.size;
+        lib->proc = FKL_MAKE_VM_FIX(fixup->pendings.size);
 
         FklPcDep dep = {
             .is_imported_by_macro = is_imported_by_macro,
@@ -746,14 +741,15 @@ static int load_proto_table(FILE *fp,
         return 0;
     }
 
-    size_t const total_size = args->count * sizeof(FklVMvalueProto *);
-    FklVMvalueProto **protos = (FklVMvalueProto **)fklZmalloc(total_size);
+    size_t const total_size = args->count * sizeof(FklPair);
+    FklPair *protos = (FklPair *)fklZmalloc(total_size);
     FKL_ASSERT(protos);
     memset(protos, 0, total_size);
 
     args->protos = protos;
     for (FklValueId id = args->count; id > 0; --id) {
-        args->protos[id - 1] = load_prototype(fp, values, args, ph_vec);
+        FklVMvalueProto *p = load_prototype(fp, values, args, ph_vec);
+        args->protos[id - 1].car = FKL_VM_VAL(p);
     }
     return 0;
 }
@@ -967,16 +963,18 @@ static FklVMvalueProc *load_proc(FILE *fp,
         const FklLoadValueArgs *values,
         const FklLoadProtoArgs *protos) {
     FklVM *vm = values->vm;
-    FklVMvalueProto *pt = load_proto_id(fp, protos);
+    FklPair *p = load_proto_id(fp, protos);
     FklVMvalue *bcl = fklCreateVMvalueCodeObj1(vm);
 
     int r = load_bc_lnt(fp, values, FKL_VM_CO(bcl));
     FKL_ASSERT(r == 0);
     (void)r;
 
+    FklVMvalueProto *pt = fklVMvalueProto(p->car);
     FklVMvalue *proc = fklCreateVMvalueProc(vm, bcl, pt);
     fklInitMainProcRefs(vm, proc);
 
+    p->cdr = proc;
     return FKL_VM_PROC(proc);
 }
 
@@ -1565,10 +1563,10 @@ void fklWriteCodeFile(FklVM *vm,
 
 static int fixup_proto_lib_refs(const FklLoadProtoArgs *protos,
         const FklLoadLibArgs *args) {
-    FklVMvalueProto *const *cur = protos->protos;
-    FklVMvalueProto *const *const end = cur + protos->count;
+    FklPair const *cur = protos->protos;
+    FklPair const *const end = cur + protos->count;
     for (; cur < end; ++cur) {
-        FklVMvalueProto *c = *cur;
+        FklVMvalueProto *c = fklVMvalueProto(cur->car);
         LibIdx count = c->used_libraries_count;
         FklVMvalue **libs = &c->vals[c->used_libraries_offset];
         for (LibIdx i = 0; i < count; ++i) {
@@ -2027,6 +2025,42 @@ static inline FklVMvalueCgRplHashMap *load_replacements(FklCgCtx *ctx,
     return ht;
 }
 
+static void load_relocations(FILE *fp,
+        const FklLoadValueArgs *const values,
+        const FklLoadProtoArgs *const protos,
+        FklLoadPreCompileArgs *const args,
+        FklValueVector *ph_vec) {
+    MacroCount len = 0;
+    fread(&len, sizeof(len), 1, fp);
+    FklPreCompileFixup *fixup = args->fixup;
+    FklRelocVector *reloc_vec = fixup == NULL ? NULL : &fixup->relocations;
+
+    LibPlaceholder *ph = NULL;
+    for (MacroCount i = 0; i < len; ++i) {
+        FklReloc reloc = { 0 };
+
+        FklValueId lib_id = read_lib_id(fp);
+        FklPair *p = load_proto_id(fp, protos);
+        FklVMvalue *s = load_value_id(fp, values);
+        fread(&reloc.ins, sizeof(reloc.ins), 1, fp);
+
+        FKL_ASSERT(FKL_IS_SYM(s));
+        FKL_ASSERT(p != NULL);
+        FKL_ASSERT(p->cdr != NULL);
+
+        ph = create_lib_placeholder1(values->vm, lib_id, ph_vec);
+
+        reloc.lib = FKL_VM_VAL(ph);
+        reloc.proc = FKL_VM_PROC(p->cdr);
+        reloc.sym = s;
+
+        if (reloc_vec == NULL)
+            continue;
+
+        fklRelocVectorPushBack(reloc_vec, &reloc);
+    }
+}
+
 static inline void load_pre_compile(FILE *fp,
         const FklLoadValueArgs *const values,
         const FklLoadProtoArgs *const protos,
@@ -2045,6 +2079,8 @@ static inline void load_pre_compile(FILE *fp,
     FklVMvalueLib *lib = fklCreateVMvalueLib(values->vm, name, names);
     lib->proc = FKL_VM_VAL(proc);
     cg_lib->lib = lib;
+
+    load_relocations(fp, values, protos, args, ph_vec);
 }
 
 static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
@@ -2455,8 +2491,7 @@ static void dbg_print_all_re_export_chains(const FklCgCtx *ctx,
     fklCodeBuilderLine(g_build, "");
 }
 
-static void write_re_export_cmds(const FklVMvalueCgInfo *info,
-        const WriteLibExtraArgs *extra_args,
+static void write_re_export_cmds(const WriteLibExtraArgs *extra_args,
         FILE *fp) {
     const FklReExportCmdVector *cmd_vec = extra_args->re_exports;
     const FklValueTable *vt = extra_args->value_table;
@@ -2512,6 +2547,24 @@ static void write_re_export_cmds(const FklVMvalueCgInfo *info,
     return;
 }
 
+static void write_relocations(const WriteLibExtraArgs *extra_args, FILE *fp) {
+    const FklRelocVector *reloc_vec = extra_args->relocations;
+    const FklLibTable *libs = extra_args->lib_table;
+    const FklValueTable *values = extra_args->value_table;
+    const FklProtoTable *protos = extra_args->proto_table;
+
+    MacroCount len = reloc_vec->size;
+    fwrite(&len, sizeof(len), 1, fp);
+
+    for (MacroCount i = 0; i < len; ++i) {
+        const FklReloc *rel = &reloc_vec->base[i];
+        write_lib_id(libs, 0, fklVMvalueLib(rel->lib), fp);
+        write_proto_id(protos, 0, rel->proc->proto, fp);
+        write_value_id(values, 0, rel->sym, fp);
+        fwrite(&rel->ins, sizeof(rel->ins), 1, fp);
+    }
+}
+
 static int traverse_pre_compile(FklVM *vm,
         const FklWritePreCompileArgs *args,
         const WriteLibExtraArgs *extra_args) {
@@ -2533,11 +2586,12 @@ static inline void write_pre_compile(FILE *fp,
 
     write_value_id(value_table, 0, info->fid, fp);
     write_export_sid_idx_table(&info->exports, value_table, fp);
-    write_re_export_cmds(info, extra_args, fp);
+    write_re_export_cmds(extra_args, fp);
     write_compiler_macros(info->export_macros, extra_args, fp);
     write_replacements(info->export_replacement, value_table, fp);
     write_rmacros(info->export_rmacros, extra_args, fp);
     write_proc(proc, extra_args, fp);
+    write_relocations(extra_args, fp);
 }
 
 static FKL_ALWAYS_INLINE int is_internal_module(const char *main_dir,
@@ -2781,19 +2835,130 @@ static void collect_meaningless_libs(const FklVMvalueCgInfo *info,
             NULL);
 }
 
+typedef struct {
+    FklVMvalueProto *proto;
+    const FklIns *start;
+    const FklIns *end;
+} RelocScan;
+
+// FklRelocScanVector
+#define FKL_VECTOR_ELM_TYPE RelocScan
+#define FKL_VECTOR_ELM_TYPE_NAME RelocScan
+#include <fakeLisp/cont/vector.h>
+
+static void collect_import_in_range(const FklVMvalueProc *proc,
+        const RelocScan *scan,
+        const FklIns *spc,
+        FklRelocScanVector *pendings,
+        const WriteLibExtraArgs *extra_args) {
+
+    FKL_ASSERT(proc != NULL);
+    FklRelocVector *reloc_vec = extra_args->relocations;
+    FKL_ASSERT(reloc_vec != NULL);
+
+    FklVMvalueProto *proto = scan->proto;
+    const FklIns *cur = scan->start;
+    const FklIns *const end = scan->end;
+
+    FKL_ASSERT(spc <= cur);
+
+    FklVMvalueProto *next_proto = NULL;
+    FklVMvalueLib *cur_lib = NULL;
+
+    RelocScan next = { 0 };
+
+    FklReloc reloc = { 0 };
+
+    while (cur < end) {
+        FklIns ins = *(cur++);
+        switch (OP(ins)) {
+        default:
+            break;
+        case FKL_OP_LOAD_PROTO:
+            FKL_ASSERT(next_proto == NULL);
+            next_proto = fklVMvalueProtoChildren(proto)[uC(ins)];
+            break;
+        case FKL_OP_MAKE_PROC:
+            memset(&next, 0, sizeof(next));
+
+            next.proto = next_proto;
+            next.start = cur;
+            next.end = cur + uC(ins);
+            fklRelocScanVectorPushBack(pendings, &next);
+
+            next_proto = NULL;
+            cur = next.end;
+            break;
+
+        case FKL_OP_LOAD_LIB:
+            cur_lib = fklVMvalueProtoUsedLibs(proto)[uC(ins)];
+            if (fklLibTableGet(extra_args->internal_lib_table, cur_lib) != 0) {
+                cur_lib = NULL;
+            }
+
+            break;
+        case FKL_OP_IMPORT:
+            if (cur_lib == NULL)
+                break;
+
+            memset(&reloc, 0, sizeof(reloc));
+
+            reloc.lib = FKL_VM_VAL(cur_lib);
+            reloc.sym = fklVMvalueLibNames(cur_lib)[uC(ins)];
+            reloc.proc = proc;
+            reloc.ins = cur - spc - 1;
+
+            FKL_ASSERT(reloc.sym != NULL);
+            FKL_ASSERT(FKL_IS_SYM(reloc.sym));
+
+            fklCodeBuilderLine(g_build,
+                    "[DEBUG] proc id: %" PRIu32 ",proto id: %" PRIu32
+                    " , lib: %s, ins_offset: %" PRIu32 " , idx: %" PRIu32 "",
+                    fklProtoTableGet(extra_args->proto_table, proc->proto),
+                    fklProtoTableGet(extra_args->proto_table, proto),
+                    FKL_VM_SYM(cur_lib->name)->str,
+                    reloc.ins,
+                    uC(ins));
+
+            fklRelocVectorPushBack(reloc_vec, &reloc);
+            break;
+        }
+    }
+}
+
 static void collect_relocations_impl(const FklVMvalueProc *proc,
         const WriteLibExtraArgs *extra_args) {
-    FKL_TODO();
+    FklRelocScanVector pendings = { 0 };
+    fklRelocScanVectorInit(&pendings, 8);
+
+    const FklByteCodelnt *bcl = FKL_VM_CO(proc->bcl);
+    const FklIns *spc = bcl->bc.code;
+    const RelocScan first = {
+        .proto = proc->proto,
+        .start = spc,
+        .end = spc + bcl->bc.len,
+    };
+
+    fklRelocScanVectorPushBack(&pendings, &first);
+    while (!fklRelocScanVectorIsEmpty(&pendings)) {
+        const RelocScan cur = *fklRelocScanVectorPopBackNonNull(&pendings);
+        collect_import_in_range(proc, &cur, spc, &pendings, extra_args);
+    }
+
+    fklRelocScanVectorUninit(&pendings);
 }
 
 static void collect_relocations(const WriteLibExtraArgs *extra_args) {
-    return;
-    FKL_TODO();
+    fklCodeBuilderLine(g_build,
+            "\033[41;30m[DEBUG] === relocations ===\033[0m\033[31m");
+
     FklValueIdHashMapNode *cur = fklProcTableFirst(extra_args->proc_table);
     for (; cur != NULL; cur = cur->next) {
         const FklVMvalueProc *v = FKL_VM_PROC(cur->k);
         collect_relocations_impl(v, extra_args);
     }
+
+    fklCodeBuilderLine(g_build, "\033[0m");
 }
 
 void fklWritePreCompile(FILE *fp,
@@ -2958,10 +3123,20 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
 
     if (args->fixup) {
         for (size_t i = 0; i < protos.count; ++i) {
-            FklVMvalue *v = FKL_VM_VAL(protos.protos[i]);
+            FklVMvalue *v = FKL_VM_VAL(protos.protos[i].car);
             fklValueVectorPushBack2(&args->fixup->protos, v);
         }
         args->fixup->lib = lib;
+
+        FklRelocVector *reloc_vec = &args->fixup->relocations;
+        for (size_t i = 0; i < reloc_vec->size; ++i) {
+            FklReloc *reloc = &reloc_vec->base[i];
+            FKL_ASSERT(is_lib_placeholder(reloc->lib));
+
+            LibPlaceholder *ph = as_lib_placeholder(reloc->lib);
+            LibIdx idx = ph->idx;
+            reloc->lib = FKL_VM_VAL(get_lib_with_id(&libs, idx));
+        }
     }
 
     values.count = 0;
@@ -2998,7 +3173,6 @@ void fklPreCompileFixupInit(Fixup *fixup) {
     fklPcDepVectorInit(&fixup->pendings, 8);
     fklValueVectorInit(&fixup->protos, 8);
 
-    fklInitProcTable(&fixup->proc_table);
     fklRelocVectorInit(&fixup->relocations, 8);
 }
 
@@ -3006,7 +3180,6 @@ void fklPreCompileFixupUninit(Fixup *fixup) {
     fklPcDepVectorUninit(&fixup->pendings);
     fklValueVectorUninit(&fixup->protos);
 
-    fklUninitProcTable(&fixup->proc_table);
     fklRelocVectorUninit(&fixup->relocations);
 }
 
@@ -3016,11 +3189,12 @@ static inline void fixup_proto_external_libs(FklVMvalueProto *p,
     LibIdx count = p->used_libraries_count;
     FklVMvalue **libs = &p->vals[p->used_libraries_offset];
     for (LibIdx j = 0; j < count; ++j) {
-        if (!is_lib_placeholder(libs[j]))
+        FKL_ASSERT(fklIsVMvalueLib(libs[j]));
+        FklVMvalue *idx_v = fklVMvalueLib(libs[j])->proc;
+        if (!FKL_IS_FIX(idx_v))
             continue;
-        LibPlaceholder *ph = as_lib_placeholder(libs[j]);
 
-        LibIdx idx = ph->idx;
+        LibIdx idx = FKL_GET_FIX(idx_v);
         FKL_ASSERT(idx < lib_vec->size);
         FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
         libs[j] = FKL_VM_VAL(cg_lib->lib);
@@ -3041,9 +3215,9 @@ static inline void fixup_re_export_cmds_external_libs(ReExportCmds *cmds,
         case FKL_RE_EXPORT_OP_PUSH_LIB:
             break;
         case FKL_RE_EXPORT_OP_IMPORT:
-            if (!is_lib_placeholder(cmd->arg0))
+            if (!fklIsVMvalueLib(cmd->arg0))
                 break;
-            idx = as_lib_placeholder(cmd->arg0)->idx;
+            idx = FKL_GET_FIX(fklVMvalueLib(cmd->arg0)->proc);
             FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
             cmd->arg0 = FKL_VM_VAL(cg_lib);
             break;
@@ -3051,6 +3225,24 @@ static inline void fixup_re_export_cmds_external_libs(ReExportCmds *cmds,
     }
 
     dbg_print_re_export_chain_cmd_vector(cmds->cmds, len);
+}
+
+static inline void fixup_relocations_external_libs(const Fixup *fixup,
+        const FklValueVector *lib_vec) {
+    const FklRelocVector *reloc_vec = &fixup->relocations;
+    for (size_t i = 0; i < reloc_vec->size; ++i) {
+        FklReloc *reloc = &reloc_vec->base[i];
+
+        FKL_ASSERT(fklIsVMvalueLib(reloc->lib));
+
+        FklVMvalue *idx_v = fklVMvalueLib(reloc->lib)->proc;
+        FKL_ASSERT(FKL_IS_FIX(idx_v));
+
+        LibIdx idx = FKL_GET_FIX(idx_v);
+        FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
+
+        reloc->lib = FKL_VM_VAL(cg_lib);
+    }
 }
 
 static inline FklCgLib *create_new_cg_lib1(FklVM *vm,
@@ -3212,6 +3404,43 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     return r;
 }
 
+FKL_NODISCARD
+static int apply_relocations(const Fixup *fixup) {
+    const FklRelocVector *reloc_vec = &fixup->relocations;
+
+    for (size_t i = 0; i < reloc_vec->size; ++i) {
+        const FklReloc *reloc = &reloc_vec->base[i];
+        const FklVMvalueProc *proc = reloc->proc;
+        const FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(reloc->lib);
+        const FklVMvalueLib *lib = cg_lib->lib;
+
+        const FklByteCodelnt *bcl = FKL_VM_CO(proc->bcl);
+
+        FklIns ins = bcl->bc.code[reloc->ins];
+
+        uint32_t name_idx = uC(ins);
+
+        FklVMvalue *const *names = fklVMvalueLibNames(lib);
+
+        if (name_idx < lib->count && names[name_idx] == reloc->sym)
+            continue;
+
+        const FklCgExportSidIdxHashMap *exports = &cg_lib->exports;
+        const FklCgExportIdx *l = NULL;
+        l = fklCgExportSidIdxHashMapGet2(exports, reloc->sym);
+
+        // TODO: 需要更好的错误处理
+        FKL_ASSERT(l != NULL);
+        if (l == NULL)
+            return 1;
+
+        uint32_t value_idx = l->idx;
+        bcl->bc.code[reloc->ins] = set_uC(ins, value_idx);
+    }
+
+    return 0;
+}
+
 int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
     const FklPcDepVector *dep_vec = &fixup->pendings;
     FklValueVector lib_vec = { 0 };
@@ -3241,8 +3470,16 @@ int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
     const FklVMvalueCgLib *cg_lib = fixup->lib;
     ReExportCmds *cmds = fklVMvalueReExportCmds(cg_lib->re_exports);
     fixup_re_export_cmds_external_libs(cmds, fixup, &lib_vec);
-    int r = execute_re_export_cmds(cmds, ctx, fixup, &lib_vec);
+    fixup_relocations_external_libs(fixup, &lib_vec);
 
+    int r = 0;
+    r = execute_re_export_cmds(cmds, ctx, fixup, &lib_vec);
+    if (r != 0)
+        goto exit;
+
+    r = apply_relocations(fixup);
+
+exit:
     fklValueVectorUninit(&lib_vec);
 
     return r;
@@ -3264,6 +3501,14 @@ static void fixup_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklValueVector *proto_vec = &fixup->protos;
     for (size_t i = 0; i < proto_vec->size; ++i) {
         fklVMgcToGray(proto_vec->base[i], gc);
+    }
+
+    FklRelocVector *reloc_vec = &fixup->relocations;
+    for (size_t i = 0; i < reloc_vec->size; ++i) {
+        const FklReloc *reloc = &reloc_vec->base[i];
+        fklVMgcToGray(reloc->lib, gc);
+        fklVMgcToGray(FKL_VM_VAL(reloc->proc), gc);
+        fklVMgcToGray(reloc->sym, gc);
     }
 
     fklVMgcToGray(FKL_VM_VAL(fixup->lib), gc);

@@ -41,9 +41,9 @@ FklCgEnvScope *fklCgEnvScopeGet(const FklVMvalueCgEnv *env, uint32_t scope_id) {
     return &env->scopes.base[scope_id - 1];
 }
 
-FklSymDefHashMapElm *fklFindSymbolDef(FklVMvalue *id,
+FklSymDefHashMapElm *fklFindSymbolDef1(const FklVMvalueCgEnv *env,
         uint32_t scope_id,
-        const FklVMvalueCgEnv *env) {
+        FklVMvalue *id) {
     FklSymDefHashMapElm *r = NULL;
     for (; scope_id; scope_id = fklCgEnvScopeGet(env, scope_id)->p) {
         const FklCgEnvScope *scope = fklCgEnvScopeGet(env, scope_id);
@@ -53,6 +53,17 @@ FklSymDefHashMapElm *fklFindSymbolDef(FklVMvalue *id,
         }
     }
     return NULL;
+}
+
+FklSymDef *
+fklUseSymbolDef(FklVMvalueCgEnv *env, uint32_t scope, FklVMvalue *id) {
+    FklSymDefHashMapElm *r = fklFindSymbolDef1(env, scope, id);
+    if (r == NULL) {
+        return NULL;
+    }
+
+    fklSetImportedSymbolUsed(env, &r->v);
+    return &r->v;
 }
 
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
@@ -99,7 +110,7 @@ FklSymDefHashMapElm *fklAddCgBuiltinRefBySid(FklVMvalue *id,
             (FklSymDef){ .idx = idx, .cidx = idx, .isLocal = 0, .isConst = 0 });
 }
 
-static inline void *has_outer_pdef_or_def(FklVMvalueCgEnv *cur,
+static inline void *use_outer_pdef_or_def(FklVMvalueCgEnv *cur,
         FklVMvalue *id,
         uint32_t scope,
         FklVMvalueCgEnv **targetEnv,
@@ -111,7 +122,7 @@ static inline void *has_outer_pdef_or_def(FklVMvalueCgEnv *cur,
             *is_pdef = 1;
             return key;
         }
-        FklSymDefHashMapElm *def = fklFindSymbolDef(id, scope, cur);
+        FklSymDef *def = fklUseSymbolDef(cur, scope, id);
         if (def) {
             *targetEnv = cur;
             return def;
@@ -328,7 +339,7 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
         if (prev) {
             FklVMvalueCgEnv *targetEnv = NULL;
             int is_pdef = 0;
-            void *targetDef = has_outer_pdef_or_def(prev,
+            void *targetDef = use_outer_pdef_or_def(prev,
                     id,
                     env->parent_scope,
                     &targetEnv,
@@ -349,17 +360,16 @@ FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
                             cel->v.idx,
                             targetEnv);
                 } else {
-                    FklSymDefHashMapElm *def =
-                            FKL_TYPE_CAST(FklSymDefHashMapElm *, targetDef);
+                    FklSymDef *def = (FklSymDef *)targetDef;
                     FklSymDefHashMapElm *cel = add_ref_to_all_penv(id,
                             env,
                             targetEnv,
-                            def->v.isConst,
+                            def->isConst,
                             &ret);
                     cel->v.isLocal = 1;
-                    cel->v.cidx = def->v.idx;
+                    cel->v.cidx = def->idx;
                     FklCgEnvSlot *slot_flags = targetEnv->slots.base;
-                    slot_flags[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
+                    slot_flags[def->idx] = FKL_CODEGEN_ENV_SLOT_REF;
                 }
             } else {
                 FklSymDefHashMapElm *targetRef =
@@ -439,6 +449,9 @@ fklAddCgDefBySid(FklVMvalue *id, uint32_t scope_id, FklVMvalueCgEnv *env) {
     if (!el) {
         uint32_t idx = scope->empty;
         el = fklSymDefHashMapAdd(defs, &key, NULL);
+        el->from = FKL_VAR_REF_INVALID_CIDX;
+        el->from_idx = FKL_VAR_REF_INVALID_CIDX;
+
         if (idx < env->slots.size && has_resolvable_ref(id, scope_id, env)) {
             idx = env->slots.size;
         } else {
@@ -458,6 +471,37 @@ fklAddCgDefBySid(FklVMvalue *id, uint32_t scope_id, FklVMvalueCgEnv *env) {
         env->slots.base[idx] = FKL_CODEGEN_ENV_SLOT_OCC;
     }
     return el;
+}
+
+void fklSetImportedSymbolUsed(const FklVMvalueCgEnv *env,
+        const FklSymDef *def) {
+    if (def->from == FKL_VAR_REF_INVALID_CIDX) {
+        return;
+    }
+    FKL_ASSERT(def->from_idx != FKL_VAR_REF_INVALID_CIDX);
+
+    FklVMvalue *v = env->imported_symbols.base[def->from];
+    FKL_ASSERT(v != NULL);
+
+    uint8_t *ptr = FKL_VM_BVEC(v)->ptr;
+    ptr[def->from_idx] = FKL_IMPORT_SYMBOL_USED;
+}
+
+const uint8_t *fklGetImportedSymbolUsed(const FklVMvalueCgEnv *env,
+        uint32_t from,
+        uint32_t idx) {
+    if (env->imported_symbols.size <= from)
+        return NULL;
+    FklVMvalue *v = env->imported_symbols.base[from];
+    if (v == NULL)
+        return NULL;
+    const FklBytevector *bvec = FKL_VM_BVEC(v);
+
+    if (idx < bvec->size) {
+        return &FKL_VM_BVEC(v)->ptr[idx];
+    } else {
+        return NULL;
+    }
 }
 
 void fklResolveRef(FklVMvalueCgEnv *env,
@@ -484,12 +528,11 @@ void fklResolveRef(FklVMvalueCgEnv *env,
 
         FklVMvalueProto *pt = uref->env->proto;
         FklVarRefDef *const ref = &fklVMvalueProtoVarRefs(pt)[uref->idx];
-        const FklSymDefHashMapElm *def;
-        def = fklFindSymbolDef(uref->sid, uref->scope, env);
+        const FklSymDef *def = fklUseSymbolDef(env, uref->scope, uref->sid);
 
         if (def) {
-            env->slots.base[def->v.idx] = FKL_CODEGEN_ENV_SLOT_REF;
-            ref->cidx = FKL_MAKE_VM_FIX(def->v.idx);
+            env->slots.base[def->idx] = FKL_CODEGEN_ENV_SLOT_REF;
+            ref->cidx = FKL_MAKE_VM_FIX(def->idx);
             ref->is_local = FKL_VM_TRUE;
 
             if (resolve_ref_to_def_cb) {
@@ -1169,6 +1212,10 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, e->proto), gc);
     fklVMgcToGray(FKL_VM_VAL(e->proto_env_map), gc);
+
+    for (size_t i = 0; i < e->imported_symbols.size; ++i) {
+        fklVMgcToGray(e->imported_symbols.base[i], gc);
+    }
 }
 
 static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
@@ -1191,6 +1238,7 @@ static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     fklLibIdHashMapUninit(&cur->used_libraries);
     fklUninitValueTable(&cur->konsts);
     fklValueVectorUninit(&cur->child_proc_protos);
+    fklValueVectorUninit(&cur->imported_symbols);
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
@@ -1248,6 +1296,8 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
 
     r->proto_env_map = c->proto_env_map;
     insert_proto_to_parent(r);
+
+    fklValueVectorInit(&r->imported_symbols, 0);
     return r;
 }
 
@@ -1360,7 +1410,8 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
 
     FKL_ASSERT(prev == NULL || fklIsVMvalueCgInfo((FklVMvalue *)prev));
 
-    if (is_main && is_debugging)
+    if (((is_main && is_debugging) || is_precompile)
+            && FKL_IS_NIL(ctx->proto_env_map))
         ctx->proto_env_map = fklCreateVMvalueCgEnvWeakMap(ctx->vm);
 
     FklVMvalueCgInfo *r = (FklVMvalueCgInfo *)fklCreateVMvalueUd(ctx->vm,

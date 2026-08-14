@@ -169,19 +169,10 @@ static inline FklVMvalue *create_lib_placeholder(FklVM *vm, LibIdx idx) {
     return v;
 }
 
-static inline void extend_value_vector(FklValueVector *ph_vec, size_t target) {
-    fklValueVectorReserve(ph_vec, target);
-    if (ph_vec->size < target) {
-        size_t clean_size = (target - ph_vec->size) * sizeof(*ph_vec->base);
-        memset(&ph_vec->base[ph_vec->size], 0, clean_size);
-        ph_vec->size = target;
-    }
-}
-
 static inline LibPlaceholder *
 create_lib_placeholder1(FklVM *vm, LibIdx idx, FklValueVector *ph_vec) {
     FKL_ASSERT(idx > 0);
-    extend_value_vector(ph_vec, idx);
+    fklValueVectorResize2(ph_vec, idx, NULL);
 
     FklVMvalue *v = ph_vec->base[idx - 1];
     if (v != NULL) {
@@ -2850,13 +2841,19 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
         const RelocScan *scan,
         const FklIns *spc,
         FklRelocScanVector *pendings,
-        const WriteLibExtraArgs *extra_args) {
+        const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *const extra_args) {
 
     FKL_ASSERT(proc != NULL);
     FklRelocVector *reloc_vec = extra_args->relocations;
     FKL_ASSERT(reloc_vec != NULL);
 
-    FklVMvalueProto *proto = scan->proto;
+    const FklCgCtx *const ctx = args->ctx;
+    FklVMvalueCgEnvWeakMap *weak_map = ctx->proto_env_map;
+    FKL_ASSERT(weak_map);
+
+    FklVMvalueProto *const proto = scan->proto;
+    FklVMvalueCgEnv *const env = fklVMvalueCgEnvWeakMapGet(weak_map, proto);
     const FklIns *cur = scan->start;
     const FklIns *const end = scan->end;
 
@@ -2864,10 +2861,13 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
 
     FklVMvalueProto *next_proto = NULL;
     FklVMvalueLib *cur_lib = NULL;
+    uint32_t cur_lib_idx = 0;
 
     RelocScan next = { 0 };
 
     FklReloc reloc = { 0 };
+
+    const uint8_t *p_used = NULL;
 
     while (cur < end) {
         FklIns ins = *(cur++);
@@ -2891,7 +2891,8 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
             break;
 
         case FKL_OP_LOAD_LIB:
-            cur_lib = fklVMvalueProtoUsedLibs(proto)[uC(ins)];
+            cur_lib_idx = uC(ins);
+            cur_lib = fklVMvalueProtoUsedLibs(proto)[cur_lib_idx];
             if (fklLibTableGet(extra_args->internal_lib_table, cur_lib) != 0) {
                 cur_lib = NULL;
             }
@@ -2903,22 +2904,28 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
 
             memset(&reloc, 0, sizeof(reloc));
 
+            p_used = fklGetImportedSymbolUsed(env, cur_lib_idx, uC(ins));
+            FKL_ASSERT(p_used != NULL);
             reloc.lib = FKL_VM_VAL(cur_lib);
             reloc.sym = fklVMvalueLibNames(cur_lib)[uC(ins)];
             reloc.proc = proc;
             reloc.ins = cur - spc - 1;
+            reloc.used = *p_used == FKL_IMPORT_SYMBOL_USED;
 
             FKL_ASSERT(reloc.sym != NULL);
             FKL_ASSERT(FKL_IS_SYM(reloc.sym));
 
             fklCodeBuilderLine(g_build,
-                    "[DEBUG] proc id: %" PRIu32 ",proto id: %" PRIu32
-                    " , lib: %s, ins_offset: %" PRIu32 " , idx: %" PRIu32 "",
+                    "[DEBUG] proc id: %" PRIu32 ", proto id: %" PRIu32
+                    " , lib: %s, sym: %s, ins_offset: %" PRIu32
+                    " , idx: %" PRIu32 ", used: %d",
                     fklProtoTableGet(extra_args->proto_table, proc->proto),
                     fklProtoTableGet(extra_args->proto_table, proto),
                     FKL_VM_SYM(cur_lib->name)->str,
+                    FKL_VM_SYM(reloc.sym)->str,
                     reloc.ins,
-                    uC(ins));
+                    uC(ins),
+                    reloc.used);
 
             fklRelocVectorPushBack(reloc_vec, &reloc);
             break;
@@ -2927,7 +2934,8 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
 }
 
 static void collect_relocations_impl(const FklVMvalueProc *proc,
-        const WriteLibExtraArgs *extra_args) {
+        const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *const extra_args) {
     FklRelocScanVector pendings = { 0 };
     fklRelocScanVectorInit(&pendings, 8);
 
@@ -2942,20 +2950,21 @@ static void collect_relocations_impl(const FklVMvalueProc *proc,
     fklRelocScanVectorPushBack(&pendings, &first);
     while (!fklRelocScanVectorIsEmpty(&pendings)) {
         const RelocScan cur = *fklRelocScanVectorPopBackNonNull(&pendings);
-        collect_import_in_range(proc, &cur, spc, &pendings, extra_args);
+        collect_import_in_range(proc, &cur, spc, &pendings, args, extra_args);
     }
 
     fklRelocScanVectorUninit(&pendings);
 }
 
-static void collect_relocations(const WriteLibExtraArgs *extra_args) {
+static void collect_relocations(const FklWritePreCompileArgs *const args,
+        const WriteLibExtraArgs *const extra_args) {
     fklCodeBuilderLine(g_build,
             "\033[41;30m[DEBUG] === relocations ===\033[0m\033[31m");
 
     FklValueIdHashMapNode *cur = fklProcTableFirst(extra_args->proc_table);
     for (; cur != NULL; cur = cur->next) {
         const FklVMvalueProc *v = FKL_VM_PROC(cur->k);
-        collect_relocations_impl(v, extra_args);
+        collect_relocations_impl(v, args, extra_args);
     }
 
     fklCodeBuilderLine(g_build, "\033[0m");
@@ -3033,7 +3042,7 @@ void fklWritePreCompile(FILE *fp,
 
     traverse_pre_compile(ctx->vm, args, &extra_args);
 
-    collect_relocations(&extra_args);
+    collect_relocations(args, &extra_args);
 
     dbg_print_re_export_chain_cmd_vector(re_exports.base, re_exports.size);
     fklCodeBuilderLine(g_build, "");
@@ -3251,7 +3260,7 @@ static inline FklCgLib *create_new_cg_lib1(FklVM *vm,
         int64_t idx) {
     FKL_ASSERT(idx > 0);
     uintmax_t const target = start_idx + idx;
-    extend_value_vector(cg_lib_vec, target);
+    fklValueVectorResize2(cg_lib_vec, target, NULL);
     FklVMvalue **pv = &cg_lib_vec->base[target - 1];
 
     FklCgLib *l = fklCreateVMvalueCgLib(vm, FKL_MAKE_VM_FIX(idx));

@@ -84,6 +84,12 @@ struct FklVMvalueCgEnv;
 // 实际上是 FklVMvalueWeakHashEq 的别名
 typedef struct FklVMvalueCgEnvWeakMap FklVMvalueCgEnvWeakMap;
 
+typedef enum {
+    FKL_IMPORT_SYMBOL_NONE = 0,
+    FKL_IMPORT_SYMBOL_IMPORTED = 1,
+    FKL_IMPORT_SYMBOL_USED = 2,
+} FklImportSymbolState;
+
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklUnboundVector uref;
 
@@ -109,10 +115,11 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
 
     FklVMvalueProto *proto;
     FklVMvalueCgEnvWeakMap *proto_env_map;
+    FklValueVector imported_symbols;
 });
 
 typedef void (*FklResolveRefToDefCb)(const FklVarRefDef *ref,
-        const FklSymDefHashMapElm *def,
+        const FklSymDef *def,
         const FklUnbound *uref,
         FklVMvalueProto *,
         void *args);
@@ -142,6 +149,11 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
 void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,
         const FklResolveRefArgs *args);
+
+void fklSetImportedSymbolUsed(const FklVMvalueCgEnv *env, const FklSymDef *def);
+const uint8_t *fklGetImportedSymbolUsed(const FklVMvalueCgEnv *env,
+        uint32_t from,
+        uint32_t idx);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacro, {
     FklVMvalue *pattern;
@@ -675,8 +687,12 @@ typedef struct {
 FKL_NODISCARD
 int fklCgImport(FklVM *vm, const FklVMvalueCgLib *from, FklCgImportArgs *to);
 
+FklSymDef *
+fklUseSymbolDef(FklVMvalueCgEnv *env, uint32_t scope, FklVMvalue *id);
+
 FklSymDefHashMapElm *
-fklFindSymbolDef(FklVMvalue *id, uint32_t scope, const FklVMvalueCgEnv *env);
+fklFindSymbolDef1(const FklVMvalueCgEnv *env, uint32_t scope, FklVMvalue *id);
+
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
         const FklVMvalueCgEnv *env);

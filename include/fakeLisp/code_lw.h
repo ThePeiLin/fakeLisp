@@ -92,6 +92,7 @@ typedef struct {
     const FklVMvalueProc *proc;
     FklVMvalue *sym;
     uint32_t ins;
+    uint8_t used;
 } FklReloc;
 
 // FklRelocVector

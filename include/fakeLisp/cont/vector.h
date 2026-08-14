@@ -114,6 +114,11 @@ static inline void METHOD(
     }
 }
 
+static inline void METHOD(
+        Resize2)(NAME *r, size_t new_size, FKL_VECTOR_ELM_TYPE v) {
+    METHOD(Resize)(r, new_size, &v);
+}
+
 static inline FKL_VECTOR_ELM_TYPE *METHOD(
         PushBack)(NAME *r, FKL_VECTOR_ELM_TYPE const *data) {
     METHOD(Reserve)(r, r->size + 1);

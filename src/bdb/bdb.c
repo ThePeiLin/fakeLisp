@@ -1285,8 +1285,7 @@ static inline FklVMvalue *find_local_var(DebugCtx *ctx,
     if (env == NULL)
         return NULL;
     FklVMvalue *id = fklVMaddSymbol(&ctx->gc.gcvm, func_name);
-    const FklSymDefHashMapElm *def;
-    def = fklFindSymbolDef(id, scope, env);
+    const FklSymDefHashMapElm *def = fklFindSymbolDef1(env, scope, id);
     if (def)
         return FKL_VM_GET_ARG(cur_thread, frame, def->v.idx);
     return NULL;

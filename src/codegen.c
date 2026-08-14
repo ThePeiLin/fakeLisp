@@ -2870,8 +2870,8 @@ static void codegen_setq(const CgCbArgs *args) {
     }
     CgExpQueue *queue = cgExpQueueCreate();
     cgExpQueuePush(queue, value);
-    FklSymDefHashMapElm *def;
-    def = fklFindSymbolDef(name->value, scope, env);
+    FklSymDef *def = fklUseSymbolDef(env, scope, name->value);
+
     FklCgAct *cur = make_cg_act(_set_var_exp_bc_process,
             createStackCtx(),
             createMustHasRetvalQueueNextExpression(queue),
@@ -2882,16 +2882,17 @@ static void codegen_setq(const CgCbArgs *args) {
             NULL,
             info);
     if (def) {
-        if (def->v.isConst) {
+        if (def->isConst) {
             error_state->error = make_assign_const_error(vm, name->value);
             error_state->line = CURLINE(name->container);
             return;
         }
+
         fklValueVectorPushBack2(&cur->bcl_vector,
                 append_put_loc_ins(vm,
                         INS_APPEND_BACK,
                         NULL,
-                        def->v.idx,
+                        def->idx,
                         info->fid,
                         CURLINE(orig->container),
                         scope));
@@ -3211,7 +3212,7 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
         const FklPmatchRes *exp,
         const FklPmatchHashMap *ht,
         const FklCgCtx *ctx,
-        const FklVMvalueCgEnv *env,
+        FklVMvalueCgEnv *env,
         uint32_t scope) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
@@ -3222,7 +3223,7 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
         error_state->line = CURLINE(exp->container);
         return 0;
     }
-    return fklFindSymbolDef(value->value, scope, env) != NULL;
+    return fklUseSymbolDef(env, scope, value->value) != NULL;
 }
 
 // steal from zuo: https://github.com/racket/zuo
@@ -3527,7 +3528,7 @@ static inline int is_check_subpattern_true(FklCgCtx *ctx,
         const FklPmatchRes *exp_,
         uint32_t scope,
         const FklVMvalueCgMacroScope *macro_scope,
-        const FklVMvalueCgEnv *env) {
+        FklVMvalueCgEnv *env) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
     FklPmatchRes exp = *exp_;
@@ -5201,6 +5202,7 @@ struct ExportContextData;
 
 typedef FklVMvalue *(*ImportLibCb)(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *data);
@@ -5218,20 +5220,34 @@ typedef struct ExportContextData {
     uint32_t scope;
 } ExportContextData;
 
-static void append_import_var_bc(FklVM *exe,
+static void append_import_var_bc(const FklCgCtx *ctx,
         FklVMvalue *k,
+        const FklLibId *lib_id,
+        const FklCgLib *cg_lib,
         const FklCgExportIdx *v,
         uint32_t line,
         FklVMvalue *bcl,
         const ExportContextData *d) {
-    uint32_t scope = d->scope;
-    FklVMvalueCgInfo *lib_info = d->lib_info;
-    FklVMvalueCgEnv *env = d->env;
-    FklVMvalue *fid = d->info->fid;
+    FklVM *vm = ctx->vm;
+    uint32_t const scope = d->scope;
+    FklVMvalueCgInfo *const lib_info = d->lib_info;
+    FklVMvalueCgEnv *const env = d->env;
+    FklVMvalueCgInfo *const info = d->info;
+    FklVMvalue *fid = info->fid;
 
-    uint32_t target_idx = fklAddCgDefBySid(k, scope, env)->idx;
-    append_import_ins(exe, INS_APPEND_BACK, bcl, v->idx, fid, line, scope);
-    append_put_loc_ins(exe, INS_APPEND_BACK, bcl, target_idx, fid, line, scope);
+    FklSymDef *def = fklAddCgDefBySid(k, scope, env);
+    if (info->is_precompile
+            && !fklIsInternalModule(ctx, FKL_VM_SYM(cg_lib->rp)->str)) {
+        def->from = lib_id->id;
+        def->from_idx = v->idx;
+        FklVMvalue *v = env->imported_symbols.base[lib_id->id];
+        FKL_ASSERT(v);
+        FKL_VM_BVEC(v)->ptr[def->from_idx] = FKL_IMPORT_SYMBOL_IMPORTED;
+    }
+
+    uint32_t target_idx = def->idx;
+    append_import_ins(vm, INS_APPEND_BACK, bcl, v->idx, fid, line, scope);
+    append_put_loc_ins(vm, INS_APPEND_BACK, bcl, target_idx, fid, line, scope);
     if (lib_info == NULL)
         goto done;
 
@@ -5239,14 +5255,15 @@ static void append_import_var_bc(FklVM *exe,
     item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, k);
     FKL_ASSERT(item != NULL);
 
-    append_export_ins(exe, INS_APPEND_BACK, bcl, item->idx, fid, line, scope);
+    append_export_ins(vm, INS_APPEND_BACK, bcl, item->idx, fid, line, scope);
 
 done:
-    append_drop_one_ins(exe, INS_APPEND_BACK, bcl, fid, line, scope);
+    append_drop_one_ins(vm, INS_APPEND_BACK, bcl, fid, line, scope);
 }
 
-static void append_import_variables(FklVM *exe,
+static void append_import_variables(const FklCgCtx *ctx,
         const FklPairVector *import_cache,
+        const FklLibId *lib_id,
         const FklCgLib *lib,
         FklVMvalue *bcl,
         uint32_t line,
@@ -5256,7 +5273,7 @@ static void append_import_variables(FklVM *exe,
         const FklPair *p = &import_cache->base[i];
         const FklCgExportIdx *l = fklCgExportSidIdxHashMapGet2(exports, p->cdr);
         FKL_ASSERT(l != NULL);
-        append_import_var_bc(exe, p->car, l, line, bcl, d);
+        append_import_var_bc(ctx, p->car, lib_id, lib, l, line, bcl, d);
     }
 }
 
@@ -5486,6 +5503,7 @@ my_do_import(FklCgCtx *ctx, int *need_rebuild_all, const MyImportArgs *args) {
 
 static inline FklVMvalue *import_lib_common_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *d) {
@@ -5495,7 +5513,6 @@ static inline FklVMvalue *import_lib_common_cb(FklCgCtx *ctx,
     FklVMvalueCgMacroScope *macro_scope = d->cms;
     FklVMvalueCgInfo *lib_info = d->lib_info;
 
-    FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
 
     FklPairVector new_rmacros = { 0 };
@@ -5541,7 +5558,13 @@ static inline FklVMvalue *import_lib_common_cb(FklCgCtx *ctx,
         goto done;
     }
 
-    append_import_variables(vm, &import_cache, lib, load_lib_bc, curline, d);
+    append_import_variables(ctx,
+            &import_cache,
+            lib_id,
+            lib,
+            load_lib_bc,
+            curline,
+            d);
 done:
     fklPairVectorUninit(&new_rmacros);
     fklPairVectorUninit(&import_cache);
@@ -5550,6 +5573,7 @@ done:
 
 static inline FklVMvalue *import_lib_prefix_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *d) {
@@ -5560,7 +5584,6 @@ static inline FklVMvalue *import_lib_prefix_cb(FklCgCtx *ctx,
     FklVMvalueCgInfo *lib_info = d->lib_info;
     FklVMvalue *prefix_v = d->import_cb_args;
 
-    FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
 
     FklPairVector new_rmacros = { 0 };
@@ -5607,7 +5630,13 @@ static inline FklVMvalue *import_lib_prefix_cb(FklCgCtx *ctx,
         goto done;
     }
 
-    append_import_variables(vm, &import_cache, lib, load_lib_bc, curline, d);
+    append_import_variables(ctx,
+            &import_cache,
+            lib_id,
+            lib,
+            load_lib_bc,
+            curline,
+            d);
 
 done:
     fklPairVectorUninit(&new_rmacros);
@@ -5617,6 +5646,7 @@ done:
 
 static inline FklVMvalue *import_lib_only_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *d) {
@@ -5673,7 +5703,13 @@ static inline FklVMvalue *import_lib_only_cb(FklCgCtx *ctx,
         goto exit;
     }
 
-    append_import_variables(vm, &import_cache, lib, load_lib_bc, curline, d);
+    append_import_variables(ctx,
+            &import_cache,
+            lib_id,
+            lib,
+            load_lib_bc,
+            curline,
+            d);
 
     int rmacro_err = update_grammer_impl(ctx,
             need_rebuild_all,
@@ -5694,6 +5730,7 @@ exit:
 
 static inline FklVMvalue *import_lib_except_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *d) {
@@ -5704,7 +5741,6 @@ static inline FklVMvalue *import_lib_except_cb(FklCgCtx *ctx,
     FklVMvalueCgMacroScope *macro_scope = d->cms;
     FklVMvalueCgInfo *lib_info = d->lib_info;
 
-    FklVM *vm = ctx->vm;
     FklCgErrorState *error_state = ctx->error_state;
 
     FklValueHashSet excepts;
@@ -5758,7 +5794,13 @@ static inline FklVMvalue *import_lib_except_cb(FklCgCtx *ctx,
         goto exit;
     }
 
-    append_import_variables(vm, &import_cache, lib, load_lib_bc, curline, d);
+    append_import_variables(ctx,
+            &import_cache,
+            lib_id,
+            lib,
+            load_lib_bc,
+            curline,
+            d);
 
 exit:
     fklPairVectorUninit(&new_rmacros);
@@ -5769,6 +5811,7 @@ exit:
 
 static inline FklVMvalue *import_lib_alias_cb(FklCgCtx *ctx,
         FklVMvalue *load_lib_bc,
+        const FklLibId *lib_id,
         FklVMvalueCgLib *lib,
         uint64_t curline,
         const struct ExportContextData *d) {
@@ -5823,7 +5866,13 @@ static inline FklVMvalue *import_lib_alias_cb(FklCgCtx *ctx,
         goto exit;
     }
 
-    append_import_variables(vm, &import_cache, lib, load_lib_bc, curline, d);
+    append_import_variables(ctx,
+            &import_cache,
+            lib_id,
+            lib,
+            load_lib_bc,
+            curline,
+            d);
 
     int rmacro_err = update_grammer_impl(ctx,
             need_rebuild_all,
@@ -5870,8 +5919,21 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
 
     ExportContextData *d = FKL_TYPE_CAST(ExportContextData *, data);
 
+    FklVMvalueCgEnv *const env = d->env;
+    FklVMvalueCgInfo *const info = d->info;
+
     const char *rp = FKL_VM_SYM(d->rp)->str;
-    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(d->env, rp, lib->lib);
+    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, rp, lib->lib);
+
+    if (info->is_precompile && !fklIsInternalModule(ctx, rp)) {
+        fklValueVectorResize2(&env->imported_symbols, lib_id->id + 1, NULL);
+        FklVMvalue **const v = &env->imported_symbols.base[lib_id->id];
+        if (*v == NULL) {
+            *v = fklCreateVMvalueBvec2(vm, lib->exports.count, NULL);
+            FklBytevector *bvec = FKL_VM_BVEC(*v);
+            memset(bvec->ptr, FKL_IMPORT_SYMBOL_NONE, bvec->size);
+        }
+    }
 
     FklVMvalue *load_lib_bc = append_load_lib_ins(vm,
             INS_APPEND_BACK,
@@ -5892,7 +5954,7 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
         fklCgAppendReExport(vm, d->lib_info, re_export);
     }
 
-    return d->import_cb(ctx, load_lib_bc, lib, line, d);
+    return d->import_cb(ctx, load_lib_bc, lib_id, lib, line, d);
 }
 
 typedef int (*ImportLibCbCheck)(const FklVMvalue *args);
@@ -8035,13 +8097,14 @@ FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *ctx,
                     }
 
                     FklVMvalue *bcl = NULL;
-                    FklSymDefHashMapElm *def = NULL;
-                    def = fklFindSymbolDef(exp.value, cur_action->scope, env);
+                    FklVMvalue *name = exp.value;
+                    uint32_t scope = cur_action->scope;
+                    FklSymDef *def = fklUseSymbolDef(env, scope, name);
                     if (def) {
                         bcl = append_get_loc_ins(vm,
                                 INS_APPEND_BACK,
                                 NULL,
-                                def->v.idx,
+                                def->idx,
                                 info->fid,
                                 CURLINE(exp.container),
                                 cur_action->scope);

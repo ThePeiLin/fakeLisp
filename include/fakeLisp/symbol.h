@@ -22,6 +22,10 @@ typedef struct {
 typedef struct FklSymDef {
     uint32_t idx;
     uint32_t cidx;
+
+    uint32_t from;
+    uint32_t from_idx;
+
     uint8_t isLocal;
     uint8_t isConst;
 } FklSymDef;

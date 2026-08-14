@@ -668,7 +668,8 @@ insert_local_ref(FklVM *vm, FklVMframe *f, FklVMvalue *ref, uint32_t cidx) {
 }
 
 typedef struct {
-    const FklSymDefHashMapElm *def;
+    FklVMvalue *name;
+    const FklSymDef *def;
 } ResolveRefArg;
 
 // FklResolveRefArgVector
@@ -688,11 +689,11 @@ static inline void resolve_var_ref_for_repl(FklVM *vm,
         ResolveRefArg *cur) {
     FklVMvalue **loc = s->loc;
     FklVMframe *f = s->f;
-    const FklSymDefHashMapElm *def = cur->def;
+    const FklSymDef *def = cur->def;
 
     FklVMvalueWeakHashEq *weak_var_refs = s->weak_var_refs;
 
-    FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->def->k.sid);
+    FklVMvalue **pref = fklVMvalueWeakHashEqGet(weak_var_refs, cur->name);
     FKL_ASSERT(pref);
     FklVMvalue *ref = *pref;
 
@@ -701,9 +702,9 @@ static inline void resolve_var_ref_for_repl(FklVM *vm,
     if (!fklIsClosedVMvalueVarRef(ref))
         return;
 
-    FKL_VM_VAR_REF(ref)->idx = def->v.idx;
-    FKL_VM_VAR_REF(ref)->ref = &loc[def->v.idx];
-    insert_local_ref(vm, f, ref, def->v.idx);
+    FKL_VM_VAR_REF(ref)->idx = def->idx;
+    FKL_VM_VAR_REF(ref)->ref = &loc[def->idx];
+    insert_local_ref(vm, f, ref, def->idx);
     *pref = FKL_VM_NIL;
     return;
 }
@@ -926,15 +927,13 @@ static inline ReplCtx *create_repl_ctx_impl(void) {
     return cc;
 }
 static void collect_resolvable_ref_cb(const FklVarRefDef *ref,
-        const FklSymDefHashMapElm *def,
+        const FklSymDef *def,
         const FklUnbound *uref,
         FklVMvalueProto *proto,
         void *vargs) {
-    FklResolveRefArgVector *resolvable_refs =
-            FKL_TYPE_CAST(FklResolveRefArgVector *, vargs);
-
+    FklResolveRefArgVector *resolvable_refs = (FklResolveRefArgVector *)vargs;
     fklResolveRefArgVectorPushBack(resolvable_refs,
-            &(ResolveRefArg){ .def = def });
+            &(ResolveRefArg){ .name = uref->sid, .def = def });
 }
 
 static inline void

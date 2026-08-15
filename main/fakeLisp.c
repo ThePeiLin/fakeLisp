@@ -219,9 +219,57 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     fklCgActVectorUninit(&act_vec);
 
-    int fixup_result = fklPreCompileFixup(&f->f, &ctx);
+    FklValueVector missing_import = { 0 };
+    fklValueVectorInit(&missing_import, 0);
+    int fixup_result = fklPreCompileFixup(&f->f, &ctx, &missing_import);
+    if (fixup_result != 0) {
+        FklStrBuf buf = { 0 };
+        fklInitStrBuf(&buf);
+        FklCodeBuilder builder = { 0 };
+        fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+        if (missing_import.size == 1) {
+            fklVMformat(&gc->gcvm,
+                    &builder,
+                    "Failed to import %S, module is invalid",
+                    NULL,
+                    1,
+                    missing_import.base);
+            goto error_exit;
+        }
+
+        FklVMvalueCgLib *cur_lib = NULL;
+        for (size_t i = 0; i < missing_import.size; ++i) {
+            FklVMvalue *v = missing_import.base[i];
+            if (fklIsVMvalueCgLib(v)) {
+                cur_lib = fklVMvalueCgLib(v);
+            } else if (FKL_IS_SYM(v)) {
+                FKL_ASSERT(cur_lib != NULL);
+                FklVMvalue *values[2] = {
+                    [0] = cur_lib->rp,
+                    [1] = v,
+                };
+                fklVMformat(&gc->gcvm,
+                        &builder,
+                        "Missing import %S from %S\n",
+                        NULL,
+                        2,
+                        values);
+            } else {
+                FKL_UNREACHABLE();
+            }
+        }
+
+    error_exit:
+        fprintf(stderr, "%s: fixup failed\n%s", filename, fklStrBufBody(&buf));
+        fklValueVectorUninit(&missing_import);
+        fklUninitStrBuf(&buf);
+        fklUnregisterCgCtx(&ctx);
+        fklUninitCgCtx(&ctx);
+        fklDestroyVMgc(gc);
+        return EXIT_FAILURE;
+    }
+
     FKL_ASSERT(fixup_result == 0);
-    (void)fixup_result;
 
     fklUnregisterCgCtx(&ctx);
 

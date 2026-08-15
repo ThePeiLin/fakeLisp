@@ -112,7 +112,9 @@ void fklPreCompileFixupInit(FklPreCompileFixup *);
 void fklPreCompileFixupUninit(FklPreCompileFixup *);
 
 FKL_NODISCARD
-int fklPreCompileFixup(const FklPreCompileFixup *fixup, const FklCgCtx *cg_ctx);
+int fklPreCompileFixup(const FklPreCompileFixup *fixup,
+        const FklCgCtx *cg_ctx,
+        FklValueVector *const missing_import);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvaluePcFixup, { FklPreCompileFixup f; });
 FklVMvaluePcFixup *fklCreateVMvaluePcFixup(FklVM *vm);

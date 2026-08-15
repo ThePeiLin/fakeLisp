@@ -490,6 +490,7 @@ void fklSetImportedSymbolUsed(const FklVMvalueCgEnv *env,
 const uint8_t *fklGetImportedSymbolUsed(const FklVMvalueCgEnv *env,
         uint32_t from,
         uint32_t idx) {
+    FKL_ASSERT(env != NULL);
     if (env->imported_symbols.size <= from)
         return NULL;
     FklVMvalue *v = env->imported_symbols.base[from];

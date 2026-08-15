@@ -2034,6 +2034,7 @@ static void load_relocations(FILE *fp,
         FklPair *p = load_proto_id(fp, protos);
         FklVMvalue *s = load_value_id(fp, values);
         fread(&reloc.ins, sizeof(reloc.ins), 1, fp);
+        fread(&reloc.used, sizeof(reloc.used), 1, fp);
 
         FKL_ASSERT(FKL_IS_SYM(s));
         FKL_ASSERT(p != NULL);
@@ -2553,6 +2554,7 @@ static void write_relocations(const WriteLibExtraArgs *extra_args, FILE *fp) {
         write_proto_id(protos, 0, rel->proc->proto, fp);
         write_value_id(values, 0, rel->sym, fp);
         fwrite(&rel->ins, sizeof(rel->ins), 1, fp);
+        fwrite(&rel->used, sizeof(rel->used), 1, fp);
     }
 }
 
@@ -2910,7 +2912,7 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
             reloc.sym = fklVMvalueLibNames(cur_lib)[uC(ins)];
             reloc.proc = proc;
             reloc.ins = cur - spc - 1;
-            reloc.used = *p_used == FKL_IMPORT_SYMBOL_USED;
+            reloc.used = (*p_used == FKL_IMPORT_SYMBOL_USED);
 
             FKL_ASSERT(reloc.sym != NULL);
             FKL_ASSERT(FKL_IS_SYM(reloc.sym));
@@ -3287,17 +3289,12 @@ get_cg_lib(const FklValueVector *cg_lib_vec, uintmax_t start_idx, int64_t idx) {
     return cg_lib_vec->base[target - 1];
 }
 
-static inline int cg_lib_has(FklVMvalue *cg_lib, FklVMvalue *s) {
-    const FklCgLib *l = fklVMvalueCgLib(cg_lib);
-    const FklCgExportSidIdxHashMap *exports = &l->exports;
-    return fklCgExportSidIdxHashMapGet2(exports, s) != NULL;
-}
-
 FKL_NODISCARD
 static int execute_re_export_cmds(ReExportCmds *cmds,
         const FklCgCtx *ctx,
         const Fixup *fixup,
-        const FklValueVector *lib_vec) {
+        const FklValueVector *lib_vec,
+        FklValueVector *const missing_imports) {
     FklValueVector stack = { 0 };
     fklValueVectorInit(&stack, lib_vec->capacity);
 
@@ -3314,6 +3311,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
 
     uintmax_t start_idx = 0;
 
+    int has_error = 0;
     for (size_t i = 0; i < cmds->count; ++i) {
         const FklReExportCmd *cmd = &cmds->cmds[i];
         switch (cmd->op) {
@@ -3338,16 +3336,13 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
 
         case FKL_RE_EXPORT_OP_IMPORT: {
             FklVMvalue *cg_lib = cmd->arg0;
-            FklValueVector missing_syms = { 0 };
-            FklValueVector *missing_import = NULL;
+            FklValueVector missings = { 0 };
 
+            fklValueVectorInit(&missings, 0);
             if (FKL_IS_FIX(cg_lib)) {
                 int64_t idx = FKL_GET_FIX(cmd->arg0);
                 FKL_ASSERT(idx > 0);
                 cg_lib = get_cg_lib(&cg_lib_vec, start_idx, idx);
-            } else {
-                fklValueVectorInit(&missing_syms, 8);
-                missing_import = &missing_syms;
             }
 
             FKL_ASSERT(fklIsVMvalueCgLib(cg_lib));
@@ -3361,36 +3356,34 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
                 .macros = { cur_lib->macros },
                 .rmacros = { cur_lib->rmacros },
 
-                .missing_syms = missing_import,
+                .missing_syms = &missings,
                 .exports = &cur_lib->exports,
             };
 
             int r = fklCgImport(vm, fklVMvalueCgLib(cg_lib), &args);
 
-            if (r < 0 && missing_import != NULL) {
-                // 我们只在导入外部模块的时候检查缺失的导入
-                for (size_t i = 0; i < missing_import->size; ++i) {
-                    FklVMvalue *v = missing_import->base[i];
-                    if (!cg_lib_has(cg_lib, v)) {
-                        goto import_done;
-                    }
+            has_error |= (r != 0);
+            if (r != 0 && missing_imports != NULL) {
+                fklValueVectorPushBack2(missing_imports, cg_lib);
+                for (size_t i = 0; i < missings.size; ++i) {
+                    fklValueVectorPushBack2(missing_imports, missings.base[i]);
                 }
             }
 
-            r = 0;
+            fklValueVectorUninit(&missings);
 
-        import_done:
-            if (missing_import != NULL) {
-                fklValueVectorUninit(&missing_syms);
-                missing_import = NULL;
-            }
+            if (r == 0 || (r != 0 && missing_imports != NULL))
+                break;
 
-            if (r < 0)
-                return r;
-
-            break;
+            return r;
         }
         }
+    }
+
+    int r = 0;
+    if (has_error) {
+        r = -1;
+        goto exit;
     }
 
     FKL_ASSERT(cur_lib == last_lib);
@@ -3405,8 +3398,9 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         .rmacros = { lib->rmacros },
     };
 
-    int r = fklCgImport(vm, cur_lib, &args);
+    r = fklCgImport(vm, cur_lib, &args);
 
+exit:
     fklUintVectorUninit(&idx_stack);
     fklValueVectorUninit(&cg_lib_vec);
     fklValueVectorUninit(&stack);
@@ -3414,9 +3408,11 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
 }
 
 FKL_NODISCARD
-static int apply_relocations(const Fixup *fixup) {
+static int apply_relocations(const Fixup *fixup,
+        FklValueVector *missing_imports) {
     const FklRelocVector *reloc_vec = &fixup->relocations;
 
+    int r = 0;
     for (size_t i = 0; i < reloc_vec->size; ++i) {
         const FklReloc *reloc = &reloc_vec->base[i];
         const FklVMvalueProc *proc = reloc->proc;
@@ -3438,19 +3434,32 @@ static int apply_relocations(const Fixup *fixup) {
         const FklCgExportIdx *l = NULL;
         l = fklCgExportSidIdxHashMapGet2(exports, reloc->sym);
 
-        // TODO: 需要更好的错误处理
-        FKL_ASSERT(l != NULL);
-        if (l == NULL)
-            return 1;
+        if (l != NULL) {
+            uint32_t value_idx = l->idx;
+            bcl->bc.code[reloc->ins] = set_uC(ins, value_idx);
+            continue;
+        }
 
-        uint32_t value_idx = l->idx;
-        bcl->bc.code[reloc->ins] = set_uC(ins, value_idx);
+        if (reloc->used) {
+            r = -1;
+            if (missing_imports) {
+                fklValueVectorPushBack2(missing_imports, FKL_VM_VAL(cg_lib));
+                fklValueVectorPushBack2(missing_imports, reloc->sym);
+                continue;
+            }
+            break;
+        } else {
+            // TODO: patch `import` with `push-nil`
+            FKL_TODO();
+        }
     }
 
-    return 0;
+    return r;
 }
 
-int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
+int fklPreCompileFixup(const Fixup *fixup,
+        const FklCgCtx *ctx,
+        FklValueVector *const missing_import) {
     const FklPcDepVector *dep_vec = &fixup->pendings;
     FklValueVector lib_vec = { 0 };
     fklValueVectorInit(&lib_vec, fixup->pendings.size);
@@ -3463,6 +3472,9 @@ int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
                                        : ctx->libraries;
         FklCgLib *l = fklVMvalueCgLibsGet1(libs, rp);
         if (l == NULL) {
+            if (missing_import != NULL) {
+                fklValueVectorPushBack2(missing_import, rp);
+            }
             fklValueVectorUninit(&lib_vec);
             return -1;
         }
@@ -3482,11 +3494,11 @@ int fklPreCompileFixup(const Fixup *fixup, const FklCgCtx *ctx) {
     fixup_relocations_external_libs(fixup, &lib_vec);
 
     int r = 0;
-    r = execute_re_export_cmds(cmds, ctx, fixup, &lib_vec);
+    r = execute_re_export_cmds(cmds, ctx, fixup, &lib_vec, missing_import);
     if (r != 0)
         goto exit;
 
-    r = apply_relocations(fixup);
+    r = apply_relocations(fixup, missing_import);
 
 exit:
     fklValueVectorUninit(&lib_vec);

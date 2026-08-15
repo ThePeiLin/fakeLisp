@@ -729,6 +729,15 @@ static inline FklVMvalue *make_import_missing_error(FklVM *exe,
             place);
 }
 
+static inline FklVMvalue *
+make_import_missing_error2(FklVM *exe, FklVMvalue *name, FklVMvalue *from) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_IMPORT_MISSING,
+            exe,
+            "Missing import %S from %S",
+            name,
+            from);
+}
+
 static inline FklVMvalue *make_has_no_value_error(FklVM *exe,
         FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_EXP_HAS_NO_VALUE,
@@ -6436,9 +6445,31 @@ static FklVMvalue *fixup_done_cb(const FklCgActCbArgs *args) {
 
     FKL_ASSERT(v->size == 3);
 
-    int r = fklPreCompileFixup(&fixup->f, ctx);
+    FklValueVector p = { 0 };
+    fklValueVectorInit(&p, 0);
+    int r = fklPreCompileFixup(&fixup->f, ctx, &p);
+    if (r != 0) {
+        FKL_ASSERT(p.size > 0);
+        FklVMvalue *e = NULL;
+        if (p.size == 1) {
+            e = make_import_failed_error(ctx->vm, p.base[0]);
+        } else {
+            FKL_ASSERT(fklIsVMvalueCgLib(p.base[0]) && FKL_IS_SYM(p.base[1]));
+            FklVMvalue *from = fklVMvalueCgLib(p.base[0])->rp;
+            FklVMvalue *name = p.base[1];
+            e = make_import_missing_error2(ctx->vm, name, from);
+        }
+
+        ctx->error_state->error = e;
+        ctx->error_state->line = args->line;
+        ctx->error_state->fid = args->fid;
+        fklValueVectorUninit(&p);
+        return NULL;
+    }
+
     FKL_ASSERT(r == 0);
     (void)r;
+    fklValueVectorUninit(&p);
 
     FklVMvalue *rp = v->base[0];
     FklVMvalueCgLib *l = fklVMvalueCgLib(v->base[1]);

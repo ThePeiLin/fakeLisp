@@ -47,7 +47,7 @@ extern "C" {
     X(FKL_OP_PUSH_I16,         "push-i16",         FKL_OP_MODE_IsB,      FKL_OP_PUSH_I24       )\
     X(FKL_OP_PUSH_I24,         "push-i24",         FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUSH_CHAR,        "push-char",        FKL_OP_MODE_IuB,      FKL_OP_DUMMY          )\
-	X(FKL_OP_PUSH_CONST,       "push-const",       FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_PUSH_CONST,       "push-const",       FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUSH_BOX,         "push-box",         FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUSH_LIST_0,      "push-list-0",      FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_PUSH_VEC_0,       "push-vec-0",       FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
@@ -65,9 +65,9 @@ extern "C" {
     X(FKL_OP_RET_IF_TRUE,      "ret-if-true",      FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_RET_IF_FALSE,     "ret-if-false",     FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_RET,              "ret",              FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP_IF_TRUE,    "jmp-if-true",        FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP_IF_FALSE,   "jmp-if-false",       FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
-    X(FKL_OP_JMP,            "jmp",                FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP_IF_TRUE,      "jmp-if-true",      FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP_IF_FALSE,     "jmp-if-false",     FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
+    X(FKL_OP_JMP,              "jmp",              FKL_OP_MODE_IsC,      FKL_OP_DUMMY          )\
     X(FKL_OP_IMPORT,           "import",           FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_GET_LOC,          "get-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_PUT_LOC,          "put-loc",          FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\

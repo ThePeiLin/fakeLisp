@@ -134,16 +134,17 @@ static FklCgActCtx *createStackCtx(void) {
 }
 
 static const char *builtInSubPattern[FKL_CODEGEN_SUB_PATTERN_NUM + 1] = {
-    "~(unquote ~value)",
-    "~(unqtesp ~value)",
-    "~(define ~value)",
-    "~(defmacro ~value)",
-    "~(import ~value)",
-    "~(and,~rest)",
-    "~(or,~rest)",
-    "~(not ~value)",
-    "~(eq ~arg0 ~arg1)",
-    "~(match ~arg0 ~arg1)",
+    [FKL_CODEGEN_SUB_PATTERN_UNQUOTE] = "~(unquote ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_UNQTESP] = "~(unqtesp ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_DEFINE] = "~(define ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_DEFMACRO] = "~(defmacro ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_IMPORT] = "~(import ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_AND] = "~(and,~rest)",
+    [FKL_CODEGEN_SUB_PATTERN_OR] = "~(or,~rest)",
+    [FKL_CODEGEN_SUB_PATTERN_NOT] = "~(not ~value)",
+    [FKL_CODEGEN_SUB_PATTERN_EQ] = "~(eq ~arg0 ~arg1)",
+    [FKL_CODEGEN_SUB_PATTERN_MATCH] = "~(match ~arg0 ~arg1)",
+    [FKL_CODEGEN_SUB_PATTERN_QUOTE] = "~(quote ~arg0)",
     NULL,
 };
 
@@ -3576,9 +3577,14 @@ check_nested_sub_pattern:
                 goto loop_start;
 
             if (fklPatternMatch(ctx->builtin_sub_pattern_node
-                                        [FKL_CODEGEN_SUB_PATTERN_DEFINE],
+                                        [FKL_CODEGEN_SUB_PATTERN_QUOTE],
                         exp.value,
                         &ht)) {
+                r = cadr(exp.value) != FKL_VM_NIL;
+            } else if (fklPatternMatch(ctx->builtin_sub_pattern_node
+                                               [FKL_CODEGEN_SUB_PATTERN_DEFINE],
+                               exp.value,
+                               &ht)) {
                 r = cfg_check_defined(info, &exp, &ht, ctx, env, scope);
                 if (error_state->error)
                     goto exit;
@@ -5492,6 +5498,7 @@ my_do_import(FklCgCtx *ctx, int *need_rebuild_all, const MyImportArgs *args) {
         .missing_syms = args->missing_syms,
 
         .excepts = args->except_cache,
+        .cg_ctx = ctx,
 
         .env = args->env,
         .scope = args->scope,
@@ -6455,7 +6462,7 @@ static FklVMvalue *fixup_done_cb(const FklCgActCbArgs *args) {
             e = make_import_failed_error(ctx->vm, p.base[0]);
         } else {
             FKL_ASSERT(fklIsVMvalueCgLib(p.base[0]) && FKL_IS_SYM(p.base[1]));
-            FklVMvalue *from = fklVMvalueCgLib(p.base[0])->rp;
+            FklVMvalue *from = fklVMvalueCgLib(p.base[0])->lib->name;
             FklVMvalue *name = p.base[1];
             e = make_import_missing_error2(ctx->vm, name, from);
         }
@@ -7572,12 +7579,7 @@ static void codegen_export_single(const CgCbArgs *args) {
         if (!check_export_symbol_interned(vm, name, 0, errors))
             goto error;
 
-        FklCgExportIdx *item = NULL;
-        item = fklCgExportSidIdxHashMapGet2(&lib_info->exports, name);
-        if (item == NULL) {
-            FklCgExportIdx const v = { .idx = lib_info->exports.count };
-            item = fklCgExportSidIdxHashMapAdd(&lib_info->exports, &name, &v);
-        }
+        FklCgExportIdx *item = fklCgExportAdd(&lib_info->exports, name, 0);
 
         queue = cgExpQueueCreate();
         cgExpQueuePush2(queue,

@@ -494,15 +494,16 @@ void fklVMexecuteInstruction(FklVM *exe,
         switch (sA(ins)) {
         case 1: {
             FklVMvalue *a = FKL_VM_POP_TOP_VALUE(exe);
-            if (FKL_IS_BIGINT(a))
+            if (FKL_IS_BIGINT(a)) {
                 FKL_VM_PUSH_VALUE(exe,
                         fklCreateVMvalueBigIntWithOther(exe, FKL_VM_BI(a)));
-            else if (FKL_IS_F64(a))
+            } else if (FKL_IS_F64(a)) {
                 FKL_VM_PUSH_VALUE(exe, fklCreateVMvalueF64(exe, FKL_VM_F64(a)));
-            else if (FKL_IS_FIX(a))
+            } else if (FKL_IS_FIX(a)) {
                 FKL_VM_PUSH_VALUE(exe, a);
-            else
+            } else {
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+            }
         } break;
         case 2: {
             FklVMvalue *b = FKL_VM_POP_TOP_VALUE(exe);

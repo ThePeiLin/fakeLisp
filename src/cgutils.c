@@ -697,9 +697,8 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
     fklCgExportSidIdxHashMapInit(exports_idx);
     if (num) {
         for (uint32_t i = 0; i < num; i++) {
-            fklCgExportSidIdxHashMapAdd(exports_idx,
-                    &exports[i],
-                    &(FklCgExportIdx){ .idx = i });
+            FklCgExportIdx const idx = { .idx = i };
+            fklCgExportSidIdxHashMapAdd(exports_idx, &exports[i], &idx);
         }
     }
 
@@ -4612,13 +4611,35 @@ static void import_reader_macro(FklVM *vm,
     fklPairVectorPushBack(to->rmacro_vec, &pair);
 }
 
+FklCgExportIdx *fklCgExportAdd(FklCgExportSidIdxHashMap *exports,
+        FklVMvalue *s,
+        uint8_t not_owned) {
+    const FklCgExportIdx item = {
+        .idx = exports->count,
+        .not_owned = not_owned,
+    };
+
+    FklCgExportSidIdxHashMapElm *r =
+            fklCgExportSidIdxHashMapInsert(exports, &s, &item);
+
+    r->v.not_owned &= not_owned;
+    return &r->v;
+}
+
 static void import_symbol(FklVM *vm,
         FklVMvalue *new_head,
         FklVMvalue *old,
+        const FklVMvalueCgLib *from,
+        uint8_t not_owned,
         FklCgImportArgs *to) {
     if (to->exports != NULL) {
-        const FklCgExportIdx item = { .idx = to->exports->count };
-        fklCgExportSidIdxHashMapAdd(to->exports, &new_head, &item);
+        if (to->cg_ctx != NULL) {
+            const char *rp = FKL_VM_SYM(from->rp)->str;
+            // 不是内部模块，我们把 not_owned 设置为 true
+            not_owned |= !fklIsInternalModule(to->cg_ctx, rp);
+        }
+
+        fklCgExportAdd(to->exports, new_head, not_owned);
     }
 
     if (to->env != NULL) {
@@ -4656,7 +4677,7 @@ static int do_import_macros_common(FklVM *vm,
     const FklCgExportSidIdxHashMap *exports = &from->exports;
     for (const FklCgExportSidIdxHashMapNode *cur = exports->first; cur;
             cur = cur->next) {
-        import_symbol(vm, cur->k, cur->k, to);
+        import_symbol(vm, cur->k, cur->k, from, cur->v.not_owned, to);
     }
 
     return 0;
@@ -4714,7 +4735,7 @@ static int do_import_macros_prefix(FklVM *vm,
         FklVMvalue *head = cur->k;
         FklVMvalue *new_head = append_symbol_prefix(vm, prefix, head, &buf);
 
-        import_symbol(vm, new_head, head, to);
+        import_symbol(vm, new_head, head, from, cur->v.not_owned, to);
     }
 
     fklUninitStrBuf(&buf);
@@ -4757,7 +4778,7 @@ static int do_import_macros_only(FklVM *vm,
         const FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, sym);
         if (item != NULL) {
             has_entity = 1;
-            import_symbol(vm, sym, sym, to);
+            import_symbol(vm, sym, sym, from, item->not_owned, to);
         }
 
         if (!has_entity && to->missing_syms != NULL) {
@@ -4813,7 +4834,7 @@ static int do_import_macros_alias(FklVM *vm,
         const FklCgExportIdx *item = fklCgExportSidIdxHashMapGet2(exports, sym);
         if (item != NULL) {
             has_entity = 1;
-            import_symbol(vm, alias, sym, to);
+            import_symbol(vm, alias, sym, from, item->not_owned, to);
         }
 
         if (!has_entity && to->missing_syms != NULL) {
@@ -4864,7 +4885,7 @@ static int do_import_macros_except_impl(FklVM *vm,
         if (fklValueHashSetHas2(excepts, cur->k))
             continue;
 
-        import_symbol(vm, cur->k, cur->k, to);
+        import_symbol(vm, cur->k, cur->k, from, cur->v.not_owned, to);
     }
 
     return 0;

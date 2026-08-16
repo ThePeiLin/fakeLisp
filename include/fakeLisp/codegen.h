@@ -178,10 +178,17 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgMacroScope, {
 typedef struct {
     uint32_t idx;
 
-    // 即使这个成员已经没有用处了
-    // 但是我总觉得这个成员可能还有大用处
-    uint32_t oidx;
+    union {
+        uint32_t flags;
+        struct {
+            uint8_t not_owned : 1;
+            uint32_t reserved : 31;
+        };
+    };
 } FklCgExportIdx;
+
+_Static_assert(sizeof(FklCgExportIdx) == (sizeof(uint32_t) + sizeof(uint32_t)),
+        "invalid FklCgExportIdx size");
 
 // FklCgExportSidIdxHashMap
 #define FKL_HASH_KEY_TYPE FklVMvalue *
@@ -333,6 +340,7 @@ typedef enum {
     FKL_CODEGEN_SUB_PATTERN_NOT,
     FKL_CODEGEN_SUB_PATTERN_EQ,
     FKL_CODEGEN_SUB_PATTERN_MATCH,
+    FKL_CODEGEN_SUB_PATTERN_QUOTE,
     FKL_CODEGEN_SUB_PATTERN_NUM,
 } FklCgSubPatternEnum;
 
@@ -554,6 +562,10 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
 FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
         const FklCgExportSidIdxHashMap *map);
 
+FklCgExportIdx *fklCgExportAdd(FklCgExportSidIdxHashMap *exports,
+        FklVMvalue *s,
+        uint8_t not_owned);
+
 FklVMvalue *fklResolveLibPath(FklVM *vm,
         const char *main_dir,
         FklVMvalue *name,
@@ -663,6 +675,7 @@ typedef struct {
 
     FklValueHashSet const *excepts;
 
+    const FklCgCtx *const cg_ctx;
     // out
     FklVMvalueCgMacroHashMap *const macros[2];
     FklVMvalueCgRplHashMap *const replacements[2];

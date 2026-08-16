@@ -1892,7 +1892,7 @@ static inline void load_export_sid_idx_table(FILE *fp,
         FklCgExportIdx idxs = { 0 };
         FklVMvalue *sid = load_value_id(fp, values);
         fread(&idxs.idx, sizeof(idxs.idx), 1, fp);
-        fread(&idxs.oidx, sizeof(idxs.oidx), 1, fp);
+        fread(&idxs.flags, sizeof(idxs.flags), 1, fp);
         fklCgExportSidIdxHashMapPut(t, &sid, &idxs);
     }
 }
@@ -2084,7 +2084,16 @@ static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
             sid_idx = sid_idx->next) {
         write_value_id(vt, 0, sid_idx->k, fp);
         fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
-        fwrite(&sid_idx->v.oidx, sizeof(sid_idx->v.oidx), 1, fp);
+        fwrite(&sid_idx->v.flags, sizeof(sid_idx->v.flags), 1, fp);
+        if (sid_idx->v.not_owned) {
+            fklCodeBuilderLine(g_build,
+                    "[DEBUG] variable %s is not owned",
+                    FKL_VM_SYM(sid_idx->k)->str);
+        } else {
+            fklCodeBuilderLine(g_build,
+                    "[DEBUG] variable %s is owned",
+                    FKL_VM_SYM(sid_idx->k)->str);
+        }
     }
 }
 
@@ -3289,6 +3298,21 @@ get_cg_lib(const FklValueVector *cg_lib_vec, uintmax_t start_idx, int64_t idx) {
     return cg_lib_vec->base[target - 1];
 }
 
+static void filter_not_owned_and_unused_symbol(FklVMvalueCgLib *lib,
+        FklVMvalueCgLib *last_lib) {
+    const FklCgExportSidIdxHashMapNode *cur = lib->exports.first;
+    while (cur) {
+        const FklCgExportSidIdxHashMapNode *next = cur->next;
+
+        if (fklCgExportSidIdxHashMapGet2(&last_lib->exports, cur->k) == NULL
+                && cur->v.not_owned) {
+            fklCgExportSidIdxHashMapDel2(&lib->exports, cur->k);
+        }
+
+        cur = next;
+    }
+}
+
 FKL_NODISCARD
 static int execute_re_export_cmds(ReExportCmds *cmds,
         const FklCgCtx *ctx,
@@ -3365,6 +3389,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
             has_error |= (r != 0);
             if (r != 0 && missing_imports != NULL) {
                 fklValueVectorPushBack2(missing_imports, cg_lib);
+                FKL_ASSERT(missings.size != 0);
                 for (size_t i = 0; i < missings.size; ++i) {
                     fklValueVectorPushBack2(missing_imports, missings.base[i]);
                 }
@@ -3399,7 +3424,9 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     };
 
     r = fklCgImport(vm, cur_lib, &args);
-
+    if (r == 0) {
+        filter_not_owned_and_unused_symbol(lib, last_lib);
+    }
 exit:
     fklUintVectorUninit(&idx_stack);
     fklValueVectorUninit(&cg_lib_vec);
@@ -3431,8 +3458,8 @@ static int apply_relocations(const Fixup *fixup,
             continue;
 
         const FklCgExportSidIdxHashMap *exports = &cg_lib->exports;
-        const FklCgExportIdx *l = NULL;
-        l = fklCgExportSidIdxHashMapGet2(exports, reloc->sym);
+        FklVMvalue *name = reloc->sym;
+        const FklCgExportIdx *l = fklCgExportSidIdxHashMapGet2(exports, name);
 
         if (l != NULL) {
             uint32_t value_idx = l->idx;
@@ -3449,8 +3476,12 @@ static int apply_relocations(const Fixup *fixup,
             }
             break;
         } else {
-            // TODO: patch `import` with `push-nil`
-            FKL_TODO();
+            // 把 import 给 patch 成 push-nil
+            // 后续我们实现运行时替换模块时，保留 relocations
+            // 替换后用 relocations 把 import 给 patch 回来
+            // 直接覆盖原来的立即数，不应该依赖原 import 指令的立即数
+            bcl->bc.code[reloc->ins] = FKL_MAKE_INS_I(FKL_OP_PUSH_NIL);
+            continue;
         }
     }
 

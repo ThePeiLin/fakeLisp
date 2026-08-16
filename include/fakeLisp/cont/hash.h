@@ -461,6 +461,10 @@ static inline FKL_HASH_VAL_TYPE *METHOD(
     return METHOD(Add)(self, &k, &v);
 }
 
+/// insert if elements not exists
+/// @param[in] self The hash map
+/// @param[in] k    The key
+/// @param[in] v    The value
 static inline ELM_NAME *METHOD(Insert)(NAME *self,
         FKL_HASH_KEY_TYPE const *k,
         FKL_HASH_VAL_TYPE const *v) {
@@ -481,6 +485,10 @@ static inline ELM_NAME *METHOD(Insert)(NAME *self,
     return &node->elm;
 }
 
+/// insert if elements not exists
+/// @param[in] self The hash map
+/// @param[in] k    The key
+/// @param[in] v    The value
 static inline ELM_NAME *METHOD(
         Insert2)(NAME *self, FKL_HASH_KEY_TYPE k, FKL_HASH_VAL_TYPE v) {
     return METHOD(Insert)(self, &k, &v);

@@ -245,8 +245,8 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
             } else if (FKL_IS_SYM(v)) {
                 FKL_ASSERT(cur_lib != NULL);
                 FklVMvalue *values[2] = {
-                    [0] = cur_lib->rp,
-                    [1] = v,
+                    [0] = v,
+                    [1] = cur_lib->lib->name,
                 };
                 fklVMformat(&gc->gcvm,
                         &builder,

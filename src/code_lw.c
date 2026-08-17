@@ -2085,7 +2085,7 @@ static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
         write_value_id(vt, 0, sid_idx->k, fp);
         fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
         fwrite(&sid_idx->v.flags, sizeof(sid_idx->v.flags), 1, fp);
-        if (sid_idx->v.not_owned) {
+        if (sid_idx->v.f.not_owned) {
             fklCodeBuilderLine(g_build,
                     "[DEBUG] variable %s is not owned",
                     FKL_VM_SYM(sid_idx->k)->str);
@@ -3305,12 +3305,49 @@ static void filter_not_owned_and_unused_symbol(FklVMvalueCgLib *lib,
         const FklCgExportSidIdxHashMapNode *next = cur->next;
 
         if (fklCgExportSidIdxHashMapGet2(&last_lib->exports, cur->k) == NULL
-                && cur->v.not_owned) {
+                && cur->v.f.not_owned) {
             fklCgExportSidIdxHashMapDel2(&lib->exports, cur->k);
         }
 
         cur = next;
     }
+}
+
+static void filter_new_exports(FklCgExportSidIdxHashMap *const new_exports,
+        FklVMvalueCgLib *lib,
+        FklVMvalueCgLib *last_lib) {
+    const FklCgExportSidIdxHashMapNode *cur = last_lib->exports.first;
+    while (cur) {
+        const FklCgExportSidIdxHashMapNode *next = cur->next;
+
+        if (fklCgExportSidIdxHashMapGet2(&lib->exports, cur->k) == NULL) {
+            FklCgExportIdx *i = fklCgExportAdd(new_exports, cur->k, 0);
+            *i = cur->v;
+        }
+
+        cur = next;
+    }
+}
+
+static void dbg_print_export_symbols(const FklCgExportSidIdxHashMap *exports,
+        const char *label) {
+    const FklCgExportSidIdxHashMapNode *cur = exports->first;
+    fklCodeBuilderLine(g_build,
+            "\033[43;30m[DEBUG] === re-export %s ===\033[0m\033[33m",
+            label);
+    while (cur) {
+        const FklCgExportSidIdxHashMapNode *next = cur->next;
+        const FklVMvalueLib *from_lib = cur->v.from_lib;
+        const char *name = FKL_VM_SYM(cur->k)->str;
+
+        fklCodeBuilderLine(g_build,
+                "[DEBUG] %s, from %s, idx %" PRIu32 "",
+                name,
+                from_lib == NULL ? "(nil)" : FKL_VM_SYM(from_lib->name)->str,
+                cur->v.from_idx);
+        cur = next;
+    }
+    fklCodeBuilderFmt(g_build, "\033[0m");
 }
 
 FKL_NODISCARD
@@ -3359,17 +3396,17 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         }
 
         case FKL_RE_EXPORT_OP_IMPORT: {
-            FklVMvalue *cg_lib = cmd->arg0;
+            FklVMvalue *arg0 = cmd->arg0;
             FklValueVector missings = { 0 };
 
             fklValueVectorInit(&missings, 0);
-            if (FKL_IS_FIX(cg_lib)) {
+            if (FKL_IS_FIX(arg0)) {
                 int64_t idx = FKL_GET_FIX(cmd->arg0);
                 FKL_ASSERT(idx > 0);
-                cg_lib = get_cg_lib(&cg_lib_vec, start_idx, idx);
+                arg0 = get_cg_lib(&cg_lib_vec, start_idx, idx);
             }
 
-            FKL_ASSERT(fklIsVMvalueCgLib(cg_lib));
+            FKL_ASSERT(fklIsVMvalueCgLib(arg0));
 
             FklCgImportArgs args = {
                 .type = cmd->type,
@@ -3384,11 +3421,13 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
                 .exports = &cur_lib->exports,
             };
 
-            int r = fklCgImport(vm, fklVMvalueCgLib(cg_lib), &args);
+            FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(arg0);
+
+            int r = fklCgImport(vm, cg_lib, &args);
 
             has_error |= (r != 0);
             if (r != 0 && missing_imports != NULL) {
-                fklValueVectorPushBack2(missing_imports, cg_lib);
+                fklValueVectorPushBack2(missing_imports, arg0);
                 FKL_ASSERT(missings.size != 0);
                 for (size_t i = 0; i < missings.size; ++i) {
                     fklValueVectorPushBack2(missing_imports, missings.base[i]);
@@ -3426,7 +3465,16 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     r = fklCgImport(vm, cur_lib, &args);
     if (r == 0) {
         filter_not_owned_and_unused_symbol(lib, last_lib);
+        FklCgExportSidIdxHashMap new_exports = { 0 };
+        fklCgExportSidIdxHashMapInit(&new_exports);
+
+        filter_new_exports(&new_exports, lib, last_lib);
+
+        dbg_print_export_symbols(&new_exports, "new exports");
+
+        fklCgExportSidIdxHashMapUninit(&new_exports);
     }
+
 exit:
     fklUintVectorUninit(&idx_stack);
     fklValueVectorUninit(&cg_lib_vec);

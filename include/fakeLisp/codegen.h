@@ -180,14 +180,17 @@ typedef struct {
 
     union {
         uint32_t flags;
-        struct {
+        struct FklCgExportIdxFlags {
             uint8_t not_owned : 1;
             uint32_t reserved : 31;
-        };
+        } f;
     };
+
+    FklVMvalueLib *from_lib;
+    uint32_t from_idx;
 } FklCgExportIdx;
 
-_Static_assert(sizeof(FklCgExportIdx) == (sizeof(uint32_t) + sizeof(uint32_t)),
+_Static_assert(sizeof(struct FklCgExportIdxFlags) == sizeof(uint32_t),
         "invalid FklCgExportIdx size");
 
 // FklCgExportSidIdxHashMap

@@ -3411,6 +3411,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
             FklCgImportArgs args = {
                 .type = cmd->type,
                 .no_replace = 0,
+                .is_from_external_lib = !FKL_IS_FIX(cmd->arg0),
                 .args = cmd->arg1,
 
                 .replacements = { cur_lib->replacements },

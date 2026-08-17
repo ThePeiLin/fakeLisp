@@ -4642,7 +4642,8 @@ static void import_symbol(FklVM *vm,
         }
 
         FklCgExportIdx *i = fklCgExportAdd(to->exports, new_head, not_owned);
-        if (from->lib != NULL) {
+        if (to->is_from_external_lib) {
+            FKL_ASSERT(from->lib != NULL);
             i->from_lib = from->lib;
             i->from_idx = item->idx;
         } else {

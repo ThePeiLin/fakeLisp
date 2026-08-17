@@ -672,7 +672,8 @@ FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);
 typedef struct {
     // in
     FklCgImportType const type;
-    int const no_replace;
+    uint8_t const no_replace;
+    uint8_t const is_from_external_lib;
     uint32_t const scope;
     FklVMvalue *const args;
 

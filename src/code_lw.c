@@ -3355,7 +3355,8 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         const FklCgCtx *ctx,
         const Fixup *fixup,
         const FklValueVector *lib_vec,
-        FklValueVector *const missing_imports) {
+        FklValueVector *const missing_imports,
+        FklVMvalue **new_exports_v) {
     FklValueVector stack = { 0 };
     fklValueVectorInit(&stack, lib_vec->capacity);
 
@@ -3470,6 +3471,27 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         fklCgExportSidIdxHashMapInit(&new_exports);
 
         filter_new_exports(&new_exports, lib, last_lib);
+        if (new_exports.count != 0) {
+            FklVMvalue *v = fklCreateVMvalueVec(vm, 1 + new_exports.count * 2);
+            FklVMvalueVec *vv = FKL_VM_VEC(v);
+            vv->base[0] = FKL_MAKE_VM_FIX(lib->exports.count);
+
+            size_t i = 1;
+            FklCgExportSidIdxHashMapNode *cur = new_exports.first;
+            while (i < vv->size && cur != NULL) {
+                fklCgExportAdd(&lib->exports, cur->k, 1); // not owned
+                FKL_ASSERT(cur->v.from_lib != NULL);      // let it crash
+
+                vv->base[i] = FKL_VM_VAL(cur->v.from_lib);
+                vv->base[i + 1] = FKL_MAKE_VM_FIX(cur->v.from_idx);
+                cur = cur->next;
+                i += 2;
+            }
+
+            *new_exports_v = v;
+        } else {
+            *new_exports_v = FKL_VM_NIL;
+        }
 
         dbg_print_export_symbols(&new_exports, "new exports");
 
@@ -3537,6 +3559,28 @@ static int apply_relocations(const Fixup *fixup,
     return r;
 }
 
+static void replace_from_lib(const FklCgExportSidIdxHashMap *t,
+        FklVMvalueLib *ol,
+        FklVMvalueLib *nl) {
+    for (FklCgExportSidIdxHashMapNode *sid_idx = t->first; sid_idx;
+            sid_idx = sid_idx->next) {
+        if (sid_idx->v.from_lib == ol)
+            sid_idx->v.from_lib = nl;
+    }
+}
+
+static inline const FklIns *scan_export_more(const FklByteCode *bc) {
+    const FklIns *cur = &bc->code[bc->len];
+    const FklIns *const start = bc->code;
+    while (cur > start) {
+        --cur;
+        if (OP(*cur) == FKL_OP_EXPORT_MORE) {
+            return cur;
+        }
+    }
+    return NULL;
+}
+
 int fklPreCompileFixup(const Fixup *fixup,
         const FklCgCtx *ctx,
         FklValueVector *const missing_import) {
@@ -3568,17 +3612,51 @@ int fklPreCompileFixup(const Fixup *fixup,
         fixup_proto_external_libs(p, fixup, &lib_vec);
     }
 
-    const FklVMvalueCgLib *cg_lib = fixup->lib;
+    FklVMvalueCgLib *cg_lib = fixup->lib;
     ReExportCmds *cmds = fklVMvalueReExportCmds(cg_lib->re_exports);
     fixup_re_export_cmds_external_libs(cmds, fixup, &lib_vec);
     fixup_relocations_external_libs(fixup, &lib_vec);
 
+    FklVMvalue *new_exports = FKL_VM_NIL;
     int r = 0;
-    r = execute_re_export_cmds(cmds, ctx, fixup, &lib_vec, missing_import);
+    r = execute_re_export_cmds(cmds,
+            ctx,
+            fixup,
+            &lib_vec,
+            missing_import,
+            &new_exports);
     if (r != 0)
         goto exit;
 
     r = apply_relocations(fixup, missing_import);
+    if (r != 0)
+        goto exit;
+
+    if (new_exports == FKL_VM_NIL)
+        goto exit;
+
+    FklVM *vm = ctx->vm;
+    FklVMvalueLib *old_lib = cg_lib->lib;
+    FklVMvalueProc *proc = FKL_VM_PROC(old_lib->proc);
+    FklVMvalueProto *pt = proc->proto;
+
+    const FklIns *i = scan_export_more(&FKL_VM_CO(proc->bcl)->bc);
+    if (i == NULL)
+        goto exit;
+
+    FKL_ASSERT(pt->konsts_count > 0);
+
+    FklVMvalueVec *names = fklCreateCgNamesVec(vm, &cg_lib->exports);
+    FklVMvalueLib *new_lib = fklCreateVMvalueLib(vm, old_lib->name, names);
+    replace_from_lib(&cg_lib->exports, old_lib, new_lib);
+
+    new_lib->proc = FKL_VM_VAL(proc);
+    cg_lib->lib = new_lib;
+
+    FklVMvalue **const values = (FklVMvalue **)fklVMvalueProtoConsts(pt);
+    FKL_ASSERT(pt->konsts_count);
+
+    values[uC(*i)] = new_exports;
 
 exit:
     fklValueVectorUninit(&lib_vec);

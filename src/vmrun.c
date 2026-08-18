@@ -731,6 +731,35 @@ static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
     }
 }
 
+static inline void
+do_export_more(FklVM *vm, FklVMvalueVec *export_more_vec, FklVMvalueLib *plib) {
+    if (export_more_vec->size <= 1)
+        return;
+    int64_t export_idx = FKL_GET_FIX(export_more_vec->base[0]);
+    size_t vec_size = export_more_vec->size;
+    FKL_ASSERT(export_idx < plib->count);
+
+    FklVMvalueLib *from = NULL;
+    for (size_t i = 1; i < vec_size; ++i) {
+        FklVMvalue *v = export_more_vec->base[i];
+        if (fklIsVMvalueLib(v)) {
+            from = fklVMvalueLib(v);
+        } else if (FKL_IS_FIX(v)) {
+            FKL_ASSERT(from != NULL);
+            int64_t v_idx = FKL_GET_FIX(v);
+            FKL_ASSERT(v_idx < from->count);
+            FKL_ASSERT(export_idx < plib->count);
+
+            FKL_ASSERT(fklVMvalueLibNames(plib)[export_idx]
+                       == fklVMvalueLibNames(from)[v_idx]);
+
+            FklVMvalue *v = from->values[v_idx];
+            plib->values[export_idx] = v;
+            ++export_idx;
+        }
+    }
+}
+
 static inline void execute_compound_frame(FklVM *exe, FklVMframe *frame) {
     FklIns ins = FKL_INS_STATIC_INIT;
     FklVMvalueLib *plib;

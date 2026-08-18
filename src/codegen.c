@@ -7615,6 +7615,20 @@ error:
 
 typedef void (*FklCgFunc)(const CgCbArgs *args);
 
+static FklVMvalue *append_export_more_bc(FklVM *vm,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgEnv *env,
+        FklVMvalue *r) {
+    FklVMvalue *place_holder = fklCreateVMvalueVec(vm, 0);
+    uint32_t k = fklValueTableAdd(&env->konsts, place_holder);
+    FKL_ASSERT(k != 0);
+    k -= 1;
+    FKL_ASSERT(k <= FKL_U24_MAX);
+    FklIns ins = FKL_MAKE_INS_IuC(FKL_OP_EXPORT_MORE, k);
+    fklByteCodeLntPushBackIns(FKL_VM_CO(r), ins, info->fid, info->curline, 1);
+    return r;
+}
+
 static FklVMvalue *last_bc_process(const FklCgActCbArgs *args) {
     FklVM *vm = args->ctx->vm;
     FklVMvalueCgInfo *info = args->info;
@@ -7625,6 +7639,10 @@ static FklVMvalue *last_bc_process(const FklCgActCbArgs *args) {
     uint64_t line = args->line;
 
     FklVMvalue *r = sequnce_exp_bc_process(vm, bcl_vec, fid, line, scope);
+    if (info->is_precompile) {
+        r = append_export_more_bc(vm, info, env, r);
+    }
+
     FklIns r_ins = FKL_MAKE_INS_I(FKL_OP_RET);
     fklByteCodeLntPushBackIns(FKL_VM_CO(r), r_ins, info->fid, info->curline, 1);
     if (!env->is_debugging)

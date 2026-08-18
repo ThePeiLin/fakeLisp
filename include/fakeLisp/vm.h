@@ -1241,6 +1241,9 @@ int fklIsVMvalueCodeObj(const FklVMvalue *v);
 FklVMvalue *fklVMvalueEof(void);
 #define FKL_VM_EOF (fklVMvalueEof())
 
+FklVMvalue *fklVMvalueUndefined(void);
+#define FKL_VM_UNDEFINED (fklVMvalueUndefined())
+
 // value getters
 
 #define FKL_UNUSEDBITNUM (3)

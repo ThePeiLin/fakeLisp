@@ -1596,6 +1596,31 @@ FklVMvalue *fklVMvalueEof(void) {
     return FKL_TYPE_CAST(FklVMvalue *, &FklVMvalueEof);
 }
 
+static void _undefined_userdata_print(const FklVMvalue *ud,
+        FklCodeBuilder *buf,
+        FklVM *exe) {
+    fklCodeBuilderPuts(buf, "#<undefined>");
+}
+
+static FklVMudMetaTable const UndefinedUserDataMt = {
+    .size = sizeof(FklVMvalueUd),
+    .princ = _undefined_userdata_print,
+    .prin1 = _undefined_userdata_print,
+};
+
+static const alignas(8) FklVMvalueUd FklVMvalueUndefined = {
+    .next_ = NULL,
+    .gray_next_ = NULL,
+    .mark_ = FKL_MARK_B,
+    .type_ = FKL_TYPE_USERDATA,
+    .mt_ = &UndefinedUserDataMt,
+    .dll_ = NULL,
+};
+
+FklVMvalue *fklVMvalueUndefined(void) {
+    return FKL_TYPE_CAST(FklVMvalue *, &FklVMvalueUndefined);
+}
+
 void fklAtomicVMvec(FklVMvalue *pVec, FklVMgc *gc) {
     FklVMvalueVec *vec = FKL_VM_VEC(pVec);
     for (size_t i = 0; i < vec->size; i++)

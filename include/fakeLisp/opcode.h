@@ -103,6 +103,7 @@ extern "C" {
     X(FKL_OP_POP_LOC,          "pop-loc",          FKL_OP_MODE_IuB,      FKL_OP_DUMMY          )\
     X(FKL_OP_MOV_LOC,          "mov-loc",          FKL_OP_MODE_IuAuB,    FKL_OP_DUMMY          )\
     X(FKL_OP_MOV_VAR_REF,      "mov-var-ref",      FKL_OP_MODE_IuAuB,    FKL_OP_DUMMY          )\
+    X(FKL_OP_EXPORT_MORE,      "export-more",      FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\
     X(FKL_OP_EXTRA_ARG,        "extra-arg",        FKL_OP_MODE_IxAxB,    FKL_OP_DUMMY          )
 // clang-format on
 

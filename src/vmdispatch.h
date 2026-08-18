@@ -226,11 +226,17 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalueLib *plib = fklVMvalueLib(FKL_VM_GET_TOP_VALUE(exe));
         FKL_ASSERT(idx < plib->count);
         FklVMvalue *v = plib->values[idx];
-        if (v == NULL) {
-            fklPrintErrBacktrace(plib->proc, exe, NULL);
-            abort();
+        if (v != NULL) {
+            FKL_VM_PUSH_VALUE(exe, v);
+            break;
         }
-        FKL_VM_PUSH_VALUE(exe, v);
+
+        FKL_VM_PUSH_VALUE(exe, FKL_VM_UNDEFINED);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_EXPORT_ERROR,
+                exe,
+                "The symbol %S is not exported in module %S",
+                fklVMvalueLibNames(plib)[idx],
+                plib->name);
     } break;
     case FKL_OP_GET_LOC:
         FKL_VM_PUSH_VALUE(exe, FKL_VM_GET_ARG(exe, frame, uC(ins)));
@@ -972,6 +978,15 @@ void fklVMexecuteInstruction(FklVM *exe,
                     name);
         }
         *pv = v;
+    } break;
+    case FKL_OP_EXPORT_MORE: {
+        FklVMvalue *callee = FKL_VM_GET_ARG(exe, frame, -1);
+        if (!fklIsVMvalueLib(callee))
+            break;
+        FklVMvalue *v = frame->konsts[uC(ins)];
+        if (!FKL_IS_VECTOR(v))
+            break;
+        do_export_more(exe, FKL_VM_VEC(v), fklVMvalueLib(callee));
     } break;
     case FKL_OP_EXTRA_ARG:
         FKL_UNREACHABLE();

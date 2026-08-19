@@ -3205,6 +3205,10 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
         FKL_UNREACHABLE();
         break;
 
+    case FKL_TERM_COMP:
+        FKL_TODO();
+        break;
+
     case FKL_TERM_BUILTIN: {
         FklVMvalue *v = in->v;
         FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VECTOR(v));
@@ -3499,6 +3503,7 @@ static inline int rmacro_prod_sym_to_ig_sym(const FklCgCtx *ctx,
     case FKL_TERM_EOF:
     case FKL_TERM_KEYWORD:
     case FKL_TERM_IGNORE:
+    case FKL_TERM_COMP:
         FKL_UNREACHABLE();
         break;
 

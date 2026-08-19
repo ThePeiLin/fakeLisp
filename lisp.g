@@ -11,6 +11,7 @@
         -> *unquote*    =>  first
         -> *unqtesp*    =>  first
         -> *symbol*     =>  first
+        -> *keyword*    =>  first
         -> *string*     =>  first
         -> *bytes*      =>  first
         -> *integer*    =>  first
@@ -23,6 +24,8 @@
 *unqtesp* -> "~@" *s-exp*  =>  unqtesp
 
 *symbol* -> ?symbol["|"]       =>  symbol
+*keyword* -> ":"..?symbol["|"] =>  second
+          -> ":"               =>  first
 *string* -> /""|"(\\.|.)*"/    =>  string
 *bytes*  -> /#""|#"(\\.|.)*"/  =>  bytes
 

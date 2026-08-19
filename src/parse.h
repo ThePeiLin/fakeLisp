@@ -75,15 +75,26 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *g,
                 continue;
                 break;
             case FKL_ANALYSIS_SHIFT:
-                fklParseStateVectorPushBack2(stateStack,
-                        (FklParseState){ .state = action->state });
-                fklInitTerminalAnalysisSymbol(
-                        fklAnalysisSymbolVectorPushBack(symbolStack, NULL),
+                if (action->match.t != FKL_TERM_COMP) {
+                    fklParseStateVectorPushBack2(stateStack,
+                            (FklParseState){ .state = action->state });
+                } else {
+                    for (size_t i = 0; i < action->match.comp.len; ++i) {
+                        fklParseStateVectorPushBack2(stateStack,
+                                (FklParseState){ .state = action->state });
+                    }
+                }
+
+                fklEmplaceAnalysisSymbol(g,
+                        symbolStack,
+                        &action->match,
+                        start,
                         cstr + match_args.skip_ignore_len,
                         match_args.matchLen,
                         ctx,
                         match_args.skip_ignore_len > 0,
                         ctx->line);
+
                 ctx->line += fklCountCharInBuf(cstr,
                         match_args.matchLen + match_args.skip_ignore_len,
                         '\n');

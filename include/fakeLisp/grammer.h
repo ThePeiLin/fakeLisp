@@ -95,7 +95,13 @@ typedef enum {
     FKL_TERM_IGNORE,
     FKL_TERM_EOF,
     FKL_TERM_NONTERM,
+    FKL_TERM_COMP,
 } FklGrammerSymType;
+
+typedef struct FklGraCompSym {
+    size_t len;
+    const struct FklGrammerSym *parts;
+} FklGraCompSym;
 
 #define FKL_LALR_MATCH_NONE_INIT                                               \
     ((FklLalrItemLookAhead){                                                   \
@@ -112,8 +118,20 @@ typedef struct {
         const FklString *s;
         FklLalrBuiltinGrammerSym b;
         const FklRegexCode *re;
+        FklGraCompSym comp;
     };
 } FklLalrItemLookAhead;
+
+typedef struct FklGrammerSym {
+    FklGrammerSymType type;
+    union {
+        FklGrammerNonterm nt;
+        FklLalrBuiltinGrammerSym b;
+        const FklRegexCode *re;
+        const FklString *str;
+        FklGraCompSym comp;
+    };
+} FklGrammerSym;
 
 static inline int fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
         const FklLalrBuiltinGrammerSym *s1) {
@@ -124,6 +142,38 @@ static inline int fklBuiltinGrammerSymEqual(const FklLalrBuiltinGrammerSym *s0,
     for (size_t i = 0; i < s0->len; ++i) {
         if (!fklStringEqual(s0->args[i], s1->args[i]))
             return 0;
+    }
+    return 1;
+}
+
+static inline int fklCompGraSymEqual(const FklGraCompSym *c0,
+        const FklGraCompSym *c1) {
+    if (c0->len != c1->len)
+        return 0;
+    for (size_t i = 0; i < c0->len; ++i) {
+        const FklGrammerSym *u0 = &c0->parts[i];
+        const FklGrammerSym *u1 = &c1->parts[i];
+        if (u0->type != u1->type)
+            return 0;
+        FKL_ASSERT(u0->type != FKL_TERM_COMP);
+        switch (u0->type) {
+        default:
+            return 0;
+
+        case FKL_TERM_BUILTIN:
+            if (!fklBuiltinGrammerSymEqual(&u0->b, &u1->b))
+                return 0;
+            break;
+        case FKL_TERM_REGEX:
+            if (u0->re != u1->re)
+                return 0;
+            break;
+        case FKL_TERM_STRING:
+        case FKL_TERM_KEYWORD:
+            if (u0->str != u1->str)
+                return 0;
+            break;
+        }
     }
     return 1;
 }
@@ -147,6 +197,9 @@ static inline int fklLalrItemLookAheadEqual(const FklLalrItemLookAhead *la0,
     case FKL_TERM_BUILTIN:
         return fklBuiltinGrammerSymEqual(&la0->b, &la1->b);
         break;
+    case FKL_TERM_COMP:
+        return fklCompGraSymEqual(&la0->comp, &la1->comp);
+        break;
     case FKL_TERM_IGNORE:
         return 1;
         break;
@@ -165,6 +218,31 @@ static uintptr_t fklBuiltinGrammerSymHash(const FklLalrBuiltinGrammerSym *s) {
     return fklHashCombine(FKL_TYPE_CAST(uintptr_t, s->t), seed);
 }
 
+static uintptr_t fklCompGraSymHash(const FklGraCompSym *c) {
+    uintptr_t seed = c->len;
+    for (size_t i = 0; i < c->len; ++i) {
+        const FklGrammerSym *u = &c->parts[i];
+        uintptr_t h = 0;
+        FKL_ASSERT(u->type != FKL_TERM_COMP);
+        switch (u->type) {
+        case FKL_TERM_BUILTIN:
+            h = fklBuiltinGrammerSymHash(&u->b);
+            break;
+        case FKL_TERM_REGEX:
+            h = FKL_TYPE_CAST(uintptr_t, u->re);
+            break;
+        case FKL_TERM_STRING:
+        case FKL_TERM_KEYWORD:
+            h = FKL_TYPE_CAST(uintptr_t, u->str);
+            break;
+        default:
+            break;
+        }
+        seed = fklHashCombine(seed, h);
+    }
+    return seed;
+}
+
 static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
     uintptr_t rest = 0;
     switch (pk->t) {
@@ -177,6 +255,9 @@ static uintptr_t fklLalrItemLookAheadHash(const FklLalrItemLookAhead *pk) {
         break;
     case FKL_TERM_BUILTIN:
         rest = fklBuiltinGrammerSymHash(&pk->b);
+        break;
+    case FKL_TERM_COMP:
+        rest = fklCompGraSymHash(&pk->comp);
         break;
     case FKL_TERM_EOF:
     case FKL_TERM_NONE:
@@ -216,16 +297,6 @@ typedef struct {
 #define FKL_HASH_VAL_UNINIT(V) fklLookAheadHashSetUninit(&(V)->first)
 #define FKL_HASH_ELM_NAME FirstSet
 #include "cont/hash.h"
-
-typedef struct FklGrammerSym {
-    FklGrammerSymType type;
-    union {
-        FklGrammerNonterm nt;
-        FklLalrBuiltinGrammerSym b;
-        const FklRegexCode *re;
-        const FklString *str;
-    };
-} FklGrammerSym;
 
 typedef struct FklAnalysisSymbol {
     FklGrammerNonterm nt;
@@ -408,6 +479,7 @@ typedef struct {
         const FklString *str;
         FklLalrBuiltinGrammerSym func;
         const FklRegexCode *re;
+        FklGraCompSym comp;
     };
 } FklAnalysisStateActionMatch;
 
@@ -530,6 +602,16 @@ static inline void fklInitTerminalAnalysisSymbol(FklAnalysisSymbol *sym,
     sym->start_with_ignore = start_with_ignore;
     sym->line = line;
 }
+
+void fklEmplaceAnalysisSymbol(const FklGrammer *g,
+        FklAnalysisSymbolVector *symbolStack,
+        const FklAnalysisStateActionMatch *match,
+        const char *start,
+        const char *cur,
+        size_t len,
+        FklGrammerMatchCtx *ctx,
+        uint8_t start_with_ignore,
+        uint64_t line);
 
 static inline void fklInitNontermAnalysisSymbol(FklAnalysisSymbol *sym,
         FklVMvalue *id,

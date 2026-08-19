@@ -3364,7 +3364,7 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
     fklValueVectorInit(&cg_lib_vec, lib_vec->capacity);
 
     FklUintVector idx_stack = { 0 };
-    fklUintVectorInit(&idx_stack, stack.capacity);
+    fklUintVectorInit(&idx_stack, 0);
 
     FklVM *vm = ctx->vm;
 
@@ -3378,8 +3378,12 @@ static int execute_re_export_cmds(ReExportCmds *cmds,
         const FklReExportCmd *cmd = &cmds->cmds[i];
         switch (cmd->op) {
         case FKL_RE_EXPORT_OP_PUSH_CTX:
+            fklUintVectorPushBack2(&idx_stack, start_idx);
+            start_idx = cg_lib_vec.size;
+            break;
         case FKL_RE_EXPORT_OP_POP_CTX:
-            FKL_TODO();
+            FKL_ASSERT(!fklUintVectorIsEmpty(&idx_stack));
+            start_idx = *fklUintVectorPopBackNonNull(&idx_stack);
             break;
 
         case FKL_RE_EXPORT_OP_POP:

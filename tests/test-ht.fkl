@@ -90,3 +90,9 @@
 (prin1n (ht-keys hash-table))
 (prin1n (ht-values hash-table))
 (newline)
+
+(ht-set*! hash-table
+          :foo "bar"
+          :foobar "barfoo")
+(prin1n (ht-ref hash-table :foo))
+(prin1n (ht-ref hash-table :foobar))

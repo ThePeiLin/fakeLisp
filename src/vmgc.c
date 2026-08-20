@@ -668,7 +668,6 @@ static FKL_ALWAYS_INLINE FklVMvalue *add_str_to_obarray(FklVM *vm,
         const char *buf,
         size_t len,
         ValueCreator creator) {
-    FklVMgc *gc = vm->gc;
     uv_mutex_lock(&obarray->lock);
 
     FklVMvalue *r = NULL;

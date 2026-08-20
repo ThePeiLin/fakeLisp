@@ -4651,7 +4651,7 @@ static void build_composite(const FklGrammer *g,
                         CB_LINE(",start_with_ignore");
                     }
                     CB_LINE(",ctx->ctx);");
-					CB_LINE("line += fklCountCharInBuf(cstr+otherMatchLen, matchLen, '\\n');");
+                    CB_LINE("line += fklCountCharInBuf(cstr+otherMatchLen, matchLen, '\\n');");
                 }
             }
 

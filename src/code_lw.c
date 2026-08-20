@@ -195,6 +195,7 @@ enum ValueCreateOpcode {
     MAKE_BIGINT,
     MAKE_STR,
     MAKE_SYM,
+    MAKE_KEYWORD,
     MAKE_BYTES,
     MAKE_SLOT,
     MAKE_HEADER_WILDCARD,
@@ -305,6 +306,9 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
     } else if (FKL_IS_STR(v)) {
         write_value_create_op(MAKE_STR, fp);
         fklWriteString(FKL_VM_STR(v), fp);
+    } else if (FKL_IS_KEYWORD(v)) {
+        write_value_create_op(MAKE_KEYWORD, fp);
+        fklWriteString(FKL_VM_KEYWORD(v), fp);
     } else if (FKL_IS_SYM(v)) {
         write_value_create_op(MAKE_SYM, fp);
         int8_t interned = FKL_VM_SYM_INTERNED(v);
@@ -425,6 +429,13 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
         fread(ss->str, size * sizeof(*(ss->str)), 1, fp);
         return s;
     } break;
+
+    case MAKE_KEYWORD: {
+        FklString *s = fklLoadString(fp);
+        FklVMvalue *r = fklVMaddKeyword(vm, s);
+        fklZfree(s);
+        return r;
+    }
 
     case MAKE_SYM: {
         uint8_t interned = 0;

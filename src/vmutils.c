@@ -652,6 +652,7 @@ static inline int is_serializable_leaf_node(const FklVMvalue *v) {
            FKL_IS_BIGINT(v) ||     //
            FKL_IS_STR(v) ||        //
            FKL_IS_SYM(v) ||        //
+           FKL_IS_KEYWORD(v) ||    //
            FKL_IS_BYTEVECTOR(v) || //
            fklIsVMvalueSlot(v) ||  //
            v == FKL_VM_HEADER_WILDCARD;

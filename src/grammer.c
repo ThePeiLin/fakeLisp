@@ -1493,7 +1493,7 @@ static inline int is_builtin_terminal_match_epsilon(const FklGrammer *g,
 }
 
 static inline int is_comp_terminal_match_epsilon(const FklGrammer *g,
-        const FklGraCompSym *comp) {
+        const FklCompositeSym *comp) {
     FKL_ASSERT(comp->parts);
     for (size_t i = 0; i < comp->len; ++i) {
         const FklGrammerSym *p = &comp->parts[i];
@@ -2130,7 +2130,7 @@ static void print_lookahead(const FklLalrItemLookAhead *la,
         const FklRegexTable *rt,
         FklCodeBuilder *build);
 
-static inline void print_lookahead_comp(const FklGraCompSym *comp,
+static inline void print_lookahead_comp(const FklCompositeSym *comp,
         const FklRegexTable *rt,
         FklCodeBuilder *build) {
     for (size_t i = 0; i < comp->len; i++) {
@@ -2328,7 +2328,7 @@ static inline int grammer_sym_equal(const FklGrammerSym *s0,
         return fklNontermEqual(&s0->nt, &s1->nt);
         break;
     case FKL_TERM_COMP:
-        return fklCompGraSymEqual(&s0->comp, &s1->comp);
+        return fklCompositeGrammerSymEqual(&s0->comp, &s1->comp);
         break;
     case FKL_TERM_IGNORE:
         return 1;
@@ -2371,7 +2371,7 @@ static inline uintptr_t gra_link_sym_hash(const GraLinkSym *ss) {
         break;
 
     case FKL_TERM_COMP:
-        seed = fklCompGraSymHash(&s->comp);
+        seed = fklCompositeGrammerSymHash(&s->comp);
         break;
     }
 
@@ -2853,7 +2853,7 @@ static void print_lookahead_as_dot(const FklLalrItemLookAhead *la,
         const FklRegexTable *rt,
         FklCodeBuilder *fp);
 
-static void print_lookahead_comp_as_dot(const FklGraCompSym *comp,
+static void print_lookahead_comp_as_dot(const FklCompositeSym *comp,
         const FklRegexTable *rt,
         FklCodeBuilder *fp) {
     for (size_t i = 0; i < comp->len; i++) {
@@ -3138,7 +3138,7 @@ static inline int lalr_lookahead_and_action_match_equal(
             return match->re == la->re;
             break;
         case FKL_TERM_COMP:
-            return fklCompGraSymEqual(&match->comp, &la->comp);
+            return fklCompositeGrammerSymEqual(&match->comp, &la->comp);
             break;
         case FKL_TERM_EOF:
         case FKL_TERM_NONE:
@@ -3293,7 +3293,7 @@ static const FklGrammerSymType grammerSymPriority[] = {
     FKL_TERM_IGNORE,
 };
 
-static inline size_t composite_fixed_size(const FklGraCompSym *c) {
+static inline size_t composite_fixed_size(const FklCompositeSym *c) {
     size_t total = 0;
     for (size_t i = 0; i < c->len; ++i) {
         const FklGrammerSym *p = &c->parts[i];
@@ -3696,7 +3696,7 @@ static uintptr_t action_match_hash_func(
         return fklBuiltinGrammerSymHash(&match->func);
         break;
     case FKL_TERM_COMP:
-        return fklCompGraSymHash(&match->comp);
+        return fklCompositeGrammerSymHash(&match->comp);
         break;
     case FKL_TERM_NONTERM:
         FKL_UNREACHABLE();
@@ -3725,7 +3725,7 @@ static inline int action_match_equal(const FklAnalysisStateActionMatch *m0,
             return fklBuiltinGrammerSymEqual(&m0->func, &m1->func);
             break;
         case FKL_TERM_COMP:
-            return fklCompGraSymEqual(&m0->comp, &m1->comp);
+            return fklCompositeGrammerSymEqual(&m0->comp, &m1->comp);
             break;
         case FKL_TERM_NONTERM:
             FKL_UNREACHABLE();
@@ -3837,9 +3837,12 @@ static inline void print_string_for_grapheasy(const FklString *stri,
 }
 
 static void print_lookahead_for_grapheasy(const FklAnalysisStateActionMatch *la,
+        const FklRegexTable *rt,
         FklCodeBuilder *fp);
 
-static inline void print_lookahead_comp_for_grapheasy(const FklGraCompSym *comp,
+static inline void print_lookahead_comp_for_grapheasy(
+        const FklCompositeSym *comp,
+        const FklRegexTable *rt,
         FklCodeBuilder *fp) {
     for (size_t i = 0; i < comp->len; i++) {
         if (i) {
@@ -3864,12 +3867,12 @@ static inline void print_lookahead_comp_for_grapheasy(const FklGraCompSym *comp,
                 .str = p->str };
             break;
         }
-        print_lookahead_for_grapheasy(&pla, fp);
+        print_lookahead_for_grapheasy(&pla, rt, fp);
     }
 }
 
-// TODO: regex table
 static void print_lookahead_for_grapheasy(const FklAnalysisStateActionMatch *la,
+        const FklRegexTable *rt,
         FklCodeBuilder *fp) {
     switch (la->t) {
     case FKL_TERM_STRING: {
@@ -3895,10 +3898,13 @@ static void print_lookahead_for_grapheasy(const FklAnalysisStateActionMatch *la,
         fklCodeBuilderPuts(fp, "()");
         break;
     case FKL_TERM_REGEX:
-        fklCodeBuilderFmt(fp, "/%p/", la->re);
+        fklCodeBuilderPuts(fp, "\\/\'");
+        const FklString *str = fklGetStringWithRegex(rt, la->re, NULL);
+        print_string_for_grapheasy(str, fp);
+        fklCodeBuilderPuts(fp, "\\/\'");
         break;
     case FKL_TERM_COMP:
-        print_lookahead_comp_for_grapheasy(&la->comp, fp);
+        print_lookahead_comp_for_grapheasy(&la->comp, rt, fp);
         break;
 
     case FKL_TERM_NONTERM:
@@ -3907,13 +3913,13 @@ static void print_lookahead_for_grapheasy(const FklAnalysisStateActionMatch *la,
     }
 }
 
-static inline void print_table_header_for_grapheasy(
+static inline void print_table_header_for_grapheasy(const FklGrammer *g,
         const GraActionMatchHashSet *la,
         const FklNontermHashSet *sid,
         FklCodeBuilder *fp) {
     fklCodeBuilderPuts(fp, "\\n|");
     for (GraActionMatchHashSetNode *al = la->first; al; al = al->next) {
-        print_lookahead_for_grapheasy(&al->k, fp);
+        print_lookahead_for_grapheasy(&al->k, &g->regexes, fp);
         fklCodeBuilderPutc(fp, '|');
     }
     fklCodeBuilderPuts(fp, "\\n|\\n");
@@ -3962,7 +3968,7 @@ void fklPrintAnalysisTableForGraphEasy2(const FklGrammer *g,
     FklNontermHashSet sidSet;
     init_analysis_table_header(&laTable, &sidSet, states, num);
 
-    print_table_header_for_grapheasy(&laTable, &sidSet, fp);
+    print_table_header_for_grapheasy(g, &laTable, &sidSet, fp);
 
     GraActionMatchHashSetNode *laList = laTable.first;
     FklNontermHashSetNode *sidList = sidSet.first;
@@ -4187,27 +4193,25 @@ static inline void build_match_char_buf_end_with_terminal_to_c_file(
     CB_LINE("}");
 }
 
-// TODO: composite-terminal.ref.diff: 694
-
 // composite-terminal unordered set
 // GraCompHashMap
 #define FKL_HASH_TYPE_PREFIX Gra
 #define FKL_HASH_METHOD_PREFIX gra
-#define FKL_HASH_KEY_TYPE FklGraCompSym
+#define FKL_HASH_KEY_TYPE FklCompositeSym
 #define FKL_HASH_VAL_TYPE uint64_t
 #define FKL_HASH_ELM_NAME Comp
-#define FKL_HASH_KEY_EQUAL(A, B) fklCompGraSymEqual(A, B)
-#define FKL_HASH_KEY_HASH return fklCompGraSymHash(pk);
+#define FKL_HASH_KEY_EQUAL(A, B) fklCompositeGrammerSymEqual(A, B)
+#define FKL_HASH_KEY_HASH return fklCompositeGrammerSymHash(pk);
 #include <fakeLisp/cont/hash.h>
 
 static inline uint64_t get_or_add_composite_entry(GraCompHashMap *comps,
-        const FklGraCompSym *c) {
+        const FklCompositeSym *c) {
     GraCompHashMapElm *id = graCompHashMapInsert2(comps, *c, comps->count + 1);
     return id->v;
 }
 
 static inline uint64_t get_composite_entry(const GraCompHashMap *comps,
-        const FklGraCompSym *c) {
+        const FklCompositeSym *c) {
     uint64_t *id = graCompHashMapGet(comps, c);
     if (id == NULL)
         return 0;
@@ -4549,7 +4553,7 @@ static inline void get_all_match_method_table(const FklGrammer *g,
             if (ac->match.t == FKL_TERM_BUILTIN) {
                 graBtmHashSetPut2(ptrSet, ac->match.func.t);
             } else if (ac->match.t == FKL_TERM_COMP) {
-                const FklGraCompSym *c = &ac->match.comp;
+                const FklCompositeSym *c = &ac->match.comp;
                 for (size_t i = 0; i < c->len; ++i) {
                     const FklGrammerSym *p = &c->parts[i];
                     if (p->type == FKL_TERM_BUILTIN)
@@ -4576,7 +4580,7 @@ static inline void build_all_builtin_match_func(const FklGrammer *g,
 
 static void build_composite(const FklGrammer *g,
         uint64_t id,
-        const FklGraCompSym *c,
+        const FklCompositeSym *c,
         FklCodeBuilder *build) {
     const FklGrammerSym *parts = c->parts;
     size_t len = c->len;
@@ -5159,7 +5163,7 @@ static inline size_t match_ignore(const FklGrammer *g,
 
 static inline ssize_t match_comp(const FklGrammer *g,
         FklGrammerMatchCtx *ctx,
-        const FklGraCompSym *comp,
+        const FklCompositeSym *comp,
         const char *start,
         const char *cur,
         size_t rest,

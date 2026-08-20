@@ -35,8 +35,9 @@ typedef enum {
     FKL_TAG_NIL,
     FKL_TAG_FIX,
     FKL_TAG_CHR,
-    FKL_PTR_TAG_NUM,
 } FklVMptrTag;
+
+#define FKL_PTR_TAG_NUM (FKL_TAG_CHR + 1)
 
 typedef struct FklVMvalue {
     FKL_VM_VALUE_COMMON_HEADER;
@@ -1058,6 +1059,7 @@ void fklAtomicVMvec(FklVMvalue *, FklVMgc *);
 void fklAtomicVMbox(FklVMvalue *, FklVMgc *);
 void fklAtomicVMcproc(FklVMvalue *, FklVMgc *);
 
+// TODO: need refactor
 FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *, FklVM *);
 FklVMvalue *fklCopyVMvalue(const FklVMvalue *, FklVM *);
 

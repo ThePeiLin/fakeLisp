@@ -162,24 +162,53 @@ static void atomic_var_ref(FklVMvalue *ref, FklVMgc *gc) {
 }
 
 static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
-    FKL_ASSERT(root->type_ < FKL_VM_VALUE_GC_TYPE_NUM);
-    static void (*const
-                    fkl_atomic_value_method_table[FKL_VM_VALUE_GC_TYPE_NUM])(
-            FklVMvalue *,
-            FklVMgc *) = {
-        [FKL_TYPE_VECTOR] = fklAtomicVMvec,
-        [FKL_TYPE_PAIR] = fklAtomicVMpair,
-        [FKL_TYPE_BOX] = fklAtomicVMbox,
-        [FKL_TYPE_USERDATA] = fklAtomicVMuserdata,
-        [FKL_TYPE_PROC] = fklAtomicVMproc,
-        [FKL_TYPE_CPROC] = fklAtomicVMcproc,
-        [FKL_TYPE_HASHTABLE] = fklAtomicVMhashTable,
-        [FKL_TYPE_VAR_REF] = atomic_var_ref,
-    };
-    void (*atomic_value_func)(FklVMvalue *, FklVMgc *) =
-            fkl_atomic_value_method_table[root->type_];
-    if (atomic_value_func)
-        atomic_value_func(root, gc);
+    switch (root->type_) {
+    case FKL_TYPE_VECTOR:
+        fklAtomicVMvec(root, gc);
+        return;
+        break;
+    case FKL_TYPE_PAIR:
+        fklAtomicVMpair(root, gc);
+        return;
+        break;
+    case FKL_TYPE_BOX:
+        fklAtomicVMbox(root, gc);
+        return;
+        break;
+    case FKL_TYPE_USERDATA:
+        fklAtomicVMuserdata(root, gc);
+        return;
+        break;
+    case FKL_TYPE_PROC:
+        fklAtomicVMproc(root, gc);
+        return;
+        break;
+    case FKL_TYPE_CPROC:
+        fklAtomicVMcproc(root, gc);
+        return;
+        break;
+
+    case FKL_TYPE_HASHTABLE:
+        fklAtomicVMhashTable(root, gc);
+        return;
+        break;
+
+    case FKL_TYPE_VAR_REF:
+        atomic_var_ref(root, gc);
+        return;
+        break;
+
+    case FKL_TYPE_F64:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_STR:
+    case FKL_TYPE_SYM:
+    case FKL_TYPE_BYTEVECTOR:
+        return;
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    abort();
 }
 
 static inline int is_weak_ref_value(const FklVMvalue *v) {

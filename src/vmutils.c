@@ -789,43 +789,115 @@ static void vmvalue_symbol_princ(VMVALUE_PRINTER_ARGS) {
     fklPrintString2(FKL_VM_SYM(v), build);
 }
 
-static void (*VMvaluePtrPrincTable[FKL_VM_VALUE_GC_TYPE_NUM])(
-        VMVALUE_PRINTER_ARGS) = {
-    [FKL_TYPE_F64] = vmvalue_f64_printer,
-    [FKL_TYPE_BIGINT] = vmvalue_bigint_printer,
-    [FKL_TYPE_SYM] = vmvalue_symbol_princ,
-    [FKL_TYPE_STR] = vmvalue_string_princ,
-    [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
-    [FKL_TYPE_USERDATA] = vmvalue_userdata_princ,
-    [FKL_TYPE_PROC] = vmvalue_proc_printer,
-    [FKL_TYPE_CPROC] = vmvalue_cproc_printer,
-};
+typedef void (*ObjPrinter)(VMVALUE_PRINTER_ARGS);
 
-static void vmvalue_ptr_ptr_princ(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrincTable[v->type_](v, build, exe);
+static FKL_ALWAYS_INLINE void vmvalue_obj_print(VMVALUE_PRINTER_ARGS,
+        ObjPrinter sym_prt,
+        ObjPrinter str_prt,
+        ObjPrinter ud_prt) {
+    switch (v->type_) {
+    case FKL_TYPE_F64:
+        vmvalue_f64_printer(v, build, exe);
+        return;
+        break;
+    case FKL_TYPE_BIGINT:
+        vmvalue_bigint_printer(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_SYM:
+        sym_prt(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_STR:
+        str_prt(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_BYTEVECTOR:
+        vmvalue_bytevector_printer(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_USERDATA:
+        ud_prt(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_PROC:
+        vmvalue_proc_printer(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_CPROC:
+        vmvalue_cproc_printer(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_PAIR:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_HASHTABLE:
+    case FKL_TYPE_VAR_REF:
+        FKL_UNREACHABLE();
+        abort();
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    abort();
 }
 
-static void vmvalue_nil_ptr_print(VMVALUE_PRINTER_ARGS) {
+static void vmvalue_obj_princ(VMVALUE_PRINTER_ARGS) {
+    vmvalue_obj_print(v,
+            build,
+            exe,
+            vmvalue_symbol_princ,
+            vmvalue_string_princ,
+            vmvalue_userdata_princ);
+}
+
+static void vmvalue_nil_print(VMVALUE_PRINTER_ARGS) {
     fklCodeBuilderPuts(build, "()");
 }
 
-static void vmvalue_fix_ptr_print(VMVALUE_PRINTER_ARGS) {
+static void vmvalue_fix_print(VMVALUE_PRINTER_ARGS) {
     fklCodeBuilderFmt(build, "%" PRId64 "", FKL_GET_FIX(v));
 }
 
-static void vmvalue_chr_ptr_princ(VMVALUE_PRINTER_ARGS) {
+static void vmvalue_chr_princ(VMVALUE_PRINTER_ARGS) {
     fklCodeBuilderPutc(build, FKL_GET_CHR(v));
 }
 
-static void (*VMvaluePrincTable[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {
-    [FKL_TAG_PTR] = vmvalue_ptr_ptr_princ,
-    [FKL_TAG_NIL] = vmvalue_nil_ptr_print,
-    [FKL_TAG_FIX] = vmvalue_fix_ptr_print,
-    [FKL_TAG_CHR] = vmvalue_chr_ptr_princ,
-};
+static FKL_ALWAYS_INLINE void
+printVMatom(VMVALUE_PRINTER_ARGS, ObjPrinter obj_prt, ObjPrinter chr_prt) {
+    switch ((FklVMptrTag)FKL_GET_TAG(v)) {
+    case FKL_TAG_PTR:
+        obj_prt(v, build, exe);
+        return;
+        break;
+    case FKL_TAG_NIL:
+        vmvalue_nil_print(v, build, exe);
+        return;
+        break;
+
+    case FKL_TAG_FIX:
+        vmvalue_fix_print(v, build, exe);
+        return;
+        break;
+
+    case FKL_TAG_CHR:
+        chr_prt(v, build, exe);
+        return;
+        break;
+    }
+
+    FKL_UNREACHABLE();
+}
 
 static void princVMatom(VMVALUE_PRINTER_ARGS) {
-    VMvaluePrincTable[(FklVMptrTag)FKL_GET_TAG(v)](v, build, exe);
+    printVMatom(v, build, exe, vmvalue_obj_princ, vmvalue_chr_princ);
 }
 
 static void vmvalue_sym_prin1(VMVALUE_PRINTER_ARGS) {
@@ -851,31 +923,17 @@ static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
         fklCodeBuilderFmt(build, "#<userdata %p>", ud);
 }
 
-static void (*VMvaluePtrPrin1Table[FKL_VM_VALUE_GC_TYPE_NUM])(
-        VMVALUE_PRINTER_ARGS) = {
-    [FKL_TYPE_F64] = vmvalue_f64_printer,
-    [FKL_TYPE_BIGINT] = vmvalue_bigint_printer,
-    [FKL_TYPE_STR] = vmvalue_string_prin1,
-    [FKL_TYPE_BYTEVECTOR] = vmvalue_bytevector_printer,
-    [FKL_TYPE_USERDATA] = vmvalue_userdata_prin1,
-    [FKL_TYPE_PROC] = vmvalue_proc_printer,
-    [FKL_TYPE_CPROC] = vmvalue_cproc_printer,
-    [FKL_TYPE_SYM] = vmvalue_sym_prin1,
-};
-
-static void vmvalue_ptr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
-    VMvaluePtrPrin1Table[v->type_](v, build, exe);
+static void vmvalue_obj_prin1(VMVALUE_PRINTER_ARGS) {
+    vmvalue_obj_print(v,
+            build,
+            exe,
+            vmvalue_sym_prin1,
+            vmvalue_string_prin1,
+            vmvalue_userdata_prin1);
 }
 
-static void (*VMvaluePrin1Table[FKL_PTR_TAG_NUM])(VMVALUE_PRINTER_ARGS) = {
-    [FKL_TAG_PTR] = vmvalue_ptr_ptr_prin1,
-    [FKL_TAG_NIL] = vmvalue_nil_ptr_print,
-    [FKL_TAG_FIX] = vmvalue_fix_ptr_print,
-    [FKL_TAG_CHR] = vmvalue_chr_ptr_prin1,
-};
-
 static void prin1VMatom(VMVALUE_PRINTER_ARGS) {
-    VMvaluePrin1Table[(FklVMptrTag)FKL_GET_TAG(v)](v, build, exe);
+    printVMatom(v, build, exe, vmvalue_obj_prin1, vmvalue_chr_ptr_prin1);
 }
 
 #define PRINT_CTX_COMMON_HEADER                                                \

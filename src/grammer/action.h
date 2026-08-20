@@ -14,11 +14,14 @@ put_line_number(const FklVMparseCtx *c, FklVMvalue *v, uint64_t line) {
         fklVMvalueLntPut(c->ln, v, line);
 }
 
-static void *prod_action_symbol(FklProdActionArgs *args,
+typedef FklVMvalue *(*ValueCreator)(FklVM *vm, const char *buf, size_t len);
+
+static void *prod_action_add_interned(FklProdActionArgs *args,
         void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t count,
-        size_t line) {
+        size_t line,
+        ValueCreator creat) {
     const char *start = "|";
     const size_t start_size = 1;
     const char *end = "|";
@@ -57,10 +60,40 @@ static void *prod_action_symbol(FklProdActionArgs *args,
         cstr_size -= len;
     }
     const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
-    FklVMvalue *retval =
-            fklVMaddSymbolCharBuf(c->exe, buffer.buf, buffer.index);
+    FklVMvalue *retval = creat(c->exe, buffer.buf, buffer.index);
     fklUninitStrBuf(&buffer);
     return retval;
+}
+
+static void *prod_action_symbol(FklProdActionArgs *args,
+        void *ctx,
+        const FklAnalysisSymbol nodes[],
+        size_t count,
+        size_t line) {
+    return prod_action_add_interned(args,
+            ctx,
+            nodes,
+            count,
+            line,
+            fklVMaddSymbolCharBuf);
+}
+
+static void *prod_action_keyword(FklProdActionArgs *args,
+        void *ctx,
+        const FklAnalysisSymbol nodes[],
+        size_t count,
+        size_t line) {
+    FklVMvalue *first = nodes[0].ast;
+    if (first == FKL_VM_NIL) {
+        const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
+        return fklVMaddKeywordCharBuf(c->exe, "", 0);
+    }
+    return prod_action_add_interned(args,
+            ctx,
+            nodes,
+            count,
+            line,
+            fklVMaddKeywordCharBuf);
 }
 
 static void *prod_action_first(FklProdActionArgs *args,
@@ -444,6 +477,7 @@ static const FklGrammerBuiltinAction builtin_actions[] = {
     { "hasheqv", prod_action_hasheqv },
     { "hashequal", prod_action_hashequal },
     { "bytes", prod_action_bytes },
+    { "keyword", prod_action_keyword },
     { NULL, NULL },
 };
 

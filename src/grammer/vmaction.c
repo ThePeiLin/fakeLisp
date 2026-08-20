@@ -13,10 +13,13 @@ put_line_number(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
         fklVMvalueLntPut(ln, v, line);
 }
 
-static inline void *prod_action_symbol(void *ctx,
+typedef FklVMvalue *(*ValueCreator)(FklVM *vm, const char *buf, size_t len);
+
+static inline void *prod_action_add_interned(void *ctx,
         const FklAnalysisSymbol nodes[],
         size_t num,
-        size_t line) {
+        size_t line,
+        ValueCreator creat) {
     const char *start = "|";
     const size_t start_size = 1;
     const char *end = "|";
@@ -55,10 +58,36 @@ static inline void *prod_action_symbol(void *ctx,
         cstr_size -= len;
     }
     const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
-    FklVMvalue *retval =
-            fklVMaddSymbolCharBuf(c->exe, buffer.buf, buffer.index);
+    FklVMvalue *retval = creat(c->exe, buffer.buf, buffer.index);
     fklUninitStrBuf(&buffer);
     return retval;
+}
+
+static inline void *prod_action_symbol(void *ctx,
+        const FklAnalysisSymbol nodes[],
+        size_t num,
+        size_t line) {
+    return prod_action_add_interned(ctx,
+            nodes,
+            num,
+            line,
+            fklVMaddSymbolCharBuf);
+}
+
+static inline void *prod_action_keyword(void *ctx,
+        const FklAnalysisSymbol nodes[],
+        size_t num,
+        size_t line) {
+    FklVMvalue *first = nodes[0].ast;
+    if (first == FKL_VM_NIL) {
+        const FklVMparseCtx *c = (const FklVMparseCtx *)ctx;
+        return fklVMaddKeywordCharBuf(c->exe, "", 0);
+    }
+    return prod_action_add_interned(ctx,
+            nodes,
+            num,
+            line,
+            fklVMaddKeywordCharBuf);
 }
 
 static inline void *prod_action_first(void *ctx,

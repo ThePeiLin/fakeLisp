@@ -747,6 +747,10 @@ static void vmvalue_string_princ(VMVALUE_PRINTER_ARGS) {
     fklPrintString2(FKL_VM_STR(v), build);
 }
 
+static void vmvalue_keyword_princ(VMVALUE_PRINTER_ARGS) {
+    fklPrintString2(FKL_VM_KEYWORD(v), build);
+}
+
 static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
     fklPrintBytesLiteral2(FKL_VM_BVEC(v), build);
 }
@@ -794,6 +798,7 @@ typedef void (*ObjPrinter)(VMVALUE_PRINTER_ARGS);
 static FKL_ALWAYS_INLINE void vmvalue_obj_print(VMVALUE_PRINTER_ARGS,
         ObjPrinter sym_prt,
         ObjPrinter str_prt,
+        ObjPrinter keyword_prt,
         ObjPrinter ud_prt) {
     switch (v->type_) {
     case FKL_TYPE_F64:
@@ -812,6 +817,11 @@ static FKL_ALWAYS_INLINE void vmvalue_obj_print(VMVALUE_PRINTER_ARGS,
 
     case FKL_TYPE_STR:
         str_prt(v, build, exe);
+        return;
+        break;
+
+    case FKL_TYPE_KEYWORD:
+        keyword_prt(v, build, exe);
         return;
         break;
 
@@ -855,6 +865,7 @@ static void vmvalue_obj_princ(VMVALUE_PRINTER_ARGS) {
             exe,
             vmvalue_symbol_princ,
             vmvalue_string_princ,
+            vmvalue_keyword_princ,
             vmvalue_userdata_princ);
 }
 
@@ -904,6 +915,10 @@ static void vmvalue_sym_prin1(VMVALUE_PRINTER_ARGS) {
     fklPrintSymbolLiteral2(FKL_VM_SYM(v), build);
 }
 
+static void vmvalue_keyword_prin1(VMVALUE_PRINTER_ARGS) {
+    fklPrintKeywordLiteral2(FKL_VM_KEYWORD(v), build);
+}
+
 static void vmvalue_chr_ptr_prin1(VMVALUE_PRINTER_ARGS) {
     fklPrintCharLiteral2(FKL_GET_CHR(v), build);
 }
@@ -929,6 +944,7 @@ static void vmvalue_obj_prin1(VMVALUE_PRINTER_ARGS) {
             exe,
             vmvalue_sym_prin1,
             vmvalue_string_prin1,
+            vmvalue_keyword_prin1,
             vmvalue_userdata_prin1);
 }
 
@@ -1082,8 +1098,20 @@ first_call:
         PUTC(buf, '(');
         r = hash_ctx->cur->k;
         break;
-    default:
+
+    case FKL_TYPE_F64:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_STR:
+    case FKL_TYPE_SYM:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_USERDATA:
+    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_CPROC:
+    case FKL_TYPE_VAR_REF:
+    case FKL_TYPE_PROC:
+    case FKL_TYPE_KEYWORD:
         FKL_UNREACHABLE();
+        abort();
         break;
     }
     return r;

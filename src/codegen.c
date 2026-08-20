@@ -3135,6 +3135,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                             .car = FKL_VM_BOX(p),
                             .cdr = FKL_VM_BOX(e),
                         });
+				continue;
                 break;
             case FKL_TYPE_PAIR:
                 fklPairVectorPushBack2(&s,
@@ -3147,6 +3148,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                             .car = FKL_VM_CDR(p),
                             .cdr = FKL_VM_CDR(e),
                         });
+				continue;
                 break;
             case FKL_TYPE_VECTOR:
                 if (FKL_VM_VEC(p)->size != FKL_VM_VEC(e)->size) {
@@ -3160,6 +3162,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                                 .cdr = FKL_VM_VEC(e)->base[i],
                             });
                 }
+				continue;
                 break;
             case FKL_TYPE_HASHTABLE:
                 if (FKL_VM_HASH(p)->eq_type != FKL_VM_HASH(e)->eq_type) {
@@ -3187,12 +3190,25 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                                 .cdr = b->v,
                             });
                 }
+				continue;
                 break;
-            default:
+
+            case FKL_TYPE_F64:
+            case FKL_TYPE_BIGINT:
+            case FKL_TYPE_STR:
+            case FKL_TYPE_SYM:
+            case FKL_TYPE_BYTEVECTOR:
+            case FKL_TYPE_CPROC:
+            case FKL_TYPE_VAR_REF:
+            case FKL_TYPE_PROC:
+            case FKL_TYPE_KEYWORD:
+            case FKL_TYPE_USERDATA:
                 if (!fklVMvalueEqual(p, e)) {
                     r = 0;
                     goto exit;
                 }
+				continue;
+                break;
             }
         } else if (p != e) {
             r = 0;

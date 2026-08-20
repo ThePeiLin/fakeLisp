@@ -128,6 +128,7 @@ static inline void gc_extra_mark(FklVMgc *gc) {
         cur->v.func(gc, cur->k);
 
     fklVMgcToGray(FKL_VM_VAL(gc->obarray), gc);
+    fklVMgcToGray(FKL_VM_VAL(gc->keywords), gc);
 
     for (size_t i = 0; i < FKL_BUILTIN_ERR_NUM; ++i) {
         fklVMgcToGray(gc->builtinErrorTypeId[i], gc);
@@ -202,6 +203,7 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
     case FKL_TYPE_BIGINT:
     case FKL_TYPE_STR:
     case FKL_TYPE_SYM:
+    case FKL_TYPE_KEYWORD:
     case FKL_TYPE_BYTEVECTOR:
         return;
         break;
@@ -276,6 +278,7 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     case FKL_TYPE_USERDATA:
         if (finalize_ud(cur, gc) == FKL_VM_UD_FINALIZE_DELAY)
             return;
+        goto done;
         break;
     case FKL_TYPE_F64:
     case FKL_TYPE_BIGINT:
@@ -287,16 +290,19 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     case FKL_TYPE_BYTEVECTOR:
     case FKL_TYPE_CPROC:
     case FKL_TYPE_VAR_REF:
-        break;
     case FKL_TYPE_PROC:
+    case FKL_TYPE_KEYWORD:
+        goto done;
         break;
     case FKL_TYPE_HASHTABLE:
         fklValueHashMapUninit(&FKL_VM_HASH(cur)->ht);
-        break;
-    default:
-        FKL_UNREACHABLE();
+        goto done;
         break;
     }
+
+    FKL_UNREACHABLE();
+    abort();
+done:
     atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(cur));
     fklZfree((void *)cur);
 }
@@ -420,6 +426,7 @@ void fklInitVMgc(FklVMgc *gc) {
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;
     gc->obarray = fklCreateVMvalueObarray(&gc->gcvm);
+    gc->keywords = fklCreateVMvalueObarray(&gc->gcvm);
 
     gc->seek_set = fklVMaddSymbolCstr(&gc->gcvm, "set");
     gc->seek_cur = fklVMaddSymbolCstr(&gc->gcvm, "cur");
@@ -591,6 +598,7 @@ void fklVMclearExtraMarkFunc(FklVMgc *gc) {
 void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
     gc->obarray = NULL;
+    gc->keywords = NULL;
     uv_mutex_destroy(&gc->workq_lock);
     uv_mutex_destroy(&gc->extra_mark_lock);
     uv_mutex_destroy(&gc->print_backtrace_lock);
@@ -646,14 +654,27 @@ get_btk(FklStrValueHashMap *ht, uintptr_t *hashv, const char *buf, size_t len) {
     return bkt;
 }
 
-FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
+typedef FklVMvalue *(*ValueCreator)(FklVM *vm, size_t len, const char *buf);
+
+static FklVMvalue *
+create_interned_symbol(FklVM *vm, size_t len, const char *buf) {
+    FklVMvalue *r = fklCreateVMvalueSym2(vm, len, buf);
+    FKL_VM_SYM_INTERNED(r) = 1;
+    return r;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *add_str_to_obarray(FklVM *vm,
+        FklVMvalueObarray *obarray,
+        const char *buf,
+        size_t len,
+        ValueCreator creator) {
     FklVMgc *gc = vm->gc;
-    uv_mutex_lock(&gc->obarray->lock);
+    uv_mutex_lock(&obarray->lock);
 
     FklVMvalue *r = NULL;
 
     uintptr_t hashv = 0;
-    FklStrValueHashMap *ht = &gc->obarray->map;
+    FklStrValueHashMap *ht = &obarray->map;
     FklStrValueHashMapNode *const *bkt = get_btk(ht, &hashv, buf, len);
     if (*bkt) {
         r = (*bkt)->v;
@@ -661,15 +682,32 @@ FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
         FklString *str = fklCreateString(len, buf);
         FklStrValueHashMapNode *node =
                 fklStrValueHashMapCreateNode2(hashv, str);
-        r = fklCreateVMvalueSym2(vm, len, buf);
-        FKL_VM_SYM_INTERNED(r) = 1;
+        r = creator(vm, len, buf);
         node->v = r;
         fklStrValueHashMapInsertNode(ht, node);
     }
 
-    uv_mutex_unlock(&gc->obarray->lock);
+    uv_mutex_unlock(&obarray->lock);
 
     return r;
+}
+
+FklVMvalue *fklVMaddSymbolCharBuf(FklVM *vm, const char *buf, size_t len) {
+    FklVMvalueObarray *obarray = vm->gc->obarray;
+    return add_str_to_obarray(vm, obarray, buf, len, create_interned_symbol);
+}
+
+FklVMvalue *fklVMaddKeyword(FklVM *vm, const FklString *str) {
+    return fklVMaddKeywordCharBuf(vm, str->str, str->size);
+}
+
+FklVMvalue *fklVMaddKeywordCstr(FklVM *vm, const char *str) {
+    return fklVMaddKeywordCharBuf(vm, str, strlen(str));
+}
+
+FklVMvalue *fklVMaddKeywordCharBuf(FklVM *vm, const char *buf, size_t len) {
+    FklVMvalueObarray *keywords = vm->gc->keywords;
+    return add_str_to_obarray(vm, keywords, buf, len, fklCreateVMvalueKeyword);
 }
 
 int fklVMhasSymbol(FklVM *vm, const FklString *str) {

@@ -134,6 +134,11 @@ static inline void fklPrintSymbolLiteral2(const FklString *fstr,
     fklPrintBufLiteralExt(fstr->size, fstr->str, "|", "|", '|', build);
 }
 
+static inline void fklPrintKeywordLiteral2(const FklString *fstr,
+        FklCodeBuilder *build) {
+    fklPrintBufLiteralExt(fstr->size, fstr->str, ":|", "|", '|', build);
+}
+
 static inline void fklPrintStringLiteral2(const FklString *fstr,
         FklCodeBuilder *build) {
     fklPrintBufLiteralExt(fstr->size, fstr->str, "\"", "\"", '"', build);

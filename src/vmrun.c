@@ -362,31 +362,40 @@ void fklPopVMframe2(FklVM *exe, FklVMframe *const bottom) {
     }
 }
 
-#define CALL_CALLABLE_OBJ(EXE, V)                                              \
-    case FKL_TYPE_CPROC:                                                       \
-        call_cproc(EXE, V);                                                    \
-        break;                                                                 \
-    case FKL_TYPE_USERDATA:                                                    \
-        FKL_VM_UD(V)->t->__call(V, EXE);                                       \
-        break;                                                                 \
-    default:                                                                   \
-        break;
-
 void fklCallObj(FklVM *exe, FklVMvalue *proc) {
     switch (proc->type_) {
     case FKL_TYPE_PROC:
         call_compound_procedure(exe, FKL_VM_PROC(proc));
+        return;
         break;
     case FKL_TYPE_CPROC:
         call_cproc(exe, proc);
+        return;
         break;
     case FKL_TYPE_USERDATA:
         FKL_VM_UD(proc)->mt_->call(proc, exe);
+        return;
         break;
-    default:
+
+    case FKL_TYPE_F64:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_STR:
+    case FKL_TYPE_SYM:
+    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_PAIR:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_VAR_REF:
+    case FKL_TYPE_KEYWORD:
+    case FKL_TYPE_HASHTABLE:
         FKL_UNREACHABLE();
-        break;
+        abort();
+        return;
+		break;
     }
+
+    FKL_UNREACHABLE();
+    abort();
 }
 
 void fklTailCallObj(FklVM *exe, FklVMvalue *proc) {

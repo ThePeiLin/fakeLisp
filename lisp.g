@@ -24,8 +24,11 @@
 *unqtesp* -> "~@" *s-exp*  =>  unqtesp
 
 *symbol* -> ?symbol["|"]       =>  symbol
-*keyword* -> ":"..?symbol["|"] =>  second
-          -> ":"               =>  first
+*keyword* -> *keyword-seq*     =>  keyword
+
+*keyword-seq* -> ":"..?symbol["|"] =>  second
+              -> ":"               =>  nil
+
 *string* -> /""|"(\\.|.)*"/    =>  string
 *bytes*  -> /#""|#"(\\.|.)*"/  =>  bytes
 

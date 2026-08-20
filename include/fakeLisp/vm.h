@@ -68,6 +68,11 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
+    FklString str;
+} FklVMvalueKeyword;
+
+typedef struct {
+    FKL_VM_VALUE_COMMON_HEADER;
     FklBytevector bvec;
 } FklVMvalueBvec;
 
@@ -596,6 +601,8 @@ typedef struct FklVMgc {
 
     struct FklVMvalueObarray *obarray;
 
+    struct FklVMvalueObarray *keywords;
+
     FklVMvalue *builtinErrorTypeId[FKL_BUILTIN_ERR_NUM];
 
     uv_mutex_t workq_lock;
@@ -859,6 +866,10 @@ FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
 FklVMvalue *fklVMaddSymbolCharBuf(FklVM *, const char *str, size_t);
 FklVMvalue *fklVMaddSymbolValue(FklVM *, FklVMvalue *s);
 
+FklVMvalue *fklVMaddKeyword(FklVM *, const FklString *str);
+FklVMvalue *fklVMaddKeywordCstr(FklVM *, const char *str);
+FklVMvalue *fklVMaddKeywordCharBuf(FklVM *, const char *str, size_t);
+
 int fklVMhasSymbol(FklVM *v, const FklString *str);
 int fklVMhasSymbol1(FklVM *v, const char *str);
 int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
@@ -1077,10 +1088,13 @@ static inline FklVMvalue *fklCreateVMvalueStr1(FklVM *exe, const char *str) {
 
 FklVMvalue *fklCreateVMvalueSym(FklVM *, const FklString *str);
 FklVMvalue *fklCreateVMvalueSym2(FklVM *, size_t size, const char *str);
+// TODO: rename it from FromCstr to Cstr
 static inline FklVMvalue *fklCreateVMvalueSymFromCstr(FklVM *exe,
         const char *str) {
     return fklCreateVMvalueSym2(exe, strlen(str), str);
 }
+
+FklVMvalue *fklCreateVMvalueKeyword(FklVM *, size_t size, const char *str);
 
 FklVMvalue *fklCreateVMvalueBvec(FklVM *, const FklBytevector *bvec);
 FklVMvalue *fklCreateVMvalueBvec2(FklVM *, size_t size, const uint8_t *);
@@ -1304,6 +1318,11 @@ static FKL_ALWAYS_INLINE FklString *FKL_VM_SYM(const FklVMvalue *V) {
 static FKL_ALWAYS_INLINE uint8_t *FKL_VM_SYM_INTERNED(const FklVMvalue *V) {
     FKL_ASSERT(FKL_IS_SYM(V));
     return &(((FklVMvalueSym *)(V))->interned);
+}
+
+static FKL_ALWAYS_INLINE FklString *FKL_VM_KEYWORD(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_KEYWORD(V));
+    return (&((FklVMvalueKeyword *)(V))->str);
 }
 
 #define FKL_VM_SYM_INTERNED(V) (*FKL_VM_SYM_INTERNED(V))

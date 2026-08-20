@@ -128,6 +128,7 @@ static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
     } break;
 
     case FKL_TYPE_SYM:
+    case FKL_TYPE_KEYWORD:
         return FKL_VM_VAL(obj);
         break;
 
@@ -176,6 +177,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         case FKL_TYPE_PROC:
         case FKL_TYPE_CPROC:
         case FKL_TYPE_SYM:
+        case FKL_TYPE_KEYWORD:
             return fir == sec;
             break;
         case FKL_TYPE_F64:
@@ -242,6 +244,7 @@ nested_equal:
             } else {
                 switch (root1->type_) {
                 case FKL_TYPE_SYM:
+                case FKL_TYPE_KEYWORD:
                 case FKL_TYPE_PROC:
                 case FKL_TYPE_CPROC:
                     r = root1 == root2;
@@ -716,6 +719,7 @@ static inline uintptr_t obj_hash(const FklVMvalue *v) {
         break;
 
     case FKL_TYPE_SYM:
+    case FKL_TYPE_KEYWORD:
     case FKL_TYPE_PROC:
     case FKL_TYPE_CPROC:
     case FKL_TYPE_VAR_REF:
@@ -1012,6 +1016,19 @@ FklVMvalue *fklCreateVMvalueSym2(FklVM *exe, size_t size, const char *str) {
     FKL_ASSERT(r);
     r->type_ = FKL_TYPE_SYM;
     FklString *rs = FKL_VM_SYM(r);
+    rs->size = size;
+    if (str)
+        memcpy(rs->str, str, rs->size * sizeof(rs->str[0]));
+    fklAddToGC(r, exe);
+    return r;
+}
+
+FklVMvalue *fklCreateVMvalueKeyword(FklVM *exe, size_t size, const char *str) {
+    size_t total_size = sizeof(FklVMvalueKeyword) + size * sizeof(str[0]);
+    FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
+    FKL_ASSERT(r);
+    r->type_ = FKL_TYPE_KEYWORD;
+    FklString *rs = FKL_VM_KEYWORD(r);
     rs->size = size;
     if (str)
         memcpy(rs->str, str, rs->size * sizeof(rs->str[0]));

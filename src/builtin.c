@@ -881,6 +881,23 @@ static int builtin_symbol_interned_p(FKL_CPROC_ARGL) {
     return 0;
 }
 
+static int builtin_string_to_keyword(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
+    FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(obj, FKL_IS_STR, exe);
+    FKL_CPROC_RETURN(exe, ctx, fklVMaddKeyword(exe, FKL_VM_STR(obj)));
+    return 0;
+}
+
+static int builtin_keyword_to_string(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
+    FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FKL_CHECK_TYPE(obj, FKL_IS_KEYWORD, exe);
+    FklVMvalue *retval = fklCreateVMvalueStr(exe, FKL_VM_KEYWORD(obj));
+    FKL_CPROC_RETURN(exe, ctx, retval);
+    return 0;
+}
+
 static int builtin_string_to_number(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -4351,6 +4368,7 @@ static int builtin_f64_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_F64(val)) }
 static int builtin_number_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMnumber(val)) }
 static int builtin_pair_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_PAIR(val)) }
 static int builtin_symbol_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_SYM(val)) }
+static int builtin_keyword_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_KEYWORD(val)) }
 static int builtin_string_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_STR(val)) }
 static int builtin_error_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueError(val)) }
 static int builtin_procedure_p(FKL_CPROC_ARGL) {
@@ -5057,6 +5075,10 @@ static const struct SymbolFuncStruct {
     {"vector-last",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector-last",     builtin_vec_last),             {NULL,         inlfunc_vec_last,  NULL,               NULL               } },
 
     {"funcall",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("funcall",         builtin_funcall),              {NULL,         NULL,              NULL,               NULL               } },
+
+    {"keyword?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("keyword?",        builtin_keyword_p),            {NULL,         NULL,              NULL,               NULL               } },
+    {"string->keyword", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->keyword", builtin_string_to_keyword),    {NULL,         NULL,              NULL,               NULL               } },
+    {"keyword->string", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("keyword->string", builtin_keyword_to_string),    {NULL,         NULL,              NULL,               NULL               } },
     {NULL,              NULL,                                                                                          {NULL,         NULL,              NULL,               NULL               } },
     // clang-format on
 };

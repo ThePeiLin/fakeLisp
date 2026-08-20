@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#define FKL_BUILTIN_SYMBOL_NUM (201)
+#define FKL_BUILTIN_SYMBOL_NUM (204)
 
 typedef FklVMvalue *(*FklBuiltinInlineFunc)(FklVM *exe,
         FklVMvalue *[],

@@ -3135,7 +3135,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                             .car = FKL_VM_BOX(p),
                             .cdr = FKL_VM_BOX(e),
                         });
-				continue;
+                continue;
                 break;
             case FKL_TYPE_PAIR:
                 fklPairVectorPushBack2(&s,
@@ -3148,7 +3148,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                             .car = FKL_VM_CDR(p),
                             .cdr = FKL_VM_CDR(e),
                         });
-				continue;
+                continue;
                 break;
             case FKL_TYPE_VECTOR:
                 if (FKL_VM_VEC(p)->size != FKL_VM_VEC(e)->size) {
@@ -3162,7 +3162,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                                 .cdr = FKL_VM_VEC(e)->base[i],
                             });
                 }
-				continue;
+                continue;
                 break;
             case FKL_TYPE_HASHTABLE:
                 if (FKL_VM_HASH(p)->eq_type != FKL_VM_HASH(e)->eq_type) {
@@ -3190,7 +3190,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                                 .cdr = b->v,
                             });
                 }
-				continue;
+                continue;
                 break;
 
             case FKL_TYPE_F64:
@@ -3207,7 +3207,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                     r = 0;
                     goto exit;
                 }
-				continue;
+                continue;
                 break;
             }
         } else if (p != e) {
@@ -7342,7 +7342,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
         }
     } else if (FKL_IS_PAIR(name->value)) {
         FklValueHashSet *symbol_set = NULL;
-        FklVMvalue *pattern = fklCreatePattern(vm, name->value, &symbol_set);
+        FklVMvalue *pattern = fklAstToPattern(vm, name->value, &symbol_set);
         if (!pattern) {
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
@@ -7944,7 +7944,7 @@ static inline void init_builtin_patterns(FklCgCtx *ctx) {
     for (size_t i = 0; i < FKL_CODEGEN_PATTERN_NUM; i++) {
         const char *str = builtin_pattern_cstr_func[i].ps;
         FklVMvalue *node = fklCreateAst1(vm, str, NULL);
-        builtin_pattern_node[i] = fklCreatePattern(vm, node, NULL);
+        builtin_pattern_node[i] = fklAstToPattern(vm, node, NULL);
     }
 }
 
@@ -7962,7 +7962,7 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     FklVMvalue **const builtin_sub_pattern_node = ctx->builtin_sub_pattern_node;
     for (size_t i = 0; i < FKL_CODEGEN_SUB_PATTERN_NUM; i++) {
         FklVMvalue *node = fklCreateAst1(vm, builtInSubPattern[i], NULL);
-        builtin_sub_pattern_node[i] = fklCreatePattern(vm, node, NULL);
+        builtin_sub_pattern_node[i] = fklAstToPattern(vm, node, NULL);
     }
 }
 

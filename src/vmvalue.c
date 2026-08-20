@@ -22,59 +22,17 @@ typedef struct {
     FklVMvalue **slot;
 } VMvalueSlot;
 
-// VmVMvalueSlotVector
-#define FKL_VECTOR_TYPE_PREFIX Vm
-#define FKL_VECTOR_METHOD_PREFIX vm
-#define FKL_VECTOR_ELM_TYPE VMvalueSlot
-#define FKL_VECTOR_ELM_TYPE_NAME VMvalueSlot
-#include <fakeLisp/cont/vector.h>
+FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **pv) {
+    FklVMvalue *v = *pv;
+    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v), pv = &FKL_VM_CDR(*pv))
+        *pv = fklCreateVMvaluePair(vm, FKL_VM_CAR(v), FKL_VM_CDR(v));
+    return pv;
+}
 
-FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *obj, FklVM *vm) {
-    VmVMvalueSlotVector s;
-    vmVMvalueSlotVectorInit(&s, 32);
-    FklVMvalue *tmp = FKL_VM_NIL;
-    vmVMvalueSlotVectorPushBack2(&s, (VMvalueSlot){ .v = obj, .slot = &tmp });
-    while (!vmVMvalueSlotVectorIsEmpty(&s)) {
-        const VMvalueSlot *top = vmVMvalueSlotVectorPopBackNonNull(&s);
-        const FklVMvalue *root = top->v;
-        FklVMvalue **root1 = top->slot;
-        FklVMptrTag tag = FKL_GET_TAG(root);
-        switch (tag) {
-        case FKL_TAG_NIL:
-        case FKL_TAG_FIX:
-        case FKL_TAG_CHR:
-            *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
-            break;
-        case FKL_TAG_PTR: {
-            FklValueType type = root->type_;
-            switch (type) {
-            case FKL_TYPE_PAIR:
-                *root1 = fklCreateVMvaluePairNil(vm);
-                vmVMvalueSlotVectorPushBack2(&s,
-                        (VMvalueSlot){
-                            .v = FKL_VM_CAR(root),
-                            .slot = &FKL_VM_CAR(*root1),
-                        });
-                vmVMvalueSlotVectorPushBack2(&s,
-                        (VMvalueSlot){
-                            .v = FKL_VM_CDR(root),
-                            .slot = &FKL_VM_CDR(*root1),
-                        });
-                break;
-                // TODO:
-            default:
-                *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
-                break;
-            }
-        } break;
-            // TODO:
-        default:
-            return NULL;
-            break;
-        }
-    }
-    vmVMvalueSlotVectorUninit(&s);
-    return tmp;
+FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *obj) {
+    FklVMvalue *r = FKL_VM_VAL(obj);
+    fklCopyVMlist1(vm, &r);
+    return r;
 }
 
 static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
@@ -101,7 +59,7 @@ static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
     } break;
 
     case FKL_TYPE_PAIR:
-        return fklCopyVMlistOrAtom(obj, vm);
+        return fklCopyVMlist(vm, obj);
         break;
 
     case FKL_TYPE_BOX:
@@ -147,7 +105,7 @@ static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
     abort();
 }
 
-FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
+FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *obj) {
     switch ((FklVMptrTag)FKL_GET_TAG(obj)) {
     case FKL_TAG_NIL:
     case FKL_TAG_FIX:
@@ -156,6 +114,298 @@ FklVMvalue *fklCopyVMvalue(const FklVMvalue *obj, FklVM *vm) {
         break;
     case FKL_TAG_PTR:
         return obj_copy(vm, obj);
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    return NULL;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *str_copy_append(FklVM *exe,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    uint64_t new_size = FKL_VM_STR(v)->size;
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        if (FKL_IS_CHR(cur))
+            ++new_size;
+        else if (FKL_IS_STR(cur))
+            new_size += FKL_VM_STR(cur)->size;
+        else
+            return NULL;
+    }
+    FklVMvalue *retval = fklCreateVMvalueStr2(exe, new_size, NULL);
+    FklString *str = FKL_VM_STR(retval);
+    new_size = FKL_VM_STR(v)->size;
+    memcpy(str->str, FKL_VM_STR(v)->str, new_size * sizeof(char));
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        if (FKL_IS_CHR(cur))
+            str->str[new_size++] = FKL_GET_CHR(cur);
+        else {
+            size_t ss = FKL_VM_STR(cur)->size;
+            memcpy(&str->str[new_size],
+                    FKL_VM_STR(cur)->str,
+                    ss * sizeof(char));
+            new_size += ss;
+        }
+    }
+    return retval;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *vec_copy_append(FklVM *exe,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    size_t new_size = FKL_VM_VEC(v)->size;
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        if (FKL_IS_VECTOR(cur))
+            new_size += FKL_VM_VEC(cur)->size;
+        else
+            return NULL;
+    }
+    FklVMvalue *new_vec_val = fklCreateVMvalueVec(exe, new_size);
+    FklVMvalueVec *new_vec = FKL_VM_VEC(new_vec_val);
+    new_size = FKL_VM_VEC(v)->size;
+    memcpy(new_vec->base, FKL_VM_VEC(v)->base, new_size * sizeof(FklVMvalue *));
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        size_t ss;
+        FklVMvalue **mem;
+        ss = FKL_VM_VEC(cur)->size;
+        mem = FKL_VM_VEC(cur)->base;
+        memcpy(&new_vec->base[new_size], mem, ss * sizeof(FklVMvalue *));
+        new_size += ss;
+    }
+    return new_vec_val;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *pair_copy_append(FklVM *exe,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    if (argc) {
+        FklVMvalue *retval = FKL_VM_NIL;
+        FklVMvalue **prev = &retval;
+        *prev = (FklVMvalue *)v;
+        for (uint32_t i = 0; i < argc; ++i) {
+            FklVMvalue *pr = *prev;
+            FklVMvalue *cur = base[i];
+            if (!fklIsList(pr))
+                return NULL;
+
+            if ((prev = fklCopyVMlist1(exe, prev), *prev == FKL_VM_NIL)) {
+                *prev = cur;
+            } else {
+                return NULL;
+            }
+        }
+        return retval;
+    } else {
+        return (FklVMvalue *)v;
+    }
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *bytes_copy_append(FklVM *exe,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    uint64_t new_size = FKL_VM_BVEC(v)->size;
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        if (FKL_IS_BYTEVECTOR(cur))
+            new_size += FKL_VM_BVEC(cur)->size;
+        else
+            return NULL;
+    }
+    FklVMvalue *bv = fklCreateVMvalueBvec2(exe, new_size, NULL);
+    FklBytevector *bvec = FKL_VM_BVEC(bv);
+    new_size = FKL_VM_BVEC(v)->size;
+    memcpy(bvec->ptr, FKL_VM_BVEC(v)->ptr, new_size * sizeof(char));
+    for (uint32_t i = 0; i < argc; ++i) {
+        FklVMvalue *cur = base[i];
+        size_t ss = FKL_VM_BVEC(cur)->size;
+        memcpy(&bvec->ptr[new_size], FKL_VM_BVEC(cur)->ptr, ss * sizeof(char));
+        new_size += ss;
+    }
+    return bv;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *userdata_copy_append(FklVM *exe,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    FklVMudCopyAppendCb append = FKL_VM_UD(v)->mt_->copy_append;
+    if (append)
+        return append(exe, v, argc, base);
+    else
+        return NULL;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *obj_copy_append(FklVM *vm,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    switch (v->type_) {
+    case FKL_TYPE_STR:
+        return str_copy_append(vm, v, argc, base);
+        break;
+    case FKL_TYPE_VECTOR:
+        return vec_copy_append(vm, v, argc, base);
+        break;
+    case FKL_TYPE_PAIR:
+        return pair_copy_append(vm, v, argc, base);
+        break;
+    case FKL_TYPE_BYTEVECTOR:
+        return bytes_copy_append(vm, v, argc, base);
+        break;
+    case FKL_TYPE_USERDATA:
+        return userdata_copy_append(vm, v, argc, base);
+        break;
+
+    case FKL_TYPE_F64:
+    case FKL_TYPE_SYM:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_PROC:
+    case FKL_TYPE_CPROC:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_KEYWORD:
+    case FKL_TYPE_HASHTABLE:
+        return NULL;
+        break;
+
+    case FKL_TYPE_VAR_REF:
+        FKL_UNREACHABLE();
+        abort();
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    abort();
+    return NULL;
+}
+
+FklVMvalue *fklAppendVMvalue(FklVM *vm,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    switch ((FklVMptrTag)FKL_GET_TAG(v)) {
+    case FKL_TAG_NIL:
+    case FKL_TAG_FIX:
+    case FKL_TAG_CHR:
+        return NULL;
+        break;
+
+    case FKL_TAG_PTR:
+        return obj_copy_append(vm, v, argc, base);
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    return NULL;
+}
+
+static inline FklVMvalue *get_initial_fast_value(FklVMvalue *pr) {
+    return FKL_IS_PAIR(pr) ? FKL_VM_CDR(pr) : FKL_VM_NIL;
+}
+
+static inline FklVMvalue *get_fast_value(FklVMvalue *head) {
+    return FKL_IS_PAIR(head) && FKL_IS_PAIR(FKL_VM_CDR(head))
+                        && FKL_IS_PAIR(FKL_VM_CDR(FKL_VM_CDR(head)))
+                 ? FKL_VM_CDR(FKL_VM_CDR(head))
+                 : FKL_VM_NIL;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *pair_append(FklVM *vm,
+        FklVMvalue *obj,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    if (argc) {
+        FklVMvalue *retval = FKL_VM_NIL;
+        FklVMvalue **prev = &retval;
+        *prev = obj;
+        for (uint32_t i = 0; i < argc; ++i) {
+            FklVMvalue *cur = base[i];
+            FklVMvalue *head = get_initial_fast_value(*prev);
+            while (FKL_IS_PAIR(*prev)) {
+                if (head == *prev)
+                    return NULL;
+                prev = &FKL_VM_CDR(*prev);
+                head = get_fast_value(head);
+            }
+
+            if (*prev == FKL_VM_NIL) {
+                *prev = cur;
+            } else {
+                return NULL;
+            }
+        }
+    }
+    return obj;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *userdata_append(FklVM *vm,
+        FklVMvalue *obj,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    FklVMudAppendCb append = FKL_VM_UD(obj)->mt_->append;
+    if (append) {
+        return append(vm, obj, argc, base);
+    } else {
+        return NULL;
+    }
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *
+obj_append(FklVM *vm, FklVMvalue *v, uint32_t argc, FklVMvalue *const *base) {
+    switch (v->type_) {
+    case FKL_TYPE_PAIR:
+        return pair_append(vm, v, argc, base);
+        break;
+    case FKL_TYPE_USERDATA:
+        return userdata_append(vm, v, argc, base);
+        break;
+
+    case FKL_TYPE_STR:
+    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_F64:
+    case FKL_TYPE_SYM:
+    case FKL_TYPE_BOX:
+    case FKL_TYPE_PROC:
+    case FKL_TYPE_CPROC:
+    case FKL_TYPE_BIGINT:
+    case FKL_TYPE_KEYWORD:
+    case FKL_TYPE_HASHTABLE:
+    case FKL_TYPE_BYTEVECTOR:
+        return NULL;
+        break;
+
+    case FKL_TYPE_VAR_REF:
+        FKL_UNREACHABLE();
+        abort();
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    abort();
+    return NULL;
+}
+
+FklVMvalue *fklAppendVMvalue1(FklVM *vm,
+        FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base) {
+    switch ((FklVMptrTag)FKL_GET_TAG(v)) {
+    case FKL_TAG_NIL:
+    case FKL_TAG_FIX:
+    case FKL_TAG_CHR:
+        return NULL;
+        break;
+
+    case FKL_TAG_PTR:
+        return obj_append(vm, v, argc, base);
         break;
     }
 

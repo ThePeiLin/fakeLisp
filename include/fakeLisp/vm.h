@@ -452,8 +452,10 @@ typedef FklVMvalue *(*FklVMudCopyAppendCb)(FklVM *exe,
         const FklVMvalue *ud,
         uint32_t argc,
         FklVMvalue *const *base);
-typedef int (*FklVMudAppendCb)(FklVMvalue *, //
-        uint32_t argc,                       //
+
+typedef FklVMvalue *(*FklVMudAppendCb)(FklVM *vm,
+        FklVMvalue *,
+        uint32_t argc,
         FklVMvalue *const *base);
 
 typedef void (*FklVMudPrintCb)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
@@ -1070,9 +1072,18 @@ void fklAtomicVMvec(FklVMvalue *, FklVMgc *);
 void fklAtomicVMbox(FklVMvalue *, FklVMgc *);
 void fklAtomicVMcproc(FklVMvalue *, FklVMgc *);
 
-// TODO: need refactor
-FklVMvalue *fklCopyVMlistOrAtom(const FklVMvalue *, FklVM *);
-FklVMvalue *fklCopyVMvalue(const FklVMvalue *, FklVM *);
+FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *);
+FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **);
+FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *);
+FklVMvalue *fklAppendVMvalue(FklVM *vm,
+        const FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base);
+
+FklVMvalue *fklAppendVMvalue1(FklVM *vm,
+        FklVMvalue *v,
+        uint32_t argc,
+        FklVMvalue *const *base);
 
 // value creator
 

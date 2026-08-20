@@ -50,8 +50,10 @@ static void strbuf_write(const FklVMvalue *ud, FklCodeBuilder *build) {
     fklCodeBuilderWrite(build, buf->index, buf->buf);
 }
 
-static int
-strbuf_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
+static FklVMvalue *strbuf_append(FklVM *v,
+        FklVMvalue *ud,
+        uint32_t argc,
+        FklVMvalue *const *base) {
     FklStrBuf *buf = &as_strbuf(ud)->buf;
     FklVMvalue *const *const end = base + argc;
     for (; base < end; ++base) {
@@ -62,10 +64,11 @@ strbuf_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
             fklStrBufConcatWithString(buf, FKL_VM_STR(cur));
         else if (is_strbuf_ud(cur)) {
             fklStrBufConcatWithStrBuf(buf, &as_strbuf(cur)->buf);
-        } else
-            return 1;
+        } else {
+            return NULL;
+        }
     }
-    return 0;
+    return ud;
 }
 
 static inline FklVMvalue *

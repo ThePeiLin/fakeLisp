@@ -80,162 +80,12 @@ static int builtin_cons(FKL_CPROC_ARGL) {
 
 static int builtin_copy(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
-    FklVMvalue *retval = fklCopyVMvalue(FKL_CPROC_GET_ARG(exe, ctx, 0), exe);
+    FklVMvalue *retval = fklCopyVMvalue(exe, FKL_CPROC_GET_ARG(exe, ctx, 0));
     if (!retval)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
-
-static inline FklVMvalue *get_fast_value(FklVMvalue *head) {
-    return FKL_IS_PAIR(head) && FKL_IS_PAIR(FKL_VM_CDR(head))
-                        && FKL_IS_PAIR(FKL_VM_CDR(FKL_VM_CDR(head)))
-                 ? FKL_VM_CDR(FKL_VM_CDR(head))
-                 : FKL_VM_NIL;
-}
-
-static inline FklVMvalue *get_initial_fast_value(FklVMvalue *pr) {
-    return FKL_IS_PAIR(pr) ? FKL_VM_CDR(pr) : FKL_VM_NIL;
-}
-
-static inline FklVMvalue **copy_list(FklVMvalue **pv, FklVM *exe) {
-    FklVMvalue *v = *pv;
-    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v), pv = &FKL_VM_CDR(*pv))
-        *pv = fklCreateVMvaluePair(exe, FKL_VM_CAR(v), FKL_VM_CDR(v));
-    return pv;
-}
-
-typedef FklVMvalue *(*VMvalueCopyAppendCb)(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *top);
-
-static FklVMvalue *fkl_str_copy_append(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *base) {
-    uint64_t new_size = FKL_VM_STR(v)->size;
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        if (FKL_IS_CHR(cur))
-            ++new_size;
-        else if (FKL_IS_STR(cur))
-            new_size += FKL_VM_STR(cur)->size;
-        else
-            return NULL;
-    }
-    FklVMvalue *retval = fklCreateVMvalueStr2(exe, new_size, NULL);
-    FklString *str = FKL_VM_STR(retval);
-    new_size = FKL_VM_STR(v)->size;
-    memcpy(str->str, FKL_VM_STR(v)->str, new_size * sizeof(char));
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        if (FKL_IS_CHR(cur))
-            str->str[new_size++] = FKL_GET_CHR(cur);
-        else {
-            size_t ss = FKL_VM_STR(cur)->size;
-            memcpy(&str->str[new_size],
-                    FKL_VM_STR(cur)->str,
-                    ss * sizeof(char));
-            new_size += ss;
-        }
-    }
-    return retval;
-}
-
-static FklVMvalue *fkl_vec_copy_append(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *base) {
-    size_t new_size = FKL_VM_VEC(v)->size;
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        if (FKL_IS_VECTOR(cur))
-            new_size += FKL_VM_VEC(cur)->size;
-        else
-            return NULL;
-    }
-    FklVMvalue *new_vec_val = fklCreateVMvalueVec(exe, new_size);
-    FklVMvalueVec *new_vec = FKL_VM_VEC(new_vec_val);
-    new_size = FKL_VM_VEC(v)->size;
-    memcpy(new_vec->base, FKL_VM_VEC(v)->base, new_size * sizeof(FklVMvalue *));
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        size_t ss;
-        FklVMvalue **mem;
-        ss = FKL_VM_VEC(cur)->size;
-        mem = FKL_VM_VEC(cur)->base;
-        memcpy(&new_vec->base[new_size], mem, ss * sizeof(FklVMvalue *));
-        new_size += ss;
-    }
-    return new_vec_val;
-}
-
-static FklVMvalue *fkl_pair_copy_append(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *base) {
-    if (argc) {
-        FklVMvalue *retval = FKL_VM_NIL;
-        FklVMvalue **prev = &retval;
-        *prev = (FklVMvalue *)v;
-        for (uint32_t i = 0; i < argc; ++i) {
-            FklVMvalue *pr = *prev;
-            FklVMvalue *cur = base[i];
-            if (fklIsList(pr)
-                    && (prev = copy_list(prev, exe), *prev == FKL_VM_NIL))
-                *prev = cur;
-            else
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-        }
-        return retval;
-    } else
-        return (FklVMvalue *)v;
-}
-
-static FklVMvalue *fkl_bytevector_copy_append(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *base) {
-    uint64_t new_size = FKL_VM_BVEC(v)->size;
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        if (FKL_IS_BYTEVECTOR(cur))
-            new_size += FKL_VM_BVEC(cur)->size;
-        else
-            return NULL;
-    }
-    FklVMvalue *bv = fklCreateVMvalueBvec2(exe, new_size, NULL);
-    FklBytevector *bvec = FKL_VM_BVEC(bv);
-    new_size = FKL_VM_BVEC(v)->size;
-    memcpy(bvec->ptr, FKL_VM_BVEC(v)->ptr, new_size * sizeof(char));
-    for (uint32_t i = 0; i < argc; ++i) {
-        FklVMvalue *cur = base[i];
-        size_t ss = FKL_VM_BVEC(cur)->size;
-        memcpy(&bvec->ptr[new_size], FKL_VM_BVEC(cur)->ptr, ss * sizeof(char));
-        new_size += ss;
-    }
-    return bv;
-}
-
-static FklVMvalue *fkl_userdata_copy_append(FklVM *exe,
-        const FklVMvalue *v,
-        uint32_t argc,
-        FklVMvalue *const *base) {
-    FklVMudCopyAppendCb append = FKL_VM_UD(v)->mt_->copy_append;
-    if (append)
-        return append(exe, v, argc, base);
-    else
-        return NULL;
-}
-
-static const VMvalueCopyAppendCb CopyAppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
-    [FKL_TYPE_STR] = fkl_str_copy_append,
-    [FKL_TYPE_VECTOR] = fkl_vec_copy_append,
-    [FKL_TYPE_PAIR] = fkl_pair_copy_append,
-    [FKL_TYPE_BYTEVECTOR] = fkl_bytevector_copy_append,
-    [FKL_TYPE_USERDATA] = fkl_userdata_copy_append,
-};
 
 static int builtin_append(FKL_CPROC_ARGL) {
     if (argc == 0) {
@@ -243,68 +93,25 @@ static int builtin_append(FKL_CPROC_ARGL) {
         return 0;
     }
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    if (FKL_IS_PTR(obj)) {
-        FklValueType type = (obj)->type_;
-        VMvalueCopyAppendCb copy_appender = CopyAppendCbs[type];
-        if (copy_appender) {
-            uint32_t const rest_argc = argc - 1;
-            if (rest_argc) {
-                FklVMvalue *r = copy_appender(exe,
-                        obj,
-                        rest_argc,
-                        &FKL_CPROC_GET_ARG(exe, ctx, 1));
-                if (!r)
-                    FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-                FKL_CPROC_RETURN(exe, ctx, r);
-            } else {
-                FKL_CPROC_RETURN(exe, ctx, obj);
-            }
-        } else
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    } else
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    return 0;
-}
-
-typedef int (*VMvalueAppendCb)(FklVMvalue *v, //
-        uint32_t argc,
-        FklVMvalue *const *top);
-
-static int
-fkl_pair_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
-    if (argc) {
-        FklVMvalue *retval = FKL_VM_NIL;
-        FklVMvalue **prev = &retval;
-        *prev = obj;
-        for (uint32_t i = 0; i < argc; ++i) {
-            FklVMvalue *cur = base[i];
-            for (FklVMvalue *head = get_initial_fast_value(*prev);
-                    FKL_IS_PAIR(*prev);
-                    prev = &FKL_VM_CDR(*prev), head = get_fast_value(head))
-                if (head == *prev)
-                    return 1;
-            if (*prev == FKL_VM_NIL)
-                *prev = cur;
-            else
-                return 1;
-        }
+    if (argc == 1) {
+        FKL_CPROC_RETURN(exe, ctx, obj);
+        return 0;
     }
+
+    if (!FKL_IS_PTR(obj)) {
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    }
+
+    FKL_ASSERT(argc > 1);
+    FklVMvalue *r = fklAppendVMvalue(exe,
+            obj,
+            argc - 1,
+            &FKL_CPROC_GET_ARG(exe, ctx, 1));
+    if (r == NULL)
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
-
-static int
-fkl_userdata_append(FklVMvalue *obj, uint32_t argc, FklVMvalue *const *base) {
-    FklVMudAppendCb append = FKL_VM_UD(obj)->mt_->append;
-    if (append)
-        return append(obj, argc, base);
-    else
-        return 1;
-}
-
-static const VMvalueAppendCb AppendCbs[FKL_VM_VALUE_GC_TYPE_NUM] = {
-    [FKL_TYPE_PAIR] = fkl_pair_append,
-    [FKL_TYPE_USERDATA] = fkl_userdata_append,
-};
 
 static int builtin_append1(FKL_CPROC_ARGL) {
     if (argc == 0) {
@@ -312,22 +119,24 @@ static int builtin_append1(FKL_CPROC_ARGL) {
         return 0;
     }
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    if (FKL_IS_PTR(obj)) {
-        FklValueType type = obj->type_;
-        VMvalueAppendCb appender = AppendCbs[type];
-        if (appender) {
-            uint32_t rest_argc = argc - 1;
-            if (rest_argc) {
-                if (appender(obj, rest_argc, &FKL_CPROC_GET_ARG(exe, ctx, 1)))
-                    FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-                FKL_CPROC_RETURN(exe, ctx, obj);
-            } else {
-                FKL_CPROC_RETURN(exe, ctx, obj);
-            }
-        } else
-            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    } else
+    if (argc == 1) {
+        FKL_CPROC_RETURN(exe, ctx, obj);
+        return 0;
+    }
+
+    if (!FKL_IS_PTR(obj)) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    }
+
+    FKL_ASSERT(argc > 1);
+    FklVMvalue *r = fklAppendVMvalue1(exe,
+            obj,
+            argc - 1,
+            &FKL_CPROC_GET_ARG(exe, ctx, 1));
+
+    if (r == NULL)
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 

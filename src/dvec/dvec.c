@@ -49,18 +49,21 @@ static int _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static int
-_dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
+static FklVMvalue *_dvec_append(FklVM *vm,
+        FklVMvalue *ud,
+        uint32_t argc,
+        FklVMvalue *const *base) {
     FklValueVector *dvec = &as_dvec(ud)->vec;
     size_t new_size = dvec->size;
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
             new_size += as_dvec(cur)->vec.size;
-        } else if (FKL_IS_VECTOR(cur))
+        } else if (FKL_IS_VECTOR(cur)) {
             new_size += FKL_VM_VEC(cur)->size;
-        else
-            return 1;
+        } else {
+            return NULL;
+        }
     }
     fklValueVectorReserve(dvec, new_size);
     new_size = dvec->size;
@@ -80,7 +83,7 @@ _dvec_append(FklVMvalue *ud, uint32_t argc, FklVMvalue *const *base) {
         new_size += ss;
     }
     dvec->size = new_size;
-    return 0;
+    return ud;
 }
 
 static inline FklVMvalue *

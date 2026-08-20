@@ -279,7 +279,7 @@ static inline int is_pattern_slot_expand_all(const FklVMvalue *s,
 }
 
 FklVMvalue *
-fklCreatePattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
+fklAstToPattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
     if (FKL_IS_PAIR(node)                                 //
             && fklIsList(node)                            //
             && FKL_IS_SYM(FKL_VM_CAR(node))               //
@@ -289,7 +289,7 @@ fklCreatePattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
 
         FklVMvalue *r = NULL;
         FklValueHashSet *symbolTable = fklValueHashSetCreate();
-        FklVMvalue *exp = fklCopyVMlistOrAtom(FKL_VM_CAR(FKL_VM_CDR(node)), vm);
+        FklVMvalue *exp = FKL_VM_CAR(FKL_VM_CDR(node));
         FklVMvalue *slotId = FKL_VM_CAR(node);
 
         FklSlotVector stack;

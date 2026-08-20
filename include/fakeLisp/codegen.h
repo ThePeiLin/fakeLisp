@@ -405,6 +405,9 @@ typedef struct FklCgCtx {
 
     FklVMvalueCgEnvWeakMap *proto_env_map;
 
+    FklVMvalue *dollar_s;
+    FklVMvalue *line_s;
+
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
     FklVMvalue *builtin_pattern_node[FKL_CODEGEN_PATTERN_NUM];
@@ -556,8 +559,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSimpleActCtx, {
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     FklVMvalue *proc;
 
-    FklVMvalue *doller_s;
-    FklVMvalue *line_s;
     uint64_t actual_len;
     FklVMvalue *dollers[];
 });

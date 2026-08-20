@@ -7344,6 +7344,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
         FklValueHashSet *symbol_set = NULL;
         FklVMvalue *pattern = fklAstToPattern(vm, name->value, &symbol_set);
         if (!pattern) {
+            // TODO: 这里应该打印原表达式
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;
@@ -7360,6 +7361,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
 
         if (fklValueHashSetPut2(symbol_set, ctx->builtin_sym_orig)) {
             fklValueHashSetDestroy(symbol_set);
+            // TODO: 这里应该打印原表达式
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;
@@ -7862,6 +7864,8 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     fklVMgcToGray(FKL_TYPE_CAST(FklVMvalue *, ctx->lnt), gc);
     fklVMgcToGray(FKL_VM_VAL(ctx->proto_env_map), gc);
     fklVMgcToGray(FKL_VM_VAL(ctx->hash_singleton), gc);
+    fklVMgcToGray(ctx->dollar_s, gc);
+    fklVMgcToGray(ctx->line_s, gc);
 
     fklVMgcToGray(ctx->cur_exp.value, gc);
     fklVMgcToGray(ctx->cur_exp.container, gc);
@@ -7936,6 +7940,8 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     ctx->lnt = fklCreateVMvalueLnt(vm);
     ctx->proto_env_map = (FklVMvalueCgEnvWeakMap *)FKL_VM_NIL;
     ctx->hash_singleton = FKL_VM_HASH(fklCreateVMvalueHashEq(vm));
+    ctx->dollar_s = add_symbol_cstr(ctx, "$$");
+    ctx->line_s = add_symbol_cstr(ctx, "line");
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

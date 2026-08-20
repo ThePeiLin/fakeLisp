@@ -1289,8 +1289,6 @@ static inline void traverse_prod_action(const FklVMvalue *ac,
         FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(ac);
 
         uint64_t len = ctx->actual_len;
-        fklTraverseSerializableValue(vt, ctx->doller_s);
-        fklTraverseSerializableValue(vt, ctx->line_s);
         for (size_t i = 0; i < len; ++i) {
             fklTraverseSerializableValue(vt, ctx->dollers[i]);
         }
@@ -1669,8 +1667,6 @@ static inline void write_prod_action(const FklVMvalue *ac,
 
         MacroCount len = ctx->actual_len;
         fwrite(&len, sizeof(len), 1, fp);
-        write_value_id(vt, 0, ctx->doller_s, fp);
-        write_value_id(vt, 0, ctx->line_s, fp);
         for (size_t i = 0; i < len; ++i) {
             write_value_id(vt, 0, ctx->dollers[i], fp);
         }
@@ -1786,8 +1782,6 @@ static inline FklVMvalue *load_prod_action(FILE *fp,
         fread(&len, sizeof(len), 1, fp);
         FklVMvalueCustomActCtx *c = fklCreateVMvalueCustomActCtx(ctx->vm, len);
 
-        c->doller_s = load_value_id(fp, values);
-        c->line_s = load_value_id(fp, values);
         for (size_t i = 0; i < len; ++i) {
             c->dollers[i] = load_value_id(fp, values);
         }

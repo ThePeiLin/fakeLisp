@@ -1541,8 +1541,6 @@ static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         return;
 
     fklVMgcToGray(c->proc, gc);
-    fklVMgcToGray(c->doller_s, gc);
-    fklVMgcToGray(c->line_s, gc);
     for (size_t i = 0; i < c->actual_len; ++i) {
         fklVMgcToGray(c->dollers[i], gc);
     }
@@ -1586,14 +1584,14 @@ static void *custom_action(FklProdActionArgs *c,
     }
 
     fklPmatchHashMapAdd2(&ht,
-            action_ctx->doller_s,
+            cg_ctx->dollar_s,
             (FklPmatchRes){
                 .value = nodes_vector,
                 .container = nodes_vector,
             });
 
     fklPmatchHashMapAdd2(&ht,
-            action_ctx->line_s,
+            cg_ctx->line_s,
             (FklPmatchRes){
                 .value = line_node,
                 .container = nodes_vector,
@@ -1643,9 +1641,6 @@ FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
     v = fklCreateVMvalueCustomActCtx(cg_ctx->vm, actual_len);
 
     v->actual_len = actual_len;
-
-    v->doller_s = add_symbol_cstr(cg_ctx, "$$");
-    v->line_s = add_symbol_cstr(cg_ctx, "$$");
 
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
@@ -4113,8 +4108,8 @@ static inline ValToGrammerSymErr vec_to_prod(const FklVMvalue *vec,
         for (size_t i = 0; i < act_ctx->actual_len; ++i) {
             fklAddCgDefBySid(act_ctx->dollers[i], 1, macro_env);
         }
-        fklAddCgDefBySid(act_ctx->doller_s, 1, macro_env);
-        fklAddCgDefBySid(act_ctx->line_s, 1, macro_env);
+        fklAddCgDefBySid(ctx->dollar_s, 1, macro_env);
+        fklAddCgDefBySid(ctx->line_s, 1, macro_env);
 
         cgExpQueuePush2(queue,
                 (FklPmatchRes){

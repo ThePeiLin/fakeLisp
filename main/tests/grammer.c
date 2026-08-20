@@ -27,9 +27,9 @@ int main() {
     fklPrintGrammer(vm, g, stdout);
     FklLalrItemSetHashMap *itemSet = fklGenerateLr0Items(g);
     fputc('\n', stdout);
-    // fputs("item sets:\n",stdout);
+    fputs("item sets:\n", stdout);
     fklLr0ToLalrItems(itemSet, g);
-    // fklPrintItemStateSet(itemSet,g,st,stdout);
+    fklPrintItemStateSet(vm, itemSet, g, stdout);
 
     FklStrBuf err_msg;
     fklInitStrBuf(&err_msg);

@@ -1948,18 +1948,17 @@ static inline FklLalrItem lalr_item_init(FklGrammerProduction *prod,
 static inline FklLalrItem get_item_advance(const FklLalrItem *i) {
     FklLalrItem item = {
         .prod = i->prod,
-        .idx = i->idx + 1,
+        .idx = i->idx,
         .la = i->la,
     };
-    if (item.idx < i->prod->len && is_at_delim_sym(i))
-        ++item.idx;
 
-    // skip composite terminal
-    if (item.idx < i->prod->len) {
-        const FklGrammerSym *sym = &i->prod->syms[i->idx];
-        if (sym->type == FKL_TERM_COMP)
-            item.idx += sym->comp.len;
-    }
+    const FklGrammerSym *s = get_item_next(&item);
+    int is_at_delim_v = s && is_at_delim_sym(&item);
+    size_t advance = is_at_delim_v ? 2 : 1;
+
+    if (s && s->type == FKL_TERM_COMP)
+        advance += s->comp.len;
+    item.idx += advance;
 
     return item;
 }
@@ -2220,11 +2219,19 @@ static inline void print_item(FklVM *vm,
     for (; i < idx; i++) {
         fklCodeBuilderPutc(build, ' ');
         print_prod_sym(vm, &syms[i], rt, build);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
     fklCodeBuilderPuts(build, " *");
     for (; i < len; i++) {
         fklCodeBuilderPutc(build, ' ');
         print_prod_sym(vm, &syms[i], rt, build);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
     fklCodeBuilderPuts(build, " ## ");
     print_lookahead(&item->la, rt, build);
@@ -2709,6 +2716,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer *g,
             lr1_item_set_closure(&closure, g, cache);
             for (FklLalrItemHashSetNode *cl = closure.first; cl;
                     cl = cl->next) {
+
                 FklLalrItem i = cl->k;
                 const FklGrammerSym *s = get_item_next(&i);
                 int is_at_delim_v = s && is_at_delim_sym(&i);
@@ -2931,11 +2939,19 @@ static inline void print_item_as_dot(const FklLalrItem *item,
     for (; i < idx; i++) {
         fklCodeBuilderPutc(fp, ' ');
         print_prod_sym_as_dot(&syms[i], rt, fp);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
     fklCodeBuilderPuts(fp, " *");
     for (; i < len; i++) {
         fklCodeBuilderPutc(fp, ' ');
         print_prod_sym_as_dot(&syms[i], rt, fp);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
     fklCodeBuilderPuts(fp, " , ");
     print_lookahead_as_dot(&item->la, rt, fp);
@@ -2983,11 +2999,19 @@ static inline void print_lalr_item(FklVM *vm,
     for (; i < idx; i++) {
         fklCodeBuilderPutc(build, ' ');
         print_prod_sym(vm, &syms[i], rt, build);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
     fklCodeBuilderPuts(build, " *");
     for (; i < len; i++) {
         fklCodeBuilderPutc(build, ' ');
         print_prod_sym(vm, &syms[i], rt, build);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += syms[i].comp.len;
+            continue;
+        }
     }
 }
 
@@ -4574,7 +4598,9 @@ static void build_composite(const FklGrammer *g,
         CB_LINE("ssize_t matchLen=0;");
         CB_LINE("int is_waiting_for_more=0;");
         CB_LINE("size_t const skip_ignore_len = 0;");
+        CB_LINE("size_t line = ctx->line;");
         CB_LINE("(void)skip_ignore_len;");
+        CB_LINE("(void)line;");
         for (size_t k = 0; k < len; k++) {
             const FklGrammerSym *p = &parts[k];
             switch (p->type) {
@@ -4590,7 +4616,7 @@ static void build_composite(const FklGrammer *g,
                 fklGetStringWithRegex(&g->regexes, p->re, &renum);
                 CB_LINE("if(!regex_lex_match_for_parser_in_c((const "
                         "FklRegexCode*)&" PRINT_C_REGEX_PREFIX "%" PRIX64
-                        ",*in+otherMatchLen+,*restLen-"
+                        ",*in+otherMatchLen,*restLen-"
                         "otherMatchLen,&matchLen,"
                         "&is_waiting_for_more)) goto fail;",
                         renum);
@@ -4618,13 +4644,14 @@ static void build_composite(const FklGrammer *g,
                 CB_INDENT(flag) {
                     CB_LINE(",cstr+otherMatchLen");
                     CB_LINE(",matchLen");
-                    CB_LINE(",ctx->line");
+                    CB_LINE(",line");
                     if (k > 0) {
                         CB_LINE(",0");
                     } else {
                         CB_LINE(",start_with_ignore");
                     }
                     CB_LINE(",ctx->ctx);");
+					CB_LINE("line += fklCountCharInBuf(cstr+otherMatchLen, matchLen, '\\n');");
                 }
             }
 
@@ -5047,6 +5074,15 @@ void fklPrintGrammerProduction(FklVM *vm,
     for (size_t i = 0; i < len;) {
         CB_FMT(" ");
         print_prod_sym(vm, &syms[i], rt, build);
+        if (syms[i].type == FKL_TERM_COMP) {
+            i += 1 + syms[i].comp.len;
+            if (i < len && syms[i].type == FKL_TERM_IGNORE)
+                i++;
+            else if (i < len)
+                CB_FMT(" .. ");
+            continue;
+        }
+
         ++i;
         if (i < len && syms[i].type != FKL_TERM_IGNORE) {
             CB_FMT(" .. ");
@@ -5121,14 +5157,14 @@ static inline size_t match_ignore(const FklGrammer *g,
     return ret_len;
 }
 
-static inline size_t match_comp(const FklGrammer *g,
+static inline ssize_t match_comp(const FklGrammer *g,
         FklGrammerMatchCtx *ctx,
         const FklGraCompSym *comp,
         const char *start,
         const char *cur,
         size_t rest,
         int *is_waiting_for_more) {
-    size_t total = 0;
+    ssize_t total = 0;
     for (size_t i = 0; i < comp->len; i++) {
         const FklGrammerSym *p = &comp->parts[i];
         size_t partLen = 0;
@@ -5138,7 +5174,7 @@ static inline size_t match_comp(const FklGrammer *g,
             break;
         case FKL_TERM_STRING:
             if (fklStringCharBufMatch(p->str, cur, rest) < 0)
-                return 0;
+                return -1;
             partLen = p->str->size;
             break;
         case FKL_TERM_REGEX: {
@@ -5146,7 +5182,7 @@ static inline size_t match_comp(const FklGrammer *g,
             uint32_t len = fklRegexLexMatchp(p->re, cur, rest, &last_is_true);
             if (len > rest) {
                 *is_waiting_for_more |= last_is_true;
-                return 0;
+                return -1;
             }
             partLen = len;
         } break;
@@ -5161,7 +5197,7 @@ static inline size_t match_comp(const FklGrammer *g,
                         &partLen,
                         ctx,
                         is_waiting_for_more))
-                return 0;
+                return -1;
         } break;
         }
         total += partLen;
@@ -5247,14 +5283,15 @@ match_start:
     } break;
 
     case FKL_TERM_COMP: {
-        size_t match_len = match_comp(g,
+        ssize_t match_len = match_comp(g,
                 ctx,
                 &match->comp,
                 start,
                 cstr + args->skip_ignore_len,
                 restLen - args->skip_ignore_len,
                 is_waiting_for_more);
-        if (match_len > 0) {
+
+        if (match_len >= 0) {
             args->matchLen = match_len;
             return 1;
         }
@@ -5567,6 +5604,7 @@ void fklEmplaceAnalysisSymbol(const FklGrammer *g,
                 ctx,
                 i == 0 && start_with_ignore,
                 line);
+        line += fklCountCharInBuf(cur, partLen, '\n');
         cur += partLen;
         rest -= partLen;
     }

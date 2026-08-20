@@ -155,10 +155,10 @@ static inline int fklCompGraSymEqual(const FklGraCompSym *c0,
         const FklGrammerSym *u1 = &c1->parts[i];
         if (u0->type != u1->type)
             return 0;
-        FKL_ASSERT(u0->type != FKL_TERM_COMP);
         switch (u0->type) {
         default:
-            return 0;
+            FKL_UNREACHABLE();
+            break;
 
         case FKL_TERM_BUILTIN:
             if (!fklBuiltinGrammerSymEqual(&u0->b, &u1->b))
@@ -223,8 +223,11 @@ static uintptr_t fklCompGraSymHash(const FklGraCompSym *c) {
     for (size_t i = 0; i < c->len; ++i) {
         const FklGrammerSym *u = &c->parts[i];
         uintptr_t h = 0;
-        FKL_ASSERT(u->type != FKL_TERM_COMP);
         switch (u->type) {
+        default:
+            FKL_UNREACHABLE();
+            break;
+
         case FKL_TERM_BUILTIN:
             h = fklBuiltinGrammerSymHash(&u->b);
             break;
@@ -234,8 +237,6 @@ static uintptr_t fklCompGraSymHash(const FklGraCompSym *c) {
         case FKL_TERM_STRING:
         case FKL_TERM_KEYWORD:
             h = FKL_TYPE_CAST(uintptr_t, u->str);
-            break;
-        default:
             break;
         }
         seed = fklHashCombine(seed, h);

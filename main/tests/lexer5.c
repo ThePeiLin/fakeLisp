@@ -49,18 +49,18 @@ static void *action_first(FklProdActionArgs *args,
 }
 
 static const FklGrammerBuiltinAction builtin_actions[] = {
-    { "not_allow_ignore", action_not_allow_ignore },
-    { "start_with_ignore", action_start_with_ignore },
-    { "first", action_first },
-    { "nil", action_nil },
+    { "not_allow_ignore", "not_allow_ignore", action_not_allow_ignore },
+    { "start_with_ignore", "start_with_ignore", action_start_with_ignore },
+    { "first", "first", action_first },
+    { "nil", "nil", action_nil },
 };
 
 static inline const FklGrammerBuiltinAction *
 builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {
-    for (const FklGrammerBuiltinAction *cur = &builtin_actions[0]; cur->name;
+    for (const FklGrammerBuiltinAction *cur = &builtin_actions[0]; cur->key;
             ++cur) {
-        size_t cur_len = strlen(cur->name);
-        if (cur_len == len && memcmp(cur->name, str, cur_len) == 0)
+        size_t cur_len = strlen(cur->key);
+        if (cur_len == len && memcmp(cur->key, str, cur_len) == 0)
             return cur;
     }
     return NULL;

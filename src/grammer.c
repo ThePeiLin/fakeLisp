@@ -57,7 +57,7 @@ static inline void destroy_builtin_grammer_sym(FklLalrBuiltinGrammerSym *s) {
 FklGrammerProduction *fklCreateProduction(FklVMvalue *sid,
         size_t len,
         const FklGrammerSym *syms,
-        const char *name,
+        const char *print_name,
         FklProdActionFunc func,
         void *ctx,
         void (*destroy)(void *),
@@ -68,7 +68,7 @@ FklGrammerProduction *fklCreateProduction(FklVMvalue *sid,
     FKL_ASSERT(r);
     r->left = sid;
     r->len = len;
-    r->name = name;
+    r->print_name = print_name;
     r->func = func;
     r->ctx = ctx;
     r->ctx_destroy = destroy;
@@ -81,7 +81,7 @@ FklGrammerProduction *fklCreateProduction(FklVMvalue *sid,
 
 FklGrammerProduction *fklCreateEmptyProduction(FklVMvalue *sid,
         size_t len,
-        const char *name,
+        const char *print_name,
         FklProdActionFunc func,
         void *ctx,
         void (*destroy)(void *),
@@ -92,7 +92,7 @@ FklGrammerProduction *fklCreateEmptyProduction(FklVMvalue *sid,
     FKL_ASSERT(r);
     r->left = sid;
     r->len = len;
-    r->name = name;
+    r->print_name = print_name;
     r->func = func;
     r->ctx = ctx;
     r->ctx_destroy = destroy;
@@ -614,7 +614,7 @@ static inline void build_builtin_match_print_src(FklCodeBuilder *build,
     CB_INDENT(flag) {
         CB_LINE("if(restLen){");
         CB_INDENT(flag) {
-            CB_LINE("size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
+            CB_LINE("size_t maxLen=get_max_non_term_length(NULL, ctx,start,cstr,restLen);");
             CB_LINE("if(maxLen&&%s(cstr,maxLen)){", func_name);
             CB_INDENT(flag) {
                 CB_LINE("*pmatchLen=maxLen;");
@@ -802,7 +802,7 @@ static void builtin_match_identifier_print_src(const FklGrammer *g,
     }
     CB_LINE("{");
     CB_INDENT(flag) {
-        CB_LINE("size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
+        CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,cstrStart,cstr,restLen);");
         CB_LINE("if(!maxLen");
         CB_INDENT(flag) {
             CB_INDENT(flag) {
@@ -844,7 +844,7 @@ static void builtin_match_nodelimiter_print_src(const FklGrammer *g,
     }
     CB_LINE("{");
     CB_INDENT(flag) {
-        CB_LINE("size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
+        CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,cstrStart,cstr,restLen);");
         CB_LINE("if(!maxLen)");
         CB_INDENT(flag) { CB_LINE("return 0;"); }
         CB_LINE("*pmatchLen=maxLen;");
@@ -928,7 +928,7 @@ static inline void build_lisp_match_print_src(const FklGrammer *g,
     CB_INDENT(flag) {
         CB_LINE("if(restLen) {");
         CB_INDENT(flag) {
-            CB_LINE("size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
+            CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,start,cstr,restLen);");
             CB_LINE("if(maxLen&&(!term||fklCharBufMatch(term,termLen,cstr+maxLen,restLen-maxLen)<0)");
             CB_INDENT(flag) {
                 CB_LINE("&&%s(cstr,maxLen)){", func_name);
@@ -1110,7 +1110,7 @@ static void builtin_match_s_char_print_src(const FklGrammer *g,
         CB_LINE("if(fklCharBufMatch(prefix,prefix_size,cstr,restLen)<0) return 0;");
         CB_LINE("restLen-=prefix_size;");
         CB_LINE("cstr+=prefix_size;");
-        CB_LINE("size_t maxLen=get_max_non_term_length(ctx,start,cstr,restLen);");
+        CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,start,cstr,restLen);");
         CB_LINE("if(!maxLen) *pmatchLen=prefix_size+1;");
         CB_LINE("else *pmatchLen=prefix_size+maxLen;");
         CB_LINE("return 1;");
@@ -1236,7 +1236,7 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
                     CB_LINE("continue;");
                 }
                 CB_LINE("}");
-                CB_LINE("size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen-matchLen);");
+                CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,cstrStart,cstr,restLen-matchLen);");
                 CB_LINE("if((!matchLen&&!maxLen)");
                 CB_INDENT(flag) {
                     CB_LINE("||(fklCharBufMatch(start,start_size,cstr+maxLen,restLen-maxLen-matchLen)<0");
@@ -1263,7 +1263,7 @@ static void builtin_match_symbol_print_src(const FklGrammer *g,
         }
         CB_LINE("}else{");
         CB_INDENT(flag) {
-            CB_LINE("size_t maxLen=get_max_non_term_length(ctx,cstrStart,cstr,restLen);");
+            CB_LINE("size_t maxLen=get_max_non_term_length(NULL,ctx,cstrStart,cstr,restLen);");
             CB_LINE("if(!maxLen");
             CB_INDENT(flag) {
                 CB_LINE("||fklIsDecInt(cstr,maxLen)");
@@ -4025,9 +4025,10 @@ static inline void build_get_max_non_term_length_prototype_to_c_file(
         FklCodeBuilder *build) {
 
     CB_LINE("static inline size_t");
-    CB_LINE("get_max_non_term_length(FklGrammerMatchCtx*");
+    CB_LINE("get_max_non_term_length(FklGrammer*");
 
     CB_INDENT(flag) {
+        CB_LINE(",FklGrammerMatchCtx*");
         CB_LINE(",const char*");
         CB_LINE(",const char*");
         CB_LINE(",size_t);");
@@ -4090,8 +4091,9 @@ static inline void build_match_ignore_to_c_file(const FklGrammer *g,
 static inline void build_get_max_non_term_length_to_c_file(const FklGrammer *g,
         FklCodeBuilder *build) {
     CB_LINE("static inline size_t");
-    CB_LINE("get_max_non_term_length(FklGrammerMatchCtx* ctx");
+    CB_LINE("get_max_non_term_length(FklGrammer*");
     CB_INDENT(flag) {
+        CB_LINE(",FklGrammerMatchCtx* ctx");
         CB_LINE(",const char* start");
         CB_LINE(",const char* cur");
         CB_LINE(",size_t rLen) {");
@@ -4357,7 +4359,7 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
 
             CB_LINE("void* ast=prod_action_%s(NULL,ctx->ctx,base,%" PRIu64
                     ",line);\n",
-                    ac->prod->name,
+                    ac->prod->print_name,
                     actual_len);
 
             if (actual_len) {
@@ -5453,7 +5455,7 @@ void fklMergeGrammerProd(FklGrammer *to,
         const FklGrammer *from) {
     FklGrammerProduction *new_prod = fklCreateEmptyProduction(prod->left,
             prod->len,
-            prod->name,
+            prod->print_name,
             prod->func,
             prod->ctx_copy(prod->ctx),
             prod->ctx_destroy,

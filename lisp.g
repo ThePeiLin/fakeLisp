@@ -30,15 +30,15 @@
               -> ":"               =>  nil
 
 *string* -> /""|"(\\.|.)*"/        =>  string
-#         -> *raw-string-seq*       =>  raw-string
+#         -> *raw-string-seq*      =>  raw-string
 
 # *raw-string-seq* -> "#r"..?raw-string["\""]  =>  second
 
 *bytes*  -> /#""|#"(\\.|.)*"/  =>  bytes
 
-*integer* -> ?s-dint["|"]  =>  dec_integer
-          -> ?s-xint["|"]  =>  hex_integer
-          -> ?s-oint["|"]  =>  oct_integer
+*integer* -> ?s-dint["|"]  =>  dec-integer
+          -> ?s-xint["|"]  =>  hex-integer
+          -> ?s-oint["|"]  =>  oct-integer
 
 *float* -> ?s-dfloat["|"]  =>  float
         -> ?s-xfloat["|"]  =>  float
@@ -70,8 +70,8 @@
             -> "#hashequal[" *hash-items* "]"  =>  hashequal
 
 *hash-items* ->                                           =>  nil
-             -> "(" *s-exp* "," *s-exp* ")" *hash-items*  =>  pair_list
-             -> "[" *s-exp* "," *s-exp* "]" *hash-items*  =>  pair_list
+             -> "(" *s-exp* "," *s-exp* ")" *hash-items*  =>  pair-list
+             -> "[" *s-exp* "," *s-exp* "]" *hash-items*  =>  pair-list
 
 ?e -> "#!" /.*\n?/
    -> ";"  /.*\n?/

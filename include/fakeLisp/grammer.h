@@ -331,7 +331,7 @@ typedef void *(*FklProdActionFunc)(FklProdActionArgs *args,
 
 typedef struct FklGrammerProduction {
     struct FklGrammerProduction *next;
-    const char *name;
+    const char *print_name;
     FklProdActionArgs *ctx;
     FklProdActionFunc func;
     void *(*ctx_copy)(const void *);
@@ -554,7 +554,8 @@ typedef struct FklGrammer {
 } FklGrammer;
 
 typedef struct {
-    const char *name;
+    const char *key;
+    const char *print_name;
     FklProdActionFunc func;
 } FklGrammerBuiltinAction;
 

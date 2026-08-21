@@ -753,7 +753,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                     unresolved_action_name_error(arg, &token);
                     goto error_happened;
                 }
-                action_name = action->name;
+                action_name = action->print_name;
                 action_func = action->func;
             }
             goto loop_break;

@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static const FklGrammerBuiltinAction builtin_actions[] = { { "symbol", NULL } };
+static const FklGrammerBuiltinAction builtin_actions[] = {
+    { "symbol", "symbol", NULL }
+};
 
 static inline const FklGrammerBuiltinAction *
 builtin_prod_action_resolver(void *ctx, const char *str, size_t len) {

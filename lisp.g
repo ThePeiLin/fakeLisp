@@ -29,7 +29,11 @@
 *keyword-seq* -> ":"..?symbol["|"] =>  second
               -> ":"               =>  nil
 
-*string* -> /""|"(\\.|.)*"/    =>  string
+*string* -> /""|"(\\.|.)*"/        =>  string
+#         -> *raw-string-seq*       =>  raw-string
+
+# *raw-string-seq* -> "#r"..?raw-string["\""]  =>  second
+
 *bytes*  -> /#""|#"(\\.|.)*"/  =>  bytes
 
 *integer* -> ?s-dint["|"]  =>  dec_integer

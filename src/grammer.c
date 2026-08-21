@@ -1320,6 +1320,10 @@ static const FklLalrBuiltinMatch builtin_match_symbol = {
     .build_c_match_cond = builtin_match_symbol_print_c_match_cond,
 };
 
+static const FklLalrBuiltinMatch builtin_match_raw_string = {
+    .name = "?raw-string",
+};
+
 #undef DEFINE_DEFAULT_C_MATCH_COND
 #undef DEFINE_LISP_NUMBER_PRINT_SRC
 #undef DEFINE_LISP_NUMBER_PRINT_C_MATCH_COND
@@ -1345,6 +1349,8 @@ static const struct BuiltinGrammerSymList {
     {"?symbol",      &builtin_match_symbol      },
     {"?identifier",  &builtin_match_identifier  },
     {"?nodelimiter", &builtin_match_nodelimiter },
+
+    {"?raw-string",  &builtin_match_raw_string  },
 
     {NULL,           NULL                       },
     // clang-format on
@@ -4349,7 +4355,7 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
             CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
             CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
-            CB_LINE("void* ast=prod_action_%s(ctx->ctx,base,%" PRIu64
+            CB_LINE("void* ast=prod_action_%s(NULL,ctx->ctx,base,%" PRIu64
                     ",line);\n",
                     ac->prod->name,
                     actual_len);

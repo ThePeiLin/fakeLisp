@@ -181,7 +181,10 @@ target_define_relative_file(${GRAMMER_GEN})
 
 add_executable(test-lexer3 "main/tests/lexer3.c")
 target_link_libraries(test-lexer3 grammer_lib ${LINK_TARGET})
-target_compile_definitions(test-lexer3 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c")
+target_compile_definitions(test-lexer3 PRIVATE
+	ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
+	BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
+)
 target_define_relative_file(test-lexer3)
 
 add_executable(test-lexer4 "main/tests/lexer4.c")
@@ -190,7 +193,11 @@ target_define_relative_file(test-lexer4)
 
 add_executable(test-lexer5 "main/tests/lexer5.c")
 target_link_libraries(test-lexer5 grammer_lib ${LINK_TARGET})
-target_compile_definitions(test-lexer5 PRIVATE ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c")
+target_compile_definitions(test-lexer5 PRIVATE
+	ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
+	BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
+)
+
 target_define_relative_file(test-lexer5)
 
 add_executable(test-parser-grammer "main/tests/parser-grammer.c")
@@ -425,8 +432,10 @@ add_custom_command(OUTPUT "vmparse.c"
 	"fklVMvalueTerminalCreate"
 	"fklVMvalueTerminalDestroy"
 	"fklVMvaluePushState0ToStack"
+	${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
 
-	DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
+    DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
+	        ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
 	VERBATIM)
 
 # 清理

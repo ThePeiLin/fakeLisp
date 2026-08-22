@@ -3106,9 +3106,7 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
     if (FKL_IS_SYM(v)) {
         bt = fklGetBuiltinMatch(&g->builtins, v);
         out->t = bt;
-        if (out->t->args_check) {
-            err = out->t->args_check(out->len, out->args, g);
-        }
+        err = fklBuiltinTermArgsCheck(bt, out->len);
     } else if (FKL_IS_VECTOR(v)) {
         FklVMvalue *first = FKL_VM_VEC(v)->base[0];
         bt = fklGetBuiltinMatch(&g->builtins, first);
@@ -3123,8 +3121,8 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
         }
 
         out->t = bt;
-        if (out->t->args_check)
-            err = out->t->args_check(arg_count, args, g);
+        err = fklBuiltinTermArgsCheck(out->t, arg_count);
+
         if (err) {
             fklZfree(args);
             goto done;
@@ -3710,10 +3708,7 @@ static FKL_ALWAYS_INLINE BtError do_check_bs_args(const BtS *bt,
         }
     }
 
-    if (bt->args_check != NULL) {
-        err = bt->args_check(arg_count, args, g);
-    }
-
+    err = fklBuiltinTermArgsCheck(bt, arg_count);
     if (args != NULL) {
         fklZfree(args);
     }

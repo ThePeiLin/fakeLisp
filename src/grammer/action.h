@@ -29,7 +29,7 @@ static const FklGrammerBuiltinAction builtin_actions[] = {
     { "quote",       "quote",       prod_action_quote       },
     { "unquote",     "unquote",     prod_action_unquote     },
     { "qsquote",     "qsquote",     prod_action_qsquote     },
-    { "unqtesp",     "unquote",     prod_action_unqtesp     },
+    { "unqtesp",     "unqtesp",     prod_action_unqtesp     },
     { "pair-list",   "pair_list",   prod_action_pair_list   },
     { "hasheq",      "hasheq",      prod_action_hasheq      },
     { "hasheqv",     "hasheqv",     prod_action_hasheqv     },

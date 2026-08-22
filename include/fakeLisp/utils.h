@@ -73,6 +73,7 @@ int fklIsFixMulOverflow(int64_t a, int64_t b);
 
 char *fklStrCat(char *, const char *);
 
+char *fklStrstr(const char *haystack, const char *needle);
 // steal from glib: https://gitlab.gnome.org/GNOME/glib
 char *fklStrrstr(const char *haystack, const char *needle);
 char *fklStrEndWith(const char *str, const char *sub);
@@ -92,6 +93,8 @@ int fklIsAccessibleDirectory(const char *s);
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
 void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset);
+
+int fklLoadLines(FklStringVector *lines, FILE *in);
 
 FKL_ALWAYS_INLINE
 static int fklComputeDigitsCount(uint64_t len) {

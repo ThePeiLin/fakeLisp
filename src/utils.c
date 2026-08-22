@@ -491,6 +491,10 @@ char *fklStrCat(char *s1, const char *s2) {
     return s1;
 }
 
+char *fklStrstr(const char *haystack, const char *needle) {
+    return strstr(haystack, needle);
+}
+
 char *fklStrrstr(const char *haystack, const char *needle) {
     if (haystack == NULL)
         return NULL;
@@ -925,4 +929,20 @@ void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset) {
 
     buf->buf[offset] = ch;
     fklStrBufMoveToFront(buf, offset);
+}
+
+int fklLoadLines(FklStringVector *lines, FILE *in) {
+    FklStrBuf buf = { 0 };
+    fklInitStrBuf(&buf);
+
+    int ch = 0;
+    do {
+        ch = fklGetDelim(in, &buf, '\n');
+        FklString *s = fklCreateString(buf.index, buf.buf);
+        fklStringVectorPushBack2(lines, s);
+        fklStrBufClear(&buf);
+    } while (ch != EOF);
+
+    fklUninitStrBuf(&buf);
+    return 0;
 }

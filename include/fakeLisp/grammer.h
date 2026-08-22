@@ -37,17 +37,30 @@ typedef enum FklBuiltinTerminalInitError {
 } FklBuiltinTerminalInitError;
 
 typedef struct {
-    const struct FklGrammer *g;
     size_t len;
     FklString const **args;
 } FklBuiltinTerminalMatchArgs;
 
-typedef FklBuiltinTerminalInitError (*FklLalrBuiltinMatchArgChecker)(size_t len,
-        const FklString **args,
-        const struct FklGrammer *g);
+#define FKL_BUILTIN_TERMINAL_START(name)
+#define FKL_BUILTIN_TERMINAL_ARG(name)
+#define FKL_BUILTIN_TERMINAL_END()
+
+// FklBuiltinTermSrcHashMap
+#define FKL_HASH_KEY_TYPE FklStrView
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    fklCharBufEqual((A)->str, (A)->len, (B)->str, (B)->len)
+#define FKL_HASH_KEY_HASH return fklCharBufHash(pk->str, pk->len)
+#define FKL_HASH_VAL_TYPE FklStringVector
+#define FKL_HASH_VAL_UNINIT(V) fklStringVectorUninit((V))
+#define FKL_HASH_ELM_NAME BuiltinTermSrc
+#include "cont/hash.h"
+
+int fklParseBuiltinTermSrc(FklBuiltinTermSrcHashMap *maps,
+        const FklStringVector *lines);
 
 typedef struct {
     int (*match)(const FklBuiltinTerminalMatchArgs *args,
+            const struct FklGrammer *g,
             const char *start,
             const char *str,
             size_t restLen,
@@ -55,12 +68,25 @@ typedef struct {
             FklGrammerMatchCtx *ctx,
             int *is_waiting_for_more);
 
-    FklLalrBuiltinMatchArgChecker args_check;
+    int min_args;
+    int max_args;
+
     const char *name;
-    void (*build_src)(const struct FklGrammer *g, FklCodeBuilder *build);
-    void (*build_c_match_cond)(const FklBuiltinTerminalMatchArgs *args,
-            FklCodeBuilder *build);
+    const char *key;
 } FklLalrBuiltinMatch;
+
+static FKL_ALWAYS_INLINE FklBuiltinTerminalInitError fklBuiltinTermArgsCheck(
+        const FklLalrBuiltinMatch *b,
+        size_t count) {
+    FKL_ASSERT(b->max_args >= 0);
+    FKL_ASSERT(b->min_args >= 0);
+    FKL_ASSERT(b->max_args >= b->min_args);
+    if (count < (size_t)b->min_args)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_FEW_ARGS;
+    else if (count > (size_t)b->max_args)
+        return FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS;
+    return FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+}
 
 typedef struct {
     const FklLalrBuiltinMatch *t;
@@ -637,11 +663,12 @@ void fklPrintAnalysisTableForGraphEasy(const FklGrammer *grammer, FILE *fp);
 void fklPrintAnalysisTableForGraphEasy2(const FklGrammer *grammer,
         FklCodeBuilder *fp);
 
-void fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
+int fklPrintAnalysisTableAsCfunc(const FklGrammer *grammer,
         FILE *action_src_fp,
         const char *ast_creator_name,
         const char *ast_destroy_name,
         const char *state_0_push_func_name,
+        const FklBuiltinTermSrcHashMap *maps,
         FILE *fp);
 
 void fklLr0ToLalrItems(FklLalrItemSetHashMap *, FklGrammer *grammer);

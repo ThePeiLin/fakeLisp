@@ -14,6 +14,11 @@
 extern "C" {
 #endif
 
+typedef struct {
+    size_t len;
+    const char *str;
+} FklStrView;
+
 typedef struct FklString {
     uint64_t size;
     char str[1];
@@ -38,6 +43,7 @@ int fklStringCstrCmp(const FklString *, const char *);
 ssize_t fklStringCharBufMatch(const FklString *, const char *, size_t len);
 
 ssize_t fklCharBufMatch(const char *s0, size_t l0, const char *s1, size_t l1);
+int fklCharBufEqual(const char *s0, size_t l0, const char *s1, size_t l1);
 
 size_t
 fklQuotedStringMatch(const char *cstr, size_t restLen, const FklString *end);
@@ -180,9 +186,14 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv);
 #define FKL_VECTOR_ELM_TYPE_NAME Uint
 #include "cont/vector.h"
 
-// FklstringVector
+// FklStringVector
 #define FKL_VECTOR_ELM_TYPE FklString *
 #define FKL_VECTOR_ELM_TYPE_NAME String
+#include "cont/vector.h"
+
+// FklStrViewVector
+#define FKL_VECTOR_ELM_TYPE FklStrView
+#define FKL_VECTOR_ELM_TYPE_NAME StrView
 #include "cont/vector.h"
 
 size_t fklBigIntToStrBuf(const FklBigInt *a,

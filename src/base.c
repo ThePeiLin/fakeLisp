@@ -72,6 +72,12 @@ fklCharBufMatch(const char *a, size_t a_size, const char *b, size_t b_size) {
     return -1;
 }
 
+int fklCharBufEqual(const char *s0, size_t l0, const char *s1, size_t l1) {
+    if (l0 == l1)
+        return !memcmp(s0, s1, l0);
+    return 0;
+}
+
 size_t
 fklQuotedStringMatch(const char *cstr, size_t restLen, const FklString *end) {
     if (restLen < end->size)

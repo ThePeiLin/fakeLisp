@@ -154,14 +154,32 @@ int main() {
     const char *ast_creator_name = "fklNastTerminalCreate";
     const char *ast_destroy_name = "fklDestroyNastNode";
     const char *state_0_push_name = "fklNastPushState0ToStack";
+    const char *builtin_term_name = BUILTIN_TERM_PATH;
 
     FILE *action_file = fopen(action_file_name, "r");
     FILE *parse = fopen(output_file_name, "w");
+
+    FILE *builtin_term = fopen(builtin_term_name, "r");
+    FklStringVector lines = { 0 };
+
+    fklStringVectorInit(&lines, 32);
+    FklBuiltinTermSrcHashMap maps;
+    fklBuiltinTermSrcHashMapInit(&maps);
+
+    fklLoadLines(&lines, builtin_term);
+    int r = fklParseBuiltinTermSrc(&maps, &lines);
+    if (r < 0) {
+        abort();
+    }
+
+    fclose(builtin_term);
+
     fklPrintAnalysisTableAsCfunc(g,
             action_file,
             ast_creator_name,
             ast_destroy_name,
             state_0_push_name,
+            &maps,
             parse);
 
     fclose(parse);
@@ -170,6 +188,14 @@ int main() {
     fclose(tablef);
     fclose(gzf);
     fclose(lalrgzf);
+
+    for (size_t i = 0; i < lines.size; ++i) {
+        fklZfree(lines.base[i]);
+        lines.base[i] = NULL;
+    }
+
+    fklStringVectorUninit(&lines);
+    fklBuiltinTermSrcHashMapUninit(&maps);
 
     fputc('\n', stdout);
 

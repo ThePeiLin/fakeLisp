@@ -1955,8 +1955,7 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
         s->b.args = NULL;
 
         FklBuiltinTerminalInitError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-        if (s->b.t->args_check)
-            err = s->b.t->args_check(vec->size - 1, args, g);
+        err = fklBuiltinTermArgsCheck(s->b.t, vec->size);
         if (err) {
             fklZfree(args);
             return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
@@ -2006,8 +2005,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
                 s->b.len = 0;
                 FklBuiltinTerminalInitError err =
                         FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-                if (s->b.t->args_check)
-                    err = s->b.t->args_check(s->b.len, s->b.args, g);
+                err = fklBuiltinTermArgsCheck(s->b.t, s->b.len);
                 if (err) {
                     return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
                          | (err << CHAR_BIT);

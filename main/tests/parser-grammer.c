@@ -3,7 +3,7 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
-static const FklGrammerBuiltinAction Actions[] = { { "first", NULL } };
+static const FklGrammerBuiltinAction Actions[] = { { "first", "first", NULL } };
 
 static const FklGrammerBuiltinAction *
 resolver(void *ctx, const char *str, size_t len) {

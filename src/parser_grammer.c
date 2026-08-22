@@ -658,24 +658,12 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
                         s.b.args = NULL;
                     }
 
-                    if (s.b.t->args_check) {
-                        FklBuiltinTerminalInitError init_err =
-                                FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-                        init_err = s.b.t->args_check(s.b.len, s.b.args, arg->g);
-                        if (init_err) {
-                            *err = ERR_BUILTIN_TERMINAL_INIT_FAILED;
-                            builtin_terminal_init_failed_error(init_err,
-                                    arg,
-                                    &token);
-                            s.b.len = 0;
-                            fklZfree(s.b.args);
-                            s.b.args = NULL;
-                            goto error_happened;
-                        }
-                    } else if (s.b.len != 0) {
+                    FklBuiltinTerminalInitError init_err =
+                            FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
+                    init_err = fklBuiltinTermArgsCheck(s.b.t, s.b.len);
+                    if (init_err) {
                         *err = ERR_BUILTIN_TERMINAL_INIT_FAILED;
-                        builtin_terminal_init_failed_error(
-                                FKL_BUILTIN_TERMINAL_INIT_ERR_TOO_MANY_ARGS,
+                        builtin_terminal_init_failed_error(init_err,
                                 arg,
                                 &token);
                         s.b.len = 0;

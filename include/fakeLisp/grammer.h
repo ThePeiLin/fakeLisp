@@ -58,17 +58,21 @@ typedef struct {
 int fklParseBuiltinTermSrc(FklBuiltinTermSrcHashMap *maps,
         const FklStringVector *lines);
 
+/// @return == 0  falied
+/// @return != 0  succed
+typedef int (*FklBuiltinTermMatchFunc)(const FklBuiltinTerminalMatchArgs *args,
+        const struct FklGrammer *g,
+        const char *start,
+        const char *str,
+        size_t restLen,
+        size_t *matchLen,
+        FklGrammerMatchCtx *ctx,
+        int *is_waiting_for_more);
+
 typedef struct {
     /// @return == 0  falied
     /// @return != 0  succed
-    int (*match)(const FklBuiltinTerminalMatchArgs *args,
-            const struct FklGrammer *g,
-            const char *start,
-            const char *str,
-            size_t restLen,
-            size_t *matchLen,
-            FklGrammerMatchCtx *ctx,
-            int *is_waiting_for_more);
+    FklBuiltinTermMatchFunc match;
 
     int min_args;
     int max_args;

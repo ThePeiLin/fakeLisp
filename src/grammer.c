@@ -881,8 +881,9 @@ static inline int is_builtin_terminal_match_epsilon(const FklGrammer *g,
         .len = b->len,
         .args = b->args,
     };
-    return b->t
-            ->match(&args, g, "", "", 0, &matchLen, &ctx, &is_waiting_for_more);
+    FklBuiltinTermMatchFunc match = b->t->match;
+    FKL_ASSERT(match != NULL);
+    return match(&args, g, "", "", 0, &matchLen, &ctx, &is_waiting_for_more);
 }
 
 static inline int is_comp_terminal_match_epsilon(const FklGrammer *g,
@@ -3465,7 +3466,7 @@ static inline void build_match_ignore_to_c_file(const FklGrammer *g,
             }
             CB_LINE("}");
 
-            CB_LINE("*p_is_waiting_for_more=is_waiting_for_more;");
+            CB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
             CB_LINE("return otherMatchLen;");
         } else {
             CB_LINE("return 0;");
@@ -3679,7 +3680,7 @@ static inline void build_state_action_match_to_c_file(const FklGrammer *g,
         CB_FMT("(matchLen=1)");
         break;
     case FKL_TERM_IGNORE:
-        CB_FMT("(matchLen=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more))");
+        CB_FMT("(!is_waiting_for_more&&(matchLen=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more)))");
         break;
     case FKL_TERM_COMP: {
         uint64_t id = get_composite_entry(comps, &ac->match.comp);
@@ -3890,6 +3891,10 @@ static inline void build_state_to_c_file(FklValueTable *t,
                             ast_destroyer_name,
                             comps,
                             build);
+                    CB_LINE("else if(is_waiting_for_more)");
+                    CB_INDENT(flags) {
+                        CB_LINE("goto return_is_waiting_for_more;");
+                    }
                     if (ac->match.allow_ignore
                             && ac->action != FKL_ANALYSIS_IGNORE) {
                         CB_LINE("else if(!has_tried_match_ignore && ((ignore_len==-1 ");
@@ -3908,6 +3913,7 @@ static inline void build_state_to_c_file(FklValueTable *t,
                         CB_LINE("");
                     }
                 }
+                CB_FMT("return_is_waiting_for_more:\n");
                 CB_LINE("return (is_waiting_for_more||(*restLen && *restLen==skip_ignore_len))?FKL_PARSE_WAITING_FOR_MORE:FKL_PARSE_TERMINAL_MATCH_FAILED;");
             } else
                 CB_LINE("return FKL_PARSE_TERMINAL_MATCH_FAILED;");
@@ -4827,6 +4833,10 @@ match_start:
         FKL_UNREACHABLE();
         break;
     }
+
+    if (is_waiting_for_more)
+        return 0;
+
     if (match->allow_ignore && !has_tried_match_ignore
             && ((args->ignore_len == -2
                         && (args->ignore_len = match_ignore(g,

@@ -65,7 +65,7 @@ static int builtin_match_symbol_func(const FklBuiltinTerminalMatchArgs *args,
                     end,
                     end_size);
             if (!len) {
-                *is_waiting_for_more = 1;
+                *is_waiting_for_more |= 1;
                 return 0;
             }
             matchLen += len;
@@ -504,7 +504,7 @@ static int builtin_match_raw_string_func_with_llm(
             break;
         }
     if (delim_end == restLen) {
-        *is_waiting_for_more = 1;
+        *is_waiting_for_more |= 1;
         return 0;
     }
     size_t delim_len = delim_end - d->size;
@@ -528,7 +528,7 @@ static int builtin_match_raw_string_func_with_llm(
             return 1;
         }
     }
-    *is_waiting_for_more = 1;
+    *is_waiting_for_more |= 1;
     return 0;
 }
 
@@ -565,7 +565,7 @@ static int builtin_match_raw_string_func(
     restLen -= start_size;
 
     if (restLen == 0) {
-        *is_waiting_for_more = 1;
+        *is_waiting_for_more |= 1;
         return 0;
     }
 
@@ -581,7 +581,7 @@ static int builtin_match_raw_string_func(
     }
 
     if (restLen == 0) {
-        *is_waiting_for_more = 1;
+        *is_waiting_for_more |= 1;
         return 0;
     }
 
@@ -593,7 +593,7 @@ static int builtin_match_raw_string_func(
 
 expect_end:
     if (restLen < total_end_size) {
-        *is_waiting_for_more = 1;
+        *is_waiting_for_more |= 1;
         return 0;
     }
 

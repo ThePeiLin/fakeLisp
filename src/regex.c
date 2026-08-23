@@ -835,8 +835,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                 STP.offset = cur_obj->falseoffset;
             break;
         }
-        if (evalres)
-            *last_is_true = 1;
+        *last_is_true = evalres;
     }
     FREE_STATE_STACK();
     return 0;

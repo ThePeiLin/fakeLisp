@@ -42,7 +42,7 @@
   #(() #["#head'" *s-exp* *s-exp*] simple #(head head 1 2))
   #(() #["#2nd-vector'" *s-exp* *s-exp*] simple #(vector 2))
   #(() #[#(?symbol "《" "》")] simple #(symbol 0 "《" "》"))
-  #(() #[#&"“”|^“(\\\\.|.)*”$"] simple #(string 0 "“" "”"))
+  #(() #[#&#r"/"“”|^“(\\.|.)*”$"/"] simple #(string 0 "“" "”"))
   #(() #["#other-json'" (json,json-value)] builtin second)
   #(() #[#"var" *symbol* #"=" *s-exp*] simple #(head define 1 3))
   ;; 添加更多的分割符

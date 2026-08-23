@@ -30,7 +30,7 @@
       'null #[#"null"] (lambda ($$ line) 'null)
       'bool #[#"true"] (lambda ($$ line) 'true)
       'bool #[#"false"] (lambda ($$ line) 'false)
-      'string #[#&"\"\"|\"(\\\\.|.)*\""] (lambda ($$ line) (parse (vector-ref $$ 0)))
+      'string #[#&#r"/"""|"(\\.|.)*"""/"] (lambda ($$ line) (parse (vector-ref $$ 0)))
       'integer #[?dint] first->number
       'integer #[?xint] first->number
       'integer #[?oint] first->number

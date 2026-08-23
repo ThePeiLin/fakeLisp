@@ -4744,7 +4744,7 @@ int fklIsStateActionMatch(const FklAnalysisStateActionMatch *match,
         const char *start,
         const char *cstr,
         size_t restLen,
-        int *is_waiting_for_more,
+        int *p_is_waiting_for_more,
         FklStateActionMatchArgs *args) {
     args->skip_ignore_len = 0;
     int has_tried_match_ignore = 0;
@@ -4787,7 +4787,7 @@ match_start:
                     restLen - args->skip_ignore_len,
                     &args->matchLen,
                     ctx,
-                    is_waiting_for_more)) {
+                    p_is_waiting_for_more)) {
             return 1;
         }
     } break;
@@ -4798,15 +4798,19 @@ match_start:
                 restLen - args->skip_ignore_len,
                 &last_is_true);
         if (len > restLen - args->skip_ignore_len)
-            *is_waiting_for_more |= last_is_true;
+            *p_is_waiting_for_more |= last_is_true;
         else {
             args->matchLen = len;
             return 1;
         }
     } break;
     case FKL_TERM_IGNORE: {
-        size_t match_len =
-                match_ignore(g, ctx, start, cstr, restLen, is_waiting_for_more);
+        size_t match_len = match_ignore(g,
+                ctx,
+                start,
+                cstr,
+                restLen,
+                p_is_waiting_for_more);
         if (match_len > 0) {
             args->matchLen = match_len;
             return 1;
@@ -4820,7 +4824,7 @@ match_start:
                 start,
                 cstr + args->skip_ignore_len,
                 restLen - args->skip_ignore_len,
-                is_waiting_for_more);
+                p_is_waiting_for_more);
 
         if (match_len >= 0) {
             args->matchLen = match_len;
@@ -4834,7 +4838,7 @@ match_start:
         break;
     }
 
-    if (is_waiting_for_more)
+    if (*p_is_waiting_for_more)
         return 0;
 
     if (match->allow_ignore && !has_tried_match_ignore
@@ -4844,7 +4848,7 @@ match_start:
                                     start,
                                     cstr,
                                     restLen,
-                                    is_waiting_for_more))
+                                    p_is_waiting_for_more))
                                    > 0)
                     || args->ignore_len > 0)) {
         has_tried_match_ignore = 1;

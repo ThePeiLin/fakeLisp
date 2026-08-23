@@ -482,56 +482,6 @@ static int builtin_match_never_func(const FklBuiltinTerminalMatchArgs *args,
     FKL_BUILTIN_TERMINAL_END()
 }
 
-// AI 编写的第一版
-static int builtin_match_raw_string_func_with_llm(
-        const FklBuiltinTerminalMatchArgs *args,
-        const char *cstrStart,
-        const char *cstr,
-        size_t restLen,
-        size_t *pmatchLen,
-        FklGrammerMatchCtx *ctx,
-        int *is_waiting_for_more) {
-    const FklString *d = args->args[0];
-    // 1. 起始定界符
-    if (restLen < d->size || fklStringCharBufMatch(d, cstr, restLen) < 0)
-        return 0;
-    // 2. 标签：扫描到下一个定界符（可为空）
-    size_t i = d->size;
-    size_t delim_end = restLen;
-    for (; i < restLen; i++)
-        if (fklStringCharBufMatch(d, cstr + i, restLen - i) >= 0) {
-            delim_end = i;
-            break;
-        }
-    if (delim_end == restLen) {
-        *is_waiting_for_more |= 1;
-        return 0;
-    }
-    size_t delim_len = delim_end - d->size;
-    const char *delim = cstr + d->size;
-    // 3. 内容：扫描到 <delim> <标签> <delim> 闭合序列
-    size_t j = delim_end + d->size;
-    for (; j < restLen; j++) {
-        if (fklStringCharBufMatch(d, cstr + j, restLen - j) < 0)
-            continue;
-        if ((!delim_len
-                    || fklCharBufMatch(delim,
-                               delim_len,
-                               cstr + j + d->size,
-                               restLen - j - d->size)
-                               >= 0)
-                && fklStringCharBufMatch(d,
-                           cstr + j + d->size + delim_len,
-                           restLen - j - d->size - delim_len)
-                           >= 0) {
-            *pmatchLen = j + d->size + delim_len + d->size;
-            return 1;
-        }
-    }
-    *is_waiting_for_more |= 1;
-    return 0;
-}
-
 static int builtin_match_raw_string_func(
         const FklBuiltinTerminalMatchArgs *args,
         const FklGrammer *g,

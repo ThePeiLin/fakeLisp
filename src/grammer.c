@@ -703,6 +703,11 @@ static const FklLalrBuiltinMatch builtin_match_symbol = {
 
 static const FklLalrBuiltinMatch builtin_match_raw_string = {
     .name = "?raw-string",
+    .key = "builtin_match_raw_string",
+    .match = builtin_match_raw_string_func,
+
+    .min_args = 1,
+    .max_args = 2,
 };
 
 #undef DEFINE_DEFAULT_C_MATCH_COND

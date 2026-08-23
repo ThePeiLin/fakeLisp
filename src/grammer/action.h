@@ -36,7 +36,7 @@ static const FklGrammerBuiltinAction builtin_actions[] = {
     { "hashequal",   "hashequal",   prod_action_hashequal   },
     { "bytes",       "bytes",       prod_action_bytes       },
     { "keyword",     "keyword",     prod_action_keyword     },
-    { "raw-string",  "raw-string",  prod_action_raw_string  },
+    { "raw-string",  "raw_string",  prod_action_raw_string  },
     { NULL,          NULL,          NULL                    },
     // clang-format on
 };

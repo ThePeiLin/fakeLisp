@@ -464,7 +464,44 @@ static inline void *prod_action_raw_string(FklProdActionArgs *args,
         const FklAnalysisSymbol nodes[],
         size_t count,
         size_t line) {
-    FKL_TODO();
+    const size_t start_size = 1;
+    const size_t end_size = 1;
+    FklVMvalue *first = nodes[0].ast;
+
+    const FklString *str = FKL_VM_STR(first);
+    const char *cstr = str->str;
+    size_t rest_len = str->size;
+
+    size_t const min_size = start_size * 2 + end_size * 2;
+
+    if (rest_len < min_size)
+        return NULL;
+
+    cstr += start_size;
+    rest_len -= start_size;
+
+    size_t delim_len = 0;
+
+    for (size_t i = 0; i < rest_len; ++i) {
+        if (cstr[i] == '\"')
+            break;
+        ++delim_len;
+    }
+
+    if (delim_len == rest_len)
+        return NULL;
+    size_t const total_start_size = start_size * 2 + delim_len;
+    size_t const total_end_size = end_size * 2 + delim_len;
+
+    if (str->size < (total_start_size + total_end_size))
+        return NULL;
+
+    const FklVMparseCtx *c = ctx;
+    FklVM *exe = c->exe;
+
+    size_t r_size = str->size - total_start_size - total_end_size;
+    const char *r_start = str->str + total_start_size;
+    return fklCreateVMvalueStr2(exe, r_size, r_start);
 }
 
 #ifdef __cplusplus

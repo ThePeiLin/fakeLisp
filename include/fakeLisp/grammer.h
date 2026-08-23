@@ -59,6 +59,8 @@ int fklParseBuiltinTermSrc(FklBuiltinTermSrcHashMap *maps,
         const FklStringVector *lines);
 
 typedef struct {
+    /// @return == 0  falied
+    /// @return != 0  succed
     int (*match)(const FklBuiltinTerminalMatchArgs *args,
             const struct FklGrammer *g,
             const char *start,

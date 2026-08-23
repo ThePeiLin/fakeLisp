@@ -30,9 +30,9 @@
               -> ":"               =>  nil
 
 *string* -> /""|"(\\.|.)*"/        =>  string
-#         -> *raw-string-seq*      =>  raw-string
+         -> *raw-string-seq*       =>  raw-string
 
-# *raw-string-seq* -> "#r"..?raw-string["\""]  =>  second
+*raw-string-seq* -> "#r"..?raw-string["\""]  =>  second
 
 *bytes*  -> /#""|#"(\\.|.)*"/  =>  bytes
 

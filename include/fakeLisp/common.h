@@ -37,8 +37,8 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 #define FKL_IS_ARITHMETIC_RIGHT_SHIFT (0)
 #endif
 
-#define FKL_QUALIFIED_NONTERM_SEP (':')
-#define FKL_QUALIFIED_NONTERM_SEP_STR ":"
+#define FKL_QUALIFIED_NONTERM_SEP ('/')
+#define FKL_QUALIFIED_NONTERM_SEP_STR "/"
 
 #ifdef _WIN32
 #define FKL_PATH_SEPARATOR ('\\')

@@ -257,16 +257,16 @@
       (define err-type (error-type err))
       (cond
         [(eq err-type 'UV_ENODEV)
-         (uv-handle-close server)
-         (uv-handle-close timeout)
-         (println "no multicast route, skipping")
-         (return)]
+          (uv-handle-close server)
+          (uv-handle-close timeout)
+          (println "no multicast route, skipping")
+          (return)]
         [(and (eq err-type 'UV_EADDRNOTAVAIL)
            (equal multicast-addr "ff02::1"))
-         (setq multicast-addr "ff02::1%lo0")
-         (setq inteface-addr "::1%lo0")
-         (uv-udp-membership-set! server multicast-addr inteface-addr 'join)]
-        [1 (raise err)]))
+          (setq multicast-addr "ff02::1%lo0")
+          (setq inteface-addr "::1%lo0")
+          (uv-udp-membership-set! server multicast-addr inteface-addr 'join)]
+        [:else (raise err)]))
     (define client (uv-make-udp loop))
     (define recv-cb-called 0)
     (define (recv-cb err data addr flags)
@@ -279,38 +279,38 @@
         (setq recv-cb-called (1+ recv-cb-called))
         (cond
           [(equal recv-cb-called 2)
-           (uv-handle-close server)
-           (uv-handle-close timeout)]
-          [1
-           (define source-addr (hash-ref addr 'ip))
-           (uv-udp-membership-set! server multicast-addr inteface-addr 'leave)
-           (define err (pcall uv-udp-source-membership-set! server
-                              multicast-addr
-                              inteface-addr
-                              source-addr
-                              'join))
-           (when (error? err)
-             (define err-type (error-type err))
-             (if (eq err-type 'UV_ENOSYS)
-               (uv-udp-membership-set! server multicast-addr inteface-addr 'join)
-               (raise err)))
-           (uv-udp-send client multicast-addr TEST_PORT
-                        (lambda (err)
-                          (uv-handle-close client)
-                          (when err (raise err)))
-                        "PING")])))
+            (uv-handle-close server)
+            (uv-handle-close timeout)]
+          [:else
+            (define source-addr (hash-ref addr 'ip))
+            (uv-udp-membership-set! server multicast-addr inteface-addr 'leave)
+            (define err (pcall uv-udp-source-membership-set! server
+                               multicast-addr
+                               inteface-addr
+                               source-addr
+                               'join))
+            (when (error? err)
+              (define err-type (error-type err))
+              (if (eq err-type 'UV_ENOSYS)
+                (uv-udp-membership-set! server multicast-addr inteface-addr 'join)
+                (raise err)))
+            (uv-udp-send client multicast-addr TEST_PORT
+                         (lambda (err)
+                           (uv-handle-close client)
+                           (when err (raise err)))
+                         "PING")])))
     (uv-udp-recv-start server recv-cb)
     (uv-udp-send client multicast-addr TEST_PORT
                  (lambda (err)
                    (when err
                      (cond
                        [(eq (error-type err) 'UV_EPERM)
-                        (println "send to multicast ip was likely denied by firewall")
-                        (uv-handle-close client)
-                        (uv-handle-close server)
-                        (uv-handle-close timeout)]
-                       [1
-                        (raise err)])))
+                         (println "send to multicast ip was likely denied by firewall")
+                         (uv-handle-close client)
+                         (uv-handle-close server)
+                         (uv-handle-close timeout)]
+                       [:else
+                         (raise err)])))
                  "PING")
     (uv-timer-start timeout
                     (lambda ()
@@ -339,10 +339,10 @@
 
 (cond
   [(has-external-interface 'inet)
-   (define test-fn (multicast-join-test "0.0.0.0" "239.255.0.1" nil))
-   (test-fn)]
-  [1
-   (println "no external ipv4 interface, skipping")])
+    (define test-fn (multicast-join-test "0.0.0.0" "239.255.0.1" nil))
+    (test-fn)]
+  [:else
+    (println "no external ipv4 interface, skipping")])
 
 (newline)
 ;; udp multicast join ipv6
@@ -350,7 +350,7 @@
 
 (cond
   [(has-external-interface 'inet6)
-   (define test-fn (multicast-join-test "::" "ff02::1" nil))
-   (test-fn)]
-  [1
-   (println "no external ipv6 interface, skipping")])
+    (define test-fn (multicast-join-test "::" "ff02::1" nil))
+    (test-fn)]
+  [:else
+    (println "no external ipv6 interface, skipping")])

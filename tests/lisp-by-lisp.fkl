@@ -26,17 +26,17 @@
   (cond
     [(atom e) (assoc e a)]
     [(atom (car e))
-     (cond
-       [(eq (car e) 'QUOTE) (cadr e)]
-       [(eq (car e) 'ATOM) (atom (eval (cadr e) a))]
-       [(eq (car e) 'EQ) (eq (eval (cadr e) a)
-                             (eval (caddr e) a))]
-       [(eq (car e) 'COND) (evcon (cdr e) a)]
-       [(eq (car e) 'CAR) (car (eval (cadr e) a))]
-       [(eq (car e) 'CDR) (cdr (eval (cadr e) a))]
-       [(eq (car e) 'CONS) (cons (eval (cadr e) a)
-                                 (eval (caddr e) a))]
-       [1 (eval (cons (assoc (car e) a) (cdr e)) a)])]
+      (cond
+        [(eq (car e) 'QUOTE) (cadr e)]
+        [(eq (car e) 'ATOM) (atom (eval (cadr e) a))]
+        [(eq (car e) 'EQ) (eq (eval (cadr e) a)
+                              (eval (caddr e) a))]
+        [(eq (car e) 'COND) (evcon (cdr e) a)]
+        [(eq (car e) 'CAR) (car (eval (cadr e) a))]
+        [(eq (car e) 'CDR) (cdr (eval (cadr e) a))]
+        [(eq (car e) 'CONS) (cons (eval (cadr e) a)
+                                  (eval (caddr e) a))]
+        [:else (eval (cons (assoc (car e) a) (cdr e)) a)])]
     [(eq (caar e) 'LABEL) (eval (cons (caddar e) (cdr e))
                                 (cons (list (cadar e) (car e)) a))]
     [(eq (caar e) 'LAMBDA) (eval (caddar e)

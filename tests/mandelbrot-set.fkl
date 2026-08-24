@@ -256,7 +256,7 @@
                                                                                   (setq cp imm))))]
                                    [(eq ins-sym 'jt) (let [(imm imm)] (lambda () (unless (eqv (vector-ref m mp) 0)
                                                                                    (setq cp imm))))]
-                                   [1 (hash-ref symbol-ins-table ins-sym)]))
+                                   [:else (hash-ref symbol-ins-table ins-sym)]))
                                ins-list
                                imm-list)))
 

@@ -95,11 +95,11 @@
                    (ch (car h))]
               (cond
                 [(cmpf cl ch)
-                 (cdr-set! c (cons cl nil))
-                 (setq l (cdr l))]
-                [1
-                 (cdr-set! c (cons ch nil))
-                 (setq h (cdr h))])))
+                  (cdr-set! c (cons cl nil))
+                  (setq l (cdr l))]
+                [:else
+                  (cdr-set! c (cons ch nil))
+                  (setq h (cdr h))])))
           (cdr head)))
       l)))
 
@@ -136,8 +136,8 @@
                   (let [(v1 (vector-ref a s1))
                         (v2 (vector-ref a s2))]
                     (vector-set! b k (if (cmpf v1 v2)
-                                    (begin (setq s1 (1+ s1)) v1)
-                                    (begin (setq s2 (1+ s2)) v2))))
+                                       (begin (setq s1 (1+ s1)) v1)
+                                       (begin (setq s2 (1+ s2)) v2))))
                   (setq k (1+ k)))
 
                 (do []
@@ -213,18 +213,18 @@
   (define (msort! cmpf s)
     (cond
       [(vector? s)
-       (vector-merge-sort! cmpf s)]
+        (vector-merge-sort! cmpf s)]
       [(dvec? s)
-       (dvec-merge-sort! cmpf s)]
+        (dvec-merge-sort! cmpf s)]
       [(list? s)
-       (list-merge-sort! cmpf s)]
-      [1 (throw 'incorrect-type (format "%S is not a vector, dvec or list" s))]))
+        (list-merge-sort! cmpf s)]
+      [:else (throw 'incorrect-type (format "%S is not a vector, dvec or list" s))]))
   (define (msort cmpf s)
     (cond
       [(vector? s)
-       (vector-merge-sort cmpf s)]
+        (vector-merge-sort cmpf s)]
       [(dvec? s)
-       (dvec-merge-sort cmpf s)]
+        (dvec-merge-sort cmpf s)]
       [(list? s)
-       (list-merge-sort cmpf s)]
-      [1 (throw 'incorrect-type (format "%S is not a vector, dvec or list" s))])))
+        (list-merge-sort cmpf s)]
+      [:else (throw 'incorrect-type (format "%S is not a vector, dvec or list" s))])))

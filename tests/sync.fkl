@@ -126,13 +126,13 @@
       (my-recv-signal re)
       (mutex-unlock mutex)]
     [(my-chanl-not-full? ch)
-     (my-chanl-push-msg ch msg)
-     (mutex-unlock mutex)]
-    [1
-     (define cnd (make-cond))
-     (push-my-send ch msg cnd)
-     (cond-wait cnd mutex)
-     (mutex-unlock mutex)]))
+      (my-chanl-push-msg ch msg)
+      (mutex-unlock mutex)]
+    [:else
+      (define cnd (make-cond))
+      (push-my-send ch msg cnd)
+      (cond-wait cnd mutex)
+      (mutex-unlock mutex)]))
 
 (define (my-chanl-recv ch)
   (define mutex (my-chanl-mutex ch))
@@ -144,23 +144,23 @@
       (define r nil)
       (cond
         [(my-chanl-not-empty? ch)
-         (setq r (unbox (my-chanl-pop-msg ch)))
-         (my-chanl-push-msg ch (my-send-msg sd))]
-        [1
-         (setq r (my-send-msg sd))])
+          (setq r (unbox (my-chanl-pop-msg ch)))
+          (my-chanl-push-msg ch (my-send-msg sd))]
+        [:else
+          (setq r (my-send-msg sd))])
       (my-send-signal sd)
       (mutex-unlock mutex)
       r]
     [(my-chanl-not-empty? ch)
-     (define r (unbox (my-chanl-pop-msg ch)))
-     (mutex-unlock mutex)
-     r]
-    [1
-     (define cnd (make-cond))
-     (define re (push-my-recv ch cnd))
-     (cond-wait cnd mutex)
-     (mutex-unlock mutex)
-     (vector-ref re 1)]))
+      (define r (unbox (my-chanl-pop-msg ch)))
+      (mutex-unlock mutex)
+      r]
+    [:else
+      (define cnd (make-cond))
+      (define re (push-my-recv ch cnd))
+      (cond-wait cnd mutex)
+      (mutex-unlock mutex)
+      (vector-ref re 1)]))
 
 (define max 100)
 (define buf (make-my-chanl max))

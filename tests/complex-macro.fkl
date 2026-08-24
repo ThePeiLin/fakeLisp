@@ -38,16 +38,16 @@
       (define method-name
         (cond
           [(symbol? head)
-           (string->symbol
-             (format "%s-%s" name-str
-                     (symbol->string head)))]
+            (string->symbol
+              (format "%s-%s" name-str
+                      (symbol->string head)))]
           [(list? head)
-           (define type (car head))
-           (apply
-             (hash-ref method-head-process-func type)
-             (cdr head))]
-          [1 (throw 'incorrect-method-head
-                    "method head should be list or symbol")]))
+            (define type (car head))
+            (apply
+              (hash-ref method-head-process-func type)
+              (cdr head))]
+          [:else (throw 'incorrect-method-head
+                        "method head should be list or symbol")]))
       (if (hash-ref method-names method-name ())
         (throw 'duplicate-member
                (format "duplicate member %S" method-name)))

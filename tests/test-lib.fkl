@@ -1,13 +1,23 @@
+;;(export
+;;  (defmacro #&custom
+;;    #[custom-quote #["#quote'" *s-exp*]
+;;                   custom
+;;                   (list 'quote $1)]))
+
 (export
   (defmacro #&custom
-    #[custom-quote #["#quote'" *s-exp*]
-                   custom
-                   (list 'quote $1)]))
+    custom-quote :s-exp -> "#quote'" *s-exp* => custom (list 'quote $1)
+  ))
 
 (export
   (defmacro #&comment
-    #& #[#&#r"/"/\*\*/|/\*.*\*/"/"]
-    "/*"))
+    :ignore :regex #r"/"/\*\*/|/\*.*\*/"/"
+    :delim "/*"))
+
+;;(export
+;;  (defmacro #&comment
+;;    #& #[#&#r"/"/\*\*/|/\*.*\*/"/"]
+;;    "/*"))
 
 (export
   (defmacro test-replacement 'foobar))

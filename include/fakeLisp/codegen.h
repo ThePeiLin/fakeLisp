@@ -408,6 +408,17 @@ typedef struct FklCgCtx {
     FklVMvalue *dollar_s;
     FklVMvalue *line_s;
 
+    FklVMvalue *ignore_k;
+    FklVMvalue *delim_k;
+    FklVMvalue *s_exp_k;
+    FklVMvalue *regex_k;
+    FklVMvalue *keyword_k;
+    FklVMvalue *end_k;
+
+    FklVMvalue *concat_s;
+    FklVMvalue *arrow_s;
+    FklVMvalue *d_arrow_s;
+
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
     FklVMvalue *builtin_pattern_node[FKL_CODEGEN_PATTERN_NUM];
@@ -560,7 +571,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     FklVMvalue *proc;
 
     uint64_t actual_len;
-    FklVMvalue *dollers[];
+    FklVMvalue *dollars[];
 });
 
 FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
@@ -900,6 +911,13 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
     return (FklVMvalueCustomActCtx *)v;
 }
 
+FklVMvalueCgRmacro *fklCgParseReaderMacroDefine1(FklCgCtx *ctx,
+        FklCgActVector *actions,
+        FklVMvalue *rest,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgMacroScope *ms);
+
+FKL_DEPRECATED
 FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
         FklCgActVector *actions,
         FklVMvalue *rest,

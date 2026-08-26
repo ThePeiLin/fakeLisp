@@ -7408,7 +7408,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
 
         FklVMvalue *rest = cddr(orig->value);
 
-        FklVMvalueCgRmacro *rmacro = fklCgParseReaderMacroDefine(ctx,
+        FklVMvalueCgRmacro *rmacro = fklCgParseReaderMacroDefine1(ctx,
                 actions,
                 rest,
                 info,
@@ -7471,7 +7471,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
 
     FklVMvalue *rest = cddr(orig->value);
     FklVMvalueCgRmacro *rmacro =
-            fklCgParseReaderMacroDefine(ctx, actions, rest, info, macro_scope);
+            fklCgParseReaderMacroDefine1(ctx, actions, rest, info, macro_scope);
 
     if (rmacro == NULL)
         goto reader_macro_error;
@@ -7867,6 +7867,17 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     fklVMgcToGray(ctx->dollar_s, gc);
     fklVMgcToGray(ctx->line_s, gc);
 
+    fklVMgcToGray(ctx->ignore_k, gc);
+    fklVMgcToGray(ctx->delim_k, gc);
+    fklVMgcToGray(ctx->s_exp_k, gc);
+    fklVMgcToGray(ctx->regex_k, gc);
+    fklVMgcToGray(ctx->keyword_k, gc);
+    fklVMgcToGray(ctx->end_k, gc);
+
+    fklVMgcToGray(ctx->concat_s, gc);
+    fklVMgcToGray(ctx->arrow_s, gc);
+    fklVMgcToGray(ctx->d_arrow_s, gc);
+
     fklVMgcToGray(ctx->cur_exp.value, gc);
     fklVMgcToGray(ctx->cur_exp.container, gc);
 
@@ -7942,6 +7953,17 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     ctx->hash_singleton = FKL_VM_HASH(fklCreateVMvalueHashEq(vm));
     ctx->dollar_s = add_symbol_cstr(ctx, "$$");
     ctx->line_s = add_symbol_cstr(ctx, "line");
+
+    ctx->ignore_k = add_keyword_cstr(ctx, "ignore");
+    ctx->delim_k = add_keyword_cstr(ctx, "delim");
+    ctx->s_exp_k = add_keyword_cstr(ctx, "s-exp");
+    ctx->regex_k = add_keyword_cstr(ctx, "regex");
+    ctx->keyword_k = add_keyword_cstr(ctx, "keyword");
+    ctx->end_k = add_keyword_cstr(ctx, "end");
+
+    ctx->concat_s = add_symbol_cstr(ctx, "..");
+    ctx->arrow_s = add_symbol_cstr(ctx, "->");
+    ctx->d_arrow_s = add_symbol_cstr(ctx, "=>");
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

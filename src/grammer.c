@@ -447,7 +447,8 @@ static inline int ignore_match(const FklGrammer *g,
     size_t len = ig->len;
     for (size_t i = 0; i < len; i++) {
         const FklGrammerIgnoreSym *ig = &igss[i];
-        if (ig->term_type == FKL_TERM_BUILTIN) {
+        switch (ig->term_type) {
+        case FKL_TERM_BUILTIN: {
             size_t len = 0;
             FklBuiltinTerminalMatchArgs args = {
                 .len = ig->b.len,
@@ -465,7 +466,9 @@ static inline int ignore_match(const FklGrammer *g,
                 matchLen += len;
             } else
                 return 0;
-        } else if (ig->term_type == FKL_TERM_REGEX) {
+        } break;
+
+        case FKL_TERM_REGEX: {
             int last_is_true = 0;
             uint32_t len =
                     fklRegexLexMatchp(ig->re, str, restLen, &last_is_true);
@@ -476,13 +479,25 @@ static inline int ignore_match(const FklGrammer *g,
                 str += len;
                 matchLen += len;
             }
-        } else {
+        } break;
+
+        case FKL_TERM_STRING: {
             const FklString *laString = ig->str;
             if (fklStringCharBufMatch(laString, str, restLen - matchLen) >= 0) {
                 str += laString->size;
                 matchLen += laString->size;
             } else
                 return 0;
+        } break;
+
+        case FKL_TERM_NONE:
+        case FKL_TERM_KEYWORD:
+        case FKL_TERM_IGNORE:
+        case FKL_TERM_EOF:
+        case FKL_TERM_NONTERM:
+        case FKL_TERM_COMP:
+            FKL_UNREACHABLE();
+            break;
         }
     }
     *pmatchLen = matchLen;

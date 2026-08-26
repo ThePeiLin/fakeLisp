@@ -31,6 +31,10 @@ static inline FklVMvalue *add_symbol_cstr(FklCgCtx *c, const char *s) {
     return fklVMaddSymbolCstr(c->vm, s);
 }
 
+static inline FklVMvalue *add_keyword_cstr(FklCgCtx *c, const char *s) {
+    return fklVMaddKeywordCstr(c->vm, s);
+}
+
 static inline FklVMvalue *
 add_symbol_char_buf(FklCgCtx *c, const char *s, size_t l) {
     return fklVMaddSymbolCharBuf(c->vm, s, l);

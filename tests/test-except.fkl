@@ -1,7 +1,7 @@
 (import (except test-lib comment))
 
 (defmacro #&internal
-  #(test #["#ya-quote'" custom/custom-quote] builtin second))
+  test :s-exp -> "#ya-quote'" custom/custom-quote => builtin second)
 
 (import (only ../lib/utils/m assert))
 

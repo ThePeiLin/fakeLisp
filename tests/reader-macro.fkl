@@ -47,49 +47,36 @@
 ;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
 
 (defmacro #&custom
-  "/*"                            ;; 添加分割符
-  #& #[#&#r"/"/\*\*/|^/\*.*\*/$"/"] ;; 自定义注释
+  :delim "/*" ;; 添加分割符
+  :ignore :regex #r"/"/\*\*/|^/\*.*\*/$"/" ;; 自定义注释
+  my-lambda :s-exp -> *symbol* "=>" *s-exp* => custom `(lambda (~$0) ~$2)
+  my-fn-call :s-exp -> "#'" *s-exp* "(" my-fn-call-args ")" => simple #(cons 1 3)
 
-  #(my-lambda
-     #[*symbol* "=>" *s-exp*]
-     custom `(lambda (~$0) ~$2))
+  my-fn-call-args
+    -> => builtin nil
+    -> *s-exp* => builtin cons
+    -> *s-exp* "," my-fn-call-args => builtin pair
 
-  #(my-fn-call
-     #["#'" *s-exp* "(" my-fn-call-args ")"]
-     simple #(cons 1 3))
+  my-var-def :s-exp -> :keyword "var" *symbol* ":=" *s-exp* => simple #(head define 1 3)
+  my-var-assign :s-exp -> *symbol* ":=" *s-exp* => simple #(head setq 0 2)
 
-  #(#[] my-fn-call-args builtin nil)
-  #(#[*s-exp*] my-fn-call-args builtin cons)
-  #(#[*s-exp* "," my-fn-call-args] my-fn-call-args builtin pair)
+  func-body
+    -> => builtin nil
+    -> *s-exp* func-body => builtin cons
 
-  #(my-var-def
-     #[#"var" *symbol* ":=" *s-exp*]
-     simple #(head define 1 3))
+  my-fn-arg-list
+    -> => builtin nil
+    -> *symbol* => builtin cons
+    -> *symbol* "," my-fn-arg-list => builtin pair
+    -> *symbol* "," *symbol* :keyword "..." => builtin pair
 
-  #(my-var-assign
-     #[*symbol* ":=" *s-exp*]
-     simple #(head setq 0 2))
+  my-fn-def :s-exp
+    -> :keyword "def" *symbol* "(" my-fn-arg-list ")" "{" func-body "}"
+       => custom `(define (~$1,~$3),~$6)
+    -> :keyword "def" *symbol* *symbol* "{" func-body "}"
+       => custom `(define (~$1,~$2),~$4)
+)
 
-  #(#[] func-body builtin nil)
-
-  #(#[*s-exp* func-body]
-    func-body
-    builtin cons)
-
-  #(#[] my-fn-arg-list builtin nil)
-  #(#[*symbol*] my-fn-arg-list builtin cons)
-  #(#[*symbol* "," my-fn-arg-list] my-fn-arg-list builtin pair)
-  #(#[*symbol* "," *symbol* #"..."] my-fn-arg-list builtin pair)
-
-  #(my-fn-def
-     #[#"def" *symbol* "(" my-fn-arg-list ")" "{" func-body "}"]
-     custom
-     `(define (~$1,~$3),~$6))
-
-  #(my-fn-def
-     #[#"def" *symbol* *symbol* "{" func-body "}"]
-     custom
-     `(define (~$1,~$2),~$4)))
 
 /*
 自定义注释

@@ -1,9 +1,3 @@
-;;(export
-;;  (defmacro #&custom
-;;    #[custom-quote #["#quote'" *s-exp*]
-;;                   custom
-;;                   (list 'quote $1)]))
-
 (export
   (defmacro #&custom
     custom-quote :s-exp -> "#quote'" *s-exp* => custom (list 'quote $1)
@@ -13,11 +7,6 @@
   (defmacro #&comment
     :ignore :regex #r"/"/\*\*/|/\*.*\*/"/"
     :delim "/*"))
-
-;;(export
-;;  (defmacro #&comment
-;;    #& #[#&#r"/"/\*\*/|/\*.*\*/"/"]
-;;    "/*"))
 
 (export
   (defmacro test-replacement 'foobar))

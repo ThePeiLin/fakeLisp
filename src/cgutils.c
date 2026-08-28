@@ -4374,6 +4374,11 @@ static inline FklVMvalue *parse_rmacro_def_delim(FklCgCtx *ctx,
 
     while (cur_pair != FKL_VM_NIL) {
         FklVMvalue *cur = FKL_VM_CAR(cur_pair);
+        if (cur == ctx->end_k) {
+            cur_pair = FKL_VM_CDR(cur_pair);
+            break;
+        }
+
         if (!FKL_IS_STR(cur))
             break;
 
@@ -4476,10 +4481,29 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
                 errors->line = CURLINE(next_p);
                 return FKL_VM_NIL;
             }
+        } else if (cur == ctx->end_k) {
+            cur_pair = FKL_VM_CDR(cur_pair);
+            break;
         } else if (FKL_IS_SYM(cur)) {
             const BtS *bt = is_valid_builtin_term(g, cur);
             if (bt == NULL) {
-                break;
+                FklVMvalue *next_p = FKL_VM_CDR(cur_pair);
+                if (next_p == FKL_VM_NIL) {
+                    errors->error = make_expect_str_error(vm, cur);
+                    errors->fid = info->fid;
+                    errors->line = CURLINE(cur_pair);
+                    return FKL_VM_NIL;
+                }
+
+                FklVMvalue *next = FKL_VM_CAR(next_p);
+                if (next == ctx->s_exp_k || next == ctx->arrow_s) {
+                    break;
+                }
+
+                errors->error = make_expect_str_error(vm, cur);
+                errors->fid = info->fid;
+                errors->line = CURLINE(next_p);
+                return FKL_VM_NIL;
             }
 
             BtError err = do_check_bs_args(bt, g, NULL);
@@ -4948,7 +4972,13 @@ FKL_NODISCARD static inline int parse_reader_macro_def(FklCgCtx *ctx,
 
     while (FKL_IS_PAIR(rest)) {
         FklVMvalue *cur = FKL_VM_CAR(rest);
-        if (cur == ctx->ignore_k) {
+        if (cur == ctx->end_k) {
+            if (left == NULL) {
+                goto syntax_error;
+            }
+            left = NULL;
+            rest = FKL_VM_CDR(rest);
+        } else if (cur == ctx->ignore_k) {
             left = NULL;
             rest = parse_rmacro_def_ignore(ctx, rest, info, cmds, &gsyms);
         } else if (cur == ctx->delim_k) {

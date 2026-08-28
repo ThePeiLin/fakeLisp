@@ -4407,6 +4407,14 @@ static inline FklVMvalue *make_expect_top_error(FklVM *exe, FklVMvalue *place) {
             place);
 }
 
+static inline FklVMvalue *make_expect_ignore_error(FklVM *exe,
+        FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
+            exe,
+            "Expect a terminal, :regex, :keyword, :end or a new rule, but got %S",
+            place);
+}
+
 FKL_NODISCARD
 static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
         FklVMvalue *cur_pair,
@@ -4488,8 +4496,9 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
             const BtS *bt = is_valid_builtin_term(g, cur);
             if (bt == NULL) {
                 FklVMvalue *next_p = FKL_VM_CDR(cur_pair);
+
                 if (next_p == FKL_VM_NIL) {
-                    errors->error = make_expect_str_error(vm, cur);
+                    errors->error = make_expect_ignore_error(vm, cur);
                     errors->fid = info->fid;
                     errors->line = CURLINE(cur_pair);
                     return FKL_VM_NIL;
@@ -4500,7 +4509,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
                     break;
                 }
 
-                errors->error = make_expect_str_error(vm, cur);
+                errors->error = make_expect_ignore_error(vm, cur);
                 errors->fid = info->fid;
                 errors->line = CURLINE(next_p);
                 return FKL_VM_NIL;

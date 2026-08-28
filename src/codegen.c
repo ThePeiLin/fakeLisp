@@ -7408,7 +7408,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
 
         FklVMvalue *rest = cddr(orig->value);
 
-        FklVMvalueCgRmacro *rmacro = fklCgParseReaderMacroDefine1(ctx,
+        FklVMvalueCgRmacro *rmacro = fklCgParseReaderMacroDefine(ctx,
                 actions,
                 rest,
                 info,
@@ -7471,7 +7471,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
 
     FklVMvalue *rest = cddr(orig->value);
     FklVMvalueCgRmacro *rmacro =
-            fklCgParseReaderMacroDefine1(ctx, actions, rest, info, macro_scope);
+            fklCgParseReaderMacroDefine(ctx, actions, rest, info, macro_scope);
 
     if (rmacro == NULL)
         goto reader_macro_error;

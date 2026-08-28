@@ -911,13 +911,6 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
     return (FklVMvalueCustomActCtx *)v;
 }
 
-FklVMvalueCgRmacro *fklCgParseReaderMacroDefine1(FklCgCtx *ctx,
-        FklCgActVector *actions,
-        FklVMvalue *rest,
-        FklVMvalueCgInfo *info,
-        FklVMvalueCgMacroScope *ms);
-
-FKL_DEPRECATED
 FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
         FklCgActVector *actions,
         FklVMvalue *rest,

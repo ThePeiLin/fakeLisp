@@ -141,7 +141,11 @@ static inline void gc_extra_mark(FklVMgc *gc) {
     fklVMgcToGray(gc->sym_quote, gc);
     fklVMgcToGray(gc->sym_unquote, gc);
     fklVMgcToGray(gc->sym_qsquote, gc);
-    fklVMgcToGray(gc->sym_unquote, gc);
+    fklVMgcToGray(gc->sym_unqtesp, gc);
+
+    fklVMgcToGray(gc->concat_s, gc);
+    fklVMgcToGray(gc->keyword_k, gc);
+    fklVMgcToGray(gc->regex_k, gc);
 }
 
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
@@ -436,6 +440,10 @@ void fklInitVMgc(FklVMgc *gc) {
     gc->sym_unquote = fklVMaddSymbolCstr(&gc->gcvm, "unquote");
     gc->sym_qsquote = fklVMaddSymbolCstr(&gc->gcvm, "qsquote");
     gc->sym_unqtesp = fklVMaddSymbolCstr(&gc->gcvm, "unqtesp");
+
+    gc->concat_s = fklVMaddSymbolCstr(&gc->gcvm, "..");
+    gc->keyword_k = fklVMaddKeywordCstr(&gc->gcvm, "keyword");
+    gc->regex_k = fklVMaddKeywordCstr(&gc->gcvm, "regex");
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
     fklInitGlobalVMclosureForGC(gc);

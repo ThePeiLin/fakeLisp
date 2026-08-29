@@ -108,6 +108,9 @@ void fklPrintParserGrammerParseError(int err,
         const FklParserGrammerParseArg *arg,
         FklCodeBuilder *cb);
 
+// impl by LLM
+void fklGraFoldConcatChains(FklGraSymVector *v);
+
 static inline int fklParseProductionRuleWithString(
         FklParserGrammerParseArg *arg,
         FklString *str) {

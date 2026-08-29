@@ -494,6 +494,8 @@ static int builtin_match_raw_string_func(
     const FklString *start_s = args->len > 0 ? args->args[0] : NULL;
     const FklString *end_s = args->len > 1 ? args->args[1] : start_s;
 
+    FKL_ASSERT(start_s != NULL);
+
     const char *start = start_s == NULL ? NULL : start_s->str;
     size_t start_size = start_s == NULL ? 0 : start_s->size;
     const char *end = end_s == NULL ? NULL : end_s->str;

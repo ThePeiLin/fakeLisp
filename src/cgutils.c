@@ -3199,7 +3199,9 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
         break;
 
     case FKL_TERM_COMP:
-        FKL_TODO();
+        out->type = FKL_TERM_COMP;
+        out->comp.len = FKL_GET_FIX(in->v);
+        out->comp.parts = &out[1];
         break;
 
     case FKL_TERM_BUILTIN: {
@@ -4103,6 +4105,49 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
     return cur_pair;
 }
 
+/* write by LLM
+ * 折叠 .. 链为 FKL_TERM_COMPOSITE：
+ * 连续的非 IGNORE 符号块即一条 .. 链（parse_right_part 保证"有分隔符"<->"插入了
+ * IGNORE 符号"）。块长 >= 2 且全部由 STRING/REGEX/BUILTIN
+ * 组成时，在块首插入一个 COMPOSITE 标记（composite.len =
+ * 块长，即子终结符个数），块内全部元素保留为子终
+ * 结符，紧跟标记之后。含非终结符或 KEYWORD 的链不折叠，保持现有的
+ * "无 IGNORE + allow_ignore=0" 语义
+ * */
+static inline void fold_concat_chains(CgRmacroGraSymVector *v) {
+    CgRmacroGraSymVector out = { 0 };
+    cgRmacroGraSymVectorInit(&out, v->size + 8);
+    size_t i = 0;
+    while (i < v->size) {
+        if (v->base[i].type == FKL_TERM_IGNORE) {
+            cgRmacroGraSymVectorPushBack(&out, &v->base[i]);
+            i++;
+            continue;
+        }
+        size_t j = i + 1;
+        while (j < v->size && v->base[j].type != FKL_TERM_IGNORE)
+            j++;
+        size_t len = j - i;
+        int foldable = len >= 2;
+        for (size_t k = i; foldable && k < j; k++) {
+            FklGrammerSymType t = v->base[k].type;
+            if (t != FKL_TERM_STRING && t != FKL_TERM_REGEX
+                    && t != FKL_TERM_BUILTIN)
+                foldable = 0;
+        }
+        if (foldable) {
+            FklCgRmacroGraSym marker = { .type = FKL_TERM_COMP };
+            marker.v = FKL_MAKE_VM_FIX(len);
+            cgRmacroGraSymVectorPushBack(&out, &marker);
+        }
+        for (size_t k = i; k < j; k++)
+            cgRmacroGraSymVectorPushBack(&out, &v->base[k]);
+        i = j;
+    }
+    cgRmacroGraSymVectorUninit(v);
+    *v = out;
+}
+
 static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         FklCgActVector *actions,
         FklVMvalue *left,
@@ -4312,6 +4357,8 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         error_cont = cur_pair;
         goto syntax_error;
     }
+
+    fold_concat_chains(gsyms);
 
     FklVMvalue *action_ast = FKL_VM_CAR(action);
     FklVMvalueCgRmacroProd *prod = create_prod(vm, gsyms->size);

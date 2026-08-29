@@ -536,7 +536,7 @@ error_happened:
     return NULL;
 }
 
-/* write by llm
+/* impl by LLM
  * 折叠 .. 链为 FKL_TERM_COMPOSITE：
  * 连续的非 IGNORE 符号块即一条 .. 链（parse_right_part 保证"有分隔符"<->"插入了
  * IGNORE 符号"）。块长 >= 2 且全部由 STRING/REGEX/BUILTIN
@@ -545,7 +545,7 @@ error_happened:
  * 结符，紧跟标记之后。含非终结符或 KEYWORD 的链不折叠，保持现有的
  * "无 IGNORE + allow_ignore=0" 语义
  * */
-static inline void fold_concat_chains(FklGraSymVector *v) {
+void fklGraFoldConcatChains(FklGraSymVector *v) {
     FklGraSymVector out;
     fklGraSymVectorInit(&out, v->size + 8);
     size_t i = 0;
@@ -768,7 +768,7 @@ static inline const char *parse_right_part(FklParserGrammerParseArg *arg,
 
 loop_break:
 
-    fold_concat_chains(&gsym_vector);
+    fklGraFoldConcatChains(&gsym_vector);
 
     FklGrammerProduction *prod = fklCreateEmptyProduction(arg->current_nonterm,
             gsym_vector.size,

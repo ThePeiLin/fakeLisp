@@ -1918,6 +1918,8 @@ static inline int is_special_sym(const FklString *str) {
         == sizeof(FKL_PG_SPECIAL_PREFIX) - 1;
 }
 
+typedef FklBuiltinTerminalInitError BtError;
+
 static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
         FklVMvalueVec *vec,
         FklVMgc *gc,
@@ -1943,6 +1945,12 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
                 return VALUE_TO_GRAMMER_SYM_ERR_INVALID;
         }
 
+        BtError err = fklBuiltinTermArgsCheck(builtin_terminal, vec->size - 1);
+        if (err != FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY) {
+            return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
+                 | (err << CHAR_BIT);
+        }
+
         size_t total_size = (vec->size - 1) * sizeof(FklString *);
         FklString const **args = (FklString const **)fklZmalloc(total_size);
 
@@ -1954,13 +1962,6 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
         s->b.len = 0;
         s->b.args = NULL;
 
-        FklBuiltinTerminalInitError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
-        err = fklBuiltinTermArgsCheck(s->b.t, vec->size);
-        if (err) {
-            fklZfree(args);
-            return VALUE_TO_GRAMMER_SYM_ERR_BUILTIN_TERMINAL_INIT_FAILED
-                 | (err << CHAR_BIT);
-        }
         s->b.len = vec->size - 1;
         s->b.args = args;
 

@@ -1,50 +1,88 @@
 ;; 读取器宏定义
-;; 定义时向文法增加 |*s-exp*| -> |left|
-;; #[<左部> <右部> <动作类型> <动作>]
 ;;
-;; 定义时不向文法增加 |*s-exp*| -> |left|
-;; #[<右部> <左部> <动作类型> <动作>]
+;; 定义 *s-exp* -> <right>
+;; 因为我们不允许重新定义 *s-exp* ，因而采用这个取巧的方式
+;; :s-exp -> <right>
 ;;
-;; 其中|*s-exp*|是起始符号
+;; 定义时不向文法添加  *s-exp* -> <symbol>;; 其中|*s-exp*|是起始符号
+;; <symbol> -> <right>
 ;;
-;; 动作类型有：builtin、simple和custom
+;; 定义时向文法添加 *s-exp* -> <symbol>
+;; <symbol> :s-exp -> <right>
+;;
+;; 动作类型有：builtin、simple、replace和custom
 ;; builtin是内置动作，执行简单的动作，比如返回第一个文法符号
 ;; simple是简单自定义动作，通过增加若干个参数来实现简单的自定义
 ;; custom是自定义动作，通过执行LISP表达式来实现完全的自定义
+;; replace是替换动作，将归约的内容替换为指定的值
 ;;
-;; 形如 #[<右部>] 的产生式是特殊的产生式，这些产生式不允许含有非终结符
+;; 形如 `:ignore <right>` 的产生式是特殊的产生式，这些产生式不允许含有非终结符
 ;; 并且匹配后会忽略
-;; 比如注释 #[#(#&"^;[^\\n]*\\n?")] 和 #[#(#&"^#![^\\n]*\\n?")]
-;; 其中使用前缀#&标注的字符串是正则表达式
+;; 比如注释
+;; :ignore :regex #r"/"/\*\*/|^/\*.*\*/$"/"
+;;
+;; 其中使用 :regex 标注接下来的字符串作为正则式
 ;; 特殊产生式能被导出，不能被引用
 ;;
 ;; 左部非终结符不允许是内建非终结符
-;; 如果要直接添加 |*s-exp*| -> <prod> ，产生式左部应当填“()”
-;; 产生式左部为“()”的读取器宏的导出不受到only等导入限制的影响
+;; 如果要直接添加 |*s-exp*| -> <prod> ，产生式左部应当填“:s-exp”
 ;;
 ;; 读取器宏的定义以组为单位
 ;; 每个组都有一个符号作为名字
-;; 名字为“()”的组不允许导出
-;; 拥有名字的组在导出时会受到导入语句的限制
 ;; prefix会使某一组的名字加上前缀
 ;; only会导入特定名字的组
 ;; alias会重命名特定名字的组
 ;;
 ;; 引用其他组的非终结符时要用一个pair来引用
 ;; (<组名> , <非终结符>)
-;; 内建非终结符无论合适都可以直接引用
-;; 不能引用左部为“()”的产生式
-;; 不能引用名字为“()”的组的非终结符
+;; 内建非终结符无论何时都可以直接引用
 ;;
 ;; 同一个组的产生式会按照定义的先后顺序排序
 ;; 以组为单位的好处是添加多条产生式时不需要多次生成分析表
 ;; 以及能够方便确认非终结符的引用关系
 ;;
-;; 引用了除内建非终结符外的其他组的非终结符的组不允许导出
-;;
 ;; 读取器宏的作用域是从定义或导入位置开始到文件结束
 ;;
 ;; 虽然这玩意儿叫读取器宏，但其实本质是产生式
+;; 其 DSL 语法定义如下
+;; S -> prod
+;;   -> ignore
+;;   -> delim
+;;
+;; prod -> :s-exp          '-> symbol-seq '=> action-type action
+;;      -> <symbol>        '-> symbol-seq '=> action-type action
+;;      -> <symbol> :s-exp '-> symbol-seq '=> action-type action
+;;
+;; action      -> <any>
+;; action-type -> 'builtin
+;;             -> 'simple
+;;             -> 'custom
+;;             -> 'replace
+;;
+;; ignore -> :ignore ignore-seq
+;; delim  -> :delim  delimiters
+;;
+;; symbol-seq -> <epsilon>
+;;            -> grammar-sym symbol-seq
+;;
+;; delimiters -> <string>
+;;            -> <string> delimiters
+;;
+;; ignore-seq -> terminal
+;;            -> terminal ignore-seq
+;;
+;; terminal   -> <string>
+;;            -> :regex <string>
+;;            -> <symbol>  // 我们会检查这个符号是不是内建特殊终结符
+;;            -> <vector>  // 需要参数的内建特殊终结符
+;; terminal-with-keyword -> terminal
+;;                       -> :keyword <string>
+;; grammar-sym -> terminal-with-keyword
+;;             -> <symbol> // 不是内建特殊终结符的符号
+;;             -> <pair>   // 允许引用其他组的非终结符，比如 (foo , bar)
+;; // 非终结符中， foo/bar 这个与 (foo , bar) 这个 pair 等价
+;; // (foo,bar) 是旧写法，原本想删除
+;; // 但是发现在引用组名特别奇怪的非终结符有用，因而保留
 
 (defmacro #&custom
   :delim "/*" ;; 添加分割符
@@ -116,3 +154,4 @@ pop:=18
 #'println(#'mul(pop,3))
 #'println(#'sum(1,2,3,4))
 
+#'import(comp)

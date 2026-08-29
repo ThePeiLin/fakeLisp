@@ -141,6 +141,10 @@ add_executable(test-lexer "main/tests/lexer.c")
 target_link_libraries(test-lexer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-lexer)
 
+add_executable(test-not-lalr "main/tests/not-lalr.c")
+target_link_libraries(test-not-lalr grammer_lib ${LINK_TARGET})
+target_define_relative_file(test-not-lalr)
+
 add_executable(test-lexer2 "main/tests/lexer2.c")
 target_link_libraries(test-lexer2 grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-lexer2)
@@ -468,6 +472,7 @@ endfunction()
 
 add_bin2h(lisp.g ${PROJECT_SOURCE_DIR} "lisp.g")
 
+enable_testing()
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)
 
@@ -479,6 +484,9 @@ add_test(NAME test-regex
 
 add_test(NAME test-ins
 	COMMAND $<TARGET_FILE:test-ins>)
+
+add_test(NAME test-no-lalr
+	COMMAND $<TARGET_FILE:test-not-lalr>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json)

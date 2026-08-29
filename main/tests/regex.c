@@ -1,10 +1,10 @@
+#include "fakeLisp/code_builder.h"
 #include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/utils.h>
 #include <string.h>
 
-static inline void
-print_match_res(const char *str, size_t len, size_t pos) {
+static inline void print_match_res(const char *str, size_t len, size_t pos) {
     printf("\n%s %zu %zu\n", str, len, pos);
     if (len) {
         for (size_t i = 0; i < pos; i++)
@@ -75,6 +75,7 @@ int main() {
 
         FklCodeBuilder builder;
         fklInitCodeBuilderFp(&builder, stdout, NULL);
+        fklCodeBuilderLine(&builder, "str: %s", str);
         fklRegexBuildAsC(re, NULL, pattern, pattern_len, &builder);
 
         size_t str_len = strlen(str);
@@ -82,10 +83,11 @@ int main() {
         size_t len = cur->lex
                            ? fklRegexLexMatchp(re, str, str_len, &last_is_true)
                            : fklRegexMatchpInCharBuf(re, str, str_len, &pos);
-        if (cur->lex)
+        if (cur->lex) {
             FKL_ASSERT(len == cur->len && last_is_true == cur->last_is_true);
-        else
+        } else {
             FKL_ASSERT(len == cur->len && pos == cur->pos);
+        }
         if (len <= str_len)
             print_match_res(str, len, pos);
         fklRegexFree(re);

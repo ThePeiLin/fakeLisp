@@ -12,15 +12,14 @@
 
 #include "../src/grammer/action.h"
 
-static const char example_grammer_rules[] =
-        ""
-		"S -> \"a\" A \"a\" => second\n"
-		"  -> \"b\" A \"b\" => second\n"
-		"  -> \"a\" B \"b\" => second\n"
-		"  -> \"b\" B \"a\" => second\n"
-		"A -> \"c\" => first\n"
-		"B -> \"c\" => first\n"
-        "";
+static const char example_grammer_rules[] = ""
+                                            "S -> \"a\" A \"a\" => second\n"
+                                            "  -> \"b\" A \"b\" => second\n"
+                                            "  -> \"a\" B \"b\" => second\n"
+                                            "  -> \"b\" B \"a\" => second\n"
+                                            "A -> \"c\" => first\n"
+                                            "B -> \"c\" => first\n"
+                                            "";
 
 int main() {
     FklVMgc *gc = fklCreateVMgc();
@@ -87,62 +86,14 @@ int main() {
 
         fklCodeBuilderFmt(&err_out, "not lalr garmmer\n%s\n", err_msg.buf);
         fklUninitStrBuf(&err_msg);
+        exit(0);
+    } else {
+        fklDestroyVMgc(gc);
+
+        fklCodeBuilderFmt(&err_out, "expect error\n");
+        fklUninitStrBuf(&err_msg);
         exit(1);
     }
-    fklPrintAnalysisTable(g, stdout);
-    fklLalrItemSetHashMapDestroy(itemSet);
-    fklUninitStrBuf(&err_msg);
 
-    FILE *tablef = fopen("table.txt", "w");
-    fklPrintAnalysisTableForGraphEasy(g, tablef);
-
-    fclose(tablef);
-    fclose(gzf);
-    fclose(lalrgzf);
-
-    fputc('\n', stdout);
-
-    const char *exps[] = {
-        "#\\\\11",
-        "#\\\\z",
-        "#\\\\n",
-        "#\\\\",
-        "#\\;",
-        "#\\|",
-        "#\\\"",
-        "#\\(",
-        "#\\\\s",
-        "(abcd)abcd",
-        ";comments\nabcd",
-        "foobar|foo|foobar|bar|",
-        "(\"foo\" \"bar\" \"foobar\",;abcd\n\"i\")",
-        "[(foobar;comments\nfoo bar),abcd]",
-        "(foo bar abcd|foo \\|bar|efgh foo \"foo\\\"\",bar)",
-        "#hash((a,1) (b,2))",
-        "#hashequal((a,1) (b,2))",
-        "#vu8(114 514 114514)",
-        "114514",
-        "#\\ ",
-        "'#&#(foo 0x114514 \"foobar\" .1 0x1p1 114514|foo|bar #\\a #\\\\0 #\\\\x11 #\\\\0123 #\\\\0177 #\\\\0777)",
-        "\"foobar\"",
-        "114514",
-        NULL,
-    };
-
-    FklParseError retval = 0;
-    FklGrammerMatchCtx ctx = FKL_VMVALUE_PARSE_CTX_INIT(vm, NULL);
-
-    for (const char **exp = &exps[0]; *exp; exp++) {
-        FklVMvalue *ast = fklParseWithTableForCstr(g, *exp, &ctx, &retval);
-
-        if (retval)
-            break;
-
-        fklPrin1VMvalue(ast, stdout, vm);
-        // fklDestroyNastNode(gc);
-        fputc('\n', stdout);
-    }
-    fklDestroyGrammer(g);
-    fklDestroyVMgc(gc);
-    return retval;
+    return 0;
 }

@@ -476,6 +476,24 @@ enable_testing()
 add_test(NAME test-lexer
 	COMMAND $<TARGET_FILE:test-lexer>)
 
+add_test(NAME test-lexer2
+	COMMAND $<TARGET_FILE:test-lexer2>)
+
+add_test(NAME test-lexer3
+	COMMAND $<TARGET_FILE:test-lexer3>)
+
+add_test(NAME test-lexer4
+	COMMAND $<TARGET_FILE:test-lexer4>)
+
+add_test(NAME test-parser-grammer
+	COMMAND $<TARGET_FILE:test-parser-grammer>)
+
+add_test(NAME test-lexer5
+	COMMAND $<TARGET_FILE:test-lexer5>)
+
+add_test(NAME test-bigint
+	COMMAND $<TARGET_FILE:test-bigint>)
+
 add_test(NAME test-parser
 	COMMAND $<TARGET_FILE:test-parser>)
 

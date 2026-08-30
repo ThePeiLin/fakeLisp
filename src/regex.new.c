@@ -716,7 +716,19 @@ matchpattern(const FklRegexCode *re, const char *text, uint32_t len) {
     return 0;
 }
 
-// refactor with LLM
+/* 词法模式匹配（lex 模式）。
+** 返回值：成功返回匹配长度 est（可等于 len，表示匹配到输入末尾）；
+**          失败返回 IMPOSSIBLE_IDX（= len + 1）。
+**
+** *last_is_true（供调用方区分"部分匹配"与"确定失败"）：
+**   = 匹配过程中是否发生过"截断"——某个字符操作符在输入耗尽
+**     （STP.st == len）处被求值。只要发生过截断，追加输入就可能
+**     使匹配成功（partial match）；否则失败是确定的。
+**   该判定在返回前统一写出，与成功/失败无关：
+**     - 失败 + last_is_true=1  → 调用方应等待更多输入（waiting）
+**     - 失败 + last_is_true=0  → 确定失败（追加输入无法挽救）
+**   注意：saw_truncation 只增不减，不受回溯路径上的字符冲突影响，
+**   这比"最后一次操作符的结果"更接近 NFA 活跃状态集的语义。 */
 static inline uint32_t lex_matchpattern(const FklRegexCode *re,
         const char *text,
         uint32_t len,
@@ -739,7 +751,7 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
     uint32_t sp = 0;
     int evalres = 0;
     uint32_t brtxcoff = 0;
-
+    /* 截断标志：只增不减，任何路径在输入耗尽处求值字符即置位 */
     int saw_truncation = 0;
 
     STP.st0 = IMPOSSIBLE_IDX;
@@ -757,6 +769,8 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
             else {
                 uint32_t est = STP.st;
                 FREE_STATE_STACK();
+                /* partial 判定：出现过截断（缺字符可追加），或
+                ** 匹配恰好在输入末尾完成（更多输入可能延长匹配） */
                 *last_is_true = saw_truncation || (evalres && est == len);
                 return evalres ? est : IMPOSSIBLE_IDX;
             }
@@ -794,8 +808,9 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
                         evalres = 1;
                     else
                         evalres = 0;
-                } else if (cur_obj->type == FKL_REGEX_STAR)
+                } else if (cur_obj->type == FKL_REGEX_STAR) {
                     evalres = 1;
+                }
 
                 if (evalres == 1)
                     STP.offset++;
@@ -828,6 +843,8 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
             break;
         default:
             if (STP.st == len) {
+                /* 空输入（len==0）不算截断：无输入可追加，
+                ** 是否等待由外层（parser.c 的 feof 判定）决定 */
                 if (len > 0)
                     saw_truncation = 1;
                 STP.offset = cur_obj->falseoffset;

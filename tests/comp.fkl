@@ -2,17 +2,19 @@
   (vector-ref $$ 1))
 
 (define parser
-  (make-parser
-    'S
+  (make-parser 'S
     'S #[ "#comp" .. #[?raw-string "^"] ] second
-    'S #[ "#comp" #[?raw-string "^"] ] (lambda ($$ line) :empty)))
+    'S #[ "#comp" #[?raw-string "^"] ] (lambda ($$ line) :empty)
 
-(println (parse "#comp^tag^abcd^tag^" parser))
-(println (parse "#comp ^tag^tabc^tag^" parser))
+    #&#[#&"\\s+"]
+  ))
+
+(prin1n (parse "#comp^tag^abcd^tag^" parser))
+(prin1n (parse "#comp ^tag^tabc^tag^" parser))
 
 (defmacro #&comp
   comp :s-exp -> "#comp" .. #[?raw-string "^"] => builtin second
               -> "#comp" #[?raw-string "^"] => replace :empty)
 
-(println #comp^tag^abcd^tag^)
-(println #comp ^tag^tabc^tag^)
+(prin1n #comp^tag^abcd^tag^)
+(prin1n #comp ^tag^tabc^tag^)

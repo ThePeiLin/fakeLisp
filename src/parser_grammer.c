@@ -562,7 +562,8 @@ void fklGraFoldConcatChains(FklGraSymVector *v) {
         int foldable = len >= 2;
         for (size_t k = i; foldable && k < j; k++) {
             FklGrammerSymType t = v->base[k].type;
-            if (t != FKL_TERM_STRING && t != FKL_TERM_REGEX
+            if (t != FKL_TERM_STRING       //
+                    && t != FKL_TERM_REGEX //
                     && t != FKL_TERM_BUILTIN)
                 foldable = 0;
         }

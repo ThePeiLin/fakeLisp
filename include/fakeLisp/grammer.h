@@ -162,6 +162,7 @@ typedef struct FklGrammerSym {
         const FklRegexCode *re;
         const FklString *str;
         FklCompositeSym comp;
+        void *opa;
     };
 } FklGrammerSym;
 

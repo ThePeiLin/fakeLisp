@@ -75,6 +75,12 @@ FklGrammerProduction *fklCreateProduction(FklVMvalue *sid,
     r->ctx_copy = copyer;
     if (syms != NULL) {
         memcpy(r->syms, syms, len * sizeof(FklGrammerSym));
+        for (size_t i = 0; i < r->len; ++i) {
+            FklGrammerSym *s = &r->syms[i];
+            if (s->type == FKL_TERM_COMP) {
+                s->comp.parts = s + 1;
+            }
+        }
     }
     return r;
 }

@@ -3739,7 +3739,7 @@ make_BtS_args_check(FklVM *vm, BtError err, FklVMvalue *sym) {
 FKL_NODISCARD
 static inline ValToGrammerSymErr vec_to_builtin_terminal(const FklCgCtx *ctx,
         FklVMvalue *vec,
-        FklCgRmacroGraSym *s,
+        FklGrammerSym *s,
         const FklGrammer *g) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
@@ -3767,7 +3767,7 @@ static inline ValToGrammerSymErr vec_to_builtin_terminal(const FklCgCtx *ctx,
         }
 
         s->type = FKL_TERM_BUILTIN;
-        s->v = vec;
+        s->opa = vec;
         return VAL_TO_GRAMMER_SYM_ERR_DUMMY;
     } else {
         return VAL_TO_GRAMMER_SYM_ERR_INVALID;
@@ -3791,13 +3791,6 @@ typedef struct {
     FklVMvalueCgRmacroProd *prod;
     int adding_ignore;
 } VecToGrammerSymArgs;
-
-// CgRmacroGraSymVector
-#define FKL_VECTOR_TYPE_PREFIX Cg
-#define FKL_VECTOR_METHOD_PREFIX cg
-#define FKL_VECTOR_ELM_TYPE FklCgRmacroGraSym
-#define FKL_VECTOR_ELM_TYPE_NAME RmacroGraSym
-#include <fakeLisp/cont/vector.h>
 
 static inline FklVMvalueCgRmacroProd *create_prod(FklVM *vm, uint64_t len) {
     return fklCreateVMvalueCgRmacroProd(vm, NULL, NULL, FKL_VM_NIL, 0, len);
@@ -3976,7 +3969,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
         FklVMvalue *cur_pair,
         FklVMvalueCgInfo *info,
         CgRmacroCmdVector *cmds,
-        CgRmacroGraSymVector *gsyms) {
+        FklGraSymVector *gsyms) {
     const FklGrammer *g = &ctx->builtin_g;
     FklVMvalue *old = cur_pair;
     FklVM *vm = ctx->vm;
@@ -4000,11 +3993,11 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
 
     while (cur_pair != FKL_VM_NIL) {
         FklVMvalue *cur = FKL_VM_CAR(cur_pair);
-        FklCgRmacroGraSym s = { .type = FKL_TERM_NONE };
+        FklGrammerSym s = { .type = FKL_TERM_NONE };
 
         if (FKL_IS_STR(cur)) {
             s.type = FKL_TERM_STRING;
-            s.v = cur;
+            s.opa = cur;
         } else if (FKL_IS_VECTOR(cur)) {
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
@@ -4035,7 +4028,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_REGEX;
-            s.v = next;
+            s.opa = next;
 
             if (!is_regex_str_valid(FKL_VM_STR(next))) {
                 const char *msg = get_val_to_gra_sym_err_msg(
@@ -4080,19 +4073,37 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_BUILTIN;
-            s.v = cur;
+            s.opa = cur;
         } else {
             break;
         }
 
-        cgRmacroGraSymVectorPushBack2(gsyms, s);
+        fklGraSymVectorPushBack(gsyms, &s);
         cur_pair = FKL_VM_CDR(cur_pair);
     }
 
     FklVMvalueCgRmacroProd *ig = create_prod(vm, gsyms->size);
 
     for (size_t i = 0; i < ig->len; ++i) {
-        ig->syms[i] = gsyms->base[i];
+        ig->syms[i].type = gsyms->base[i].type;
+        switch (ig->syms[i].type) {
+        case FKL_TERM_STRING:
+        case FKL_TERM_BUILTIN:
+        case FKL_TERM_REGEX:
+            ig->syms[i].v = gsyms->base[i].opa;
+            continue;
+            break;
+
+        case FKL_TERM_KEYWORD:
+        case FKL_TERM_NONE:
+        case FKL_TERM_EOF:
+        case FKL_TERM_NONTERM:
+        case FKL_TERM_COMP:
+        case FKL_TERM_IGNORE:
+            FKL_UNREACHABLE();
+            break;
+        }
+        FKL_UNREACHABLE();
     }
 
     FklCgRmacroCmd cmd = {
@@ -4105,49 +4116,6 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
     return cur_pair;
 }
 
-/* write by LLM
- * 折叠 .. 链为 FKL_TERM_COMPOSITE：
- * 连续的非 IGNORE 符号块即一条 .. 链（parse_right_part 保证"有分隔符"<->"插入了
- * IGNORE 符号"）。块长 >= 2 且全部由 STRING/REGEX/BUILTIN
- * 组成时，在块首插入一个 COMPOSITE 标记（composite.len =
- * 块长，即子终结符个数），块内全部元素保留为子终
- * 结符，紧跟标记之后。含非终结符或 KEYWORD 的链不折叠，保持现有的
- * "无 IGNORE + allow_ignore=0" 语义
- * */
-static inline void fold_concat_chains(CgRmacroGraSymVector *v) {
-    CgRmacroGraSymVector out = { 0 };
-    cgRmacroGraSymVectorInit(&out, v->size + 8);
-    size_t i = 0;
-    while (i < v->size) {
-        if (v->base[i].type == FKL_TERM_IGNORE) {
-            cgRmacroGraSymVectorPushBack(&out, &v->base[i]);
-            i++;
-            continue;
-        }
-        size_t j = i + 1;
-        while (j < v->size && v->base[j].type != FKL_TERM_IGNORE)
-            j++;
-        size_t len = j - i;
-        int foldable = len >= 2;
-        for (size_t k = i; foldable && k < j; k++) {
-            FklGrammerSymType t = v->base[k].type;
-            if (t != FKL_TERM_STRING && t != FKL_TERM_REGEX
-                    && t != FKL_TERM_BUILTIN)
-                foldable = 0;
-        }
-        if (foldable) {
-            FklCgRmacroGraSym marker = { .type = FKL_TERM_COMP };
-            marker.v = FKL_MAKE_VM_FIX(len);
-            cgRmacroGraSymVectorPushBack(&out, &marker);
-        }
-        for (size_t k = i; k < j; k++)
-            cgRmacroGraSymVectorPushBack(&out, &v->base[k]);
-        i = j;
-    }
-    cgRmacroGraSymVectorUninit(v);
-    *v = out;
-}
-
 static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         FklCgActVector *actions,
         FklVMvalue *left,
@@ -4156,7 +4124,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalueCgMacroScope *ms,
         CgRmacroCmdVector *cmds,
-        CgRmacroGraSymVector *gsyms) {
+        FklGraSymVector *gsyms) {
     gsyms->size = 0;
 
     const FklGrammer *g = &ctx->builtin_g;
@@ -4177,7 +4145,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
     cur_pair = FKL_VM_CDR(cur_pair);
     int has_ignore = 0;
     while (FKL_IS_PAIR(cur_pair)) {
-        FklCgRmacroGraSym s = { .type = FKL_TERM_NONE };
+        FklGrammerSym s = { .type = FKL_TERM_NONE };
         cur = FKL_VM_CAR(cur_pair);
 
         if (cur == ctx->d_arrow_s) {
@@ -4209,7 +4177,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_REGEX;
-            s.v = next;
+            s.opa = next;
 
             if (!is_regex_str_valid(FKL_VM_STR(next))) {
                 const char *msg = get_val_to_gra_sym_err_msg(
@@ -4241,10 +4209,10 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_KEYWORD;
-            s.v = next;
+            s.opa = next;
         } else if (FKL_IS_STR(cur)) {
             s.type = FKL_TERM_STRING;
-            s.v = cur;
+            s.opa = cur;
         } else if (FKL_IS_VECTOR(cur)) {
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
@@ -4264,7 +4232,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_NONTERM;
-            s.v = cur;
+            s.opa = cur;
         } else if (cur == ctx->concat_s) {
             if (!has_ignore) {
                 error_place = cur;
@@ -4286,7 +4254,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         } else if (FKL_IS_SYM(cur) && is_valid_nonterm_sym(cur)) {
             if (!is_builtin_gra_sym(cur)) {
                 s.type = FKL_TERM_NONTERM;
-                s.v = cur;
+                s.opa = cur;
                 goto done;
             }
 
@@ -4309,7 +4277,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             }
 
             s.type = FKL_TERM_BUILTIN;
-            s.v = cur;
+            s.opa = cur;
         } else {
             error_place = cur;
             error_cont = cur_pair;
@@ -4318,11 +4286,11 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
 
     done:
         if (has_ignore) {
-            FklCgRmacroGraSym is = { .type = FKL_TERM_IGNORE };
-            cgRmacroGraSymVectorPushBack(gsyms, &is);
+            FklGrammerSym is = { .type = FKL_TERM_IGNORE };
+            fklGraSymVectorPushBack(gsyms, &is);
         }
 
-        cgRmacroGraSymVectorPushBack2(gsyms, s);
+        fklGraSymVectorPushBack(gsyms, &s);
         cur_pair = FKL_VM_CDR(cur_pair);
         has_ignore = 1;
     }
@@ -4358,13 +4326,40 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         goto syntax_error;
     }
 
-    fold_concat_chains(gsyms);
+    fklGraFoldConcatChains(gsyms);
 
     FklVMvalue *action_ast = FKL_VM_CAR(action);
     FklVMvalueCgRmacroProd *prod = create_prod(vm, gsyms->size);
 
     for (size_t i = 0; i < prod->len; ++i) {
-        prod->syms[i] = gsyms->base[i];
+        const FklGrammerSym *in = &gsyms->base[i];
+        prod->syms[i].type = in->type;
+        switch (prod->syms[i].type) {
+        case FKL_TERM_REGEX:
+        case FKL_TERM_KEYWORD:
+        case FKL_TERM_STRING:
+        case FKL_TERM_NONTERM:
+        case FKL_TERM_BUILTIN:
+            prod->syms[i].v = in->opa;
+            continue;
+            break;
+
+        case FKL_TERM_IGNORE:
+            continue;
+            break;
+
+        case FKL_TERM_COMP:
+            prod->syms[i].v = FKL_MAKE_VM_FIX(in->comp.len);
+            continue;
+            break;
+
+        case FKL_TERM_NONE:
+        case FKL_TERM_EOF:
+            FKL_UNREACHABLE();
+            break;
+        }
+
+        FKL_UNREACHABLE();
     }
 
     prod->left = left;
@@ -4480,7 +4475,7 @@ static inline FklVMvalue *parse_rmacro_def_prod(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalueCgMacroScope *ms,
         CgRmacroCmdVector *cmds,
-        CgRmacroGraSymVector *gsyms) {
+        FklGraSymVector *gsyms) {
 
     const FklGrammer *g = &ctx->builtin_g;
     FklVMvalue *old = cur_pair;
@@ -4574,8 +4569,8 @@ FKL_NODISCARD static inline int parse_reader_macro_def(FklCgCtx *ctx,
     FKL_ASSERT(errors != NULL);
     FKL_ASSERT(ctx->vm != NULL);
 
-    CgRmacroGraSymVector gsyms;
-    cgRmacroGraSymVectorInit(&gsyms, 0);
+    FklGraSymVector gsyms;
+    fklGraSymVectorInit(&gsyms, 0);
 
     int r = 0;
     FklVMvalue *left = NULL;
@@ -4635,7 +4630,7 @@ FKL_NODISCARD static inline int parse_reader_macro_def(FklCgCtx *ctx,
     }
 
 exit:
-    cgRmacroGraSymVectorUninit(&gsyms);
+    fklGraSymVectorUninit(&gsyms);
     return r;
 }
 

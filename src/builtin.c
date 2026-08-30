@@ -11,6 +11,7 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
+
 #include <stdio.h>
 #include <uv.h>
 
@@ -1906,10 +1907,6 @@ typedef struct {
     int adding_ignore;
 } ValueToGrammerSymArgs;
 
-static inline int is_concat_sym(const FklString *str) {
-    return fklStringCstrCmp(str, FKL_PG_TERM_CONCAT) == 0;
-}
-
 static inline int is_special_sym(const FklString *str) {
     return fklCharBufMatch(FKL_PG_SPECIAL_PREFIX,
                    sizeof(FKL_PG_SPECIAL_PREFIX) - 1,
@@ -2035,14 +2032,16 @@ static inline ValueToGrammerSymErr vm_vec_to_production_right_part(
 
     FklGrammer *g = args->g;
     ValueToGrammerSymErr err = VALUE_TO_GRAMMER_SYM_ERR_DUMMY;
-    FklGraSymVector gsym_vector;
-    fklGraSymVectorInit(&gsym_vector, 2);
+    FklGraSymVector gsyms;
+    fklGraSymVectorInit(&gsyms, 2);
+
+    FklVMgc *gc = args->gc;
 
     int has_ignore = 0;
     for (size_t i = 0; i < vec->size; ++i) {
         FklGrammerSym s = { .type = FKL_TERM_STRING };
         FklVMvalue *cur = vec->base[i];
-        if (FKL_IS_SYM(cur) && is_concat_sym(FKL_VM_SYM(FKL_GET_SYM(cur)))) {
+        if (cur == gc->concat_s) {
             if (!has_ignore) {
                 args->error_value = cur;
                 err = VALUE_TO_GRAMMER_SYM_ERR_INVALID;
@@ -2061,34 +2060,36 @@ static inline ValueToGrammerSymErr vm_vec_to_production_right_part(
 
         if (has_ignore) {
             FklGrammerSym s = { .type = FKL_TERM_IGNORE };
-            fklGraSymVectorPushBack(&gsym_vector, &s);
+            fklGraSymVectorPushBack(&gsyms, &s);
         }
-        fklGraSymVectorPushBack(&gsym_vector, &s);
+        fklGraSymVectorPushBack(&gsyms, &s);
         has_ignore = !args->adding_ignore;
     }
 
-    args->syms = (FklGrammerSym *)fklZmalloc(
-            gsym_vector.size * sizeof(FklGrammerSym));
+    fklGraFoldConcatChains(&gsyms);
+
+    size_t total_size = gsyms.size * sizeof(FklGrammerSym);
+    args->syms = (FklGrammerSym *)fklZmalloc(total_size);
     FKL_ASSERT(args->syms);
-    args->len = gsym_vector.size;
+    args->len = gsyms.size;
 
     for (size_t i = 0; i < args->len; ++i)
-        args->syms[i] = gsym_vector.base[i];
+        args->syms[i] = gsyms.base[i];
 
-    fklGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsyms);
 
     return VALUE_TO_GRAMMER_SYM_ERR_DUMMY;
 
 error_happened:
-    while (!fklGraSymVectorIsEmpty(&gsym_vector)) {
-        FklGrammerSym *s = fklGraSymVectorPopBack(&gsym_vector);
+    while (!fklGraSymVectorIsEmpty(&gsyms)) {
+        FklGrammerSym *s = fklGraSymVectorPopBack(&gsyms);
         if (s->type == FKL_TERM_BUILTIN && s->b.len) {
             s->b.len = 0;
             fklZfree(s->b.args);
             s->b.args = NULL;
         }
     }
-    fklGraSymVectorUninit(&gsym_vector);
+    fklGraSymVectorUninit(&gsyms);
     return err;
 }
 

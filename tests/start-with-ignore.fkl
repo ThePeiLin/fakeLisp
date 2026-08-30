@@ -19,7 +19,8 @@
     'A #["#" .. B] not-allow-ignore
     'A #["#" B] start-with-ignore
     'B #["(" ")"] return-nil
-    #&#[#&"\\s+"]))
+    :ignore #[ :regex #r""\s+"" ]
+    ))
 
 (assert (eq 'not-allow-ignore (prin1n (parse "#()" parser))))
 (assert (eq 'start-with-ignore (prin1n (parse "# ()" parser))))

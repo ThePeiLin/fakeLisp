@@ -146,6 +146,8 @@ static inline void gc_extra_mark(FklVMgc *gc) {
     fklVMgcToGray(gc->concat_s, gc);
     fklVMgcToGray(gc->keyword_k, gc);
     fklVMgcToGray(gc->regex_k, gc);
+    fklVMgcToGray(gc->ignore_k, gc);
+    fklVMgcToGray(gc->delim_k, gc);
 }
 
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
@@ -444,6 +446,8 @@ void fklInitVMgc(FklVMgc *gc) {
     gc->concat_s = fklVMaddSymbolCstr(&gc->gcvm, "..");
     gc->keyword_k = fklVMaddKeywordCstr(&gc->gcvm, "keyword");
     gc->regex_k = fklVMaddKeywordCstr(&gc->gcvm, "regex");
+    gc->ignore_k = fklVMaddKeywordCstr(&gc->gcvm, "ignore");
+    gc->delim_k = fklVMaddKeywordCstr(&gc->gcvm, "delim");
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
     fklInitGlobalVMclosureForGC(gc);

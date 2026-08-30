@@ -1968,29 +1968,37 @@ static inline ValueToGrammerSymErr vm_vector_to_builtin_terminal(
     }
 }
 
+typedef enum {
+    NEXT_STR_STR = 0,
+    NEXT_STR_KEYWORD,
+    NEXT_STR_REGEX,
+} NextStrType;
+
 static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         FklVMgc *gc,
         FklGrammerSym *s,
-        FklGrammer *g) {
+        FklGrammer *g,
+        NextStrType next_str_type) {
     if (FKL_IS_VECTOR(v)) {
         return vm_vector_to_builtin_terminal(FKL_VM_VEC(v), gc, s, g);
-    } else if (FKL_IS_BYTEVECTOR(v)) {
-        s->type = FKL_TERM_KEYWORD;
-        s->str = fklAddStringCharBuf(&g->terminals,
-                FKL_TYPE_CAST(const char *, FKL_VM_BVEC(v)->ptr),
-                FKL_VM_BVEC(v)->size);
-    } else if (FKL_IS_BOX(v)) {
-        FklVMvalue *regex_value = FKL_VM_BOX(v);
-        if (!FKL_IS_STR(regex_value))
-            return VALUE_TO_GRAMMER_SYM_ERR_INVALID;
-        s->type = FKL_TERM_REGEX;
-        s->re = fklAddRegexStr(&g->regexes, FKL_VM_STR(regex_value));
-        if (s->re == NULL)
-            return VALUE_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED;
     } else if (FKL_IS_STR(v)) {
-        s->type = FKL_TERM_STRING;
-        s->str = fklAddString(&g->terminals, FKL_VM_STR(v));
-        fklAddString(&g->delimiters, FKL_VM_STR(v));
+        switch (next_str_type) {
+        case NEXT_STR_STR:
+            s->type = FKL_TERM_STRING;
+            s->str = fklAddString(&g->terminals, FKL_VM_STR(v));
+            fklAddString(&g->delimiters, FKL_VM_STR(v));
+            break;
+        case NEXT_STR_KEYWORD:
+            s->type = FKL_TERM_KEYWORD;
+            s->str = fklAddString(&g->terminals, FKL_VM_STR(v));
+            break;
+        case NEXT_STR_REGEX:
+            s->type = FKL_TERM_REGEX;
+            s->re = fklAddRegexStr(&g->regexes, FKL_VM_STR(v));
+            if (s->re == NULL)
+                return VALUE_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED;
+            break;
+        }
     } else if (FKL_IS_SYM(v)) {
         const FklString *str = FKL_VM_SYM(FKL_GET_SYM(v));
         if (is_special_sym(str)) {
@@ -2038,11 +2046,12 @@ static inline ValueToGrammerSymErr vm_vec_to_production_right_part(
     FklVMgc *gc = args->gc;
 
     int has_ignore = 0;
+    NextStrType next_str_type = NEXT_STR_STR;
     for (size_t i = 0; i < vec->size; ++i) {
         FklGrammerSym s = { .type = FKL_TERM_STRING };
         FklVMvalue *cur = vec->base[i];
         if (cur == gc->concat_s) {
-            if (!has_ignore) {
+            if (!has_ignore || next_str_type != NEXT_STR_STR) {
                 args->error_value = cur;
                 err = VALUE_TO_GRAMMER_SYM_ERR_INVALID;
                 goto error_happened;
@@ -2050,12 +2059,31 @@ static inline ValueToGrammerSymErr vm_vec_to_production_right_part(
                 has_ignore = 0;
             }
             continue;
+        } else if (cur == gc->keyword_k) {
+            if (next_str_type != NEXT_STR_STR) {
+                err = VALUE_TO_GRAMMER_SYM_ERR_INVALID;
+                args->error_value = cur;
+                goto error_happened;
+            }
+
+            next_str_type = NEXT_STR_KEYWORD;
+            continue;
+        } else if (cur == gc->regex_k) {
+            if (next_str_type != NEXT_STR_STR) {
+                err = VALUE_TO_GRAMMER_SYM_ERR_INVALID;
+                args->error_value = cur;
+                goto error_happened;
+            }
+
+            next_str_type = NEXT_STR_REGEX;
+            continue;
         } else {
-            err = value_to_grammer_sym(cur, args->gc, &s, g);
+            err = value_to_grammer_sym(cur, args->gc, &s, g, next_str_type);
             if (err) {
                 args->error_value = cur;
                 goto error_happened;
             }
+            next_str_type = NEXT_STR_STR;
         }
 
         if (has_ignore) {
@@ -2136,6 +2164,14 @@ static inline FklGrammerProduction *vm_vec_to_production(FklVMvalue *left,
     return prod;
 }
 
+typedef enum {
+    EXPECT_NEXT_ARG_SYMBOL = (0),
+    EXPECT_NEXT_ARG_VECTOR,
+    EXPECT_NEXT_ARG_CALLABLE,
+    EXPECT_NEXT_ARG_IGNORE,
+    EXPECT_NEXT_ARG_DELIM,
+} ExpectNextArg;
+
 static int builtin_make_parser(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *start = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -2150,67 +2186,38 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     if (fklAddExtraProdToGrammer(grammer))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_GRAMMER_CREATE_FAILED, exe);
 
-#define EXCEPT_NEXT_ARG_SYMBOL (0)
-#define EXCEPT_NEXT_ARG_VECTOR (1)
-#define EXCEPT_NEXT_ARG_CALLABLE (2)
+    ExpectNextArg next = EXPECT_NEXT_ARG_SYMBOL;
 
-    int next = EXCEPT_NEXT_ARG_SYMBOL;
     FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue **end = arg_base + argc;
     FklGrammerProduction *prod = NULL;
     FklVMvalue *sid = 0;
     FklStringTable *tt = &grammer->terminals;
+    FklVMgc *gc = exe->gc;
+
     for (++arg_base; arg_base < end; ++arg_base) {
         FklVMvalue *next_arg = *arg_base;
+    retry_parse_arg:
         switch (next) {
-        case EXCEPT_NEXT_ARG_SYMBOL:
-            next = EXCEPT_NEXT_ARG_VECTOR;
-            if (FKL_IS_SYM(next_arg)) {
+        case EXPECT_NEXT_ARG_SYMBOL:
+            next = EXPECT_NEXT_ARG_VECTOR;
+            if (next_arg == gc->concat_s) {
+                goto value_error;
+            } else if (next_arg == gc->ignore_k) {
+                next = EXPECT_NEXT_ARG_IGNORE;
+            } else if (next_arg == gc->delim_k) {
+                next = EXPECT_NEXT_ARG_DELIM;
+            } else if (FKL_IS_SYM(next_arg)) {
                 sid = FKL_GET_SYM(next_arg);
-            } else if (FKL_IS_BOX(next_arg)) {
-                next = EXCEPT_NEXT_ARG_SYMBOL;
-                FklVMvalue *vec = FKL_VM_BOX(next_arg);
-                if (FKL_IS_VECTOR(vec)) {
-                    ValueToGrammerSymArgs args = { .gc = exe->gc,
-                        .g = grammer };
-                    ValueToGrammerSymErr err_type = 0;
-                    FklGrammerIgnore *ig =
-                            vm_vec_to_ignore(FKL_VM_VEC(vec), &args, &err_type);
-                    if (err_type) {
-                        FKL_RAISE_BUILTIN_ERROR_FMT(
-                                FKL_ERR_GRAMMER_CREATE_FAILED,
-                                exe,
-                                get_value_to_grammer_sym_err_msg(err_type),
-                                args.error_value);
-                    }
-
-                    if (fklAddIgnoreToIgnoreList(&grammer->ignores, ig)) {
-                        fklDestroyIgnore(ig);
-                    }
-                } else {
-                    FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-                }
-            } else if (FKL_IS_STR(next_arg)) {
-                next = EXCEPT_NEXT_ARG_SYMBOL;
-                fklAddString(tt, FKL_VM_STR(next_arg));
-                fklAddString(&grammer->delimiters, FKL_VM_STR(next_arg));
-            } else if (fklIsList(next_arg)) {
-                next = EXCEPT_NEXT_ARG_SYMBOL;
-                for (const FklVMvalue *cur = next_arg; FKL_IS_PAIR(cur);
-                        cur = FKL_VM_CDR(cur)) {
-                    if (FKL_IS_STR(cur)) {
-                        fklAddString(tt, FKL_VM_STR(cur));
-                        fklAddString(&grammer->delimiters, FKL_VM_STR(cur));
-                    } else {
-                        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE,
-                                exe);
-                    }
-                }
             } else {
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+            value_error:
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                        exe,
+                        "Expect :ignore, :delim, or symbol but got %S",
+                        next_arg);
             }
             break;
-        case EXCEPT_NEXT_ARG_VECTOR:
+        case EXPECT_NEXT_ARG_VECTOR:
             if (FKL_IS_VECTOR(next_arg)) {
                 ValueToGrammerSymArgs args = { .gc = exe->gc, .g = grammer };
                 ValueToGrammerSymErr err_type = 0;
@@ -2225,13 +2232,43 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
                             args.error_value);
                 }
 
-                next = EXCEPT_NEXT_ARG_CALLABLE;
-            } else
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+                next = EXPECT_NEXT_ARG_CALLABLE;
+            } else {
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                        exe,
+                        "Unexpect %S",
+                        next_arg);
+            }
             break;
-        case EXCEPT_NEXT_ARG_CALLABLE:
+        case EXPECT_NEXT_ARG_IGNORE:
+            next = EXPECT_NEXT_ARG_SYMBOL;
+            if (FKL_IS_VECTOR(next_arg)) {
+                ValueToGrammerSymArgs args = { .gc = exe->gc, .g = grammer };
+                ValueToGrammerSymErr err_type = 0;
+                FklGrammerIgnore *ig = vm_vec_to_ignore(FKL_VM_VEC(next_arg),
+                        &args,
+                        &err_type);
+                if (err_type) {
+                    FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_GRAMMER_CREATE_FAILED,
+                            exe,
+                            get_value_to_grammer_sym_err_msg(err_type),
+                            args.error_value);
+                }
+
+                if (fklAddIgnoreToIgnoreList(&grammer->ignores, ig)) {
+                    fklDestroyIgnore(ig);
+                }
+            } else {
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                        exe,
+                        "Unexpect %S",
+                        next_arg);
+            }
+            break;
+
+        case EXPECT_NEXT_ARG_CALLABLE:
             FKL_ASSERT(prod);
-            next = EXCEPT_NEXT_ARG_SYMBOL;
+            next = EXPECT_NEXT_ARG_SYMBOL;
             if (fklIsCallable(next_arg)) {
                 prod->ctx = FKL_TYPE_CAST(FklProdActionArgs *, next_arg);
                 if (fklAddProdAndExtraToGrammer(grammer, prod)) {
@@ -2240,17 +2277,27 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
                 }
             } else {
                 fklDestroyGrammerProduction(prod);
-                FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                        exe,
+                        "Unexpect %S",
+                        next_arg);
             }
+            break;
+        case EXPECT_NEXT_ARG_DELIM:
+            if (FKL_IS_STR(next_arg)) {
+                next = EXPECT_NEXT_ARG_SYMBOL;
+                fklAddString(tt, FKL_VM_STR(next_arg));
+                fklAddString(&grammer->delimiters, FKL_VM_STR(next_arg));
+            } else {
+                next = EXPECT_NEXT_ARG_SYMBOL;
+                goto retry_parse_arg;
+            }
+
             break;
         }
     }
-    if (next != EXCEPT_NEXT_ARG_SYMBOL)
+    if (next != EXPECT_NEXT_ARG_SYMBOL)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-
-#undef EXCEPT_NEXT_ARG_SYMBOL
-#undef EXCEPT_NEXT_ARG_VECTOR
-#undef EXCEPT_NEXT_ARG_CALLABLE
 
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {

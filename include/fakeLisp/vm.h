@@ -650,6 +650,8 @@ typedef struct FklVMgc {
     FklVMvalue *concat_s;
     FklVMvalue *keyword_k;
     FklVMvalue *regex_k;
+    FklVMvalue *ignore_k;
+    FklVMvalue *delim_k;
 
     // only for create objects before idle loop start
     FklVM gcvm;

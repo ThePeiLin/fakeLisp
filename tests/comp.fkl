@@ -6,7 +6,7 @@
     'S #[ "#comp" .. #[?raw-string "^"] ] second
     'S #[ "#comp" #[?raw-string "^"] ] (lambda ($$ line) :empty)
 
-    #&#[#&"\\s+"]
+    :ignore #[ :regex #r""\s+""]
   ))
 
 (prin1n (parse "#comp^tag^abcd^tag^" parser))

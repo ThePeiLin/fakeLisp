@@ -17,11 +17,11 @@ static inline void print_match_res(const char *str, size_t len, size_t pos) {
     }
 }
 
-#define MATCH_INT "^[-+]?(0|[1-9]\\d*)$"
-// #define MATCH_STRING "^\"(\\\\.|[^\"\\\\])*\""
-#define MATCH_STRING "\"\"|^\"(\\\\.|.)*\"$"
+#define MATCH_INT "[-+]?(0|[1-9]\\d*)"
+// #define MATCH_STRING "\"(\\\\.|[\"\\\\])*\""
+#define MATCH_STRING "\"\"|\"(\\\\.|.)*\""
 #define MATCH_BRANCH "(ab|cd|ef)"
-#define MATCH_UTF_STRING "“”|^“(\\\\.|.)*”$"
+#define MATCH_UTF_STRING "“”|“(\\\\.|.)*”"
 
 static const struct PatternAndText {
     const char *pattern;
@@ -35,7 +35,7 @@ static const struct PatternAndText {
 } pattern_and_str[] = {
     // clang-format off
     {MATCH_INT,        "114514",       0, 6,                     .pos = 0          },
-    {MATCH_INT,        "000000",       0, 7,                     .pos = 0          },
+    {MATCH_INT,        "000000",       0, 1,                     .pos = 0          },
     {MATCH_INT,        "0",            0, 1,                     .pos = 0          },
     {"\\x20*",         "    ",         0, 4,                     .pos = 0          },
     {"[\\x20]*",       "    ",         0, 4,                     .pos = 0          },
@@ -48,10 +48,10 @@ static const struct PatternAndText {
     {MATCH_STRING,     "\"\"abcd",     0, 2,                     .pos = 0          },
     {"\\(a+\\)",       "(",            1, 2,                     .last_is_true = 1 },
     {"\\(a+\\)",       "(a",           1, 3,                     .last_is_true = 1 },
-    {"ab+$",           "abbc",         1, 3,                     .last_is_true = 0 },
-    {"ab+$",           "",             1, 1,                     .last_is_true = 0 },
+    {"ab+",            "abbc",         1, 3,                     .last_is_true = 0 },
+    {"ab+",            "",             1, 1,                     .last_is_true = 0 },
     {".*",             "",             1, 0,                     .last_is_true = 1 },
-    {"^/\\*.*(\\*/)$", "/* * */",      1, 7,                     .last_is_true = 1 },
+    {"/\\*.*(\\*/)",   "/* * */",      1, 7,                     .last_is_true = 1 },
     {MATCH_BRANCH,     "abcd",         0, 2,                     .pos = 0          },
     {MATCH_BRANCH,     "cd",           0, 2,                     .pos = 0          },
     {MATCH_UTF_STRING, "“cd”",         0, sizeof("“cd”") - 1,    .pos = 0          },

@@ -592,132 +592,8 @@ matchone(const FklRegexObj *cur, const uint8_t *patrns, uint8_t c) {
 
 #define DEFAULT_STACK_SIZE (32)
 
-static inline uint32_t
-matchpattern(const FklRegexCode *re, const char *text, uint32_t len) {
-    struct ReMatchState stack_state[DEFAULT_STACK_SIZE] = { 0 };
-    const uint32_t IMPOSSIBLE_IDX = len + 1;
-    const FklRegexObj *objs = re->data;
-    const FklRegexObj *cur_obj = NULL;
-    const uint8_t *patrns = (const uint8_t *)re->data;
-    struct ReMatchState *state;
-    if (re->pstsize > DEFAULT_STACK_SIZE) {
-        state = (struct ReMatchState *)fklZcalloc(re->pstsize,
-                sizeof(struct ReMatchState));
-        FKL_ASSERT(state);
-    } else {
-        state = &stack_state[0];
-    }
-
-    uint32_t sp = 0;
-    int evalres = 0;
-    uint32_t brtxcoff = 0;
-
-    STP.st0 = IMPOSSIBLE_IDX;
-
-    for (;;) {
-        cur_obj = &objs[STP.offset];
-        switch (cur_obj->type) {
-        case FKL_REGEX_BEGIN:
-            STP.offset = cur_obj->trueoffset;
-            break;
-        case FKL_REGEX_UNUSED:
-        case FKL_REGEX_END:
-            if (evalres == 0 && sp > 0)
-                POP();
-            else {
-                uint32_t est = STP.st;
-                FREE_STATE_STACK();
-                if (cur_obj->type == FKL_REGEX_END)
-                    return est == len && evalres ? est : IMPOSSIBLE_IDX;
-                else
-                    return evalres ? est : IMPOSSIBLE_IDX;
-            }
-            break;
-        case FKL_REGEX_QUESTIONMARK:
-            STP.offset = cur_obj->trueoffset;
-            evalres = 1;
-            STP.matchcnt = 0;
-            break;
-        case FKL_REGEX_STAR:
-        case FKL_REGEX_PLUS: {
-            if (evalres)
-                STP.matchcnt++;
-            if (evalres && STP.st < len) {
-                uint32_t offset0 = STP.offset + 1;
-                STP.offset = cur_obj->trueoffset;
-                const FklRegexObj *cur_obj0 = &objs[offset0];
-                if (cur_obj0->type != FKL_REGEX_END
-                        && cur_obj0->type != FKL_REGEX_UNUSED
-                        && cur_obj0->type != FKL_REGEX_GROUPEND
-                        && cur_obj0->type != FKL_REGEX_BRANCH
-                        && STP.st0 != STP.st) {
-                    uint32_t tr = matchone(cur_obj0, patrns, text[STP.st]);
-                    if (tr) {
-                        STP.st0 = STP.st;
-                        PUSH();
-                        STP.st0 = IMPOSSIBLE_IDX;
-                        STP.offset = cur_obj0->trueoffset;
-                        STP.st++;
-                    }
-                }
-            } else {
-                if (cur_obj->type == FKL_REGEX_PLUS) {
-                    if (STP.matchcnt > 0)
-                        evalres = 1;
-                    else
-                        evalres = 0;
-                } else if (cur_obj->type == FKL_REGEX_STAR)
-                    evalres = 1;
-                if (evalres == 1)
-                    STP.offset++;
-                else
-                    STP.offset = cur_obj->falseoffset;
-                STP.matchcnt = 0;
-            }
-        } break;
-        case FKL_REGEX_GROUPSTART:
-            STP.offset++;
-            brtxcoff = STP.st;
-            break;
-        case FKL_REGEX_GROUPEND:
-            if (evalres == 0) {
-                STP.st = brtxcoff;
-                STP.offset = cur_obj->falseoffset;
-            } else {
-                STP.offset = cur_obj->trueoffset;
-                brtxcoff = 0;
-            }
-            break;
-        case FKL_REGEX_BRANCH:
-            if (evalres == 0) {
-                STP.st = brtxcoff;
-                STP.offset = cur_obj->falseoffset;
-            } else {
-                STP.offset = cur_obj->trueoffset;
-                brtxcoff = 0;
-            }
-            break;
-        default:
-            if (STP.st == len) {
-                STP.offset = cur_obj->falseoffset;
-                evalres = 0;
-                continue;
-            }
-            evalres = matchone(cur_obj, patrns, text[STP.st]);
-            if (evalres) {
-                STP.offset = cur_obj->trueoffset;
-                STP.st++;
-            } else
-                STP.offset = cur_obj->falseoffset;
-            break;
-        }
-    }
-    FREE_STATE_STACK();
-    return 0;
-}
-
 // refactor with LLM
-static inline uint32_t lex_matchpattern(const FklRegexCode *re,
+static inline uint32_t matchpattern(const FklRegexCode *re,
         const char *text,
         uint32_t len,
         int *last_is_true) {
@@ -752,13 +628,19 @@ static inline uint32_t lex_matchpattern(const FklRegexCode *re,
             break;
         case FKL_REGEX_UNUSED:
         case FKL_REGEX_END:
-            if (evalres == 0 && sp > 0)
+            if (evalres == 0 && sp > 0) {
                 POP();
-            else {
+            } else {
                 uint32_t est = STP.st;
                 FREE_STATE_STACK();
-                *last_is_true = saw_truncation || (evalres && est == len);
-                return evalres ? est : IMPOSSIBLE_IDX;
+                if (last_is_true != NULL) {
+                    *last_is_true = saw_truncation || (evalres && est == len);
+                }
+                if (cur_obj->type == FKL_REGEX_END) {
+                    return est == len && evalres ? est : IMPOSSIBLE_IDX;
+                } else {
+                    return evalres ? est : IMPOSSIBLE_IDX;
+                }
             }
             break;
         case FKL_REGEX_QUESTIONMARK:
@@ -857,12 +739,12 @@ size_t fklRegexMatchpInCharBuf(const FklRegexCode *re,
         size_t *ppos) {
     if (re->data[0].type == FKL_REGEX_BEGIN) {
         *ppos = 0;
-        return matchpattern(re, text, len);
+        return matchpattern(re, text, len, NULL);
     } else {
         uint32_t pos = 0;
         uint32_t match_len = 0;
         while (pos < len) {
-            match_len = matchpattern(re, &text[pos], len - pos);
+            match_len = matchpattern(re, &text[pos], len - pos, NULL);
             if (match_len > len - pos)
                 pos++;
             else {
@@ -884,7 +766,7 @@ size_t fklRegexLexMatchp(const FklRegexCode *re,
         size_t len,
         int *last_is_true) {
     *last_is_true = 0;
-    return lex_matchpattern(re, text, len, last_is_true);
+    return matchpattern(re, text, len, last_is_true);
 }
 
 static inline void

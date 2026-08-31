@@ -1438,7 +1438,7 @@ int fklIsVMvalueChanl(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ChanlUserDataMetaTable;
 }
 
-static int _fp_userdata_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult _fp_userdata_finalize(FklVMvalue *ud, FklVMgc *gc) {
     fklVMfpClose(FKL_VM_FP(ud));
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -1737,7 +1737,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCodeObj *as_co(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(_code_obj_userdata_print, "code-obj");
 
-static int _code_obj_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
+static FklVMudFinalizeResult _code_obj_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     FklByteCodelnt *t = &as_co(v)->bcl;
     fklUninitByteCodelnt(t);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -1784,7 +1784,7 @@ static void _dll_userdata_atomic(const FklVMvalue *root, FklVMgc *gc) {
     fklVMgcToGray(dll->pd, gc);
 }
 
-static int _dll_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
+static FklVMudFinalizeResult _dll_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueDll *dll = FKL_VM_DLL(v);
     FklDllUninitFunc uninit =
             (FklDllUninitFunc)fklGetAddress("_fklUninit", &dll->dll);
@@ -2052,7 +2052,7 @@ static void _lib_userdata_atomic(const FklVMvalue *v, FklVMgc *gc) {
         fklVMgcToGray(*cur, gc);
 }
 
-static int _lib_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
+static FklVMudFinalizeResult _lib_userdata_finalize(FklVMvalue *v, FklVMgc *gc) {
     FklVMvalueLib *t = fklVMvalueLib(v);
     uv_mutex_destroy(&t->lock);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -2131,7 +2131,7 @@ static void weak_hash_eq_update_weak_ref(const FklVMvalue *v, FklVMgc *gc) {
     }
 }
 
-static int weak_hash_eq_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult weak_hash_eq_finalize(FklVMvalue *ud, FklVMgc *gc) {
     fklValueEqHashMapUninit(&fklVMvalueWeakHashEq(ud)->ht);
     return FKL_VM_UD_FINALIZE_NOW;
 }
@@ -2192,7 +2192,7 @@ static FKL_ALWAYS_INLINE FklVMvalueObarray *as_obarray(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueObarray *, v);
 }
 
-static int obarray_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult obarray_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueObarray *obarray = as_obarray(ud);
     uv_mutex_destroy(&obarray->lock);
     fklStrValueHashMapUninit(&obarray->map);

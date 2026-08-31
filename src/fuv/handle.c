@@ -8,7 +8,7 @@ static void fuv_handle_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(handle->data.callbacks[1], gc);
 }
 
-static int fuv_handle_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fuv_handle_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FuvValueHandle *handle = FUV_HANDLE(ud);
     FuvHandleData *handle_data = &handle->data;
     if (handle_data->loop) {

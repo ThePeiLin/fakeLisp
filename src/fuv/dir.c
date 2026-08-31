@@ -2,7 +2,7 @@
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_dir_print, "dir");
 
-static int fuv_dir_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fuv_dir_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FuvValueDir *dir = FUV_DIR(ud);
     if (dir->req == NULL) {
         cleanUpDir(dir->dir, FUV_DIR_CLEANUP_ALL);

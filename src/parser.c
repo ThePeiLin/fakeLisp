@@ -343,7 +343,7 @@ static FKL_ALWAYS_INLINE FklVMvalueLnt *as_lnt(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueLnt *, v);
 }
 
-static int lnt_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult lnt_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     fklLineNumHashMapUninit(&as_lnt(ud)->ht);
     return FKL_VM_UD_FINALIZE_NOW;
 }

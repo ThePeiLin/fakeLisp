@@ -83,7 +83,7 @@ static void debug_ctx_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(dctx->backtrace_list, gc);
 }
 
-static int debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
+static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
     DebugCtx *ctx = as_dbg_ctx(data);
     if (ctx->exit == 0) {
         fprintf(stderr,

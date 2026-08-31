@@ -75,7 +75,7 @@ static int ht_equal(const FklVMvalue *a, const FklVMvalue *b) {
         return 0;
 }
 
-static int ht_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult ht_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueHt *ht = as_ht(ud);
     fklValueHashMapUninit(&ht->ht);
     return FKL_VM_UD_FINALIZE_NOW;

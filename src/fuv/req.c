@@ -38,7 +38,7 @@ void fuvFsReqCleanUp(FuvValueFsReq *req, FuvFsReqCleanUpOption opt) {
     }
 }
 
-static inline int fuv_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static inline FklVMudFinalizeResult fuv_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FuvValueReq *req = FUV_REQ(ud);
     if (req->data.loop) {
         fuvLoopAddGcObj(req->data.loop, ud);
@@ -53,7 +53,7 @@ static FKL_ALWAYS_INLINE FuvValueFsReq *as_fs_req(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FuvValueFsReq *, v);
 }
 
-static int fuv_fs_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fuv_fs_req_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
     if (fuv_req_ud_finalize(ud, gc))
         return FKL_VM_UD_FINALIZE_DELAY;
     fuvFsReqCleanUp(as_fs_req(ud), FUV_FS_REQ_CLEANUP_IN_FINALIZING);

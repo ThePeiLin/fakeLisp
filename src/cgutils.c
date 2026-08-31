@@ -1101,7 +1101,7 @@ static void macro_scope_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(ms->replacements), gc);
 }
 
-static int macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgMacroScope *ms = as_macro_scope(ud);
     ms->macros = NULL;
     ms->replacements = NULL;
@@ -1219,7 +1219,7 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-static int env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgEnv *cur = as_env(ud);
 
     for (size_t i = 0; i < cur->scopes.size; ++i) {
@@ -1369,7 +1369,7 @@ static void info_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(e->last_re_export, gc);
 }
 
-static int info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgInfo *i = as_info(ud);
 
     fklZfree(i->dir);
@@ -2982,7 +2982,7 @@ static void grammer_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcMarkGrammer(gc, &m->g, NULL);
 }
 
-static int grammer_finanlize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult grammer_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgGrammer *g = as_grammer(ud);
     fklUninitGrammer(&g->g);
 
@@ -2994,7 +2994,7 @@ static FklVMudMetaTable const GrammerUserDataMetaTable = {
     .princ = grammer_print,
     .prin1 = grammer_print,
     .atomic = grammer_atomic,
-    .finalize = grammer_finanlize,
+    .finalize = grammer_finalize,
 };
 
 FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c) {
@@ -4679,7 +4679,7 @@ cg_lib_print(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
     fklVMformat(exe, build, "#<cg-lib %S>", NULL, 1, values);
 }
 
-static int cg_lib_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult cg_lib_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvalueCgLib *l = fklVMvalueCgLib(ud);
     fklCgExportSidIdxHashMapUninit(&l->exports);
     l->macros = NULL;

@@ -69,7 +69,7 @@ static FKL_ALWAYS_INLINE FklVMvalueMutex *as_mutex(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(mutex_print, "mutex");
 
-static int mutex_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult mutex_finalize(FklVMvalue *ud, FklVMgc *gc) {
     uv_mutex_t *mutex = &as_mutex(ud)->l;
     uv_mutex_destroy(mutex);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -143,7 +143,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCond *as_cond(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(cond_print, "cond");
 
-static int cond_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult cond_finalize(FklVMvalue *ud, FklVMgc *gc) {
     uv_cond_t *cond = &as_cond(ud)->c;
     uv_cond_destroy(cond);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -227,7 +227,7 @@ static FKL_ALWAYS_INLINE FklVMvalueRwlock *as_rwlock(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(rwlock_print, "rwlock");
 
-static int rwlock_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult rwlock_finalize(FklVMvalue *ud, FklVMgc *gc) {
     uv_rwlock_t *rwlock = &as_rwlock(ud)->l;
     uv_rwlock_destroy(rwlock);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -324,7 +324,7 @@ static FKL_ALWAYS_INLINE FklVMvalueSem *as_sem(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueSem *, v);
 }
 
-static int sem_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult sem_finalize(FklVMvalue *ud, FklVMgc *gc) {
     uv_sem_t *sem = &as_sem(ud)->s;
     uv_sem_destroy(sem);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -394,7 +394,7 @@ static FKL_ALWAYS_INLINE FklVMvalueBarrier *as_barrier(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(barrier_print, "barrier");
 
-static int barrier_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult barrier_finalize(FklVMvalue *ud, FklVMgc *gc) {
     uv_barrier_t *barrier = &as_barrier(ud)->b;
     uv_barrier_destroy(barrier);
     return FKL_VM_UD_FINALIZE_NOW;

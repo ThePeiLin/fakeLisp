@@ -44,7 +44,7 @@ static uintptr_t _dvec_hash(const FklVMvalue *ud) {
     return seed;
 }
 
-static int _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult _dvec_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     fklValueVectorUninit(&as_dvec(ud)->vec);
     return FKL_VM_UD_FINALIZE_NOW;
 }

@@ -26,7 +26,7 @@ static int strbuf_equal(const FklVMvalue *a, const FklVMvalue *b) {
         && !memcmp(bufa->buf, bufb->buf, bufa->index);
 }
 
-static int strbuf_finalize(FklVMvalue *p, FklVMgc *gc) {
+static FklVMudFinalizeResult strbuf_finalize(FklVMvalue *p, FklVMgc *gc) {
     fklUninitStrBuf(&as_strbuf(p)->buf);
     return FKL_VM_UD_FINALIZE_NOW;
 }

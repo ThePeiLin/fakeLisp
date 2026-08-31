@@ -1583,7 +1583,8 @@ static FKL_ALWAYS_INLINE FklVMvalueGra *as_gra(const FklVMvalue *v) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(custom_parser_print, "parser");
 
-static int custom_parser_finalize(FklVMvalue *p, FklVMgc *gc) {
+static FklVMudFinalizeResult custom_parser_finalize(FklVMvalue *p,
+        FklVMgc *gc) {
     fklUninitGrammer(&as_gra(p)->g);
     return FKL_VM_UD_FINALIZE_NOW;
 }

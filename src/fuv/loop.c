@@ -45,7 +45,7 @@ static inline void fuv_loop_remove_obj_ref(FklVMvalue *v) {
     }
 }
 
-static int fuv_loop_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fuv_loop_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FuvValueLoop *l = FUV_LOOP(ud);
     if (fuvLoopIsClosed(l))
         goto closed;

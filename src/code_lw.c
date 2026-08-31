@@ -3702,7 +3702,7 @@ static void fixup_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(fixup->lib), gc);
 }
 
-static int fixup_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fixup_finalize(FklVMvalue *ud, FklVMgc *gc) {
     FklVMvaluePcFixup *f = fklVMvaluePcFixup(ud);
     fklPreCompileFixupUninit(&f->f);
     return FKL_VM_UD_FINALIZE_NOW;

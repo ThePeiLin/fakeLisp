@@ -461,14 +461,18 @@ typedef FklVMvalue *(*FklVMudAppendCb)(FklVM *vm,
 typedef void (*FklVMudPrintCb)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
 typedef int (*FklVMudEqualCb)(const FklVMvalue *, const FklVMvalue *);
 
-#define FKL_VM_UD_FINALIZE_NOW (0)
-#define FKL_VM_UD_FINALIZE_DELAY (1)
+typedef enum {
+    FKL_VM_UD_FINALIZE_NOW = 0,
+    FKL_VM_UD_FINALIZE_DELAY
+} FklVMudFinalizeResult;
+
+typedef FklVMudFinalizeResult (*FklVMudFinalizer)(FklVMvalue *, FklVMgc *gc);
 
 typedef struct FklVMudMetaTable {
     size_t size;
     FklVMudPrintCb princ;
     FklVMudPrintCb prin1;
-    int (*finalize)(FklVMvalue *, FklVMgc *gc);
+	FklVMudFinalizer finalize;
     FklVMudEqualCb equal;
     void (*call)(FklVMvalue *, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);

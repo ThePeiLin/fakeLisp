@@ -272,8 +272,8 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
     gc->head = head;
 }
 
-static inline int finalize_ud(FklVMvalue *a, FklVMgc *gc) {
-    int (*finalize)(FklVMvalue *, FklVMgc *) = FKL_VM_UD(a)->mt_->finalize;
+static inline FklVMudFinalizeResult finalize_ud(FklVMvalue *a, FklVMgc *gc) {
+    FklVMudFinalizer finalize = FKL_VM_UD(a)->mt_->finalize;
     if (finalize)
         return finalize(a, gc);
     return FKL_VM_UD_FINALIZE_NOW;
@@ -282,9 +282,14 @@ static inline int finalize_ud(FklVMvalue *a, FklVMgc *gc) {
 static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     switch (cur->type_) {
     case FKL_TYPE_USERDATA:
-        if (finalize_ud(cur, gc) == FKL_VM_UD_FINALIZE_DELAY)
+        switch (finalize_ud(cur, gc)) {
+        case FKL_VM_UD_FINALIZE_DELAY:
             return;
-        goto done;
+            break;
+        case FKL_VM_UD_FINALIZE_NOW:
+            goto done;
+            break;
+        }
         break;
     case FKL_TYPE_F64:
     case FKL_TYPE_BIGINT:

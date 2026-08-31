@@ -28,24 +28,24 @@ static void proto_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(*cur, gc);
 }
 
-static FklVMudMetaTable const ProtoUserDataMetaTable = {
-    .size = sizeof(FklVMvalueProto),
-    .princ = proto_print,
-    .prin1 = proto_print,
-    .atomic = proto_atomic,
-};
+FKL_VM_TYPE_ATTR FklVMvalueType ProtoType = FKL_VM_TYPE_STATIC_INIT(ProtoType,
+        {
+            .name = "proto",
+            .size = sizeof(FklVMvalueProto),
+            .princ = proto_print,
+            .prin1 = proto_print,
+            .atomic = proto_atomic,
+        });
 
 int fklIsVMvalueProto(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ProtoUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &ProtoType.mt;
 }
 
 FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count) {
     size_t extra_size = val_count * sizeof(FklVMvalue *);
 
-    FklVMvalueProto *proto = (FklVMvalueProto *)fklCreateVMvalueUd2(exe, //
-            &ProtoUserDataMetaTable,
-            extra_size,
-            NULL);
+    FklVMvalueProto *proto =
+            (FklVMvalueProto *)fklCreateVMvalueUd2(exe, &ProtoType, extra_size);
 
     proto->total_val_count = val_count;
 

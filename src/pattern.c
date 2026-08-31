@@ -25,31 +25,35 @@ static void _slot_userdata_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(as_slot(ud)->s, gc);
 }
 
-static FklVMudMetaTable const SlotUserDataMetaTable = {
-    .size = sizeof(FklVMvalueSlot),
-    .princ = _slot_userdata_as_print,
-    .prin1 = _slot_userdata_as_print,
-    .atomic = _slot_userdata_atomic,
-};
+FKL_VM_TYPE_ATTR
+FklVMvalueType SlotType = FKL_VM_TYPE_STATIC_INIT(SlotType,
+        {
+            .name = "slot",
+            .size = sizeof(FklVMvalueSlot),
+            .princ = _slot_userdata_as_print,
+            .prin1 = _slot_userdata_as_print,
+            .atomic = _slot_userdata_atomic,
+        });
 
 static void
 header_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
     fklCodeBuilderPuts(buf, "#<header>");
 }
 
-static FklVMudMetaTable const HeaderUserDataMetaTable = {
-    .size = sizeof(FklVMvalueUd),
-    .princ = header_userdata_print,
-    .prin1 = header_userdata_print,
-};
+FKL_VM_TYPE_ATTR FklVMvalueType HeaderType = FKL_VM_TYPE_STATIC_INIT(HeaderType,
+        {
+            .name = "header",
+            .size = sizeof(FklVMvalueUd),
+            .princ = header_userdata_print,
+            .prin1 = header_userdata_print,
+        });
 
-static const FklVMvalueUd HeaderSingleton = {
+static const alignas(8) FklVMvalueUd HeaderSingleton = {
     .next_ = NULL,
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,
     .type_ = FKL_TYPE_USERDATA,
-    .dll_ = NULL,
-    .mt_ = &HeaderUserDataMetaTable,
+    .tp_ = &HeaderType,
 };
 
 FklVMvalue *fklVMvalueHeaderWildcard(void) {
@@ -57,15 +61,13 @@ FklVMvalue *fklVMvalueHeaderWildcard(void) {
 }
 
 int fklIsVMvalueSlot(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &SlotUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &SlotType.mt;
 }
 
 FklVMvalue *
 fklCreateVMvalueSlot(FklVM *vm, FklVMvalue *s, FklPmatchExpandType expand) {
     FKL_ASSERT(FKL_IS_SYM(s));
-    FklVMvalueSlot *r = (FklVMvalueSlot *)fklCreateVMvalueUd(vm,
-            &SlotUserDataMetaTable,
-            NULL);
+    FklVMvalueSlot *r = (FklVMvalueSlot *)fklCreateVMvalueUd(vm, &SlotType);
     r->s = s;
     r->expand = expand;
     return (FklVMvalue *)r;

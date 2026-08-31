@@ -756,11 +756,11 @@ i64_to_string(FklVM *exe, int64_t num, uint8_t radix, FklBigIntFmtFlags flags) {
 }
 
 static inline int is_to_str_able_ud(const FklVMvalueUd *u) {
-    return u->mt_->prin1 != NULL || u->mt_->princ != NULL;
+    return u->tp_->mt.prin1 != NULL || u->tp_->mt.princ != NULL;
 }
 
 static inline int is_writable_ud(const FklVMvalueUd *u) {
-    return u->mt_->write != NULL;
+    return u->tp_->mt.write != NULL;
 }
 
 static inline int
@@ -1570,10 +1570,12 @@ static const FklVMframeContextMethodTable ReadContextMethodTable = {
 };
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueGra, { FklGrammer g; });
-static const FklVMudMetaTable CustomParserMetaTable;
+
+static const alignas(8) FklVMvalueType CustomParserType;
 
 static inline int is_gra(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &CustomParserMetaTable;
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->tp_->token == &CustomParserType.mt;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueGra *as_gra(const FklVMvalue *v) {
@@ -1593,13 +1595,17 @@ static void custom_parser_atomic(const FklVMvalue *p, FklVMgc *gc) {
     fklVMgcMarkGrammer(gc, &as_gra(p)->g, NULL);
 }
 
-static const FklVMudMetaTable CustomParserMetaTable = {
-    .size = sizeof(FklVMvalueGra),
-    .princ = custom_parser_print,
-    .prin1 = custom_parser_print,
-    .atomic = custom_parser_atomic,
-    .finalize = custom_parser_finalize,
-};
+FKL_VM_TYPE_ATTR
+FklVMvalueType CustomParserType = FKL_VM_TYPE_STATIC_INIT(CustomParserType,
+        {
+            // metatable
+            .name = "parser",
+            .size = sizeof(FklVMvalueGra),
+            .princ = custom_parser_print,
+            .prin1 = custom_parser_print,
+            .atomic = custom_parser_atomic,
+            .finalize = custom_parser_finalize,
+        });
 
 static inline void push_state0_of_custom_parser(FklVMvalue *parser,
         FklParseStateVector *stack) {
@@ -2177,7 +2183,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *start = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(start, FKL_IS_SYM, exe);
-    FklVMvalue *retval = fklCreateVMvalueUd(exe, &CustomParserMetaTable, NULL);
+    FklVMvalue *retval = fklCreateVMvalueUd(exe, &CustomParserType);
     FklGrammer *grammer = &as_gra(retval)->g;
 
     fklInitEmptyGrammer(grammer, exe);
@@ -2838,12 +2844,12 @@ static int builtin_dlopen(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dll_name = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dll_name, FKL_IS_STR, exe);
-    FklVMvalue *errorStr = NULL;
-    FklVMvalue *ndll = fklCreateVMvalueDll(exe, dll_name, &errorStr);
+    FklVMvalue *msg = NULL;
+    FklVMvalue *ndll = fklCreateVMvalueDll(exe, dll_name, &msg);
     if (!ndll) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,
                 exe,
-                FKL_VM_STR(errorStr)->str);
+                FKL_VM_STR(msg)->str);
     }
     FKL_CPROC_RETURN(exe, ctx, ndll);
     return 0;
@@ -2856,16 +2862,15 @@ static int builtin_dlsym(FKL_CPROC_ARGL) {
     if (!FKL_IS_STR(symbol) || !fklIsVMvalueDll(ndll))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklVMvalueDll *dll = FKL_VM_DLL(ndll);
-    FklVMcFunc funcAddress = NULL;
-    if (uv_dlsym(&dll->dll,
-                FKL_VM_STR(symbol)->str,
-                FKL_TYPE_CAST(void **, &funcAddress)))
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD,
-                exe,
-                uv_dlerror(&dll->dll));
-    FKL_CPROC_RETURN(exe,
-            ctx,
-            fklCreateVMvalueCproc(exe, funcAddress, ndll, dll->pd, 0));
+    FklVMcFunc func = NULL;
+    if (uv_dlsym(&dll->dll, FKL_VM_STR(symbol)->str, (void **)&func)) {
+        const char *msg = uv_dlerror(&dll->dll);
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_LOADDLLFAILD, exe, msg);
+    }
+
+    FklVMvalue *proc = fklCreateVMvalueCproc(exe, func, ndll, NULL);
+
+    FKL_CPROC_RETURN(exe, ctx, proc);
     return 0;
 }
 
@@ -4448,10 +4453,7 @@ static int builtin_hashequal_p(FKL_CPROC_ARGL) {
 
 static int builtin_eof_p(FKL_CPROC_ARGL) { PREDICATE(val == FKL_VM_EOF) }
 
-static int builtin_parser_p(FKL_CPROC_ARGL) {
-    PREDICATE(FKL_IS_USERDATA(val) //
-              && FKL_VM_UD(val)->mt_ == &CustomParserMetaTable)
-}
+static int builtin_parser_p(FKL_CPROC_ARGL) { PREDICATE(is_gra(val)) }
 
 static int builtin_exit(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 1);

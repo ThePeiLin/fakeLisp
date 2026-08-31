@@ -1,9 +1,9 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-static FklVMudMetaTable const HtUdMetaTable;
+static FklVMudMetaTable const HtMt;
 static inline int IS_HASH_UD(const FklVMvalue *V) {
-    return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->mt_ == &HtUdMetaTable);
+    return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &HtMt);
 }
 
 static int ht_hashv(FKL_CPROC_ARGL) {
@@ -35,6 +35,27 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueHt, {
     FklVMvalue *eq_func;
     FklValueHashMap ht;
 });
+
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueHtDll, { FklVMvalueType *HtType; });
+
+static const FklDllStateDesc state_desc;
+
+static FKL_ALWAYS_INLINE FklVMvalueHtDll *as_ht_dll(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueDll(v));
+    FklVMvalueDll *d = FKL_VM_DLL(v);
+    FKL_ASSERT(d->desc == &state_desc);
+    return (FklVMvalueHtDll *)d;
+}
+
+static void ht_dll_atomic(const FklVMvalue *d, FklVMgc *gc) {
+    FklVMvalueHtDll *dd = as_ht_dll(d);
+    fklVMgcToGray(FKL_VM_VAL(dd->HtType), gc);
+}
+
+static const FklDllStateDesc state_desc = {
+    .size = sizeof(FklVMvalueHtDll),
+    .atomic = ht_dll_atomic,
+};
 
 static FKL_ALWAYS_INLINE FklVMvalueHt *as_ht(const FklVMvalue *v) {
     FKL_ASSERT(IS_HASH_UD(v));
@@ -86,7 +107,8 @@ static size_t ht_length(const FklVMvalue *ud) {
     return ht->ht.count;
 }
 
-static FklVMudMetaTable const HtUdMetaTable = {
+static FklVMudMetaTable const HtMt = {
+    .name = "ht",
     .size = sizeof(FklVMvalueHt),
     .length = ht_length,
     .atomic = ht_atomic,
@@ -102,8 +124,8 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FklVMvalue *equal = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &HtUdMetaTable, dll);
+    FklVMvalueType *tp = as_ht_dll(ctx->dll)->HtType;
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
     FklVMvalueHt *ht = as_ht(ud);
     ht->hash_func = hashv;
     ht->eq_func = equal;
@@ -512,8 +534,7 @@ static int ht_ht_del1(FKL_CPROC_ARGL) {
             FklVMvalue *key = i->k;
             FklVMvalue *val = i->v;
 
-            fklValueHashMapDelNode(&ht->ht,
-                    FKL_TYPE_CAST(FklValueHashMapNode **, node));
+            fklValueHashMapDelNode(&ht->ht, (FklValueHashMapNode **)node);
 
             FKL_CPROC_RETURN(exe, ctx, fklCreateVMvaluePair(exe, key, val));
             return 0;
@@ -556,8 +577,8 @@ static const size_t EXPORT_NUM =
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
     *num = EXPORT_NUM;
-    FklVMvalue **symbols =
-            (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
+    size_t total_size = EXPORT_NUM * sizeof(FklVMvalue *);
+    FklVMvalue **symbols = (FklVMvalue **)fklZmalloc(total_size);
     FKL_ASSERT(symbols);
     for (size_t i = 0; i < EXPORT_NUM; i++)
         symbols[i] = fklVMaddSymbolCstr(vm, exports_and_func[i].sym);
@@ -566,12 +587,15 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
+    FklVMvalueType *t = fklCreateVMvalueType(exe, dll, &HtMt, &HtMt);
+    FklVMvalueHtDll *ht_dll = as_ht_dll(dll);
+    ht_dll->HtType = t;
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMvalue *r = NULL;
         const FklVMvalue *v = exports_and_func[i].v;
         if (FKL_IS_CPROC(v)) {
             const FklVMvalueCproc *from = FKL_VM_CPROC(v);
-            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, from->name);
         }
         FKL_ASSERT(r);
 
@@ -580,5 +604,10 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     return 0;
 }
 
+FKL_DLL_EXPORT const FklDllStateDesc *_fklDllStateDescGet(void) {
+    return &state_desc;
+}
+
 FKL_CHECK_EXPORT_DLL_INIT_FUNC();
 FKL_CHECK_IMPORT_DLL_INIT_FUNC();
+FKL_CHECK_DLL_DESC_GET_FUNC();

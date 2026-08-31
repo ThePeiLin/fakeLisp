@@ -45,9 +45,7 @@ typedef enum {
     FklVMvalueMark volatile mark_ : 32;                                        \
     FklValueType type_ : 32
 
-#define FKL_VM_UD_COMMON_HEADER                                                \
-    struct FklVMvalue *dll_;                                                   \
-    const struct FklVMudMetaTable *mt_
+#define FKL_VM_UD_COMMON_HEADER const struct FklVMvalueType *tp_
 
 #define FKL_VM_DEF_UD_STRUCT(NAME, ...)                                        \
     typedef struct NAME {                                                      \

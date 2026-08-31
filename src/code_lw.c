@@ -136,11 +136,12 @@ typedef uint8_t LibType;
 
 FKL_VM_DEF_UD_STRUCT(LibPlaceholder, { LibIdx idx; });
 
-static FklVMudMetaTable const LibPlaceholderMt;
+static const alignas(8) FklVMvalueType LibPlaceholderType;
 
 static FKL_ALWAYS_INLINE FKL_UNUSED int is_lib_placeholder(
         const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LibPlaceholderMt;
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->tp_->token == &LibPlaceholderType.mt;
 }
 
 static FKL_ALWAYS_INLINE LibPlaceholder *as_lib_placeholder(
@@ -156,14 +157,17 @@ lib_placeholder_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
             as_lib_placeholder(ud)->idx);
 }
 
-static FklVMudMetaTable const LibPlaceholderMt = {
-    .size = sizeof(LibPlaceholder),
-    .princ = lib_placeholder_print,
-    .prin1 = lib_placeholder_print,
-};
+alignas(8) static const FklVMvalueType LibPlaceholderType =
+        FKL_VM_TYPE_STATIC_INIT(LibPlaceholderType,
+                {
+                    .name = "lib-placeholder",
+                    .size = sizeof(LibPlaceholder),
+                    .princ = lib_placeholder_print,
+                    .prin1 = lib_placeholder_print,
+                });
 
 static inline FklVMvalue *create_lib_placeholder(FklVM *vm, LibIdx idx) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &LibPlaceholderMt, NULL);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &LibPlaceholderType);
     LibPlaceholder *p = (LibPlaceholder *)v;
     p->idx = idx;
     return v;
@@ -3673,7 +3677,7 @@ exit:
     return r;
 }
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(fixup_print, "fix-up");
+FKL_VM_USER_DATA_DEFAULT_PRINT(fixup_print, "fixup");
 
 static void fixup_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     FklVMvaluePcFixup *f = fklVMvaluePcFixup(ud);
@@ -3708,23 +3712,26 @@ static FklVMudFinalizeResult fixup_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const FixupMt = {
-    .size = sizeof(FklVMvaluePcFixup),
-    .princ = fixup_print,
-    .prin1 = fixup_print,
-    .atomic = fixup_atomic,
-    .finalize = fixup_finalize,
-};
+alignas(8) static const FklVMvalueType FixupType = FKL_VM_TYPE_STATIC_INIT(
+        FixupType,
+        {
+            .name = "fixup",
+            .size = sizeof(FklVMvaluePcFixup),
+            .princ = fixup_print,
+            .prin1 = fixup_print,
+            .atomic = fixup_atomic,
+            .finalize = fixup_finalize,
+        });
 
 FklVMvaluePcFixup *fklCreateVMvaluePcFixup(FklVM *vm) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &FixupMt, NULL);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &FixupType);
     FklVMvaluePcFixup *f = fklVMvaluePcFixup(v);
     fklPreCompileFixupInit(&f->f);
     return f;
 }
 
 int fklIsVMvaluePcFixup(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FixupMt;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &FixupType.mt;
 }
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(re_export_print, "re-export");
@@ -3739,22 +3746,25 @@ static void re_export_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-static FklVMudMetaTable const ReExportMt = {
-    .size = sizeof(FklVMvalueReExportCmds),
-    .princ = re_export_print,
-    .prin1 = re_export_print,
-    .atomic = re_export_atomic,
-};
+alignas(8) static const FklVMvalueType ReExportType = FKL_VM_TYPE_STATIC_INIT(
+        ReExportType,
+        {
+            .name = "re-export",
+            .size = sizeof(FklVMvalueReExportCmds),
+            .princ = re_export_print,
+            .prin1 = re_export_print,
+            .atomic = re_export_atomic,
+        });
 
 int fklIsVMvalueReExportCmds(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &ReExportMt;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &ReExportType.mt;
 }
 
 FklVMvalueReExportCmds *fklCreateVMvalueReExportCmds(FklVM *vm,
         uint64_t count) {
     size_t extra_size = count * sizeof(FklReExportCmd);
 
-    FklVMvalue *v = fklCreateVMvalueUd2(vm, &ReExportMt, extra_size, NULL);
+    FklVMvalue *v = fklCreateVMvalueUd2(vm, &ReExportType, extra_size);
     FklVMvalueReExportCmds *re_export = (FklVMvalueReExportCmds *)v;
     re_export->count = count;
     return re_export;

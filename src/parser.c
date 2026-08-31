@@ -329,14 +329,15 @@ void *fklDefaultParseForCharBuf(const char *cstr,
 
 // value line number table
 
-static FklVMudMetaTable const LntUserDataMetaTable;
+static const FklVMvalueType LntType;
+
 int fklIsVMvalueLnt(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &LntUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &LntType.mt;
 }
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueLnt, { FklLineNumHashMap ht; });
 
-FKL_VM_USER_DATA_DEFAULT_PRINT(lnt_ud_print, "ln-table")
+FKL_VM_USER_DATA_DEFAULT_PRINT(lnt_ud_print, "lnt")
 
 static FKL_ALWAYS_INLINE FklVMvalueLnt *as_lnt(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueLnt(v));
@@ -360,18 +361,19 @@ static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-static FklVMudMetaTable const LntUserDataMetaTable = {
-    .size = sizeof(FklVMvalueLnt),
-    .prin1 = lnt_ud_print,
-    .princ = lnt_ud_print,
-    .finalize = lnt_ud_finalize,
-    .update_weak_ref = lnt_ud_update_weak_ref,
-};
+alignas(8) static const FklVMvalueType LntType = FKL_VM_TYPE_STATIC_INIT(
+        LntType,
+        {
+            .name = "lnt",
+            .size = sizeof(FklVMvalueLnt),
+            .prin1 = lnt_ud_print,
+            .princ = lnt_ud_print,
+            .finalize = lnt_ud_finalize,
+            .update_weak_ref = lnt_ud_update_weak_ref,
+        });
 
 FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *vm) {
-    FklVMvalueLnt *r = (FklVMvalueLnt *)fklCreateVMvalueUd(vm,
-            &LntUserDataMetaTable,
-            NULL);
+    FklVMvalueLnt *r = (FklVMvalueLnt *)fklCreateVMvalueUd(vm, &LntType);
 
     fklLineNumHashMapInit(&r->ht);
     return r;

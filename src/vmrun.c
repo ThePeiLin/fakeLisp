@@ -118,8 +118,9 @@ initCprocFrameContext(void *data, FklVMvalue *proc, FklVM *exe) {
     FklCprocFrameContext *c = (FklCprocFrameContext *)data;
     c->proc = proc;
     c->c[0].uptr = 0;
-    c->func = FKL_VM_CPROC(proc)->func;
-    c->pd = FKL_VM_CPROC(proc)->pd;
+    const FklVMvalueCproc *cproc = FKL_VM_CPROC(proc);
+    c->func = cproc->func;
+    c->dll = cproc->dll;
 }
 
 typedef struct ImportPostProcessContext {
@@ -373,7 +374,10 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
         return;
         break;
     case FKL_TYPE_USERDATA:
-        FKL_VM_UD(proc)->mt_->call(proc, exe);
+        if (FKL_VM_UD(proc)->tp_->mt.call == NULL)
+            FKL_UNREACHABLE();
+
+        FKL_VM_UD(proc)->tp_->mt.call(proc, exe);
         return;
         break;
 
@@ -391,7 +395,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
         FKL_UNREACHABLE();
         abort();
         return;
-		break;
+        break;
     }
 
     FKL_UNREACHABLE();

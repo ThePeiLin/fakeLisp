@@ -154,7 +154,6 @@ typedef struct {
     FklVMcFunc func;
     const char *name;
     FklVMvalue *dll;
-    FklVMvalue *pd;
 } FklVMvalueCproc;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
@@ -184,7 +183,7 @@ typedef enum {
 typedef struct FklCprocFrameContext {
     FklVMvalue *proc;
     FklVMcFunc func;
-    FklVMvalue *pd;
+    FklVMvalue *dll;
     union {
         void *ptr;
         uintptr_t uptr;
@@ -467,23 +466,37 @@ typedef enum {
 } FklVMudFinalizeResult;
 
 typedef FklVMudFinalizeResult (*FklVMudFinalizer)(FklVMvalue *, FklVMgc *gc);
+typedef void (*FklVMudAtomicCb)(const FklVMvalue *, FklVMgc *);
 
 typedef struct FklVMudMetaTable {
+    const char *name;
     size_t size;
     FklVMudPrintCb princ;
     FklVMudPrintCb prin1;
-	FklVMudFinalizer finalize;
+    FklVMudFinalizer finalize;
     FklVMudEqualCb equal;
     void (*call)(FklVMvalue *, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
     void (*write)(const FklVMvalue *, FklCodeBuilder *);
-    void (*atomic)(const FklVMvalue *, FklVMgc *);
+    FklVMudAtomicCb atomic;
     size_t (*length)(const FklVMvalue *);
     void (*update_weak_ref)(const FklVMvalue *ud, FklVMgc *gc);
     FklVMudCopyAppendCb copy_append;
     FklVMudAppendCb append;
     uintptr_t (*hash)(const FklVMvalue *);
 } FklVMudMetaTable;
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
+    FklVMvalue *dll;
+    const void *token;
+    FklVMudMetaTable mt;
+});
+
+void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
+void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
+
+FKL_DLL_EXPORT
+extern alignas(8) const FklVMvalueType FklVMtypeType;
 
 typedef enum {
     FKL_GC_NONE = 0,
@@ -701,10 +714,20 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueDll, {
-    FklVMvalue *pd;
-    uv_lib_t dll;
-});
+typedef struct {
+    size_t size;
+    FklVMudAtomicCb atomic;
+    FklVMudFinalizer finalizer;
+} FklDllStateDesc;
+
+#define FKL_VM_DEF_DLL_STRUCT(NAME, ...)                                       \
+    FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
+        const FklDllStateDesc *desc;                                           \
+        uv_lib_t dll;                                                          \
+        alignas(void *[1]) struct __VA_ARGS__;                                 \
+    })
+
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll, {});
 
 typedef enum {
     FKL_WEAK_MAP_V = 1,
@@ -1074,13 +1097,14 @@ FklValueHashMapElm *
 fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
 FklValueHashMapElm *fklVMhashTableGet(const FklVMvalueHash *, FklVMvalue *key);
 
-void fklAtomicVMhashTable(FklVMvalue *pht, FklVMgc *gc);
-void fklAtomicVMuserdata(FklVMvalue *, FklVMgc *);
-void fklAtomicVMpair(FklVMvalue *, FklVMgc *);
-void fklAtomicVMproc(FklVMvalue *, FklVMgc *);
-void fklAtomicVMvec(FklVMvalue *, FklVMgc *);
-void fklAtomicVMbox(FklVMvalue *, FklVMgc *);
-void fklAtomicVMcproc(FklVMvalue *, FklVMgc *);
+void fklAtomicVMhashTable(const FklVMvalue *pht, FklVMgc *gc);
+void fklAtomicVMuserdata(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMpair(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMproc(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMvec(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMbox(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMcproc(const FklVMvalue *, FklVMgc *);
+void fklAtomicVMtype(const FklVMvalue *ud, FklVMgc *gc);
 
 FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *);
 FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **);
@@ -1151,15 +1175,9 @@ FklVMvalue *fklCreateVMvalueProc3(FklVM *,
         size_t,
         FklVMvalueProto *child_proto);
 
-#ifdef _WIN32
-#define FKL_DLL_EXPORT __declspec(dllexport)
-#else
-#define FKL_DLL_EXPORT
-#endif
+FklVMvalue *
+fklCreateVMvalueDll(FklVM *vm, FklVMvalue *realpath, FklVMvalue **error_msg);
 
-FklVMvalue *fklCreateVMvalueDll(FklVM *vm, //
-        FklVMvalue *realpath,
-        FklVMvalue **error_msg);
 int fklIsVMvalueDll(const FklVMvalue *v);
 void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 
@@ -1172,14 +1190,10 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll);
         .func = (FUNC),                                                        \
         .name = (NAME),                                                        \
         .dll = NULL,                                                           \
-        .pd = NULL,                                                            \
     })
 
-FklVMvalue *fklCreateVMvalueCproc(FklVM *,
-        FklVMcFunc,
-        FklVMvalue *dll,
-        FklVMvalue *pd,
-        const char *name);
+FklVMvalue *
+fklCreateVMvalueCproc(FklVM *, FklVMcFunc, FklVMvalue *dll, const char *name);
 
 void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build);
 
@@ -1258,13 +1272,13 @@ FklVMvalue *fklCreateVMvalueBigIntWithU64(FklVM *, uint64_t);
 
 FklVMvalue *fklCreateVMvalueBigIntWithF64(FklVM *, double);
 
-FklVMvalue *fklCreateVMvalueUd(FklVM *, //
-        const FklVMudMetaTable *t,
-        FklVMvalue *dll);
-FklVMvalue *fklCreateVMvalueUd2(FklVM *,
-        const FklVMudMetaTable *t,
-        size_t extra_size,
-        FklVMvalue *dll);
+FklVMvalue *fklCreateVMvalueUd(FklVM *, const FklVMvalueType *t);
+
+FklVMvalue *
+fklCreateVMvalueUd2(FklVM *, const FklVMvalueType *t, size_t extra_size);
+
+FklVMvalue *
+fklCreateVMvalueUdSized(FklVM *, const FklVMvalueType *t, size_t actual_size);
 
 FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);
 FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
@@ -1508,9 +1522,13 @@ typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVM *vm, uint32_t *num);
 
 #define FKL_IMPORT_DLL_INIT_FUNC_ARGS                                          \
     FklVM *exe, FklVMvalue *dll, uint32_t count, FklVMvalue *values[]
+
 typedef int (*FklImportDllInitFunc)(FKL_IMPORT_DLL_INIT_FUNC_ARGS);
 typedef void (*FklDllInitFunc)(FklVMvalueDll *dll, FklVM *exe);
 typedef void (*FklDllUninitFunc)(void);
+typedef const FklDllStateDesc *(*FklDllStateDescGet)(void);
+
+FklDllUninitFunc fklVMdllGetUninitCb(FklVMvalueDll *dll);
 
 #define FKL_CHECK_IMPORT_DLL_INIT_FUNC()                                       \
     static_assert((FklImportDllInitFunc) & _fklImportInit == &_fklImportInit,  \
@@ -1520,6 +1538,11 @@ typedef void (*FklDllUninitFunc)(void);
     static_assert((FklCgDllLibInitExportCb)                                    \
                           & _fklExportSymbolInit == &_fklExportSymbolInit,     \
             "invalid export dll init func")
+
+#define FKL_CHECK_DLL_DESC_GET_FUNC()                                          \
+    static_assert((FklDllStateDescGet)                                         \
+                          & _fklDllStateDescGet == &_fklDllStateDescGet,       \
+            "invalid dll desc get func")
 
 uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);
 uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch);
@@ -1929,6 +1952,34 @@ static FKL_ALWAYS_INLINE int fklVMgcIsMarked(const FklVMvalue *v) {
 }
 
 static FKL_ALWAYS_INLINE void fklVMvalueTerminalDestroy(void *v) {}
+
+static FKL_ALWAYS_INLINE int FKL_IS_TYPE(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &FklVMtypeType.mt;
+}
+
+static FKL_ALWAYS_INLINE FklVMvalueType *FKL_VM_TYPE(const FklVMvalue *v) {
+    FKL_ASSERT(FKL_IS_TYPE(v));
+    return (FklVMvalueType *)v;
+}
+
+#define FKL_VM_TYPE_STATIC_INIT(NAME, ...)                                     \
+    ((FklVMvalueType){                                                         \
+        .next_ = NULL,                                                         \
+        .gray_next_ = NULL,                                                    \
+        .mark_ = FKL_MARK_B,                                                   \
+        .type_ = FKL_TYPE_USERDATA,                                            \
+        .tp_ = &FklVMtypeType,                                                 \
+        .dll = NULL,                                                           \
+        .token = &NAME.mt,                                                     \
+        .mt = __VA_ARGS__,                                                     \
+    })
+
+#define FKL_VM_TYPE_ATTR alignas(8) static const
+
+FklVMvalueType *fklCreateVMvalueType(FklVM *,
+        FklVMvalue *dll,
+        const void *token,
+        const FklVMudMetaTable *mt);
 
 #ifdef __cplusplus
 }

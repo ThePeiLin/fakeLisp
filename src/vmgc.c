@@ -220,7 +220,7 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
 }
 
 static inline int is_weak_ref_value(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_->update_weak_ref != NULL;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->mt.update_weak_ref != NULL;
 }
 
 int fklVMgcPropagate(FklVMgc *gc) {
@@ -244,7 +244,7 @@ void fklVMgcUpdateWeakRefs(FklVMgc *gc) {
     FklVMvalue *v = gc->weak_refs;
     while (v) {
         FKL_ASSERT(is_weak_ref_value(v));
-        FKL_VM_UD(v)->mt_->update_weak_ref(v, gc);
+        FKL_VM_UD(v)->tp_->mt.update_weak_ref(v, gc);
 
         gc->weak_refs = v->gray_next_;
         v->gray_next_ = NULL;
@@ -273,7 +273,7 @@ void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw) {
 }
 
 static inline FklVMudFinalizeResult finalize_ud(FklVMvalue *a, FklVMgc *gc) {
-    FklVMudFinalizer finalize = FKL_VM_UD(a)->mt_->finalize;
+    FklVMudFinalizer finalize = FKL_VM_UD(a)->tp_->mt.finalize;
     if (finalize)
         return finalize(a, gc);
     return FKL_VM_UD_FINALIZE_NOW;

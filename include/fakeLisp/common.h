@@ -87,6 +87,12 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #endif
 
+#ifdef _WIN32
+#define FKL_DLL_EXPORT __declspec(dllexport)
+#else
+#define FKL_DLL_EXPORT
+#endif
+
 FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 
 #define FKL_PACKAGE_MAIN_FILE "main.fkl"

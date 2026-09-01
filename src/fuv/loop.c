@@ -61,7 +61,8 @@ closed:
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const FuvLoopMetaTable = {
+static FklVMudMetaTable const FuvLoopMt = {
+    .name = "loop",
     .size = sizeof(FuvValueLoop),
     .prin1 = fuv_loop_print,
     .princ = fuv_loop_print,
@@ -70,7 +71,10 @@ static FklVMudMetaTable const FuvLoopMetaTable = {
 };
 
 FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvLoopMetaTable, dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->LoopType;
+    FKL_ASSERT(tp->token == &FuvLoopMt);
+
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValueLoop *l = FUV_LOOP(v);
     l->data.mode = -1;
     l->data.is_closed = 0;
@@ -84,13 +88,17 @@ FklVMvalue *createFuvLoop(FklVM *vm, FklVMvalue *dll, int *err) {
     return v;
 }
 
+FklVMvalueType *createFuvLoopType(FklVM *vm, FklVMvalue *dll) {
+    return fklCreateVMvalueType(vm, dll, &FuvLoopMt, &FuvLoopMt);
+}
+
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe) {
     ldata->error_occured = 1;
     uv_stop(loop);
 }
 
 int isFuvLoop(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FuvLoopMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &FuvLoopMt;
 }
 
 void fuvLoopAddGcObj(FklVMvalue *loop_obj, FklVMvalue *v) {

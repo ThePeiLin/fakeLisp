@@ -19,19 +19,21 @@ static void bdb_step_break_userdata_print(const FklVMvalue *ud,
     fklCodeBuilderPuts(buf, "#<break>");
 }
 
-static FklVMudMetaTable BdbStepBreakUserDataMetaTable = {
-    .size = sizeof(FklVMvalueUd),
-    .princ = bdb_step_break_userdata_print,
-    .prin1 = bdb_step_break_userdata_print,
-};
+FKL_VM_TYPE_ATTR FklVMvalueType BdbStepBreakType =
+        FKL_VM_TYPE_STATIC_INIT(BdbStepBreakType,
+                {
+                    .name = "break",
+                    .size = sizeof(FklVMvalueUd),
+                    .princ = bdb_step_break_userdata_print,
+                    .prin1 = bdb_step_break_userdata_print,
+                });
 
 static const alignas(8) FklVMvalueUd BdbStepBreak = {
     .next_ = NULL,
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,
     .type_ = FKL_TYPE_USERDATA,
-    .mt_ = &BdbStepBreakUserDataMetaTable,
-    .dll_ = NULL,
+    .tp_ = &BdbStepBreakType,
 };
 
 #define BDB_STEP_BREAK ((FklVMptr) & BdbStepBreak)
@@ -1078,16 +1080,18 @@ void bdbUninitBpTable(BdbBpTable *bt) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(bp_wrapper_print, "breakpoint-wrapper");
 
-static FklVMudMetaTable BreakpointWrapperMetaTable = {
-    .size = sizeof(FklVMvalueBpWrapper),
-    .prin1 = bp_wrapper_print,
-    .princ = bp_wrapper_print,
-};
+FKL_VM_TYPE_ATTR FklVMvalueType BreakpointWrapperType =
+        FKL_VM_TYPE_STATIC_INIT(BreakpointWrapperType,
+                {
+                    .name = "breakpoint-wrapper",
+                    .size = sizeof(FklVMvalueBpWrapper),
+                    .prin1 = bp_wrapper_print,
+                    .princ = bp_wrapper_print,
+                });
 
 FklVMvalueBpWrapper *bdbCreateBpWrapper(FklVM *vm, BdbBp *bp) {
     FklVMvalueBpWrapper *r = (FklVMvalueBpWrapper *)fklCreateVMvalueUd(vm,
-            &BreakpointWrapperMetaTable,
-            NULL);
+            &BreakpointWrapperType);
 
     r->bp = bp;
     return r;
@@ -1095,7 +1099,7 @@ FklVMvalueBpWrapper *bdbCreateBpWrapper(FklVM *vm, BdbBp *bp) {
 
 int bdbIsBpWrapper(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
-        && FKL_VM_UD(v)->mt_ == &BreakpointWrapperMetaTable;
+        && FKL_VM_UD(v)->tp_->token == &BreakpointWrapperType.mt;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueBpWrapper *as_bp_wrapper(

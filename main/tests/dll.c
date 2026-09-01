@@ -37,7 +37,7 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
         const FklVMvalue *v = exports_and_func[i].v;
         if (FKL_IS_CPROC(v)) {
             const FklVMvalueCproc *from = FKL_VM_CPROC(v);
-            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, from->name);
         }
         FKL_ASSERT(r);
 

@@ -8,32 +8,31 @@
 #include <fakeLisp/vm.h>
 #include <string.h>
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueBdbPd, {
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueBdbDll, {
+    FklVMvalueType *BdbCtxType;
     FklVMvalue *done_sym;
     FklVMvalue *err_sym;
 });
 
-static FklVMudMetaTable const BdbPublicDataMetaTable;
+static const FklDllStateDesc state_desc;
 
-static FKL_ALWAYS_INLINE FklVMvalueBdbPd *as_bdb_pd(const FklVMvalue *v) {
-    FKL_ASSERT(FKL_VM_UD(v)->mt_ == &BdbPublicDataMetaTable);
-    return FKL_TYPE_CAST(FklVMvalueBdbPd *, v);
+static FKL_ALWAYS_INLINE FklVMvalueBdbDll *as_bdb_dll(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueDll(v));
+    FklVMvalueDll *d = FKL_VM_DLL(v);
+    FKL_ASSERT(d->desc == &state_desc);
+    return (FklVMvalueBdbDll *)d;
 }
 
-static void bdb_public_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    FklVMvalueBdbPd *pd = as_bdb_pd(ud);
+static void bdb_dll_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    FklVMvalueBdbDll *pd = as_bdb_dll(ud);
+    fklVMgcToGray(FKL_VM_VAL(pd->BdbCtxType), gc);
     fklVMgcToGray(pd->done_sym, gc);
     fklVMgcToGray(pd->err_sym, gc);
 }
 
-static void init_bdb_public_data(FklVMvalueBdbPd *pd, FklVM *exe) {
-    pd->done_sym = fklVMaddSymbolCstr(exe, "done");
-    pd->err_sym = fklVMaddSymbolCstr(exe, "error");
-}
-
-static FklVMudMetaTable const BdbPublicDataMetaTable = {
-    .size = sizeof(FklVMvalueBdbPd),
-    .atomic = bdb_public_ud_atomic,
+static FklDllStateDesc const state_desc = {
+    .size = sizeof(FklVMvalueBdbDll),
+    .atomic = bdb_dll_atomic,
 };
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(debug_ctx_print, "debug-ctx");
@@ -66,10 +65,17 @@ static inline void atomic_cmd_read_ctx(const BdbCmdReadCtx *ctx, FklVMgc *gc) {
         fklVMgcToGray(base->ast, gc);
 }
 
-static const FklVMudMetaTable DebugCtxUdMetaTable;
+static const FklVMudMetaTable DebugCtxMt;
+
+static void init_bdb_public_data(FklVMvalue *dll, FklVM *exe) {
+    FklVMvalueBdbDll *pd = as_bdb_dll(dll);
+    pd->BdbCtxType = fklCreateVMvalueType(exe, dll, &DebugCtxMt, &DebugCtxMt);
+    pd->done_sym = fklVMaddSymbolCstr(exe, "done");
+    pd->err_sym = fklVMaddSymbolCstr(exe, "error");
+}
 
 static inline int is_debug_ctx(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &DebugCtxUdMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &DebugCtxMt;
 }
 
 static inline DebugCtx *as_dbg_ctx(const FklVMvalue *v) {
@@ -96,7 +102,7 @@ static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static const FklVMudMetaTable DebugCtxUdMetaTable = {
+static const FklVMudMetaTable DebugCtxMt = {
     .size = sizeof(DebugCtx),
     .prin1 = debug_ctx_print,
     .princ = debug_ctx_print,
@@ -123,8 +129,10 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
                 exe,
                 "Failed for file: %s",
                 filename_obj);
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
-    FklVMvalue *ud = fklCreateVMvalueUd(exe, &DebugCtxUdMetaTable, dll);
+    FklVMvalueType *tp = as_bdb_dll(ctx->dll)->BdbCtxType;
+	FKL_ASSERT(tp->token == &DebugCtxMt);
+
+    FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
     DebugCtx *dctx = as_dbg_ctx(ud);
 
     int r = 0;
@@ -379,7 +387,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             }
         } else if (r == DBG_ERROR_OCCUR) {
             dctx->done = 1;
-            retval = as_bdb_pd(ctx->pd)->err_sym;
+            retval = as_bdb_dll(ctx->dll)->err_sym;
         } else {
             if (dctx->running) {
                 dctx->reached_breakpoint = NULL;
@@ -390,7 +398,7 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
             dctx->running = 1;
             fklVMidleLoop(&dctx->gc);
             dctx->done = 1;
-            retval = as_bdb_pd(ctx->pd)->done_sym;
+            retval = as_bdb_dll(ctx->dll)->done_sym;
         }
         dctx->jmpb = NULL;
     }
@@ -944,7 +952,7 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
 
             FklVMvalue *retval = NULL;
             if (bdbIsError(ret)) {
-                retval = as_bdb_pd(ctx->pd)->err_sym;
+                retval = as_bdb_dll(ctx->dll)->err_sym;
             } else {
                 retval = bdbBoxStringify(exe, ret);
             }
@@ -1126,8 +1134,7 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
 
-    FklVMvalue *pd = fklCreateVMvalueUd(exe, &BdbPublicDataMetaTable, dll);
-    init_bdb_public_data(as_bdb_pd(pd), exe);
+    init_bdb_public_data(dll, exe);
 
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         const FklVMvalue *v = exports_and_func[i].v;
@@ -1135,7 +1142,7 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
         FklVMvalue *r = NULL;
         if (FKL_IS_CPROC(v)) {
             const FklVMvalueCproc *from = FKL_VM_CPROC(v);
-            r = fklCreateVMvalueCproc(exe, from->func, dll, pd, from->name);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, from->name);
         }
 
         FKL_ASSERT(r);
@@ -1144,5 +1151,10 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     return 0;
 }
 
+FKL_DLL_EXPORT const FklDllStateDesc *_fklDllStateDescGet(void) {
+    return &state_desc;
+}
+
 FKL_CHECK_EXPORT_DLL_INIT_FUNC();
 FKL_CHECK_IMPORT_DLL_INIT_FUNC();
+FKL_CHECK_DLL_DESC_GET_FUNC();

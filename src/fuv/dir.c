@@ -11,7 +11,8 @@ static FklVMudFinalizeResult fuv_dir_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const FuvDirUdMetaTable = {
+static FklVMudMetaTable const FuvDirMt = {
+	.name = "dir",
     .size = sizeof(FuvValueDir),
     .prin1 = fuv_dir_print,
     .princ = fuv_dir_print,
@@ -19,12 +20,14 @@ static FklVMudMetaTable const FuvDirUdMetaTable = {
 };
 
 int isFuvDir(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &FuvDirUdMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &FuvDirMt;
 }
 
 FklVMvalue *
-createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *req, size_t nentries) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &FuvDirUdMetaTable, dll);
+createFuvDir(FklVM *vm, FuvValueDll *dll, uv_fs_t *req, size_t nentries) {
+    FklVMvalueType *tp = dll->DirType;
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
+
     FuvValueDir *dir_ud = FUV_DIR(v);
     dir_ud->dir = req->ptr;
     req->ptr = NULL;
@@ -36,6 +39,10 @@ createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *req, size_t nentries) {
     } else
         dir->dirents = NULL;
     return v;
+}
+
+FklVMvalueType *createFuvDirType(FklVM *vm, FklVMvalue *dll) {
+    return fklCreateVMvalueType(vm, dll, &FuvDirMt, &FuvDirMt);
 }
 
 int isFuvDirUsing(FklVMvalue *dir) { return FUV_DIR(dir)->req != NULL; }

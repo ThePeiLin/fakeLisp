@@ -21,6 +21,17 @@ typedef enum {
 #undef XX
 } FuvErrorType;
 
+#define XX(A, B, C) FklVMvalue *A##_sid;
+FKL_VM_DEF_DLL_STRUCT(FuvValueDll, {
+    FUV_SYMBOLS_MAP(XX)
+
+    FklVMvalueType *LoopType;
+    FklVMvalueType *DirType;
+    FklVMvalueType *handle_types[UV_HANDLE_TYPE_MAX];
+    FklVMvalueType *req_types[UV_REQ_TYPE_MAX];
+});
+#undef XX
+
 typedef struct {
     FklVM *exe;
     FklVMvalue *refs;
@@ -129,8 +140,17 @@ FKL_VM_DEF_UD_STRUCT(FuvValueDir, {
     FklVMvalue *req;
 });
 
+int isFuvDll(const FklVMvalue *v);
+
+static FKL_ALWAYS_INLINE FuvValueDll *FUV_DLL(const FklVMvalue *v) {
+    FKL_ASSERT(isFuvDll(v));
+    return (FuvValueDll *)v;
+}
+
 int isFuvLoop(const FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
+FklVMvalueType *createFuvLoopType(FklVM *, FklVMvalue *dll);
+
 void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
 
@@ -147,6 +167,8 @@ static inline void fuvLoopSetClosed(FuvValueLoop *l) {
     l->data.is_closed = 1;
     l->data.error_occured = 0;
 }
+
+void fuvSetHandleTypes(FklVM *vm, FuvValueDll *fuv_dll);
 
 void fuvHandleClose(FuvValueHandle *h, uv_close_cb cb);
 int isFuvHandle(const FklVMvalue *v);
@@ -255,6 +277,8 @@ uv_poll_t *createFuvPoll(FklVM *vm,
         fklLockThread(exe);                                                    \
     }
 
+void fuvSetReqTypes(FklVM *vm, FuvValueDll *fuv_dll);
+
 int isFuvReq(const FklVMvalue *v);
 void fuvReqCleanUp(FuvValueReq *req);
 static inline int isFuvReqCanceled(const FuvValueReq *req) {
@@ -347,7 +371,9 @@ FuvValueRandom *createFuvRandom(FklVM *exe,
 
 int isFuvDir(const FklVMvalue *v);
 FklVMvalue *
-createFuvDir(FklVM *vm, FklVMvalue *dll, uv_fs_t *dir, size_t nentries);
+createFuvDir(FklVM *vm, FuvValueDll *dll, uv_fs_t *dir, size_t nentries);
+
+FklVMvalueType *createFuvDirType(FklVM *vm, FklVMvalue *dll);
 
 static FKL_ALWAYS_INLINE FuvValueDir *FUV_DIR(const FklVMvalue *v) {
     FKL_ASSERT(isFuvDir(v));

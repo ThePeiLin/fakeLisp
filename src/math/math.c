@@ -447,7 +447,7 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
         FklVMvalue *r = NULL;
         if (FKL_IS_CPROC(v)) {
             const FklVMvalueCproc *from = FKL_VM_CPROC(v);
-            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, from->name);
         } else if (FKL_IS_F64(v)) {
             r = fklCreateVMvalueF64(exe, FKL_VM_F64(v));
         } else {

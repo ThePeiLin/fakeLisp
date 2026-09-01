@@ -8,10 +8,31 @@
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueStrBuf, { FklStrBuf buf; });
 
-static FklVMudMetaTable const StringBufferMetaTable;
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueBufDll, { FklVMvalueType *BufType; });
+
+static const FklDllStateDesc state_desc;
+
+static FKL_ALWAYS_INLINE FklVMvalueBufDll *as_buf_dll(const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueDll(v));
+    FklVMvalueDll *d = FKL_VM_DLL(v);
+    FKL_ASSERT(d->desc == &state_desc);
+    return (FklVMvalueBufDll *)d;
+}
+
+static void buf_dll_atomic(const FklVMvalue *d, FklVMgc *gc) {
+    FklVMvalueBufDll *dd = as_buf_dll(d);
+    fklVMgcToGray(FKL_VM_VAL(dd->BufType), gc);
+}
+
+static const FklDllStateDesc state_desc = {
+    .size = sizeof(FklVMvalueBufDll),
+    .atomic = buf_dll_atomic,
+};
+
+static FklVMudMetaTable const StrBufMt;
 
 static inline int is_strbuf_ud(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->mt_ == &StringBufferMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &StrBufMt;
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueStrBuf *as_strbuf(const FklVMvalue *v) {
@@ -72,16 +93,18 @@ static FklVMvalue *strbuf_append(FklVM *v,
 }
 
 static inline FklVMvalue *
-create_vmstrbuf(FklVM *exe, size_t capacity, FklVMvalue *dll) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
+create_vmstrbuf(FklVM *exe, size_t capacity, const FklVMvalueType *tp) {
+    FKL_ASSERT(tp->token == &StrBufMt);
+    FklVMvalue *r = fklCreateVMvalueUd(exe, tp);
     fklInitStrBuf(&as_strbuf(r)->buf);
     fklStrBufReserve(&as_strbuf(r)->buf, capacity);
     return r;
 }
 
 static inline FklVMvalue *
-create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalue *dll) {
-    FklVMvalue *r = fklCreateVMvalueUd(exe, &StringBufferMetaTable, dll);
+create_vmstrbuf2(FklVM *exe, size_t size, const char *ptr, FklVMvalueType *tp) {
+    FKL_ASSERT(tp->token == &StrBufMt);
+    FklVMvalue *r = fklCreateVMvalueUd(exe, tp);
     FklStrBuf *buf = &as_strbuf(r)->buf;
     fklInitStrBuf(buf);
     fklStrBufReserve(buf, size);
@@ -94,7 +117,7 @@ static FklVMvalue *strbuf_copy_append(FklVM *exe,
         uint32_t argc,
         FklVMvalue *const *base) {
     FklVMvalueStrBuf *ud = as_strbuf(ud_);
-    FklVMvalue *retval = create_vmstrbuf(exe, 0, ud->dll_);
+    FklVMvalue *retval = create_vmstrbuf(exe, 0, ud->tp_);
     FklVMvalue *const *const end = base + argc;
     FklStrBuf *rbuf = &as_strbuf(retval)->buf;
     fklStrBufConcatWithStrBuf(rbuf, &ud->buf);
@@ -133,7 +156,8 @@ static int strbuf_cmp(const FklVMvalue *ud, const FklVMvalue *v, int *err) {
     return 0;
 }
 
-static FklVMudMetaTable const StringBufferMetaTable = {
+static FklVMudMetaTable const StrBufMt = {
+    .name = "buf",
     .size = sizeof(FklVMvalueStrBuf),
     .equal = strbuf_equal,
     .prin1 = strbuf_prin1,
@@ -156,9 +180,9 @@ static int export_strbuf_p(FKL_CPROC_ARGL) {
 
 static int export_make_strbuf(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 2);
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalue *dll = ctx->dll;
     if (argc == 0) {
-        FklVMvalue *v = create_vmstrbuf(exe, 0, dll);
+        FklVMvalue *v = create_vmstrbuf(exe, 0, as_buf_dll(dll)->BufType);
         FKL_CPROC_RETURN(exe, ctx, v);
         return 0;
     }
@@ -168,7 +192,7 @@ static int export_make_strbuf(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(size))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
-    FklVMvalue *r = create_vmstrbuf(exe, len, dll);
+    FklVMvalue *r = create_vmstrbuf(exe, len, as_buf_dll(dll)->BufType);
     FklStrBuf *buf = &as_strbuf(r)->buf;
     char ch = 0;
     if (content) {
@@ -188,31 +212,32 @@ static int export_make_strbuf_with_capacity(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(size))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
-    FklVMvalue *v = create_vmstrbuf(exe, len, FKL_VM_CPROC(ctx->proc)->dll);
+    FklVMvalue *v = create_vmstrbuf(exe, len, as_buf_dll(ctx->dll)->BufType);
     FKL_CPROC_RETURN(exe, ctx, v);
     return 0;
 }
 
 static int export_strbuf(FKL_CPROC_ARGL) {
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
+    FklVMvalueType *tp = as_buf_dll(ctx->dll)->BufType;
+    FKL_ASSERT(tp->token == &StrBufMt);
     if (argc == 1) {
         FklVMvalue *str_or_buf = FKL_CPROC_GET_ARG(exe, ctx, 0);
         if (FKL_IS_CHR(str_or_buf)) {
             char c = FKL_GET_CHR(str_or_buf);
-            FklVMvalue *v = create_vmstrbuf2(exe, 1, &c, dll);
+            FklVMvalue *v = create_vmstrbuf2(exe, 1, &c, tp);
             FKL_CPROC_RETURN(exe, ctx, v);
         } else if (FKL_IS_STR(str_or_buf)) {
             const FklString *b = FKL_VM_STR(str_or_buf);
-            FklVMvalue *v = create_vmstrbuf2(exe, b->size, b->str, dll);
+            FklVMvalue *v = create_vmstrbuf2(exe, b->size, b->str, tp);
             FKL_CPROC_RETURN(exe, ctx, v);
         } else if (is_strbuf_ud(str_or_buf)) {
             FklStrBuf *b = &as_strbuf(str_or_buf)->buf;
-            FklVMvalue *v = create_vmstrbuf2(exe, b->index, b->buf, dll);
+            FklVMvalue *v = create_vmstrbuf2(exe, b->index, b->buf, tp);
             FKL_CPROC_RETURN(exe, ctx, v);
         } else
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     } else {
-        FklVMvalue *r = create_vmstrbuf(exe, 0, dll);
+        FklVMvalue *r = create_vmstrbuf(exe, 0, tp);
         FklStrBuf *b = &as_strbuf(r)->buf;
         FklVMvalue **arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue **const arg_end = arg_base + argc;
@@ -467,8 +492,10 @@ static int export_substrbuf(FKL_CPROC_ARGL) {
     if (start > size || end < start || end > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     size = end - start;
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
-    FklVMvalue *r = create_vmstrbuf2(exe, size, buf->buf + start, dll);
+    FklVMvalueType *tp = as_buf_dll(ctx->dll)->BufType;
+    FKL_ASSERT(tp->token == &StrBufMt);
+
+    FklVMvalue *r = create_vmstrbuf2(exe, size, buf->buf + start, tp);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -489,8 +516,10 @@ static int export_sub_strbuf(FKL_CPROC_ARGL) {
     size_t osize = fklVMgetUint(vsize);
     if (start + osize > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-    FklVMvalue *dll = FKL_VM_CPROC(ctx->proc)->dll;
-    FklVMvalue *r = create_vmstrbuf2(exe, osize, buf->buf + start, dll);
+    FklVMvalueType *tp = as_buf_dll(ctx->dll)->BufType;
+    FKL_ASSERT(tp->token == &StrBufMt);
+
+    FklVMvalue *r = create_vmstrbuf2(exe, osize, buf->buf + start, tp);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -539,12 +568,15 @@ FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
 
 FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     FKL_ASSERT(count == EXPORT_NUM);
+    FklVMvalueType *t = fklCreateVMvalueType(exe, dll, &StrBufMt, &StrBufMt);
+    FklVMvalueBufDll *buf_dll = as_buf_dll(dll);
+    buf_dll->BufType = t;
     for (size_t i = 0; i < EXPORT_NUM; i++) {
         FklVMvalue *r = NULL;
         const FklVMvalue *v = exports_and_func[i].v;
         if (FKL_IS_CPROC(v)) {
             const FklVMvalueCproc *from = FKL_VM_CPROC(v);
-            r = fklCreateVMvalueCproc(exe, from->func, dll, NULL, from->name);
+            r = fklCreateVMvalueCproc(exe, from->func, dll, from->name);
         }
         FKL_ASSERT(r);
 
@@ -553,5 +585,10 @@ FKL_DLL_EXPORT int _fklImportInit(FKL_IMPORT_DLL_INIT_FUNC_ARGS) {
     return 0;
 }
 
+FKL_DLL_EXPORT const FklDllStateDesc *_fklDllStateDescGet(void) {
+    return &state_desc;
+}
+
 FKL_CHECK_EXPORT_DLL_INIT_FUNC();
 FKL_CHECK_IMPORT_DLL_INIT_FUNC();
+FKL_CHECK_DLL_DESC_GET_FUNC();

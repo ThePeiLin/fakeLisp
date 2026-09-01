@@ -8,7 +8,8 @@ static void fuv_handle_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(handle->data.callbacks[1], gc);
 }
 
-static FklVMudFinalizeResult fuv_handle_ud_finalize(FklVMvalue *ud, FklVMgc *gc) {
+static FklVMudFinalizeResult fuv_handle_ud_finalize(FklVMvalue *ud,
+        FklVMgc *gc) {
     FuvValueHandle *handle = FUV_HANDLE(ud);
     FuvHandleData *handle_data = &handle->data;
     if (handle_data->loop) {
@@ -90,11 +91,12 @@ static void fuv_tty_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(fuv_tty_print, "tty");
 
-static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
+static const FklVMudMetaTable HandleMts[UV_HANDLE_TYPE_MAX] = {
     [UV_UNKNOWN_HANDLE] = {0},
 
     [UV_ASYNC] =
         {
+			.name = "async",
 			.size = sizeof(FuvValueAsync),
             .prin1 = fuv_async_print,
             .princ = fuv_async_print,
@@ -104,6 +106,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_CHECK] =
         {
+			.name = "check",
             .size = sizeof(FuvValueCheck),
             .prin1 = fuv_check_print,
             .princ = fuv_check_print,
@@ -113,6 +116,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_EVENT] =
         {
+			.name = "event",
 			.size = sizeof(FuvValueFsEvent),
             .prin1 = fuv_fs_event_print,
             .princ = fuv_fs_event_print,
@@ -122,6 +126,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_POLL] =
         {
+			.name = "poll",
 			.size = sizeof(FuvValueFsPoll),
             .prin1 = fuv_fs_poll_print,
             .princ = fuv_fs_poll_print,
@@ -133,6 +138,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_IDLE] =
         {
+			.name = "idle",
 			.size = sizeof(FuvValueIdle),
             .prin1 = fuv_idle_print,
             .princ = fuv_idle_print,
@@ -142,6 +148,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_NAMED_PIPE] =
         {
+			.name = "pipe",
 			.size = sizeof(FuvValuePipe),
             .prin1 = fuv_pipe_print,
             .princ = fuv_pipe_print,
@@ -151,6 +158,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_POLL] =
         {
+			.name = "poll",
             .size = sizeof(FuvValuePoll),
             .prin1 = fuv_poll_print,
             .princ = fuv_poll_print,
@@ -160,6 +168,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PREPARE] =
         {
+			.name = "prepare",
             .size = sizeof(FuvValuePrepare),
             .prin1 = fuv_prepare_print,
             .princ = fuv_prepare_print,
@@ -169,6 +178,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_PROCESS] =
         {
+			.name = "process",
 			.size = sizeof(FuvValueProcess),
             .prin1 = fuv_process_print,
             .princ = fuv_process_print,
@@ -180,6 +190,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TCP] =
         {
+			.name = "tcp",
 			.size = sizeof(FuvValueTcp),
             .prin1 = fuv_tcp_print,
             .princ = fuv_tcp_print,
@@ -189,6 +200,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TIMER] =
         {
+			.name = "timer",
             .size = sizeof(FuvValueTimer),
             .prin1 = fuv_timer_print,
             .princ = fuv_timer_print,
@@ -198,6 +210,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_TTY] =
         {
+			.name = "tty",
             .size = sizeof(FuvValueTty),
             .prin1 = fuv_tty_print,
             .princ = fuv_tty_print,
@@ -207,6 +220,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_UDP] =
         {
+			.name = "udp",
             .size = sizeof(FuvValueUdp),
             .prin1 = fuv_udp_print,
             .princ = fuv_udp_print,
@@ -216,6 +230,7 @@ static const FklVMudMetaTable HandleMetaTables[UV_HANDLE_TYPE_MAX] = {
 
     [UV_SIGNAL] =
         {
+			.name = "signal",
             .size = sizeof(FuvValueSignal),
             .prin1 = fuv_signal_print,
             .princ = fuv_signal_print,
@@ -247,9 +262,9 @@ void fuvHandleClose(FuvValueHandle *handle, uv_close_cb cb) {
 
 int isFuvHandle(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
-        const FklVMudMetaTable *t = FKL_VM_UD(v)->mt_;
-        return t > &HandleMetaTables[UV_UNKNOWN_HANDLE]
-            && t < &HandleMetaTables[UV_HANDLE_TYPE_MAX];
+        const FklVMudMetaTable *t = FKL_VM_UD(v)->tp_->token;
+        return t > &HandleMts[UV_UNKNOWN_HANDLE]
+            && t < &HandleMts[UV_HANDLE_TYPE_MAX];
     }
     return 0;
 }
@@ -265,7 +280,7 @@ static inline void init_fuv_handle(FuvValueHandle *handle, FklVMvalue *loop) {
 #define FUV_HANDLE_P(NAME, ENUM)                                               \
     int NAME(const FklVMvalue *v) {                                            \
         return FKL_IS_USERDATA(v)                                              \
-            && FKL_VM_UD(v)->mt_ == &HandleMetaTables[ENUM];                   \
+            && FKL_VM_UD(v)->tp_->token == &HandleMts[ENUM];                   \
     }
 
 #define FUV_HANDLE_CREATOR(TYPE, NAME, ENUM)                                   \
@@ -273,7 +288,9 @@ static inline void init_fuv_handle(FuvValueHandle *handle, FklVMvalue *loop) {
             FklVMvalue *dll,                                                   \
             FklVMvalue *loop_obj,                                              \
             int *err) {                                                        \
-        FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[ENUM], dll);  \
+        FklVMvalueType *tp = FUV_DLL(dll)->handle_types[ENUM];                 \
+        FKL_ASSERT(tp->token == &HandleMts[ENUM]);                             \
+        FklVMvalue *v = fklCreateVMvalueUd(vm, tp);                            \
         FuvValue##TYPE *handle = FKL_TYPE_CAST(FuvValue##TYPE *, v);           \
         FuvValueLoop *loop = FUV_LOOP(loop_obj);                               \
         init_fuv_handle(FUV_HANDLE(v), loop_obj);                              \
@@ -357,7 +374,9 @@ FklVMvalue *createFuvAsync(FklVM *vm,
         FklVMvalue *loop_obj,
         FklVMvalue *proc_obj,
         int *err) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_ASYNC], dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->handle_types[UV_ASYNC];
+    FKL_ASSERT(tp->token == &HandleMts[UV_ASYNC]);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValueAsync *handle = FKL_TYPE_CAST(FuvValueAsync *, v);
     FuvValueLoop *loop = FKL_TYPE_CAST(FuvValueLoop *, loop_obj);
     handle->extra = NULL;
@@ -383,7 +402,10 @@ uv_process_t *createFuvProcess(FklVM *vm,
         FklVMvalue *file_obj,
         FklVMvalue *stdio_obj,
         FklVMvalue *cwd_obj) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_PROCESS], dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->handle_types[UV_PROCESS];
+    FKL_ASSERT(tp->token == &HandleMts[UV_PROCESS]);
+
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValueProcess *handle = FKL_TYPE_CAST(FuvValueProcess *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->data.callbacks[0] = proc_obj;
@@ -398,10 +420,9 @@ uv_process_t *createFuvProcess(FklVM *vm,
 
 int isFuvStream(const FklVMvalue *v) {
     if (FKL_IS_USERDATA(v)) {
-        const FklVMudMetaTable *t = FKL_VM_UD(v)->mt_;
-        return t == &HandleMetaTables[UV_NAMED_PIPE]
-            || t == &HandleMetaTables[UV_TTY] || t == &HandleMetaTables[UV_TCP]
-            || t == &HandleMetaTables[UV_STREAM];
+        const FklVMudMetaTable *t = FKL_VM_UD(v)->tp_->token;
+        return t == &HandleMts[UV_NAMED_PIPE] || t == &HandleMts[UV_TTY]
+            || t == &HandleMts[UV_TCP] || t == &HandleMts[UV_STREAM];
     }
     return 0;
 }
@@ -413,7 +434,9 @@ FUV_HANDLE_P(isFuvPipe, UV_NAMED_PIPE);
             FklVMvalue **pr,                                                   \
             FklVMvalue *dll,                                                   \
             FklVMvalue *loop_obj) {                                            \
-        FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[ENUM], dll);  \
+        FklVMvalueType *tp = FUV_DLL(dll)->handle_types[ENUM];                 \
+        FKL_ASSERT(tp->token == &HandleMts[ENUM]);                             \
+        FklVMvalue *v = fklCreateVMvalueUd(vm, tp);                            \
         FuvValue##TYPE *handle = FKL_TYPE_CAST(FuvValue##TYPE *, v);           \
         init_fuv_handle(FUV_HANDLE(v), loop_obj);                              \
         *pr = v;                                                               \
@@ -433,7 +456,9 @@ uv_tty_t *createFuvTty(FklVM *vm,
         FklVMvalue *dll,
         FklVMvalue *loop_obj,
         FklVMvalue *fp_obj) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_TTY], dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->handle_types[UV_TTY];
+    FKL_ASSERT(tp->token == &HandleMts[UV_TTY]);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValueTty *handle = FKL_TYPE_CAST(FuvValueTty *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->fp = fp_obj;
@@ -448,7 +473,10 @@ uv_udp_t *createFuvUdp(FklVM *vm,
         FklVMvalue *dll,
         FklVMvalue *loop_obj,
         int64_t mmsg_num_msgs) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_UDP], dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->handle_types[UV_UDP];
+    FKL_ASSERT(tp->token == &HandleMts[UV_UDP]);
+
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValueUdp *handle = FKL_TYPE_CAST(FuvValueUdp *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->mmsg_num_msgs = mmsg_num_msgs;
@@ -469,7 +497,10 @@ uv_poll_t *createFuvPoll(FklVM *vm,
         FklVMvalue *dll,
         FklVMvalue *loop_obj,
         FklVMvalue *fp_obj) {
-    FklVMvalue *v = fklCreateVMvalueUd(vm, &HandleMetaTables[UV_POLL], dll);
+    FklVMvalueType *tp = FUV_DLL(dll)->handle_types[UV_POLL];
+    FKL_ASSERT(tp->token == &HandleMts[UV_POLL]);
+
+    FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
     FuvValuePoll *handle = FKL_TYPE_CAST(FuvValuePoll *, v);
     init_fuv_handle(FUV_HANDLE(v), loop_obj);
     handle->fp = fp_obj;
@@ -480,3 +511,14 @@ uv_poll_t *createFuvPoll(FklVM *vm,
 #undef FUV_HANDLE_P
 #undef FUV_HANDLE_CREATOR
 #undef OTHER_HANDLE_CREATOR
+
+void fuvSetHandleTypes(FklVM *vm, FuvValueDll *fuv_dll) {
+    FklVMvalue *dll = FKL_VM_VAL(fuv_dll);
+    for (size_t i = 0; i < UV_HANDLE_TYPE_MAX; ++i) {
+        FklVMvalueType *tp = NULL;
+        if (HandleMts[i].size != 0) {
+            tp = fklCreateVMvalueType(vm, dll, &HandleMts[i], &HandleMts[i]);
+        }
+        fuv_dll->handle_types[i] = tp;
+    }
+}

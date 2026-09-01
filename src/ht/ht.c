@@ -2,6 +2,7 @@
 #include <fakeLisp/zmalloc.h>
 
 static FklVMudMetaTable const HtMt;
+
 static inline int IS_HASH_UD(const FklVMvalue *V) {
     return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &HtMt);
 }
@@ -125,6 +126,8 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
     FklVMvalueType *tp = as_ht_dll(ctx->dll)->HtType;
+	FKL_ASSERT(tp->token == &HtMt);
+
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
     FklVMvalueHt *ht = as_ht(ud);
     ht->hash_func = hashv;

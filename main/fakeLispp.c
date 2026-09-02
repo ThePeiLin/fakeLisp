@@ -244,6 +244,10 @@ int main(int argc, char **argv) {
             CB_LINE("\nobarray:");
 
             fklPrintObarray(vm, gc->obarray, build);
+
+            CB_LINE("\nkeywords:");
+            fklPrintObarray(vm, gc->keywords, build);
+
             fklUninitLibTable(&lib_table);
             fklDestroyVMgc(gc);
         } else if (!strcmp(extension, FKL_PRE_COMPILE_FILE_EXTENSION)) {
@@ -332,6 +336,9 @@ int main(int argc, char **argv) {
             CB_LINE("\nobarray:");
             fklPrintObarray(vm, gc->obarray, build);
 
+            CB_LINE("\nkeywords:");
+            fklPrintObarray(vm, gc->keywords, build);
+
         precompile_exit:
             fklUninitCgCtx(&ctx);
             fklUninitLibTable(&lib_table);
@@ -397,9 +404,80 @@ static void print_reader_macro_action(FklVM *vm,
         FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(act);
         const FklVMvalueProc *proc = FKL_VM_PROC(ctx->proc);
         FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
+    } else if (fklIsVMvalueSimpleActCtx(act)) {
+        fklPrin1VMvalue2(fklVMvalueSimpleActCtx(act)->vec, build, vm);
     } else {
         fklPrin1VMvalue2(act, build, vm);
         CB_LINE_END("");
+    }
+}
+
+static void print_prod_sym(FklVM *vm,
+        const FklCgRmacroGraSym *sym,
+        const FklCgRmacroGraSym *end,
+        FklCodeBuilder *build) {
+    switch (sym->type) {
+    case FKL_TERM_NONE:
+    case FKL_TERM_EOF:
+        FKL_UNREACHABLE();
+        break;
+
+    case FKL_TERM_IGNORE:
+        CB_FMT("?e");
+        break;
+    case FKL_TERM_BUILTIN:
+    case FKL_TERM_STRING:
+    case FKL_TERM_NONTERM:
+        fklPrin1VMvalue2(sym->v, build, vm);
+        break;
+
+    case FKL_TERM_KEYWORD:
+        CB_FMT(":keyword ");
+        fklPrin1VMvalue2(sym->v, build, vm);
+        break;
+
+    case FKL_TERM_REGEX:
+        CB_FMT(":regex ");
+        fklPrin1VMvalue2(sym->v, build, vm);
+        break;
+
+    case FKL_TERM_COMP: {
+        size_t len = (size_t)FKL_GET_FIX(sym->v);
+        for (size_t i = 0; i < len; i++) {
+            if (i)
+                CB_FMT("..");
+            FKL_ASSERT(&sym[i + 1] < end);
+            print_prod_sym(vm, &sym[i + 1], end, build);
+        }
+        break;
+    }
+    }
+}
+
+static void print_reader_macro_prod_syms(FklVM *vm,
+        const FklVMvalueCgRmacroProd *prod,
+        FklCodeBuilder *build,
+        int is_ignore) {
+    size_t len = prod->len;
+    for (size_t i = 0; i < len;) {
+        print_prod_sym(vm, &prod->syms[i], &prod->syms[len], build);
+
+        if (prod->syms[i].type == FKL_TERM_COMP) {
+            i += 1 + FKL_GET_FIX(prod->syms[i].v);
+            if (i < len && prod->syms[i].type == FKL_TERM_IGNORE)
+                i++;
+            else if (i < len)
+                CB_FMT(" .. ");
+            continue;
+        }
+
+        ++i;
+        if (!is_ignore && i < prod->len
+                && prod->syms[i].type != FKL_TERM_IGNORE) {
+            CB_FMT(" .. ");
+        } else {
+            ++i;
+        }
     }
 }
 
@@ -414,32 +492,55 @@ static void print_reader_macros(FklVM *vm,
         return;
     CB_LINE("\nreader macros:");
     for (const FklValueHashMapNode *l = ht->ht.first; l; l = l->next) {
-        // CB_LINE_START("group name: ");
-        // fklPrin1VMvalue2(l->k, build, vm);
-        // CB_LINE_END("");
+        CB_LINE_START("group name: ");
+        fklPrin1VMvalue2(l->k, build, vm);
+        CB_LINE_END("");
 
-        // if (l->v.g.ignores) {
-        //     CB_LINE("\nignores:");
-        //     fklPrintGrammerIgnores(&l->v.g, &l->v.g.regexes, build);
-        // }
+        FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(l->v);
 
-        // if (l->v.g.productions.first) {
-        //     CB_LINE("prods:");
-        //     for (const FklProdHashMapNode *cur = l->v.g.productions.first;
-        //     cur;
-        //             cur = cur->next) {
-        //         for (const FklGrammerProduction *prod = cur->v; prod;
-        //                 prod = prod->next) {
-        //             CB_LINE_START("");
-        //             fklPrintGrammerProduction(vm, prod, &l->v.g.regexes,
-        //             build); CB_FMT(" => "); print_reader_macro_action(vm,
-        //             prod, build, lib_table);
-        //         }
-        //         CB_LINE("");
-        //     }
-        // }
+        FklVMvalueCgRmacroProd *prod = NULL;
+        for (size_t i = 0; i < rmacro->len; ++i) {
+            const FklCgRmacroCmd *cmd = &rmacro->cmds[i];
+            switch (cmd->op) {
+            case FKL_CG_RMACRO_NONE:
+                FKL_UNREACHABLE();
 
-        // CB_LINE("");
+            case FKL_CG_RMACRO_ADD_DELIM:
+                CB_LINE_START(":delim ");
+                fklPrin1VMvalue2(cmd->args, build, vm);
+                CB_LINE_END("");
+                break;
+            case FKL_CG_RMACRO_ADD_IGNORE: {
+                CB_LINE_START(":ignore ");
+                prod = fklVMvalueCgRmacroProd(cmd->args);
+                print_reader_macro_prod_syms(vm, prod, build, 1);
+                CB_LINE_END("");
+            } break;
+
+            case FKL_CG_RMACRO_ADD_PROD:
+                prod = fklVMvalueCgRmacroProd(cmd->args);
+                CB_LINE_START("");
+                if (prod->left == FKL_VM_NIL) {
+                    CB_FMT(":s-exp");
+                } else {
+                    fklPrin1VMvalue2(prod->left, build, vm);
+                }
+
+                if (prod->add_extra) {
+                    CB_FMT(" :s-exp");
+                }
+                CB_FMT(" -> ");
+
+                print_reader_macro_prod_syms(vm, prod, build, 1);
+                CB_FMT(" => ");
+                fklPrincVMvalue2(prod->action_type, build, vm);
+                CB_FMT(" ");
+                print_reader_macro_action(vm, prod->action, build, lib_table);
+                break;
+            }
+        }
+
+        CB_LINE("");
     }
 }
 

@@ -759,7 +759,7 @@ static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = &ud->tp_->mt;
-    FklVMudPrintCb princ = princ = t->princ ? t->princ : t->prin1;
+    FklVMudPrintCb princ = (t->princ != NULL ? t->princ : t->prin1);
     if (princ) {
         princ(v, build, exe);
     } else if (t->name) {
@@ -933,7 +933,7 @@ static void vmvalue_string_prin1(VMVALUE_PRINTER_ARGS) {
 static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     const FklVMvalueUd *ud = FKL_VM_UD(v);
     const FklVMudMetaTable *const t = &ud->tp_->mt;
-    FklVMudPrintCb prin1 = prin1 = t->prin1 ? t->prin1 : t->princ;
+    FklVMudPrintCb prin1 = (t->prin1 != NULL ? t->prin1 : t->princ);
     if (prin1) {
         prin1(v, build, exe);
     } else if (t->name) {

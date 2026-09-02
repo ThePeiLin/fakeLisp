@@ -1109,16 +1109,16 @@ static FklVMudFinalizeResult macro_scope_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-alignas(8) static const FklVMvalueType MacroScopeType = FKL_VM_TYPE_STATIC_INIT(
-        MacroScopeType,
-        {
-            .name = "macro-scope",
-            .size = sizeof(FklVMvalueCgMacroScope),
-            .princ = macro_scope_print,
-            .prin1 = macro_scope_print,
-            .atomic = macro_scope_atomic,
-            .finalize = macro_scope_finalize,
-        });
+FKL_VM_TYPE_ATTR FklVMvalueType MacroScopeType =
+        FKL_VM_TYPE_STATIC_INIT(MacroScopeType,
+                {
+                    .name = "macro-scope",
+                    .size = sizeof(FklVMvalueCgMacroScope),
+                    .princ = macro_scope_print,
+                    .prin1 = macro_scope_print,
+                    .atomic = macro_scope_atomic,
+                    .finalize = macro_scope_finalize,
+                });
 
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
         FklVMvalueCgMacroScope *prev) {
@@ -1134,7 +1134,7 @@ FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
     return r;
 }
 
-static const alignas(8) FklVMvalueType EnvType;
+FKL_VM_TYPE_ATTR FklVMvalueType EnvType;
 
 int fklIsVMvalueCgEnv(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &EnvType.mt;
@@ -1245,8 +1245,7 @@ static FklVMudFinalizeResult env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-alignas(8) static const FklVMvalueType EnvType = FKL_VM_TYPE_STATIC_INIT(
-        EnvType,
+FKL_VM_TYPE_ATTR FklVMvalueType EnvType = FKL_VM_TYPE_STATIC_INIT(EnvType,
         {
             .name = "env",
             .size = sizeof(FklVMvalueCgEnv),
@@ -1393,8 +1392,7 @@ static FklVMudFinalizeResult info_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-alignas(8) static const FklVMvalueType InfoType = FKL_VM_TYPE_STATIC_INIT(
-        InfoType,
+FKL_VM_TYPE_ATTR FklVMvalueType InfoType = FKL_VM_TYPE_STATIC_INIT(InfoType,
         {
             .name = "info",
             .size = sizeof(FklVMvalueCgInfo),
@@ -1523,7 +1521,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
     return r;
 }
 
-static const alignas(8) FklVMvalueType CustomActCtxType;
+FKL_VM_TYPE_ATTR FklVMvalueType CustomActCtxType;
 
 static FKL_ALWAYS_INLINE FKL_UNUSED int is_custom_ctx(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
@@ -1552,7 +1550,7 @@ static void custom_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-alignas(8) static const FklVMvalueType CustomActCtxType =
+FKL_VM_TYPE_ATTR FklVMvalueType CustomActCtxType =
         FKL_VM_TYPE_STATIC_INIT(CustomActCtxType,
                 {
                     .name = "custom-action-ctx",
@@ -2477,7 +2475,7 @@ static inline const struct FklSimpleProdAction *find_simple_prod_action(
     return NULL;
 }
 
-static const alignas(8) FklVMvalueType SimpleActCtxType;
+FKL_VM_TYPE_ATTR FklVMvalueType SimpleActCtxType;
 
 static FKL_ALWAYS_INLINE FKL_UNUSED int is_simple_ctx(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
@@ -2500,7 +2498,7 @@ static void simple_action_ctx_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 FKL_VM_USER_DATA_DEFAULT_PRINT(simple_action_ctx_ud_as_print,
         "simple-action-ctx")
 
-alignas(8) static const FklVMvalueType SimpleActCtxType =
+FKL_VM_TYPE_ATTR FklVMvalueType SimpleActCtxType =
         FKL_VM_TYPE_STATIC_INIT(SimpleActCtxType,
                 {
                     .name = "simple-action-ctx",
@@ -2822,7 +2820,7 @@ FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp) {
     return realpath_to_module_name(ctx->vm, ctx->main_file_real_path_dir, rp);
 }
 
-static const alignas(8) FklVMvalueType MacroType;
+FKL_VM_TYPE_ATTR FklVMvalueType MacroType;
 
 int fklIsVMvalueCgMacro(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &MacroType.mt;
@@ -2840,8 +2838,7 @@ static void macro_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(m->proc, gc);
 }
 
-alignas(8) static const FklVMvalueType MacroType = FKL_VM_TYPE_STATIC_INIT(
-        MacroType,
+FKL_VM_TYPE_ATTR FklVMvalueType MacroType = FKL_VM_TYPE_STATIC_INIT(MacroType,
         {
             .name = "macro",
             .size = sizeof(FklVMvalueCgMacro),
@@ -2880,7 +2877,7 @@ void fklCgMacroHashMapDel(FklVMvalueCgMacroHashMap *map, FklVMvalue *s) {
     fklVMhashTableDel(map, s, &v, NULL);
 }
 
-static const alignas(8) FklVMvalueType RplType;
+FKL_VM_TYPE_ATTR FklVMvalueType RplType;
 
 int fklIsVMvalueCgRpl(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &RplType.mt;
@@ -2900,8 +2897,7 @@ static void rpl_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(m->value, gc);
 }
 
-alignas(8) static const FklVMvalueType RplType = FKL_VM_TYPE_STATIC_INIT(
-        RplType,
+FKL_VM_TYPE_ATTR FklVMvalueType RplType = FKL_VM_TYPE_STATIC_INIT(RplType,
         {
             .name = "rpl",
             .size = sizeof(FklVMvalueCgRpl),
@@ -2939,7 +2935,7 @@ void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *map,
     fklVMhashTableSet(map, FKL_VM_VAL(sym), FKL_VM_VAL(rep));
 }
 
-static const alignas(8) FklVMvalueType RmacroType;
+FKL_VM_TYPE_ATTR FklVMvalueType RmacroType;
 
 int fklIsVMvalueCgRmacro(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &RmacroType.mt;
@@ -2964,8 +2960,7 @@ static void reader_macro_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-alignas(8) static const FklVMvalueType RmacroType = FKL_VM_TYPE_STATIC_INIT(
-        RmacroType,
+FKL_VM_TYPE_ATTR FklVMvalueType RmacroType = FKL_VM_TYPE_STATIC_INIT(RmacroType,
         {
             .name = "reader-macro",
             .size = sizeof(FklVMvalueCgRmacro),
@@ -2983,7 +2978,7 @@ FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *vm, uint64_t len) {
     return r;
 }
 
-static const alignas(8) FklVMvalueType GrammerType;
+FKL_VM_TYPE_ATTR FklVMvalueType GrammerType;
 
 int fklIsVMvalueCgGrammer(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &GrammerType.mt;
@@ -3012,16 +3007,16 @@ static FklVMudFinalizeResult grammer_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-alignas(8) static const FklVMvalueType GrammerType = FKL_VM_TYPE_STATIC_INIT(
-        GrammerType,
-        {
-            .name = "grammer",
-            .size = sizeof(FklVMvalueCgGrammer),
-            .princ = grammer_print,
-            .prin1 = grammer_print,
-            .atomic = grammer_atomic,
-            .finalize = grammer_finalize,
-        });
+FKL_VM_TYPE_ATTR FklVMvalueType GrammerType =
+        FKL_VM_TYPE_STATIC_INIT(GrammerType,
+                {
+                    .name = "grammer",
+                    .size = sizeof(FklVMvalueCgGrammer),
+                    .princ = grammer_print,
+                    .prin1 = grammer_print,
+                    .atomic = grammer_atomic,
+                    .finalize = grammer_finalize,
+                });
 
 FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c) {
     FklVMvalueCgGrammer *r =
@@ -3053,7 +3048,7 @@ FklVMvalueCgRmacro *fklCgRmacroHashMapDel(FklVMvalueCgRmacroHashMap *map,
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(prod_print, "prod");
 
-static const alignas(8) FklVMvalueType RmacroProdType;
+FKL_VM_TYPE_ATTR FklVMvalueType RmacroProdType;
 
 int fklIsVMvalueCgRmacroProd(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &RmacroProdType.mt;
@@ -3080,15 +3075,15 @@ static void prod_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-alignas(8) static const FklVMvalueType RmacroProdType = FKL_VM_TYPE_STATIC_INIT(
-        RmacroProdType,
-        {
-            .name = "macro-scope",
-            .size = sizeof(FklVMvalueCgRmacroProd),
-            .princ = prod_print,
-            .prin1 = prod_print,
-            .atomic = prod_atomic,
-        });
+FKL_VM_TYPE_ATTR FklVMvalueType RmacroProdType =
+        FKL_VM_TYPE_STATIC_INIT(RmacroProdType,
+                {
+                    .name = "prod",
+                    .size = sizeof(FklVMvalueCgRmacroProd),
+                    .princ = prod_print,
+                    .prin1 = prod_print,
+                    .atomic = prod_atomic,
+                });
 
 FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *vm,
         FklVMvalue *left,
@@ -4718,8 +4713,7 @@ static FklVMudFinalizeResult cg_lib_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-alignas(8) static const FklVMvalueType CgLibType = FKL_VM_TYPE_STATIC_INIT(
-        CgLibType,
+FKL_VM_TYPE_ATTR FklVMvalueType CgLibType = FKL_VM_TYPE_STATIC_INIT(CgLibType,
         {
             .name = "cg-lib",
             .size = sizeof(FklVMvalueCgLib),
@@ -4751,15 +4745,15 @@ static void cg_re_export_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(l->args, gc);
 }
 
-alignas(8) static const FklVMvalueType CgReExportType = FKL_VM_TYPE_STATIC_INIT(
-        CgReExportType,
-        {
-            .name = "cg-re-export",
-            .size = sizeof(FklVMvalueCgReExport),
-            .princ = cg_re_export_print,
-            .prin1 = cg_re_export_print,
-            .atomic = cg_re_export_atomic,
-        });
+FKL_VM_TYPE_ATTR FklVMvalueType CgReExportType =
+        FKL_VM_TYPE_STATIC_INIT(CgReExportType,
+                {
+                    .name = "cg-re-export",
+                    .size = sizeof(FklVMvalueCgReExport),
+                    .princ = cg_re_export_print,
+                    .prin1 = cg_re_export_print,
+                    .atomic = cg_re_export_atomic,
+                });
 
 int fklIsVMvalueCgReExport(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &CgReExportType.mt;

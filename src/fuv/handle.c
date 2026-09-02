@@ -51,6 +51,7 @@ static void fuv_process_ud_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(handle->args_obj, gc);
     fklVMgcToGray(handle->file_obj, gc);
     fklVMgcToGray(handle->stdio_obj, gc);
+    fklVMgcToGray(handle->cwd_obj, gc);
 }
 
 static FKL_ALWAYS_INLINE FuvValuePipe *as_pipe(const FklVMvalue *v) {
@@ -116,7 +117,7 @@ static const FklVMudMetaTable HandleMts[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_EVENT] =
         {
-			.name = "event",
+			.name = "fs-event",
 			.size = sizeof(FuvValueFsEvent),
             .prin1 = fuv_fs_event_print,
             .princ = fuv_fs_event_print,
@@ -126,7 +127,7 @@ static const FklVMudMetaTable HandleMts[UV_HANDLE_TYPE_MAX] = {
 
     [UV_FS_POLL] =
         {
-			.name = "poll",
+			.name = "fs-poll",
 			.size = sizeof(FuvValueFsPoll),
             .prin1 = fuv_fs_poll_print,
             .princ = fuv_fs_poll_print,

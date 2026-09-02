@@ -418,6 +418,9 @@ FklVMvalue *fklCreateTrueValue() { return FKL_MAKE_VM_FIX(1); }
 FklVMvalue *fklCreateNilValue() { return FKL_VM_NIL; }
 
 int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
+    if (fir == sec)
+        return 1;
+
     FklPairVector s;
 
     if (FKL_IS_PTR(fir) && FKL_IS_PTR(sec)) {
@@ -489,7 +492,9 @@ nested_equal:
         } else if (!FKL_IS_PTR(root1) && !FKL_IS_PTR(root2) && root1 != root2) {
             r = 0;
         } else if (FKL_IS_PTR(root1) && FKL_IS_PTR(root2)) {
-            if (root1->type_ != root2->type_) {
+            if (root1 == root2) {
+                r = 1;
+            } else if (root1->type_ != root2->type_) {
                 r = 0;
             } else {
                 switch (root1->type_) {
@@ -2181,13 +2186,14 @@ static void weak_hash_eq_update_weak_ref(const FklVMvalue *v, FklVMgc *gc) {
     while (cur) {
         const FklValueEqHashMapNode *next = cur->next;
 
-        if ((h_v->weak_mode & FKL_WEAK_MAP_K) && !fklVMgcIsMarked(cur->k)) {
-            fklValueEqHashMapDel2(ht, cur->k);
-        }
+        FklVMvalue *k = cur->k;
+        FklVMvalue *v = cur->v;
 
-        if ((h_v->weak_mode & FKL_WEAK_MAP_V) && !fklVMgcIsMarked(cur->k)) {
-            fklValueEqHashMapDel2(ht, cur->k);
-        }
+        int k_dead = (h_v->weak_mode & FKL_WEAK_MAP_K) && !fklVMgcIsMarked(k);
+        int v_dead = (h_v->weak_mode & FKL_WEAK_MAP_V) && !fklVMgcIsMarked(v);
+        if (k_dead || v_dead)
+            fklValueEqHashMapDel2(ht, k);
+
         cur = next;
     }
 }

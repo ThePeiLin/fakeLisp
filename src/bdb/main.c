@@ -103,6 +103,7 @@ static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
 }
 
 static const FklVMudMetaTable DebugCtxMt = {
+    .name = "debug-ctx",
     .size = sizeof(DebugCtx),
     .prin1 = debug_ctx_print,
     .princ = debug_ctx_print,
@@ -130,7 +131,7 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
                 "Failed for file: %s",
                 filename_obj);
     FklVMvalueType *tp = as_bdb_dll(ctx->dll)->BdbCtxType;
-	FKL_ASSERT(tp->token == &DebugCtxMt);
+    FKL_ASSERT(tp->token == &DebugCtxMt);
 
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
     DebugCtx *dctx = as_dbg_ctx(ud);

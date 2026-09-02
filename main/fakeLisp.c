@@ -203,11 +203,6 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         FklFileType ft = dep->ft;
         FklVMvalue *name = dep->name;
 
-        fprintf(stderr,
-                "[DEBUG] lib %s, imported by macro: %d\n",
-                FKL_VM_SYM(name)->str,
-                dep->is_imported_by_macro);
-
         FKL_ASSERT(ft != FKL_FILE_NONE);
 
         FklCgAct *a = fklMakeImportAct(&ctx, name, ft, rp, info, NULL);

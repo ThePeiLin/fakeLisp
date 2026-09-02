@@ -616,8 +616,426 @@ static inline FklVMvalueProto *load_prototype(FILE *fp,
     return pt;
 }
 
-static FklCodeBuilder g_gdb_code_builder;
-static FklCodeBuilder *const g_build = &g_gdb_code_builder;
+static void traverse_re_export_cmds(const WriteLibExtraArgs *extra_args) {
+    FklValueTable *vt = extra_args->value_table;
+
+    const FklReExportCmdVector *cmd_vec = extra_args->re_exports;
+    for (size_t i = 0; i < cmd_vec->size; ++i) {
+        const FklReExportCmd *cmd = &cmd_vec->base[i];
+        switch (cmd->op) {
+        case FKL_RE_EXPORT_OP_POP:
+        case FKL_RE_EXPORT_OP_PUSH_CTX:
+        case FKL_RE_EXPORT_OP_POP_CTX:
+            break;
+
+        case FKL_RE_EXPORT_OP_PUSH_LIB:
+            fklTraverseSerializableValue(vt, cmd->arg0);
+            break;
+
+        case FKL_RE_EXPORT_OP_IMPORT:
+            FKL_ASSERT(FKL_IS_FIX(cmd->arg0) || fklIsVMvalueCgLib(cmd->arg0));
+            if (FKL_IS_FIX(cmd->arg0)) {
+                fklTraverseSerializableValue(vt, cmd->arg0);
+            }
+            fklTraverseSerializableValue(vt, cmd->arg1);
+            break;
+        }
+    }
+
+    return;
+}
+
+typedef int (*ReExportVisitor)(FklVMvalue *v,
+        const WriteLibExtraArgs *extra_args,
+        FklLibTable *visited,
+        void *args);
+
+static void traverse_re_export_chain_impl(FklVMvalue *re,
+        const WriteLibExtraArgs *extra_args,
+        FklLibTable *visited,
+        ReExportVisitor visitor,
+        void *args) {
+    FKL_ASSERT(fklIsVMvalueCgReExport(re) || fklIsVMvalueReExportCmds(re));
+
+    FklValueVector stack1 = { 0 };
+    fklValueVectorInit(&stack1, 8);
+
+    FklValueVector stack2 = { 0 };
+    fklValueVectorInit(&stack2, 8);
+
+    fklValueVectorPushBack2(&stack1, FKL_VM_VAL(re));
+
+    const FklLibTable *internal_lib_table = extra_args->internal_lib_table;
+    while (!fklValueVectorIsEmpty(&stack1)) {
+        FklVMvalue *v = *fklValueVectorPopBackNonNull(&stack1);
+        fklValueVectorPushBack2(&stack2, v);
+
+        if (!fklIsVMvalueCgReExport(v))
+            continue;
+
+        const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
+
+        const FklCgLib *cg_lib = re->lib;
+        if (fklLibTableGet(internal_lib_table, cg_lib->lib) == 0)
+            continue;
+        if (fklLibTableGet(visited, cg_lib->lib) != 0)
+            continue;
+
+        fklLibTableAdd(visited, cg_lib->lib);
+
+        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib->lib));
+        for (FklVMvalue *cur = cg_lib->re_exports; FKL_IS_PAIR(cur);
+                cur = FKL_VM_CDR(cur)) {
+            FklVMvalue *v = FKL_VM_CAR(cur);
+            fklValueVectorPushBack2(&stack1, v);
+        }
+        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib));
+    }
+
+    while (!fklValueVectorIsEmpty(&stack2)) {
+        FklVMvalue *v = *fklValueVectorPopBackNonNull(&stack2);
+        int err = visitor(v, extra_args, visited, args);
+        if (err != 0)
+            break;
+    }
+
+    fklValueVectorUninit(&stack1);
+    fklValueVectorUninit(&stack2);
+}
+
+static void traverse_re_export_chain(FklVMvalue *re_exports,
+        const WriteLibExtraArgs *extra_args,
+        ReExportVisitor visitor,
+        void *args) {
+    FklLibTable visited = { 0 };
+    fklInitLibTable(&visited);
+
+    if (re_exports != FKL_VM_NIL && !FKL_IS_PAIR(re_exports)) {
+        FKL_ASSERT(fklIsVMvalueReExportCmds(re_exports));
+        traverse_re_export_chain_impl(re_exports,
+                extra_args,
+                &visited,
+                visitor,
+                args);
+    }
+
+    FklVMvalue *cur = re_exports;
+    for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
+        FklVMvalue *v = FKL_VM_CAR(cur);
+        traverse_re_export_chain_impl(v, extra_args, &visited, visitor, args);
+    }
+
+    FKL_ASSERT(cur == FKL_VM_NIL);
+
+    fklUninitLibTable(&visited);
+}
+
+#if 1
+
+#define DBG_INIT()
+#define DBG_LINE(...)
+#define DBG_FMT(...)
+#define DBG_LINE_START(...)
+#define DBG_LINE_END(...)
+#define DBG_PUTS(S)
+
+#define DBG_INDENT(S)
+#define DBG_UNINDENT(S)
+
+#define DBG_PRIN1(V)
+
+#define dbg_print_export_symbols(...)
+#define dbg_print_re_export_chain_cmd_vector(...)
+#define dbg_print_all_meaningless_libs(...)
+#define dbg_print_re_export_chain_of_main(...)
+#define dbg_print_all_re_export_chains(...)
+#define dbg_print_writting_lib(...)
+
+#else
+static FklCodeBuilder g_dbg_code_builder;
+static FklCodeBuilder *const g_build = &g_dbg_code_builder;
+#define DBG_INIT() fklInitCodeBuilderFp(&g_dbg_code_builder, stdout, NULL)
+#define DBG_LINE(...) fklCodeBuilderLine(g_build, __VA_ARGS__)
+#define DBG_FMT(...) fklCodeBuilderFmt(g_build, __VA_ARGS__)
+#define DBG_LINE_START(...) fklCodeBuilderLineStart(g_build, __VA_ARGS__)
+#define DBG_LINE_END(...) fklCodeBuilderLineEnd(g_build, __VA_ARGS__)
+#define DBG_PUTS(S) fklCodeBuilderPuts(g_build, (S))
+
+#define DBG_INDENT(S) fklCodeBuilderIndent(g_build)
+#define DBG_UNINDENT(S) fklCodeBuilderUnindent(g_build)
+
+#define DBG_PRIN1(V) fklPrin1VMvalue2((V), g_build, NULL)
+
+static const char *const import_type_name[] = {
+    [FKL_CG_IMPORT_NONE] = "none",
+    [FKL_CG_IMPORT_COMMON] = "common",
+    [FKL_CG_IMPORT_PREFIX] = "prefix",
+    [FKL_CG_IMPORT_ONLY] = "only",
+    [FKL_CG_IMPORT_ALIAS] = "alias",
+    [FKL_CG_IMPORT_EXCEPT] = "except",
+};
+
+static inline void dbg_print_writting_lib(const FklVMvalueLib *lib,
+        LibType type_byte) {
+    static const char *lib_ref_type_names[] = {
+        [FKL_LIB_REF_EXTERNAL] = "external",
+        [FKL_LIB_REF_SCRIPT_EMBEDDED] = "script-embedded",
+        [FKL_LIB_REF_DLL_ABSOLUTE] = "dll-absolute",
+        [FKL_LIB_REF_DLL_INTERNAL] = "dll-internal",
+    };
+    DBG_LINE("[DEBUG] writting \"%s\" lib: %s",
+            lib_ref_type_names[type_byte],
+            FKL_VM_SYM(lib->name)->str);
+}
+
+static inline void dbg_print_re_export(const FklVMvalueCgReExport *re_export) {
+    DBG_LINE("[DEBUG] re-export lib: %s, type: %s",
+            FKL_VM_SYM(re_export->lib->lib->name)->str,
+            import_type_name[re_export->type]);
+    switch (re_export->type) {
+    case FKL_CG_IMPORT_NONE:
+        FKL_UNREACHABLE();
+        break;
+    case FKL_CG_IMPORT_COMMON:
+        break;
+
+    case FKL_CG_IMPORT_PREFIX:
+    case FKL_CG_IMPORT_ONLY:
+    case FKL_CG_IMPORT_ALIAS:
+    case FKL_CG_IMPORT_EXCEPT:
+        DBG_LINE_START("        args: ");
+        DBG_PRIN1(re_export->args);
+        DBG_LINE_END("");
+        break;
+    }
+}
+
+static int dbg_print_re_export_chain_cb(FklVMvalue *v,
+        const WriteLibExtraArgs *extra_args,
+        FklLibTable *visited,
+        void *args) {
+    if (fklIsVMvalueLib(v)) {
+        const FklVMvalueLib *l = fklVMvalueLib(v);
+        DBG_LINE("[DEBUG] push, make lib: %s", FKL_VM_SYM(l->name)->str);
+    } else if (fklIsVMvalueCgReExport(v)) {
+        const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
+        dbg_print_re_export(re);
+    } else if (fklIsVMvalueReExportCmds(v)) {
+        DBG_LINE("[DEBUG] expanding cmds");
+    } else if (fklIsVMvalueCgLib(v)) {
+        DBG_LINE("[DEBUG] pop");
+    } else {
+        FKL_UNREACHABLE();
+    }
+
+    return 0;
+}
+
+static void dbg_print_re_export_chain_cmd_vector(const FklReExportCmd *cmds,
+        size_t count) {
+    static const char *cmd_op_name[] = {
+        [FKL_RE_EXPORT_OP_PUSH_LIB] = "push",
+        [FKL_RE_EXPORT_OP_POP] = "pop",
+        [FKL_RE_EXPORT_OP_IMPORT] = "import",
+        [FKL_RE_EXPORT_OP_PUSH_CTX] = "push-ctx",
+        [FKL_RE_EXPORT_OP_POP_CTX] = "pop-ctx",
+    };
+
+    DBG_LINE("\033[41;30m[DEBUG] === re-export cmds ===\033[0m\033[31m");
+    for (uint64_t i = 0; i < count; ++i) {
+        const FklReExportCmd *cmd = &cmds[i];
+
+        DBG_LINE_START("[DEBUG] %-4" PRIu64 ": %s, ", i, cmd_op_name[cmd->op]);
+        switch (cmd->op) {
+        case FKL_RE_EXPORT_OP_PUSH_LIB:
+            DBG_PRIN1(cmd->arg0);
+            break;
+
+        case FKL_RE_EXPORT_OP_POP:
+        case FKL_RE_EXPORT_OP_PUSH_CTX:
+        case FKL_RE_EXPORT_OP_POP_CTX:
+            break;
+
+        case FKL_RE_EXPORT_OP_IMPORT:
+            DBG_FMT("%s, ", import_type_name[cmd->type]);
+            DBG_PRIN1(cmd->arg0);
+            if (cmd->arg1 != NULL) {
+                DBG_PUTS(", ");
+                DBG_PRIN1(cmd->arg1);
+            }
+            break;
+        }
+
+        DBG_LINE_END("");
+    }
+
+    DBG_FMT("\033[0m");
+}
+
+static void dbg_print_re_export_chain_cmds(FklVMvalue *re_exports,
+        const WriteLibExtraArgs *extra_args) {
+    traverse_re_export_chain(re_exports,
+            extra_args,
+            dbg_print_re_export_chain_cb,
+            NULL);
+}
+
+static void dbg_print_re_export_chain_cmds_impl(const FklCgLib *lib,
+        const WriteLibExtraArgs *extra_args,
+        FklLibTable *visited) {
+    const FklLibTable *internal_lib_table = extra_args->internal_lib_table;
+
+    if (fklLibTableGet(internal_lib_table, lib->lib) == 0)
+        return;
+    if (fklLibTableGet(visited, lib->lib) != 0)
+        return;
+
+    fklLibTableAdd(visited, lib->lib);
+
+    for (FklVMvalue *cur = lib->re_exports; FKL_IS_PAIR(cur);
+            cur = FKL_VM_CDR(cur)) {
+        const FklVMvalueCgReExport *re_export =
+                fklVMvalueCgReExport(FKL_VM_CAR(cur));
+
+        dbg_print_re_export(re_export);
+
+        DBG_INDENT();
+        dbg_print_re_export_chain_cmds_impl(re_export->lib,
+                extra_args,
+                visited);
+        DBG_UNINDENT();
+    }
+}
+
+static void dbg_print_re_export_chain_tree(FklVMvalue *re_exports,
+        const WriteLibExtraArgs *extra_args) {
+    FklLibTable visited = { 0 };
+    fklInitLibTable(&visited);
+
+    for (FklVMvalue *cur = re_exports; FKL_IS_PAIR(cur);
+            cur = FKL_VM_CDR(cur)) {
+        const FklVMvalueCgReExport *re_export =
+                fklVMvalueCgReExport(FKL_VM_CAR(cur));
+        dbg_print_re_export(re_export);
+
+        DBG_INDENT();
+        dbg_print_re_export_chain_cmds_impl(re_export->lib,
+                extra_args,
+                &visited);
+        DBG_UNINDENT();
+    }
+
+    fklUninitLibTable(&visited);
+}
+
+static void dbg_print_re_export_chain_of_main(const FklVMvalueCgInfo *info,
+        const WriteLibExtraArgs *extra_args) {
+    DBG_LINE("\033[41;30m[DEBUG] === re-export chain of main.fkl ===\033[0m");
+    DBG_LINE("\033[36m[DEBUG] === re-export tree ===");
+
+    dbg_print_re_export_chain_tree(info->re_exports, extra_args);
+
+    DBG_LINE("\033[33m[DEBUG] === re-export cmds ===");
+
+    dbg_print_re_export_chain_cmds(info->re_exports, extra_args);
+
+    DBG_FMT("\033[0m");
+}
+
+static void dbg_print_all_re_export_chains(const FklCgCtx *ctx,
+        const WriteLibExtraArgs *extra_args) {
+    DBG_LINE(
+            "\033[41;30m[DEBUG] === re-export chain of libraries ===\033[0m\033[31m");
+    for (const FklValueHashMapNode *cur = ctx->libraries->ht.first; cur;
+            cur = cur->next) {
+        const FklCgLib *l = fklVMvalueCgLib(cur->v);
+        DBG_LINE(
+                "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
+                FKL_VM_SYM(l->lib->name)->str,
+                l->re_exports == FKL_VM_NIL ? "nil" : "not nil");
+        if (l->re_exports == FKL_VM_NIL) {
+            continue;
+        }
+
+        DBG_INDENT();
+        DBG_LINE("\033[36m[DEBUG] === re-export tree ===");
+
+        dbg_print_re_export_chain_tree(l->re_exports, extra_args);
+
+        DBG_LINE("\033[33m[DEBUG] === re-export cmds ===");
+
+        dbg_print_re_export_chain_cmds(l->re_exports, extra_args);
+
+        DBG_UNINDENT();
+        DBG_FMT("\033[0m");
+    }
+    if (ctx->libraries->ht.first == NULL) {
+        DBG_LINE("\033[41;30m[DEBUG] <empty>\033[0m");
+    }
+
+    DBG_LINE(
+            "\033[41;30m[DEBUG] === re-export chain of macro libraries ===\033[0m\033[31m");
+    for (const FklValueHashMapNode *cur = ctx->macro_libraries->ht.first; cur;
+            cur = cur->next) {
+        const FklCgLib *l = fklVMvalueCgLib(cur->v);
+        DBG_LINE(
+                "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
+                FKL_VM_SYM(l->lib->name)->str,
+                l->re_exports == FKL_VM_NIL ? "nil" : "not nil");
+        if (l->re_exports == FKL_VM_NIL) {
+            continue;
+        }
+
+        DBG_INDENT();
+        DBG_LINE("\033[36m[DEBUG] === re-export tree ===");
+
+        dbg_print_re_export_chain_tree(l->re_exports, extra_args);
+
+        DBG_LINE("\033[33m[DEBUG] === re-export cmds ===");
+
+        dbg_print_re_export_chain_cmds(l->re_exports, extra_args);
+        DBG_UNINDENT();
+
+        DBG_FMT("\033[0m");
+    }
+    if (ctx->macro_libraries->ht.first == NULL) {
+        DBG_LINE("\033[41;30m[DEBUG] <empty>\033[0m");
+    }
+
+    DBG_LINE("");
+}
+
+static void dbg_print_all_meaningless_libs(const FklVMvalueCgInfo *info,
+        const WriteLibExtraArgs *extra_args) {
+    const FklLibTable *meaningless_libs = extra_args->meaningless_libs;
+    const FklValueIdHashMapNode *cur = meaningless_libs->vt.ht.first;
+    DBG_LINE("\033[41;30m[DEBUG] === meaningless libs ===\033[0m");
+    for (; cur; cur = cur->next) {
+        FklVMvalueLib *l = fklVMvalueLib(cur->k);
+        DBG_LINE("[DEBUG] meaningless lib: %s", FKL_VM_SYM(l->name)->str);
+    }
+
+    DBG_FMT("\033[0m");
+}
+
+static void dbg_print_export_symbols(const FklCgExportSidIdxHashMap *exports,
+        const char *label) {
+    const FklCgExportSidIdxHashMapNode *cur = exports->first;
+    DBG_LINE("\033[43;30m[DEBUG] === re-export %s ===\033[0m\033[33m", label);
+    while (cur) {
+        const FklCgExportSidIdxHashMapNode *next = cur->next;
+        const FklVMvalueLib *from_lib = cur->v.from_lib;
+        const char *name = FKL_VM_SYM(cur->k)->str;
+
+        DBG_LINE("[DEBUG] %s, from %s, idx %" PRIu32 "",
+                name,
+                from_lib == NULL ? "(nil)" : FKL_VM_SYM(from_lib->name)->str,
+                cur->v.from_idx);
+        cur = next;
+    }
+    DBG_FMT("\033[0m");
+}
+#endif
 
 static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         const FklLoadValueArgs *values,
@@ -655,9 +1073,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             goto mod_not_imported;
         }
 
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] external lib rp: %s",
-                FKL_VM_SYM(rp)->str);
+        DBG_LINE("[DEBUG] external lib rp: %s", FKL_VM_SYM(rp)->str);
 
         const FklCgCtx *cg_ctx = libs->cg_ctx;
         FklVMvalueCgLibs *cg_libs = is_imported_by_macro
@@ -719,8 +1135,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             break;
         }
 
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] dll internal: %s, rp %s",
+        DBG_LINE("[DEBUG] dll internal: %s, rp %s",
                 FKL_VM_SYM(lib->proc)->str,
                 FKL_VM_SYM(rp)->str);
 
@@ -1149,16 +1564,7 @@ static inline void write_vm_lib(const FklVMvalueLib *lib,
     write_value_id(value_table, 0, lib->name, fp);
 
     if (type_byte == FKL_LIB_REF_EXTERNAL) {
-        static const char *lib_ref_type_names[] = {
-            [FKL_LIB_REF_EXTERNAL] = "external",
-            [FKL_LIB_REF_SCRIPT_EMBEDDED] = "script-embedded",
-            [FKL_LIB_REF_DLL_ABSOLUTE] = "dll-absolute",
-            [FKL_LIB_REF_DLL_INTERNAL] = "dll-internal",
-        };
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] writting \"%s\" lib: %s",
-                lib_ref_type_names[type_byte],
-                FKL_VM_SYM(lib->name)->str);
+        dbg_print_writting_lib(lib, type_byte);
     }
 
     TotalValCount val_count = lib->count;
@@ -1199,9 +1605,7 @@ static inline void write_vm_lib(const FklVMvalueLib *lib,
         LibIdx idx = fklLibTableGet(extra_args->imported_by_macros, lib);
         uint8_t is_imported_by_macro = idx != 0;
         fwrite(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] is imported by macros: %d",
-                is_imported_by_macro);
+        DBG_LINE("[DEBUG] is imported by macros: %d", is_imported_by_macro);
     } break;
     }
 }
@@ -2095,12 +2499,10 @@ static inline void write_export_sid_idx_table(const FklCgExportSidIdxHashMap *t,
         fwrite(&sid_idx->v.idx, sizeof(sid_idx->v.idx), 1, fp);
         fwrite(&sid_idx->v.flags, sizeof(sid_idx->v.flags), 1, fp);
         if (sid_idx->v.f.not_owned) {
-            fklCodeBuilderLine(g_build,
-                    "[DEBUG] variable %s is not owned",
+            DBG_LINE("[DEBUG] variable %s is not owned",
                     FKL_VM_SYM(sid_idx->k)->str);
         } else {
-            fklCodeBuilderLine(g_build,
-                    "[DEBUG] variable %s is owned",
+            DBG_LINE("[DEBUG] variable %s is owned",
                     FKL_VM_SYM(sid_idx->k)->str);
         }
     }
@@ -2151,354 +2553,6 @@ static inline void write_replacements(const FklVMvalueCgRplHashMap *ht,
         write_value_id(vt, 0, rep_list->k, fp);
         write_value_id(vt, 0, rpl->value, fp);
     }
-}
-
-static const char *const import_type_name[] = {
-    [FKL_CG_IMPORT_NONE] = "none",
-    [FKL_CG_IMPORT_COMMON] = "common",
-    [FKL_CG_IMPORT_PREFIX] = "prefix",
-    [FKL_CG_IMPORT_ONLY] = "only",
-    [FKL_CG_IMPORT_ALIAS] = "alias",
-    [FKL_CG_IMPORT_EXCEPT] = "except",
-};
-
-static inline void dbg_print_re_export(const FklVMvalueCgReExport *re_export) {
-    fklCodeBuilderLine(g_build,
-            "[DEBUG] re-export lib: %s, type: %s",
-            FKL_VM_SYM(re_export->lib->lib->name)->str,
-            import_type_name[re_export->type]);
-    switch (re_export->type) {
-    case FKL_CG_IMPORT_NONE:
-        FKL_UNREACHABLE();
-        break;
-    case FKL_CG_IMPORT_COMMON:
-        break;
-
-    case FKL_CG_IMPORT_PREFIX:
-    case FKL_CG_IMPORT_ONLY:
-    case FKL_CG_IMPORT_ALIAS:
-    case FKL_CG_IMPORT_EXCEPT:
-        fklCodeBuilderLineStart(g_build, "        args: ");
-        fklPrin1VMvalue2(re_export->args, g_build, NULL);
-        fklCodeBuilderLineEnd(g_build, "");
-        break;
-    }
-}
-
-typedef int (*ReExportVisitor)(FklVMvalue *v,
-        const WriteLibExtraArgs *extra_args,
-        FklLibTable *visited,
-        void *args);
-
-static void traverse_re_export_chain_impl(FklVMvalue *re,
-        const WriteLibExtraArgs *extra_args,
-        FklLibTable *visited,
-        ReExportVisitor visitor,
-        void *args) {
-    FKL_ASSERT(fklIsVMvalueCgReExport(re) || fklIsVMvalueReExportCmds(re));
-
-    FklValueVector stack1 = { 0 };
-    fklValueVectorInit(&stack1, 8);
-
-    FklValueVector stack2 = { 0 };
-    fklValueVectorInit(&stack2, 8);
-
-    fklValueVectorPushBack2(&stack1, FKL_VM_VAL(re));
-
-    const FklLibTable *internal_lib_table = extra_args->internal_lib_table;
-    while (!fklValueVectorIsEmpty(&stack1)) {
-        FklVMvalue *v = *fklValueVectorPopBackNonNull(&stack1);
-        fklValueVectorPushBack2(&stack2, v);
-
-        if (!fklIsVMvalueCgReExport(v))
-            continue;
-
-        const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
-
-        const FklCgLib *cg_lib = re->lib;
-        if (fklLibTableGet(internal_lib_table, cg_lib->lib) == 0)
-            continue;
-        if (fklLibTableGet(visited, cg_lib->lib) != 0)
-            continue;
-
-        fklLibTableAdd(visited, cg_lib->lib);
-
-        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib->lib));
-        for (FklVMvalue *cur = cg_lib->re_exports; FKL_IS_PAIR(cur);
-                cur = FKL_VM_CDR(cur)) {
-            FklVMvalue *v = FKL_VM_CAR(cur);
-            fklValueVectorPushBack2(&stack1, v);
-        }
-        fklValueVectorPushBack2(&stack1, FKL_VM_VAL(cg_lib));
-    }
-
-    while (!fklValueVectorIsEmpty(&stack2)) {
-        FklVMvalue *v = *fklValueVectorPopBackNonNull(&stack2);
-        int err = visitor(v, extra_args, visited, args);
-        if (err != 0)
-            break;
-    }
-
-    fklValueVectorUninit(&stack1);
-    fklValueVectorUninit(&stack2);
-}
-
-static void traverse_re_export_chain(FklVMvalue *re_exports,
-        const WriteLibExtraArgs *extra_args,
-        ReExportVisitor visitor,
-        void *args) {
-    FklLibTable visited = { 0 };
-    fklInitLibTable(&visited);
-
-    if (re_exports != FKL_VM_NIL && !FKL_IS_PAIR(re_exports)) {
-        FKL_ASSERT(fklIsVMvalueReExportCmds(re_exports));
-        traverse_re_export_chain_impl(re_exports,
-                extra_args,
-                &visited,
-                visitor,
-                args);
-    }
-
-    FklVMvalue *cur = re_exports;
-    for (; FKL_IS_PAIR(cur); cur = FKL_VM_CDR(cur)) {
-        FklVMvalue *v = FKL_VM_CAR(cur);
-        traverse_re_export_chain_impl(v, extra_args, &visited, visitor, args);
-    }
-
-    FKL_ASSERT(cur == FKL_VM_NIL);
-
-    fklUninitLibTable(&visited);
-}
-
-static int dbg_print_re_export_chain_cb(FklVMvalue *v,
-        const WriteLibExtraArgs *extra_args,
-        FklLibTable *visited,
-        void *args) {
-    if (fklIsVMvalueLib(v)) {
-        const FklVMvalueLib *l = fklVMvalueLib(v);
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] push, make lib: %s",
-                FKL_VM_SYM(l->name)->str);
-    } else if (fklIsVMvalueCgReExport(v)) {
-        const FklVMvalueCgReExport *re = fklVMvalueCgReExport(v);
-        dbg_print_re_export(re);
-    } else if (fklIsVMvalueReExportCmds(v)) {
-        fklCodeBuilderLine(g_build, "[DEBUG] expanding cmds");
-    } else if (fklIsVMvalueCgLib(v)) {
-        fklCodeBuilderLine(g_build, "[DEBUG] pop");
-    } else {
-        FKL_UNREACHABLE();
-    }
-
-    return 0;
-}
-
-static void dbg_print_re_export_chain_cmd_vector(const FklReExportCmd *cmds,
-        size_t count) {
-    static const char *cmd_op_name[] = {
-        [FKL_RE_EXPORT_OP_PUSH_LIB] = "push",
-        [FKL_RE_EXPORT_OP_POP] = "pop",
-        [FKL_RE_EXPORT_OP_IMPORT] = "import",
-        [FKL_RE_EXPORT_OP_PUSH_CTX] = "push-ctx",
-        [FKL_RE_EXPORT_OP_POP_CTX] = "pop-ctx",
-    };
-
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === re-export cmds ===\033[0m\033[31m");
-    for (uint64_t i = 0; i < count; ++i) {
-        const FklReExportCmd *cmd = &cmds[i];
-
-        fklCodeBuilderLineStart(g_build,
-                "[DEBUG] %-4" PRIu64 ": %s, ",
-                i,
-                cmd_op_name[cmd->op]);
-        switch (cmd->op) {
-        case FKL_RE_EXPORT_OP_PUSH_LIB:
-            fklPrin1VMvalue2(cmd->arg0, g_build, NULL);
-            break;
-
-        case FKL_RE_EXPORT_OP_POP:
-        case FKL_RE_EXPORT_OP_PUSH_CTX:
-        case FKL_RE_EXPORT_OP_POP_CTX:
-            break;
-
-        case FKL_RE_EXPORT_OP_IMPORT:
-            fklCodeBuilderFmt(g_build, "%s, ", import_type_name[cmd->type]);
-            fklPrin1VMvalue2(cmd->arg0, g_build, NULL);
-            if (cmd->arg1 != NULL) {
-                fklCodeBuilderPuts(g_build, ", ");
-                fklPrin1VMvalue2(cmd->arg1, g_build, NULL);
-            }
-            break;
-        }
-
-        fklCodeBuilderLineEnd(g_build, "");
-    }
-
-    fklCodeBuilderFmt(g_build, "\033[0m");
-}
-
-static void dbg_print_re_export_chain_cmds(FklVMvalue *re_exports,
-        const WriteLibExtraArgs *extra_args) {
-    traverse_re_export_chain(re_exports,
-            extra_args,
-            dbg_print_re_export_chain_cb,
-            NULL);
-}
-
-static void dbg_print_re_export_chain_cmds_impl(const FklCgLib *lib,
-        const WriteLibExtraArgs *extra_args,
-        FklLibTable *visited) {
-    const FklLibTable *internal_lib_table = extra_args->internal_lib_table;
-
-    if (fklLibTableGet(internal_lib_table, lib->lib) == 0)
-        return;
-    if (fklLibTableGet(visited, lib->lib) != 0)
-        return;
-
-    fklLibTableAdd(visited, lib->lib);
-
-    for (FklVMvalue *cur = lib->re_exports; FKL_IS_PAIR(cur);
-            cur = FKL_VM_CDR(cur)) {
-        const FklVMvalueCgReExport *re_export =
-                fklVMvalueCgReExport(FKL_VM_CAR(cur));
-
-        dbg_print_re_export(re_export);
-
-        fklCodeBuilderIndent(g_build);
-        dbg_print_re_export_chain_cmds_impl(re_export->lib,
-                extra_args,
-                visited);
-        fklCodeBuilderUnindent(g_build);
-    }
-}
-
-static void dbg_print_re_export_chain_tree(FklVMvalue *re_exports,
-        const WriteLibExtraArgs *extra_args) {
-    FklLibTable visited = { 0 };
-    fklInitLibTable(&visited);
-
-    for (FklVMvalue *cur = re_exports; FKL_IS_PAIR(cur);
-            cur = FKL_VM_CDR(cur)) {
-        const FklVMvalueCgReExport *re_export =
-                fklVMvalueCgReExport(FKL_VM_CAR(cur));
-        dbg_print_re_export(re_export);
-
-        fklCodeBuilderIndent(g_build);
-        dbg_print_re_export_chain_cmds_impl(re_export->lib,
-                extra_args,
-                &visited);
-        fklCodeBuilderUnindent(g_build);
-    }
-
-    fklUninitLibTable(&visited);
-}
-
-static void dbg_print_re_export_chain_of_main(const FklVMvalueCgInfo *info,
-        const WriteLibExtraArgs *extra_args) {
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === re-export chain of main.fkl ===\033[0m");
-    fklCodeBuilderLine(g_build, "\033[36m[DEBUG] === re-export tree ===");
-
-    dbg_print_re_export_chain_tree(info->re_exports, extra_args);
-
-    fklCodeBuilderLine(g_build, "\033[33m[DEBUG] === re-export cmds ===");
-
-    dbg_print_re_export_chain_cmds(info->re_exports, extra_args);
-
-    fklCodeBuilderFmt(g_build, "\033[0m");
-}
-
-static void traverse_re_export_cmds(const WriteLibExtraArgs *extra_args) {
-    FklValueTable *vt = extra_args->value_table;
-
-    const FklReExportCmdVector *cmd_vec = extra_args->re_exports;
-    for (size_t i = 0; i < cmd_vec->size; ++i) {
-        const FklReExportCmd *cmd = &cmd_vec->base[i];
-        switch (cmd->op) {
-        case FKL_RE_EXPORT_OP_POP:
-        case FKL_RE_EXPORT_OP_PUSH_CTX:
-        case FKL_RE_EXPORT_OP_POP_CTX:
-            break;
-
-        case FKL_RE_EXPORT_OP_PUSH_LIB:
-            fklTraverseSerializableValue(vt, cmd->arg0);
-            break;
-
-        case FKL_RE_EXPORT_OP_IMPORT:
-            FKL_ASSERT(FKL_IS_FIX(cmd->arg0) || fklIsVMvalueCgLib(cmd->arg0));
-            if (FKL_IS_FIX(cmd->arg0)) {
-                fklTraverseSerializableValue(vt, cmd->arg0);
-            }
-            fklTraverseSerializableValue(vt, cmd->arg1);
-            break;
-        }
-    }
-
-    return;
-}
-
-static void dbg_print_all_re_export_chains(const FklCgCtx *ctx,
-        const WriteLibExtraArgs *extra_args) {
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === re-export chain of libraries ===\033[0m\033[31m");
-    for (const FklValueHashMapNode *cur = ctx->libraries->ht.first; cur;
-            cur = cur->next) {
-        const FklCgLib *l = fklVMvalueCgLib(cur->v);
-        fklCodeBuilderLine(g_build,
-                "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
-                FKL_VM_SYM(l->lib->name)->str,
-                l->re_exports == FKL_VM_NIL ? "nil" : "not nil");
-        if (l->re_exports == FKL_VM_NIL) {
-            continue;
-        }
-
-        fklCodeBuilderIndent(g_build);
-        fklCodeBuilderLine(g_build, "\033[36m[DEBUG] === re-export tree ===");
-
-        dbg_print_re_export_chain_tree(l->re_exports, extra_args);
-
-        fklCodeBuilderLine(g_build, "\033[33m[DEBUG] === re-export cmds ===");
-
-        dbg_print_re_export_chain_cmds(l->re_exports, extra_args);
-
-        fklCodeBuilderUnindent(g_build);
-        fklCodeBuilderFmt(g_build, "\033[0m");
-    }
-    if (ctx->libraries->ht.first == NULL) {
-        fklCodeBuilderLine(g_build, "\033[41;30m[DEBUG] <empty>\033[0m");
-    }
-
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === re-export chain of macro libraries ===\033[0m\033[31m");
-    for (const FklValueHashMapNode *cur = ctx->macro_libraries->ht.first; cur;
-            cur = cur->next) {
-        const FklCgLib *l = fklVMvalueCgLib(cur->v);
-        fklCodeBuilderLine(g_build,
-                "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
-                FKL_VM_SYM(l->lib->name)->str,
-                l->re_exports == FKL_VM_NIL ? "nil" : "not nil");
-        if (l->re_exports == FKL_VM_NIL) {
-            continue;
-        }
-
-        fklCodeBuilderIndent(g_build);
-        fklCodeBuilderLine(g_build, "\033[36m[DEBUG] === re-export tree ===");
-
-        dbg_print_re_export_chain_tree(l->re_exports, extra_args);
-
-        fklCodeBuilderLine(g_build, "\033[33m[DEBUG] === re-export cmds ===");
-
-        dbg_print_re_export_chain_cmds(l->re_exports, extra_args);
-        fklCodeBuilderUnindent(g_build);
-
-        fklCodeBuilderFmt(g_build, "\033[0m");
-    }
-    if (ctx->macro_libraries->ht.first == NULL) {
-        fklCodeBuilderLine(g_build, "\033[41;30m[DEBUG] <empty>\033[0m");
-    }
-
-    fklCodeBuilderLine(g_build, "");
 }
 
 static void write_re_export_cmds(const WriteLibExtraArgs *extra_args,
@@ -2618,13 +2672,12 @@ static void collect_internal_modules(const FklVMvalueCgInfo *info,
     for (const FklValueHashMapNode *c = info->libraries->ht.first; c != NULL;
             c = c->next) {
         const FklCgLib *l = fklVMvalueCgLib(c->v);
-        const char *rp = fklCgLibRp(l);
         if (is_internal_module(main_dir, l)) {
             fklLibTableAdd(intern, l->lib);
         }
 
-        printf("[DEBUG] lib rp: %s, is internal module: %d\n",
-                rp,
+        DBG_LINE("[DEBUG] lib rp: %s, is internal module: %d",
+                fklCgLibRp(l),
                 is_internal_module(main_dir, l));
     }
 }
@@ -2822,22 +2875,6 @@ static int collect_meaningless_libs_cb(FklVMvalue *v,
     return 0;
 }
 
-static void dbg_print_all_meaningless_libs(const FklVMvalueCgInfo *info,
-        const WriteLibExtraArgs *extra_args) {
-    const FklLibTable *meaningless_libs = extra_args->meaningless_libs;
-    const FklValueIdHashMapNode *cur = meaningless_libs->vt.ht.first;
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === meaningless libs ===\033[0m");
-    for (; cur; cur = cur->next) {
-        FklVMvalueLib *l = fklVMvalueLib(cur->k);
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] meaningless lib: %s",
-                FKL_VM_SYM(l->name)->str);
-    }
-
-    fklCodeBuilderFmt(g_build, "\033[0m");
-}
-
 static void collect_meaningless_libs(const FklVMvalueCgInfo *info,
         const WriteLibExtraArgs *extra_args) {
     traverse_re_export_chain(info->re_exports,
@@ -2935,10 +2972,9 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
             FKL_ASSERT(reloc.sym != NULL);
             FKL_ASSERT(FKL_IS_SYM(reloc.sym));
 
-            fklCodeBuilderLine(g_build,
-                    "[DEBUG] proc id: %" PRIu32 ", proto id: %" PRIu32
-                    " , lib: %s, sym: %s, ins_offset: %" PRIu32
-                    " , idx: %" PRIu32 ", used: %d",
+            DBG_LINE("[DEBUG] proc id: %" PRIu32 ", proto id: %" PRIu32
+                     " , lib: %s, sym: %s, ins_offset: %" PRIu32
+                     " , idx: %" PRIu32 ", used: %d",
                     fklProtoTableGet(extra_args->proto_table, proc->proto),
                     fklProtoTableGet(extra_args->proto_table, proto),
                     FKL_VM_SYM(cur_lib->name)->str,
@@ -2978,8 +3014,7 @@ static void collect_relocations_impl(const FklVMvalueProc *proc,
 
 static void collect_relocations(const FklWritePreCompileArgs *const args,
         const WriteLibExtraArgs *const extra_args) {
-    fklCodeBuilderLine(g_build,
-            "\033[41;30m[DEBUG] === relocations ===\033[0m\033[31m");
+    DBG_LINE("\033[41;30m[DEBUG] === relocations ===\033[0m\033[31m");
 
     FklValueIdHashMapNode *cur = fklProcTableFirst(extra_args->proc_table);
     for (; cur != NULL; cur = cur->next) {
@@ -2987,13 +3022,14 @@ static void collect_relocations(const FklWritePreCompileArgs *const args,
         collect_relocations_impl(v, args, extra_args);
     }
 
-    fklCodeBuilderLine(g_build, "\033[0m");
+    DBG_LINE("\033[0m");
 }
 
 void fklWritePreCompile(FILE *fp,
         const char *target_dir,
         const FklWritePreCompileArgs *const args) {
-    fklInitCodeBuilderFp(&g_gdb_code_builder, stdout, NULL);
+    DBG_INIT();
+
     const FklCgCtx *ctx = args->ctx;
 
     const FklVMvalueCgInfo *info = args->main_info;
@@ -3048,7 +3084,7 @@ void fklWritePreCompile(FILE *fp,
         .relocations = &relocations,
     };
 
-    fklCodeBuilderLine(g_build, "");
+    DBG_LINE("");
 
     dbg_print_all_re_export_chains(args->ctx, &extra_args);
 
@@ -3065,7 +3101,7 @@ void fklWritePreCompile(FILE *fp,
     collect_relocations(args, &extra_args);
 
     dbg_print_re_export_chain_cmd_vector(re_exports.base, re_exports.size);
-    fklCodeBuilderLine(g_build, "");
+    DBG_LINE("");
 
     fklWriteValueTable(&value_table, fp);
 
@@ -3109,7 +3145,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *has_unimportable_mod(const Fixup *fixup) {
 
 FklCgLib *
 fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
-    fklInitCodeBuilderFp(&g_gdb_code_builder, stdout, NULL);
+    DBG_INIT();
 
     int err = 0;
 
@@ -3336,27 +3372,6 @@ static void filter_new_exports(FklCgExportSidIdxHashMap *const new_exports,
 
         cur = next;
     }
-}
-
-static void dbg_print_export_symbols(const FklCgExportSidIdxHashMap *exports,
-        const char *label) {
-    const FklCgExportSidIdxHashMapNode *cur = exports->first;
-    fklCodeBuilderLine(g_build,
-            "\033[43;30m[DEBUG] === re-export %s ===\033[0m\033[33m",
-            label);
-    while (cur) {
-        const FklCgExportSidIdxHashMapNode *next = cur->next;
-        const FklVMvalueLib *from_lib = cur->v.from_lib;
-        const char *name = FKL_VM_SYM(cur->k)->str;
-
-        fklCodeBuilderLine(g_build,
-                "[DEBUG] %s, from %s, idx %" PRIu32 "",
-                name,
-                from_lib == NULL ? "(nil)" : FKL_VM_SYM(from_lib->name)->str,
-                cur->v.from_idx);
-        cur = next;
-    }
-    fklCodeBuilderFmt(g_build, "\033[0m");
 }
 
 FKL_NODISCARD

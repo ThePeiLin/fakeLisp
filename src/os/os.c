@@ -171,26 +171,12 @@ static int os_getenv(FKL_CPROC_ARGL) {
     FklVMvalue *name = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
-    const char *env_var = getenv(name_str->str);
+    const char *env_var = fklSysGetEnv(name_str->str);
     FKL_CPROC_RETURN(exe,
             ctx,
             env_var ? fklCreateVMvalueStr1(exe, env_var) : FKL_VM_NIL);
     return 0;
 }
-
-#ifdef _WIN32
-static inline int setenv(const char *name, const char *value, int overwrite) {
-    if (!overwrite) {
-        size_t envsize = 0;
-        int errcode = getenv_s(&envsize, NULL, 0, name);
-        if (errcode || envsize)
-            return errcode;
-    }
-    return _putenv_s(name, value);
-}
-
-static inline int unsetenv(const char *name) { return _putenv_s(name, ""); }
-#endif
 
 static int os_setenv(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 3);
@@ -199,14 +185,18 @@ static int os_setenv(FKL_CPROC_ARGL) {
     FklVMvalue *overwrite = argc > 2 ? FKL_CPROC_GET_ARG(exe, ctx, 2) : NULL;
     FKL_CHECK_TYPE(name, FKL_IS_STR, exe);
     const FklString *name_str = FKL_VM_STR(name);
-    if (value) {
+    if (value != NULL) {
         FKL_CHECK_TYPE(value, FKL_IS_STR, exe);
+        if (FKL_VM_STR(value)->size == 0)
+            goto unset;
+
         int o = (overwrite && overwrite != FKL_VM_NIL) ? 1 : 0;
-        if (setenv(name_str->str, FKL_VM_STR(value)->str, o))
+        if (fklSysSetEnv(name_str->str, FKL_VM_STR(value)->str, o))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     } else {
-        if (unsetenv(name_str->str))
+    unset:
+        if (fklSysUnsetEnv(name_str->str))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     }

@@ -41,6 +41,18 @@
 #define REALPATH(filename, path_buf, size) _fullpath(path_buf, filename, size)
 #define MKDIR _mkdir
 #define RELPATH_START_INDEX 1
+
+static inline int setenv(const char *name, const char *value, int overwrite) {
+    if (!overwrite) {
+        size_t envsize = 0;
+        int errcode = getenv_s(&envsize, NULL, 0, name);
+        if (errcode || envsize)
+            return errcode;
+    }
+    return _putenv_s(name, value);
+}
+
+static inline int unsetenv(const char *name) { return _putenv_s(name, ""); }
 #else
 #include <unistd.h>
 
@@ -946,3 +958,11 @@ int fklLoadLines(FklStringVector *lines, FILE *in) {
     fklUninitStrBuf(&buf);
     return 0;
 }
+
+const char *fklSysGetEnv(const char *name) { return getenv(name); }
+
+int fklSysSetEnv(const char *name, const char *value, int overwrite) {
+    return setenv(name, value, overwrite);
+}
+
+int fklSysUnsetEnv(const char *name) { return unsetenv(name); }

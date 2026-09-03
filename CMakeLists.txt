@@ -169,6 +169,10 @@ add_executable(test-ins "main/tests/ins.c")
 target_link_libraries(test-ins grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-ins)
 
+add_executable(test-path "main/tests/path.c")
+target_link_libraries(test-path grammer_lib ${LINK_TARGET})
+target_define_relative_file(test-path)
+
 # print some struct size
 add_executable(psssize "main/psssize.c")
 target_link_libraries(psssize grammer_lib ${LINK_TARGET})
@@ -505,6 +509,9 @@ add_test(NAME test-ins
 
 add_test(NAME test-no-lalr
 	COMMAND $<TARGET_FILE:test-not-lalr>)
+
+add_test(NAME test-path
+	COMMAND $<TARGET_FILE:test-path>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json)

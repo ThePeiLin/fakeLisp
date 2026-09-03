@@ -1062,6 +1062,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
     }
 
     FklVM *vm = values->vm;
+    const char *dir = libs->main_dir;
 
     LibType mod_type = 0;
     fread(&mod_type, sizeof(mod_type), 1, fp);
@@ -1079,7 +1080,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         fread(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
 
         FklFileType ft = FKL_FILE_NONE;
-        FklVMvalue *rp = fklResolveLibPath(libs->vm, libs->main_dir, name, &ft);
+        FklVMvalue *rp = fklResolveLibPath(vm, dir, name, &ft);
         if (rp == NULL) {
             goto mod_not_imported;
         }
@@ -1126,7 +1127,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         FKL_ASSERT(FKL_IS_SYM(lib->proc));
 
         FklFileType ft = FKL_FILE_NONE;
-        FklVMvalue *rp = fklResolveLibPath(vm, libs->main_dir, lib->proc, &ft);
+        FklVMvalue *rp = fklResolveLibPath(vm, dir, lib->proc, &ft);
         if (rp == NULL || ft != FKL_FILE_DLL) {
             if (libs->fixup == NULL)
                 break;

@@ -3388,6 +3388,28 @@ FklVMvalue *fklResolveLibPath(FklVM *vm,
     return rp;
 }
 
+FklVMvalue *fklResolveLibPathIn(FklVM *vm,
+        FklVMvalue *path_vec_v,
+        FklVMvalue *name,
+        FklFileType *ft) {
+    FklVMvalueVec *path_vec = FKL_VM_VEC(path_vec_v);
+    for (size_t i = 0; i < path_vec->size; ++i) {
+        FklVMvalue *d = path_vec->base[i];
+        FKL_ASSERT(FKL_IS_SYM(d) || FKL_IS_KEYWORD(d) || FKL_IS_STR(d));
+
+        const char *dir = FKL_IS_SYM(d)     ? FKL_VM_SYM(d)->str
+                        : FKL_IS_KEYWORD(d) ? FKL_VM_KEYWORD(d)->str
+                        : FKL_IS_STR(d)     ? FKL_VM_STR(d)->str
+                                            : NULL;
+        FKL_ASSERT(dir != NULL);
+        FklVMvalue *rp = fklResolveLibPath(vm, dir, name, ft);
+        if (rp != NULL)
+            return rp;
+    }
+
+    return NULL;
+}
+
 static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
         const FklPmatchRes *exp,
         const FklPmatchHashMap *ht,
@@ -7875,6 +7897,7 @@ static void codegen_ctx_extra_mark_func(FklVMgc *gc, FklVMextraMarkArgs *c) {
     fklVMgcToGray(ctx->concat_s, gc);
     fklVMgcToGray(ctx->arrow_s, gc);
     fklVMgcToGray(ctx->d_arrow_s, gc);
+    fklVMgcToGray(ctx->paths, gc);
 
     fklVMgcToGray(ctx->cur_exp.value, gc);
     fklVMgcToGray(ctx->cur_exp.container, gc);
@@ -7962,6 +7985,8 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     ctx->concat_s = add_symbol_cstr(ctx, "..");
     ctx->arrow_s = add_symbol_cstr(ctx, "->");
     ctx->d_arrow_s = add_symbol_cstr(ctx, "=>");
+
+    ctx->paths = NULL;
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

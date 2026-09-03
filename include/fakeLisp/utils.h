@@ -109,6 +109,10 @@ static int fklComputeDigitsCount(uint64_t len) {
     return sum;
 }
 
+const char *fklSysGetEnv(const char *name);
+int fklSysSetEnv(const char *name, const char* value, int overwrite);
+int fklSysUnsetEnv(const char *name);
+
 #ifdef __cplusplus
 }
 #endif

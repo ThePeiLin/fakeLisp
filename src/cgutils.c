@@ -5279,3 +5279,57 @@ int fklCgImport(FklVM *vm, const FklVMvalueCgLib *from, FklCgImportArgs *to) {
 
     return -1;
 }
+
+FklVMvalue *fklInitDefaultLibPath(FklVM *vm) {
+    const char *env_path = fklSysGetEnv(FKL_PATH_ENV);
+
+    if (env_path == NULL) {
+        char *cwd = fklSysgetcwd();
+        FklVMvalue *s = fklVMaddSymbolCstr(vm, cwd);
+        fklZfree(cwd);
+
+        return fklCreateVMvalueVecExt(vm, 1, s);
+    }
+
+    FklStrViewVector str_view = { 0 };
+    fklStrViewVectorInit(&str_view, 0);
+
+    size_t total_len = strlen(env_path);
+    size_t rest_len = total_len;
+    const char *path_end = env_path + total_len;
+    const char *cur = env_path;
+    while (rest_len) {
+        const char *end = strchr(cur, FKL_PATH_ENV_SEP);
+        const char *next = NULL;
+        if (end == NULL) {
+            end = path_end;
+            next = end;
+            rest_len = 0;
+        } else {
+            next = end + 1;
+        }
+
+        size_t len = end - cur;
+        if (len != 0) {
+            FklStrView v = {
+                .str = cur,
+                .len = len,
+            };
+            fklStrViewVectorPushBack(&str_view, &v);
+        }
+
+        len = next - cur;
+        cur = next;
+        rest_len -= len;
+    }
+
+    FklVMvalue *v = fklCreateVMvalueVec(vm, str_view.size);
+    for (size_t i = 0; i < str_view.size; ++i) {
+        const FklStrView *view = &str_view.base[i];
+        FklVMvalue *s = fklVMaddSymbolCharBuf(vm, view->str, view->len);
+        FKL_VM_VEC(v)->base[i] = s;
+    }
+
+    fklStrViewVectorUninit(&str_view);
+    return v;
+}

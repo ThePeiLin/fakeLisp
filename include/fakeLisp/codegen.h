@@ -419,6 +419,8 @@ typedef struct FklCgCtx {
     FklVMvalue *arrow_s;
     FklVMvalue *d_arrow_s;
 
+    FklVMvalue *paths;
+
     FklVMvalue *builtin_replacement_id[FKL_BUILTIN_REPLACEMENT_NUM];
 
     FklVMvalue *builtin_pattern_node[FKL_CODEGEN_PATTERN_NUM];
@@ -546,6 +548,8 @@ void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
 void fklRegisterCgCtx(FklCgCtx *ctx);
 void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
 
+FklVMvalue *fklInitDefaultLibPath(FklVM *vm);
+
 void fklUnregisterCgCtx(FklCgCtx *ctx);
 void fklUninitCgCtx(FklCgCtx *ctx);
 
@@ -583,6 +587,11 @@ FklCgExportIdx *fklCgExportAdd(FklCgExportSidIdxHashMap *exports,
 
 FklVMvalue *fklResolveLibPath(FklVM *vm,
         const char *main_dir,
+        FklVMvalue *name,
+        FklFileType *ft);
+
+FklVMvalue *fklResolveLibPathIn(FklVM *vm,
+        FklVMvalue *path_vec,
         FklVMvalue *name,
         FklFileType *ft);
 

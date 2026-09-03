@@ -22,6 +22,73 @@ typedef struct {
     FklVMvalue **slot;
 } VMvalueSlot;
 
+// VmVMvalueSlotVector
+#define FKL_VECTOR_TYPE_PREFIX Vm
+#define FKL_VECTOR_METHOD_PREFIX vm
+#define FKL_VECTOR_ELM_TYPE VMvalueSlot
+#define FKL_VECTOR_ELM_TYPE_NAME VMvalueSlot
+#include <fakeLisp/cont/vector.h>
+
+FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *obj) {
+    VmVMvalueSlotVector s;
+    vmVMvalueSlotVectorInit(&s, 32);
+    FklVMvalue *tmp = FKL_VM_NIL;
+    vmVMvalueSlotVectorPushBack2(&s, (VMvalueSlot){ .v = obj, .slot = &tmp });
+    while (!vmVMvalueSlotVectorIsEmpty(&s)) {
+        const VMvalueSlot *top = vmVMvalueSlotVectorPopBackNonNull(&s);
+        const FklVMvalue *root = top->v;
+        FklVMvalue **root1 = top->slot;
+        FklVMptrTag tag = FKL_GET_TAG(root);
+        FKL_ASSERT((unsigned)tag < FKL_PTR_TAG_NUM);
+
+        switch (tag) {
+        case FKL_TAG_NIL:
+        case FKL_TAG_FIX:
+        case FKL_TAG_CHR:
+            *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
+            break;
+        case FKL_TAG_PTR: {
+            FklValueType type = root->type_;
+            FKL_ASSERT((unsigned)type < FKL_VM_VALUE_GC_TYPE_NUM);
+
+            switch (type) {
+            case FKL_TYPE_PAIR:
+                *root1 = fklCreateVMvaluePairNil(vm);
+                vmVMvalueSlotVectorPushBack2(&s,
+                        (VMvalueSlot){
+                            .v = FKL_VM_CAR(root),
+                            .slot = &FKL_VM_CAR(*root1),
+                        });
+                vmVMvalueSlotVectorPushBack2(&s,
+                        (VMvalueSlot){
+                            .v = FKL_VM_CDR(root),
+                            .slot = &FKL_VM_CDR(*root1),
+                        });
+                break;
+
+            case FKL_TYPE_F64:
+            case FKL_TYPE_BIGINT:
+            case FKL_TYPE_STR:
+            case FKL_TYPE_SYM:
+            case FKL_TYPE_KEYWORD:
+            case FKL_TYPE_BYTEVECTOR:
+            case FKL_TYPE_VECTOR:
+            case FKL_TYPE_BOX:
+            case FKL_TYPE_HASHTABLE:
+            case FKL_TYPE_PROC:
+            case FKL_TYPE_CPROC:
+            case FKL_TYPE_VAR_REF:
+            case FKL_TYPE_USERDATA:
+                *root1 = FKL_TYPE_CAST(FklVMvalue *, root);
+                break;
+            }
+        } break;
+        }
+    }
+    vmVMvalueSlotVectorUninit(&s);
+    return tmp;
+}
+
 FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **pv) {
     FklVMvalue *v = *pv;
     for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v), pv = &FKL_VM_CDR(*pv))

@@ -7342,9 +7342,8 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
         }
     } else if (FKL_IS_PAIR(name->value)) {
         FklValueHashSet *symbol_set = NULL;
-        FklVMvalue *pattern = fklAstToPattern(vm, name->value, &symbol_set);
+        FklVMvalue *pattern = fklCreatePattern(vm, name->value, &symbol_set);
         if (!pattern) {
-            // TODO: 这里应该打印原表达式
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;
@@ -7361,7 +7360,6 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
 
         if (fklValueHashSetPut2(symbol_set, ctx->builtin_sym_orig)) {
             fklValueHashSetDestroy(symbol_set);
-            // TODO: 这里应该打印原表达式
             errors->error = make_macro_pattern_error(vm, name->value);
             errors->line = CURLINE(name->container);
             return;

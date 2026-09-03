@@ -280,82 +280,101 @@ static inline int is_pattern_slot_expand_all(const FklVMvalue *s,
     return is_pattern_slot(s, rest);
 }
 
+static FKL_ALWAYS_INLINE FklVMvalue *do_ast_to_pattern(FklVM *vm,
+        FklVMvalue *node,
+        FklValueHashSet **psymbolTable,
+        int clone) {
+    int is_valid = FKL_IS_PAIR(node)                          //
+                && fklIsList(node)                            //
+                && FKL_IS_SYM(FKL_VM_CAR(node))               //
+                && FKL_IS_PAIR(FKL_VM_CDR(node))              //
+                && FKL_VM_CDR(FKL_VM_CDR(node)) == FKL_VM_NIL //
+                && is_valid_pattern_nast(FKL_VM_CAR(FKL_VM_CDR(node)));
+
+    if (!is_valid)
+        return NULL;
+
+    FKL_ASSERT(is_valid);
+
+    FklVMvalue *r = NULL;
+    FklValueHashSet *symbolTable = fklValueHashSetCreate();
+    FklVMvalue *exp = FKL_VM_CAR(FKL_VM_CDR(node));
+    if (clone) {
+        exp = fklCloneVMlist(vm, exp);
+    }
+
+    FklVMvalue *slotId = FKL_VM_CAR(node);
+
+    FklSlotVector stack;
+    fklSlotVectorInit(&stack, 32);
+    fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(exp));
+    while (!fklSlotVectorIsEmpty(&stack)) {
+        FklVMvalue **c = *fklSlotVectorPopBackNonNull(&stack);
+        FklVMvalue *cur = *c;
+        if (cur == fklVMaddSymbolCstr(vm, "_")) {
+            *c = FKL_VM_HEADER_WILDCARD;
+            continue;
+        }
+
+        if (!FKL_IS_PAIR(cur))
+            continue;
+
+        if (FKL_VM_CAR(cur) != slotId) {
+            fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
+            fklSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
+            continue;
+        }
+
+        FklVMvalue *rest = FKL_VM_CDR(cur);
+        if (!FKL_IS_PAIR(rest) || FKL_VM_CDR(rest) != FKL_VM_NIL)
+            goto error;
+
+        FklVMvalue *sym = FKL_VM_CAR(rest);
+
+        if (FKL_IS_SYM(sym)) {
+            if (fklValueHashSetPut2(symbolTable, sym)) {
+                goto error;
+            }
+            *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_NONE);
+            continue;
+        } else if (is_pattern_slot(slotId, sym)) {
+            sym = FKL_VM_CAR(FKL_VM_CDR(sym));
+            if (fklValueHashSetPut2(symbolTable, sym)) {
+                goto error;
+            }
+            *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ONCE);
+            continue;
+        } else if (is_pattern_slot_expand_all(slotId, sym)) {
+            sym = FKL_VM_CAR(FKL_VM_CDR(FKL_VM_CAR(FKL_VM_CDR(sym))));
+            if (fklValueHashSetPut2(symbolTable, sym)) {
+                goto error;
+            }
+            *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ALL);
+            continue;
+        } else {
+            goto error;
+        }
+    }
+    r = exp;
+    fklSlotVectorUninit(&stack);
+    if (psymbolTable)
+        *psymbolTable = symbolTable;
+    else
+        fklValueHashSetDestroy(symbolTable);
+    return r;
+error:
+    fklValueHashSetDestroy(symbolTable);
+    fklSlotVectorUninit(&stack);
+    *psymbolTable = NULL;
+    return NULL;
+}
+
+FklVMvalue *
+fklCreatePattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
+    return do_ast_to_pattern(vm, node, psymbolTable, 1);
+}
+
 FklVMvalue *
 fklAstToPattern(FklVM *vm, FklVMvalue *node, FklValueHashSet **psymbolTable) {
-    if (FKL_IS_PAIR(node)                                 //
-            && fklIsList(node)                            //
-            && FKL_IS_SYM(FKL_VM_CAR(node))               //
-            && FKL_IS_PAIR(FKL_VM_CDR(node))              //
-            && FKL_VM_CDR(FKL_VM_CDR(node)) == FKL_VM_NIL //
-            && is_valid_pattern_nast(FKL_VM_CAR(FKL_VM_CDR(node)))) {
-
-        FklVMvalue *r = NULL;
-        FklValueHashSet *symbolTable = fklValueHashSetCreate();
-        FklVMvalue *exp = FKL_VM_CAR(FKL_VM_CDR(node));
-        FklVMvalue *slotId = FKL_VM_CAR(node);
-
-        FklSlotVector stack;
-        fklSlotVectorInit(&stack, 32);
-        fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(exp));
-        while (!fklSlotVectorIsEmpty(&stack)) {
-            FklVMvalue **c = *fklSlotVectorPopBackNonNull(&stack);
-            FklVMvalue *cur = *c;
-            if (cur == fklVMaddSymbolCstr(vm, "_")) {
-                *c = FKL_VM_HEADER_WILDCARD;
-                continue;
-            }
-
-            if (!FKL_IS_PAIR(cur))
-                continue;
-
-            if (FKL_VM_CAR(cur) != slotId) {
-                fklSlotVectorPushBack2(&stack, &FKL_VM_CDR(cur));
-                fklSlotVectorPushBack2(&stack, &FKL_VM_CAR(cur));
-                continue;
-            }
-
-            FklVMvalue *rest = FKL_VM_CDR(cur);
-            if (!FKL_IS_PAIR(rest) || FKL_VM_CDR(rest) != FKL_VM_NIL)
-                goto error;
-
-            FklVMvalue *sym = FKL_VM_CAR(rest);
-
-            if (FKL_IS_SYM(sym)) {
-                if (fklValueHashSetPut2(symbolTable, sym)) {
-                    goto error;
-                }
-                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_NONE);
-                continue;
-            } else if (is_pattern_slot(slotId, sym)) {
-                sym = FKL_VM_CAR(FKL_VM_CDR(sym));
-                if (fklValueHashSetPut2(symbolTable, sym)) {
-                    goto error;
-                }
-                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ONCE);
-                continue;
-            } else if (is_pattern_slot_expand_all(slotId, sym)) {
-                sym = FKL_VM_CAR(FKL_VM_CDR(FKL_VM_CAR(FKL_VM_CDR(sym))));
-                if (fklValueHashSetPut2(symbolTable, sym)) {
-                    goto error;
-                }
-                *c = fklCreateVMvalueSlot(vm, sym, FKL_PMATCH_EXPAND_ALL);
-                continue;
-            } else {
-                goto error;
-            }
-        }
-        r = exp;
-        fklSlotVectorUninit(&stack);
-        if (psymbolTable)
-            *psymbolTable = symbolTable;
-        else
-            fklValueHashSetDestroy(symbolTable);
-        return r;
-    error:
-        fklValueHashSetDestroy(symbolTable);
-        fklSlotVectorUninit(&stack);
-        *psymbolTable = NULL;
-        return NULL;
-    }
-    return NULL;
+    return do_ast_to_pattern(vm, node, psymbolTable, 0);
 }

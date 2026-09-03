@@ -1106,6 +1106,7 @@ void fklAtomicVMbox(const FklVMvalue *, FklVMgc *);
 void fklAtomicVMcproc(const FklVMvalue *, FklVMgc *);
 void fklAtomicVMtype(const FklVMvalue *ud, FklVMgc *gc);
 
+FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *v);
 FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *);
 FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **);
 FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *);

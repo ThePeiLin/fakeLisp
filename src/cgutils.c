@@ -3966,6 +3966,14 @@ static inline FklVMvalue *parse_rmacro_def_delim(FklCgCtx *ctx,
     return cur_pair;
 }
 
+static inline FklVMvalue *make_expect_action_type_error(FklVM *exe,
+        FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
+            exe,
+            "Expect |builtin|, |simple|, |custom| or |replace|, but got %S",
+            place);
+}
+
 static inline FklVMvalue *make_expect_str_error(FklVM *exe, FklVMvalue *place) {
     return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
             exe,
@@ -4338,7 +4346,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
     } else if (action_type_v == ctx->builtin_sym_replace) {
         action_type = ACTION_TYPE_REPLACE;
     } else {
-        error_place = action_type_v;
+        errors->error = make_expect_action_type_error(vm, action_type_v);
         error_cont = action;
         goto syntax_error;
     }
@@ -4478,7 +4486,9 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
     return cur_pair;
 
 syntax_error:
-    errors->error = make_syntax_error(vm, error_place);
+    if (errors->error == NULL) {
+        errors->error = make_syntax_error(vm, error_place);
+    }
     errors->fid = info->fid;
     errors->line = CURLINE(error_cont);
     return FKL_VM_NIL;

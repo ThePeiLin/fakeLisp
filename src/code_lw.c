@@ -750,6 +750,7 @@ static void traverse_re_export_chain(FklVMvalue *re_exports,
 #define dbg_print_re_export_chain_of_main(...)
 #define dbg_print_all_re_export_chains(...)
 #define dbg_print_writting_lib(...)
+#define dbg_print_values(...)
 
 #else
 static FklCodeBuilder g_dbg_code_builder;
@@ -1035,6 +1036,16 @@ static void dbg_print_export_symbols(const FklCgExportSidIdxHashMap *exports,
     }
     DBG_FMT("\033[0m");
 }
+
+static void dbg_print_values(const FklLoadValueArgs *values) {
+    DBG_LINE("\033[43;30m[DEBUG] === values ===\033[0m\033[33m");
+    for (FklValueId i = 0; i < values->count; ++i) {
+        DBG_LINE_START("[DEBUG] %" PRIu32 " ", i);
+        DBG_PRIN1(values->values[i]);
+        DBG_LINE_END("");
+    }
+}
+
 #endif
 
 static inline FklVMvalueLib *load_vm_lib(FILE *fp,
@@ -3165,6 +3176,7 @@ fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args) {
     err = load_value_table(fp, &values);
     (void)err;
     FKL_ASSERT(err == 0);
+    dbg_print_values(&values);
 
     FklValueVector ph_vec = { 0 };
     fklValueVectorInit(&ph_vec, 8);

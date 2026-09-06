@@ -70,33 +70,59 @@ int main() {
 
     verify(vm, v, 0);
 
-    fklSysSetEnv(FKL_PATH_ENV, "a;b;", 1);
+    fklSysSetEnv(FKL_PATH_ENV, "/a;/b;", 1);
     v = fklInitDefaultLibPath(vm);
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    verify(vm, v, 2, "a", "b");
+    verify(vm, v, 2, "/a", "/b");
 
-    fklSysSetEnv(FKL_PATH_ENV, "a;b;c", 1);
+    fklSysSetEnv(FKL_PATH_ENV, "/a;/b;/c", 1);
     v = fklInitDefaultLibPath(vm);
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    verify(vm, v, 3, "a", "b", "c");
+    verify(vm, v, 3, "/a", "/b", "/c");
 
-    fklSysSetEnv(FKL_PATH_ENV, "a;;c", 1);
+    fklSysSetEnv(FKL_PATH_ENV, "/a;;/c", 1);
     v = fklInitDefaultLibPath(vm);
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    verify(vm, v, 2, "a", "c");
+    verify(vm, v, 2, "/a", "/c");
 
-    fklSysSetEnv(FKL_PATH_ENV, "foo;;bar", 1);
+    fklSysSetEnv(FKL_PATH_ENV, "/foo;;/bar", 1);
     v = fklInitDefaultLibPath(vm);
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    verify(vm, v, 2, "foo", "bar");
+    verify(vm, v, 2, "/foo", "/bar");
+
+    fklSysSetEnv(FKL_PATH_ENV, ".;..", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    char *dir1 = fklRealpath(".");
+    char *dir2 = fklRealpath("..");
+    verify(vm, v, 2, dir1, dir2);
+    fklZfree(dir1);
+    fklZfree(dir2);
+    dir1 = NULL;
+    dir2 = NULL;
+
+    fklSysSetEnv(FKL_PATH_ENV, "./foo;../foo", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    dir1 = fklRealpath("./foo");
+    dir2 = fklRealpath("../foo");
+    verify(vm, v, 2, dir1, dir2);
+    fklZfree(dir1);
+    fklZfree(dir2);
+    dir1 = NULL;
+    dir2 = NULL;
 
     fklDestroyVMgc(gc);
     return 0;

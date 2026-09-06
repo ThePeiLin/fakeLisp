@@ -274,7 +274,27 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLib, {
     FklVMvalueLib *lib;
 });
 
-typedef FklVMvalueHash FklVMvalueCgLibs;
+typedef enum {
+    FKL_CG_LIB_PATH_REL = 0,
+    FKL_CG_LIB_PATH_ENV,
+    FKL_CG_LIB_PATH_ABS,
+    FKL_CG_LIB_PATH_NONE = 0xff,
+} FklCgLibPathType;
+
+typedef struct {
+    FklVMvalue *rp;
+    FklCgLibPathType path_type;
+} FklCgLibKey;
+
+#define FKL_HASH_KEY_TYPE FklCgLibKey
+#define FKL_HASH_VAL_TYPE FklVMvalueCgLib *
+#define FKL_HASH_ELM_NAME CgLib
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv((pk)->rp);
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    (A)->rp == (B)->rp && (A)->path_type == (B)->path_type
+#include "cont/hash.h"
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap ht; });
 
 typedef enum {
     FKL_CODEGEN_PATTERN_BEGIN = 0,
@@ -595,12 +615,12 @@ FklVMvalue *fklResolveLibPathIn(FklVM *vm,
         FklVMvalue *name,
         FklFileType *ft);
 
-int fklIsVMvalueCgLibs(const FklVMvalue *v);
-FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
-static FKL_ALWAYS_INLINE FklVMvalueCgLibs *fklVMvalueCgLibs(
-        const FklVMvalue *v) {
-    return FKL_VM_HASH(v);
-}
+FklVMvalue *fklSearchLibPath(FklVM *vm,
+        const char *cwd,
+        FklVMvalueVec *paths,
+        FklVMvalue *name,
+        FklFileType *ft,
+        FklCgLibPathType *pt);
 
 FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s);
 int fklIsVMvalueCgLib(const FklVMvalue *v);
@@ -609,19 +629,43 @@ static FKL_ALWAYS_INLINE FklVMvalueCgLib *fklVMvalueCgLib(const FklVMvalue *v) {
     return FKL_TYPE_CAST(FklVMvalueCgLib *, v);
 }
 
-FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklCgCtx *c,
-        const FklVMvalueCgLibs *,
-        const char *rp);
+int fklIsVMvalueCgLibs(const FklVMvalue *v);
+FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
+static FKL_ALWAYS_INLINE FklVMvalueCgLibs *fklVMvalueCgLibs(
+        const FklVMvalue *v) {
+    FKL_ASSERT(fklIsVMvalueCgLibs(v));
+    return (FklVMvalueCgLibs *)v;
+}
 
-FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *, FklVMvalue *rp);
+FklVMvalueCgLib *fklVMvalueCgLibsBind(const FklCgCtx *c,
+        FklVMvalueCgLibs *libs,
+        const char *rp_s,
+        FklCgLibPathType type,
+        FklVMvalue *name);
 
-FklVMvalueCgLib *
-fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
-FklVMvalueCgLib *
-fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s);
+/// 绝对路径和相对路径的模块名可以靠哈希表的键值来计算出来，
+/// 但是从环境变量中指定的路径查找的模块的名字就没法反推出来，
+/// 因而我们让用户指定一个 name ，
+/// 在 type 为 FKL_CG_LIB_PATH_ENV 时覆盖 lib 对象的成员 name
+FklVMvalueCgLib *fklVMvalueCgLibsBind1(FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklCgLibPathType type,
+        FklVMvalue *name);
+
+FklVMvalueCgLib *fklVMvalueCgLibsFind(const FklVMvalueCgLibs *, FklVMvalue *rp);
+
+FklVMvalueCgLib *fklVMvalueCgLibsAdd(FklCgCtx *c,
+        FklVMvalueCgLibs *,
+        const char *rp,
+        FklCgLibPathType type);
+FklVMvalueCgLib *fklVMvalueCgLibsAdd1(FklVM *vm,
+        FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklCgLibPathType type);
 
 FklVMvalueCgLib *fklVMvalueCgLibsAdd2(FklVMvalueCgLibs *libs,
         FklVMvalue *rp_s,
+        FklCgLibPathType type,
         FklVMvalueCgLib *l);
 
 void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
@@ -686,6 +730,7 @@ FklCgAct *fklMakeImportAct(FklCgCtx *,
         FklVMvalue *name,
         FklFileType,
         FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueCgInfo *info,
         FklCgAct *);
 FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);

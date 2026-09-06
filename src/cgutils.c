@@ -2560,61 +2560,173 @@ static FklGrammerProduction *create_extra_start_prod(const FklCgCtx *ctx,
     return prod;
 }
 
-static FklVMudMetaTable const CgLibsUserDataMetaTable;
+static void cg_libs_atomic(const FklVMvalue *v, FklVMgc *gc) {
+    const FklVMvalueCgLibs *libs = fklVMvalueCgLibs(v);
+    const FklCgLibHashMapNode *cur = libs->ht.first;
+    for (; cur; cur = cur->next) {
+        fklVMgcToGray(cur->k.rp, gc);
+        fklVMgcToGray(FKL_VM_VAL(cur->v), gc);
+    }
+}
+
+FKL_VM_USER_DATA_DEFAULT_PRINT(cg_libs_print, "cg-libs");
+
+static FklVMudFinalizeResult cg_libs_finalize(FklVMvalue *v, FklVMgc *gc) {
+    FklVMvalueCgLibs *libs = fklVMvalueCgLibs(v);
+    fklCgLibHashMapUninit(&libs->ht);
+    return FKL_VM_UD_FINALIZE_NOW;
+}
+
+FKL_VM_TYPE_ATTR FklVMvalueType CgLibsType = FKL_VM_TYPE_STATIC_INIT(CgLibsType,
+        {
+            .name = "cg-libs",
+            .size = sizeof(FklVMvalueCgLib),
+            .atomic = cg_libs_atomic,
+            .prin1 = cg_libs_print,
+            .princ = cg_libs_print,
+            .finalize = cg_libs_finalize,
+        });
 
 int fklIsVMvalueCgLibs(const FklVMvalue *v) {
-    return FKL_IS_USERDATA(v)
-        && FKL_VM_UD(v)->tp_->token == &CgLibsUserDataMetaTable;
+    return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &CgLibsType.mt;
 }
 
 FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm) {
-    FklVMvalue *r = fklCreateVMvalueHashEq(vm);
-    return FKL_TYPE_CAST(FklVMvalueCgLibs *, r);
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &CgLibsType);
+    FklVMvalueCgLibs *r = fklVMvalueCgLibs(v);
+    fklCgLibHashMapInit(&r->ht);
+    return r;
 }
 
-FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklCgCtx *c,
-        const FklVMvalueCgLibs *libs,
-        const char *rp) {
+FklVMvalueCgLib *fklVMvalueCgLibsBind(const FklCgCtx *c,
+        FklVMvalueCgLibs *libs,
+        const char *rp,
+        FklCgLibPathType type,
+        FklVMvalue *name) {
     FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
-    return fklVMvalueCgLibsGet1(libs, rp_s);
+    return fklVMvalueCgLibsBind1(libs, rp_s, type, name);
 }
 
-FklVMvalueCgLib *fklVMvalueCgLibsGet1(const FklVMvalueCgLibs *libs,
-        FklVMvalue *rp_s) {
-    FklValueHashMapElm *e = fklVMhashTableGet(libs, rp_s);
-    return e == NULL ? NULL : fklVMvalueCgLib(e->v);
-}
+FklVMvalueCgLib *fklVMvalueCgLibsBind1(FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklCgLibPathType type,
+        FklVMvalue *name) {
+    FKL_ASSERT(FKL_IS_SYM(rp_s));
 
-FklVMvalueCgLib *
-fklVMvalueCgLibsAdd1(FklVM *vm, FklVMvalueCgLibs *libs, FklVMvalue *rp_s) {
-    FklValueHashMapElm *e = fklVMhashTableRef1(libs, rp_s, NULL);
-    if (e->v == NULL) {
-        FklVMvalueCgLib *l = fklCreateVMvalueCgLib(vm, rp_s);
-        e->v = FKL_VM_VAL(l);
+    FklCgLibKey key = {
+        .rp = rp_s,
+        .path_type = type,
+    };
+
+    uintptr_t hashv = fklCgLibHashMap__hashv(&key);
+    FklCgLibHashMapNode *const *btk = fklCgLibHashMapBucket(&libs->ht, hashv);
+    const FklCgLibHashMapNode *cur = *btk;
+    FklVMvalueCgLib *r = NULL;
+    int has_binded = 0;
+    for (; cur; cur = cur->bkt_next) {
+        if (cur->k.rp == rp_s) {
+            r = cur->v;
+            if (cur->k.path_type == type) {
+                has_binded = 1;
+                break;
+            }
+        }
     }
 
-    return fklVMvalueCgLib(e->v);
+    if (r == NULL)
+        return NULL;
+    if (!has_binded) {
+        FKL_ASSERT(r != NULL);
+        FklCgLibHashMapNode *node = fklCgLibHashMapCreateNode(hashv, &key);
+        node->v = r;
+
+		fklCgLibHashMapInsertNode(&libs->ht, node);
+        if (type == FKL_CG_LIB_PATH_ENV) {
+            r->lib->name = name;
+        }
+    }
+
+    return r;
+}
+
+FklVMvalueCgLib *fklVMvalueCgLibsGet(const FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s) {
+    FklCgLibKey key = {
+        .rp = rp_s,
+    };
+
+    uintptr_t hashv = fklCgLibHashMap__hashv(&key);
+    FklCgLibHashMapNode *const *btk = fklCgLibHashMapBucket(&libs->ht, hashv);
+    const FklCgLibHashMapNode *cur = *btk;
+    FklVMvalueCgLib *r = NULL;
+
+    for (; cur; cur = cur->bkt_next) {
+        if (cur->k.rp == rp_s) {
+            r = cur->v;
+            break;
+        }
+    }
+    return r;
+}
+
+FklVMvalueCgLib *fklVMvalueCgLibsAdd1(FklVM *vm,
+        FklVMvalueCgLibs *libs,
+        FklVMvalue *rp_s,
+        FklCgLibPathType type) {
+    FklCgLibKey key = {
+        .rp = rp_s,
+        .path_type = type,
+    };
+
+    FklVMvalueCgLib **e = fklCgLibHashMapGet(&libs->ht, &key);
+    if (e == NULL) {
+        e = fklCgLibHashMapAdd2(&libs->ht, key, NULL);
+    }
+    FKL_ASSERT(e != NULL);
+
+    *e = fklCreateVMvalueCgLib(vm, rp_s);
+
+    return *e;
 }
 
 FklVMvalueCgLib *fklVMvalueCgLibsAdd2(FklVMvalueCgLibs *libs,
         FklVMvalue *rp_s,
+        FklCgLibPathType path_type,
         FklVMvalueCgLib *l) {
-    fklVMhashTableSet(libs, rp_s, FKL_VM_VAL(l));
+    FklCgLibKey key = {
+        .rp = rp_s,
+        .path_type = path_type,
+    };
+
+    fklCgLibHashMapAdd2(&libs->ht, key, l);
+
     return l;
 }
 
-FklVMvalueCgLib *
-fklVMvalueCgLibsAdd(FklCgCtx *c, FklVMvalueCgLibs *libs, const char *rp) {
+FklVMvalueCgLib *fklVMvalueCgLibsAdd(FklCgCtx *c,
+        FklVMvalueCgLibs *libs,
+        const char *rp,
+        FklCgLibPathType type) {
     FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
-    return fklVMvalueCgLibsAdd1(c->vm, libs, rp_s);
+    return fklVMvalueCgLibsAdd1(c->vm, libs, rp_s, type);
 }
 
 void fklVMvalueCgLibsRemove(FklCgCtx *c,
         FklVMvalueCgLibs *libs,
         const char *rp) {
     FklVMvalue *rp_s = fklVMaddSymbolCstr(c->vm, rp);
+    FklCgLibKey key = {
+        .rp = rp_s,
+    };
 
-    fklVMhashTableDel(libs, rp_s, NULL, NULL);
+    key.path_type = FKL_CG_LIB_PATH_REL;
+    fklCgLibHashMapDel(&libs->ht, &key);
+
+    key.path_type = FKL_CG_LIB_PATH_ENV;
+    fklCgLibHashMapDel(&libs->ht, &key);
+
+    key.path_type = FKL_CG_LIB_PATH_ABS;
+    fklCgLibHashMapDel(&libs->ht, &key);
 }
 
 const char *fklCgLibRp(const FklVMvalueCgLib *c) {
@@ -5327,7 +5439,13 @@ FklVMvalue *fklInitDefaultLibPath(FklVM *vm) {
     for (size_t i = 0; i < str_view.size; ++i) {
         const FklStrView *view = &str_view.base[i];
         FklVMvalue *s = fklVMaddSymbolCharBuf(vm, view->str, view->len);
-        FKL_VM_VEC(v)->base[i] = s;
+        char *rp = fklRealpath(FKL_VM_SYM(s)->str);
+        if (rp != NULL) {
+            FKL_VM_VEC(v)->base[i] = fklVMaddSymbolCstr(vm, rp);
+            fklZfree(rp);
+        } else {
+            FKL_VM_VEC(v)->base[i] = s;
+        }
     }
 
     fklStrViewVectorUninit(&str_view);

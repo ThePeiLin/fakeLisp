@@ -1,2 +1,2 @@
-(export (import f))
-(export (import m))
+(export (import ./f))
+(export (import ./m))

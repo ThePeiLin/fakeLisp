@@ -3252,10 +3252,27 @@ static inline int cfg_check_defined(const FklVMvalueCgInfo *info,
     return fklUseSymbolDef(env, scope, value->value) != NULL;
 }
 
+static inline uint64_t skip_mod_name_prefix(const char *name) {
+    if (fklStrStartWith(name, FKL_LIB_PATH_REL_PREFIX)) {
+        return strlen(FKL_LIB_PATH_REL_PREFIX);
+    }
+
+    if (fklStrStartWith(name, FKL_PATH_UPPER_DIR)) {
+        return strlen(FKL_PATH_UPPER_DIR);
+    }
+
+    return 0;
+}
+
 // steal from zuo: https://github.com/racket/zuo
 // zuo_is_symbol_module_char
-static inline int is_module_path_char(char c) {
-    return c != 0 && (isalpha(c) || isdigit(c) || strchr(".-_+/", c) != NULL);
+static inline int is_module_path_char(char c, int is_rel) {
+    if (c == '\0')
+        return 0;
+
+    return isalpha(c) || isdigit(c) //
+        || (is_rel && strchr(".-_+/", c) != NULL)
+        || (strchr("-_+/", c) != NULL);
 }
 
 // steal from zuo: https://github.com/racket/zuo
@@ -3265,13 +3282,15 @@ static inline int is_module_path(const FklString *s) {
         return 0;
     uint64_t saw_slash = 0;
     uint64_t const end = s->size - 1;
-    for (uint64_t i = 0; i < s->size; ++i) {
+    uint64_t i = skip_mod_name_prefix(s->str);
+    int const is_rel = (i != 0);
+    for (; i < s->size; ++i) {
         char c = s->str[i];
         if (c == '/') {
             if (i == 0 || i == end || saw_slash == i)
                 return 0;
             saw_slash = i + 1;
-        } else if (!is_module_path_char(c)) {
+        } else if (!is_module_path_char(c, is_rel)) {
             return 0;
         }
     }
@@ -3282,12 +3301,18 @@ static inline FklVMvalue *get_priv_sub_mod_name(FklVM *v, const FklString *s) {
     FKL_ASSERT(s->size != 0);
     uint64_t saw_slash = 0;
     uint64_t end = 0;
-    for (uint64_t i = 0; i < s->size; ++i) {
+    uint64_t i = 0;
+
+    if (fklStrStartWith(s->str, FKL_LIB_PATH_REL_PREFIX))
+        i += strlen(FKL_LIB_PATH_REL_PREFIX);
+
+    for (; i < s->size; ++i) {
         char c = s->str[i];
         if (c == '/')
             saw_slash = i + 1;
-        else if (c == '_' && i != 0 && saw_slash == i)
+        else if (c == FKL_PRIV_MOD_PREFIX && i != 0 && saw_slash == i) {
             goto importing_private_module;
+        }
     }
 
     return NULL;
@@ -3303,28 +3328,29 @@ importing_private_module:
     return name;
 }
 
-static FklFileType get_mod_file_type(const char *name_cstr, FklStrBuf *buf) {
-    fklStrBufPrintf(buf,
-            "%s%c%s",
-            name_cstr,
-            FKL_PATH_SEPARATOR,
-            FKL_PACKAGE_MAIN_FILE);
+static FKL_ALWAYS_INLINE FklFileType get_mod_file_type(const char *cwd,
+        const char *name,
+        FklStrBuf *buf) {
+    size_t base_idx = 0;
+    fklStrBufPrintf(buf, "%s%c%s", cwd, FKL_PATH_SEPARATOR, name);
+    base_idx = buf->index;
+
+    fklStrBufPrintf(buf, "%c%s", FKL_PATH_SEPARATOR, FKL_PACKAGE_MAIN_FILE);
 
     if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
         return FKL_FILE_PACKAGE;
     }
 
-    fklStrBufClear(buf);
-    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_SCRIPT_FILE_EXTENSION);
+    buf->index = base_idx;
+    fklStrBufPrintf(buf, "%s", FKL_SCRIPT_FILE_EXTENSION);
 
     if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
         return FKL_FILE_SCRIPT;
     }
 
-    fklStrBufClear(buf);
+    buf->index = base_idx;
     fklStrBufPrintf(buf,
-            "%s%c%s%s",
-            name_cstr,
+            "%c%s%s",
             FKL_PATH_SEPARATOR,
             FKL_PACKAGE_MAIN_FILE,
             FKL_PRE_COMPILE_FKL_SUFFIX_STR);
@@ -3333,8 +3359,8 @@ static FklFileType get_mod_file_type(const char *name_cstr, FklStrBuf *buf) {
         return FKL_FILE_PRECOMPILE;
     }
 
-    fklStrBufClear(buf);
-    fklStrBufPrintf(buf, "%s%s", name_cstr, FKL_DLL_FILE_EXTENSION);
+    buf->index = base_idx;
+    fklStrBufPrintf(buf, "%s", FKL_DLL_FILE_EXTENSION);
 
     if (fklIsAccessibleRegFile(fklStrBufBody(buf))) {
         return FKL_FILE_DLL;
@@ -3343,25 +3369,30 @@ static FklFileType get_mod_file_type(const char *name_cstr, FklStrBuf *buf) {
     return FKL_FILE_NONE;
 }
 
-FklVMvalue *fklResolveLibPath(FklVM *vm,
-        const char *main_dir,
-        FklVMvalue *name,
-        FklFileType *ft) {
-    FklStrBuf in_buf;
-    fklInitStrBuf(&in_buf);
+static inline FklCgLibPathType get_mod_path_type(const char *name) {
+    if (fklStrStartWith(name, FKL_PRIV_MOD_PREFIX_STR)) {
+        return FKL_CG_LIB_PATH_REL;
+    }
 
+    if (skip_mod_name_prefix(name) != 0)
+        return FKL_CG_LIB_PATH_REL;
+
+    return FKL_CG_LIB_PATH_ENV;
+
+    // TODO: 需要添加对绝对路径的识别
+    FKL_TODO();
+}
+
+FklVMvalue *fklResolveLibPath(FklVM *vm,
+        const char *cwd,
+        FklVMvalue *name_v,
+        FklFileType *p_ft) {
     FklStrBuf out_buf;
     fklInitStrBuf(&out_buf);
 
-    fklStrBufPrintf(&in_buf,
-            "%s%c%s",
-            main_dir,
-            FKL_PATH_SEPARATOR,
-            FKL_VM_SYM(name)->str);
+    const char *name = FKL_VM_SYM(name_v)->str;
 
-    const char *name_cstr = fklStrBufBody(&in_buf);
-
-    FklFileType t = get_mod_file_type(name_cstr, &out_buf);
+    FklFileType t = get_mod_file_type(cwd, name, &out_buf);
 
     FklVMvalue *rp = NULL;
     switch (t) {
@@ -3378,36 +3409,107 @@ FklVMvalue *fklResolveLibPath(FklVM *vm,
     } break;
     }
 
-    if (ft) {
-        *ft = t;
+    if (p_ft != NULL) {
+        *p_ft = t;
     }
 
-    fklUninitStrBuf(&in_buf);
     fklUninitStrBuf(&out_buf);
 
     return rp;
+}
+
+static FKL_ALWAYS_INLINE const char *val_to_str(const FklVMvalue *v) {
+    const char *r = FKL_IS_SYM(v)     ? FKL_VM_SYM(v)->str
+                  : FKL_IS_KEYWORD(v) ? FKL_VM_KEYWORD(v)->str
+                  : FKL_IS_STR(v)     ? FKL_VM_STR(v)->str
+                                      : NULL;
+    return r;
 }
 
 FklVMvalue *fklResolveLibPathIn(FklVM *vm,
         FklVMvalue *path_vec_v,
         FklVMvalue *name,
         FklFileType *ft) {
+    FKL_ASSERT(path_vec_v != NULL);
+    FKL_ASSERT(FKL_IS_VECTOR(path_vec_v));
+
     FklVMvalueVec *path_vec = FKL_VM_VEC(path_vec_v);
     for (size_t i = 0; i < path_vec->size; ++i) {
         FklVMvalue *d = path_vec->base[i];
         FKL_ASSERT(FKL_IS_SYM(d) || FKL_IS_KEYWORD(d) || FKL_IS_STR(d));
 
-        const char *dir = FKL_IS_SYM(d)     ? FKL_VM_SYM(d)->str
-                        : FKL_IS_KEYWORD(d) ? FKL_VM_KEYWORD(d)->str
-                        : FKL_IS_STR(d)     ? FKL_VM_STR(d)->str
-                                            : NULL;
+        const char *dir = val_to_str(d);
         FKL_ASSERT(dir != NULL);
         FklVMvalue *rp = fklResolveLibPath(vm, dir, name, ft);
         if (rp != NULL)
             return rp;
     }
 
+    if (ft != NULL) {
+        *ft = FKL_FILE_NONE;
+    }
     return NULL;
+}
+
+FklVMvalue *fklSearchLibPath(FklVM *vm,
+        const char *cwd,
+        FklVMvalueVec *paths,
+        FklVMvalue *name_v,
+        FklFileType *p_ft,
+        FklCgLibPathType *p_pt) {
+    const char *name = FKL_VM_SYM(name_v)->str;
+    FklCgLibPathType pt = get_mod_path_type(name);
+
+    FklStrBuf out = { 0 };
+    fklInitStrBuf(&out);
+
+    FklFileType ft = FKL_FILE_NONE;
+    switch (pt) {
+    case FKL_CG_LIB_PATH_NONE:
+        FKL_UNREACHABLE();
+        break;
+
+    case FKL_CG_LIB_PATH_REL:
+        ft = get_mod_file_type(cwd, name, &out);
+        break;
+    case FKL_CG_LIB_PATH_ENV: {
+        for (size_t i = 0; i < paths->size; ++i) {
+            FklVMvalue *cur = paths->base[i];
+            const char *dir = val_to_str(cur);
+            FKL_ASSERT(dir != NULL);
+            ft = get_mod_file_type(dir, name, &out);
+            if (ft != FKL_FILE_NONE)
+                break;
+        }
+        break;
+    case FKL_CG_LIB_PATH_ABS:
+        FKL_TODO();
+        break;
+    }
+    }
+
+    FklVMvalue *rp = NULL;
+    switch (ft) {
+    case FKL_FILE_NONE:
+        // do nothing
+        break;
+    case FKL_FILE_DLL:
+    case FKL_FILE_PRECOMPILE:
+    case FKL_FILE_SCRIPT:
+    case FKL_FILE_PACKAGE: {
+        char *rp_cstr = fklRealpath(fklStrBufBody(&out));
+        rp = fklVMaddSymbolCstr(vm, rp_cstr);
+        fklZfree(rp_cstr);
+    } break;
+    }
+
+    if (p_ft != NULL)
+        *p_ft = ft;
+    if (p_pt != NULL)
+        *p_pt = pt;
+
+    fklUninitStrBuf(&out);
+    return rp;
 }
 
 static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
@@ -3432,25 +3534,11 @@ static inline int cfg_check_importable(const FklVMvalueCgInfo *info,
     if (priv_sub_mod_name != NULL)
         return 0;
 
-    FklStrBuf buf;
-    fklInitStrBuf(&buf);
+    FklVMvalueVec *paths = FKL_VM_VEC(ctx->paths);
+    FklVMvalue *rp =
+            fklSearchLibPath(vm, info->dir, paths, value->value, NULL, NULL);
 
-    FklFileType type = get_mod_file_type(FKL_VM_SYM(value->value)->str, &buf);
-    fklUninitStrBuf(&buf);
-
-    switch (type) {
-    case FKL_FILE_NONE:
-        return 0;
-        break;
-    case FKL_FILE_DLL:
-    case FKL_FILE_PRECOMPILE:
-    case FKL_FILE_SCRIPT:
-    case FKL_FILE_PACKAGE:
-        return 1;
-        break;
-    }
-
-    return 0;
+    return rp != NULL;
 }
 
 static inline int cfg_check_macro_defined(const FklVMvalueCgInfo *info,
@@ -5126,7 +5214,7 @@ static int _codegen_load_get_next_expression(FklCgCtx *ctx,
     return 1;
 }
 
-static int hasLoadSameFile(const char *rpath, const FklVMvalueCgInfo *info) {
+static int loading_same_file(const char *rpath, const FklVMvalueCgInfo *info) {
     for (; info; info = info->prev)
         if (info->realpath && !strcmp(rpath, info->realpath))
             return 1;
@@ -5211,7 +5299,7 @@ static void codegen_load(const CgCbArgs *args) {
                 .inherit_grammer = 1,
             });
 
-    if (hasLoadSameFile(next_info->realpath, info)) {
+    if (loading_same_file(next_info->realpath, info)) {
         error_state->error = make_circular_load_error(vm, filename->value);
         error_state->line = CURLINE(filename->container);
         return;
@@ -6250,9 +6338,10 @@ static FklVMvalue *_export_define_bc_process(const FklCgActCbArgs *args) {
 
 static inline void import_lib_impl(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
-        const char *filename,
+        FklVMvalue *rp_v,
         FklVMvalueCgInfo *lib_info,
-        FklFileType ft) {
+        FklFileType ft,
+        FklCgLibPathType pt) {
     FklCgCtx *ctx = args->ctx;
     FklVM *vm = args->ctx->vm;
     FklVMvalue *orig = args->orig->value;
@@ -6264,17 +6353,10 @@ static inline void import_lib_impl(const CgCbArgs *args,
 
     FklVMvalue *name = import_args->name;
 
-    FklVMvalue *rp_v = NULL;
-    {
-        char *rp = fklRealpath(filename);
-        rp_v = fklVMaddSymbolCstr(vm, rp);
-        fklZfree(rp);
-    };
-
     const char *rp = FKL_VM_SYM(rp_v)->str;
     FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
 
-    if (hasLoadSameFile(rp, info)) {
+    if (loading_same_file(rp, info)) {
         errors->error = make_circular_load_error(vm, name);
         errors->line = CURLINE(orig);
         return;
@@ -6290,34 +6372,53 @@ static inline void import_lib_impl(const CgCbArgs *args,
             NULL,
             info);
 
-    FklCgAct *import_act = fklMakeImportAct(ctx, //
-            name,
-            ft,
-            rp_v,
-            info,
-            load_lib_act);
+    FklCgAct *import_act;
+    import_act = fklMakeImportAct(ctx, name, ft, rp_v, pt, info, load_lib_act);
 
     fklCgActVectorPushBack2(actions, load_lib_act);
     fklCgActVectorPushBack2(actions, import_act);
     return;
 }
 
+static inline FklVMvalue *make_mod_name(FklCgCtx *ctx,
+        FklVMvalue *rp,
+        FklCgLibPathType pt,
+        FklVMvalue *name) {
+    switch (pt) {
+    case FKL_CG_LIB_PATH_ENV:
+        return name;
+        break;
+    case FKL_CG_LIB_PATH_REL:
+        return fklCgRealpathToModuleName(ctx, FKL_VM_SYM(rp)->str);
+        break;
+    case FKL_CG_LIB_PATH_ABS:
+        FKL_TODO();
+        break;
+    case FKL_CG_LIB_PATH_NONE:
+        FKL_TODO();
+        break;
+    }
+
+    FKL_UNREACHABLE();
+    return NULL;
+}
+
 static inline const FklCgLib *load_dll(FklCgCtx *ctx,
         FklVMvalue *name,
         FklVMvalueCgLibs *libs,
-        FklVMvalue *rp_v,
+        const FklCgLibKey *key,
         uint64_t cur_line) {
     FklVM *vm = ctx->vm;
     FklCgErrorState *errors = ctx->error_state;
 
-    FklCgLib *lib = fklVMvalueCgLibsGet1(libs, rp_v);
+    FklVMvalue *rp = key->rp;
+    FklCgLib *lib = fklVMvalueCgLibsBind1(libs, key->rp, key->path_type, name);
     if (lib != NULL) {
         return lib;
     }
 
-    const char *rp = FKL_VM_SYM(rp_v)->str;
     uv_lib_t dll = { 0 };
-    if (uv_dlopen(rp, &dll)) {
+    if (uv_dlopen(FKL_VM_SYM(rp)->str, &dll)) {
         const char *msg = uv_dlerror(&dll);
         errors->error = make_file_failure_error2(vm, msg, name);
         errors->line = cur_line;
@@ -6332,9 +6433,9 @@ static inline const FklCgLib *load_dll(FklCgCtx *ctx,
         return 0;
     }
 
-    FklVMvalue *module_name = fklCgRealpathToModuleName(ctx, rp);
-    lib = fklVMvalueCgLibsAdd1(vm, libs, rp_v);
-    fklInitCgDllLib(ctx, module_name, lib, rp_v, dll, initExport);
+    FklVMvalue *mod_name = make_mod_name(ctx, rp, key->path_type, name);
+    lib = fklVMvalueCgLibsAdd1(vm, libs, rp, key->path_type);
+    fklInitCgDllLib(ctx, mod_name, lib, rp, dll, initExport);
     uv_dlclose(&dll);
 
     return lib;
@@ -6362,6 +6463,7 @@ typedef struct {
     FklVMvalue *rp;
     FklVMvalue *name;
     FklFileType ft;
+    FklCgLibPathType pt;
 
     FklVMvalueCgInfo *info;
 } CheckImportedCtx;
@@ -6381,12 +6483,15 @@ static const FklCgActCtxMt CheckImportedCtxMt = {
 static inline FklCgActCtx *make_import_act_ctx(FklVMvalue *name,
         FklFileType ft,
         FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueCgInfo *info) {
     FklCgActCtx *r = createCgActCtx(&CheckImportedCtxMt);
     CheckImportedCtx *d = FKL_TYPE_CAST(CheckImportedCtx *, r->d);
     d->ft = ft;
     d->rp = rp;
-    d->name = name,
+    d->pt = pt;
+
+    d->name = name;
 
     d->info = info;
     return r;
@@ -6420,8 +6525,8 @@ static FklVMvalue *lib_create_cb(const FklCgActCbArgs *args) {
     FklVMvalue *proc = fklCreateVMvalueProc(ctx->vm, co, pt);
     fklInitMainProcRefs(ctx->vm, proc);
 
-    FklCgLib *lib = fklVMvalueCgLibsAdd1(vm, d->info->libraries, d->rp);
-    FklVMvalue *name = fklCgRealpathToModuleName(ctx, FKL_VM_SYM(d->rp)->str);
+    FklCgLib *lib = fklVMvalueCgLibsAdd1(vm, d->info->libraries, d->rp, d->pt);
+    FklVMvalue *name = make_mod_name(ctx, d->rp, d->pt, d->name);
     fklInitCgScriptLib(ctx, lib, name, info, FKL_VM_PROC(proc));
 
     return FKL_VM_VAL(lib);
@@ -6436,6 +6541,7 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
     FklVMvalueCgInfo *info = d->info;
     FklVMvalue *rp_v = d->rp;
     FklFileType ft = d->ft;
+    FklCgLibPathType pt = d->pt;
     FklVMvalue *name = d->name;
 
     FILE *fp = fopen(FKL_VM_SYM(d->rp)->str, "r");
@@ -6467,7 +6573,7 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
                 .line = 1,
             });
 
-    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp_v, info);
+    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp_v, pt, info);
     FklCgAct *act = make_cg_act(lib_create_cb,
             act_ctx,
             createFpNextExpression(fp, next_info),
@@ -6480,15 +6586,65 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
     return act;
 }
 
+FKL_VM_DEF_UD_STRUCT(FklVMvalueCgFixupResult, {
+    FklVMvalue *rp;
+    FklCgLib *l;
+    FklVMvalueCgLibs *libs;
+    FklCgLibPathType pt;
+});
+
+typedef FklVMvalueCgFixupResult CgFixupRes;
+
+FKL_VM_TYPE_ATTR FklVMvalueType CgFixupResultType;
+
+static FKL_ALWAYS_INLINE int is_cg_fixup_res(const FklVMvalue *v) {
+    return FKL_IS_USERDATA(v)
+        && FKL_VM_UD(v)->tp_->token == &CgFixupResultType.token;
+}
+
+static FKL_ALWAYS_INLINE CgFixupRes *as_cg_fixup_res(const FklVMvalue *v) {
+    FKL_ASSERT(is_cg_fixup_res(v));
+    return (CgFixupRes *)v;
+}
+
+static void cg_fixup_res_atomic(const FklVMvalue *ud, FklVMgc *gc) {
+    CgFixupRes *r = as_cg_fixup_res(ud);
+    fklVMgcToGray(r->rp, gc);
+    fklVMgcToGray(FKL_VM_VAL(r->l), gc);
+    fklVMgcToGray(FKL_VM_VAL(r->libs), gc);
+}
+
+FKL_VM_TYPE_ATTR FklVMvalueType CgFixupResultType =
+        FKL_VM_TYPE_STATIC_INIT(CgFixupResultType,
+                {
+                    .name = "cg-fixup-result",
+                    .size = sizeof(CgFixupRes),
+                    .atomic = cg_fixup_res_atomic,
+                });
+
+static FKL_ALWAYS_INLINE CgFixupRes *create_cg_fixup_res(FklVM *vm,
+        FklVMvalue *rp,
+        FklCgLib *l,
+        FklVMvalueCgLibs *libs,
+        FklCgLibPathType pt) {
+
+    FklVMvalue *v = fklCreateVMvalueUd(vm, &CgFixupResultType);
+    CgFixupRes *res = as_cg_fixup_res(v);
+    res->rp = rp;
+    res->l = l;
+    res->libs = libs;
+    res->pt = pt;
+
+    return res;
+}
+
 static FklVMvalue *fixup_done_cb(const FklCgActCbArgs *args) {
     void *data = args->data;
     FklCgCtx *ctx = args->ctx;
 
     PairCtx *d = FKL_TYPE_CAST(PairCtx *, data);
     FklVMvaluePcFixup *fixup = fklVMvaluePcFixup(d->car);
-    FklVMvalueVec *v = FKL_VM_VEC(d->cdr);
-
-    FKL_ASSERT(v->size == 3);
+    CgFixupRes *v = as_cg_fixup_res(d->cdr);
 
     FklValueVector p = { 0 };
     fklValueVectorInit(&p, 0);
@@ -6516,21 +6672,22 @@ static FklVMvalue *fixup_done_cb(const FklCgActCbArgs *args) {
     (void)r;
     fklValueVectorUninit(&p);
 
-    FklVMvalue *rp = v->base[0];
-    FklVMvalueCgLib *l = fklVMvalueCgLib(v->base[1]);
-    FklVMvalueCgLibs *libs = fklVMvalueCgLibs(v->base[2]);
+    FklVMvalue *rp = v->rp;
+    FklVMvalueCgLib *l = v->l;
+    FklVMvalueCgLibs *libs = v->libs;
+    FklCgLibPathType pt = v->pt;
 
-    fklVMvalueCgLibsAdd2(libs, rp, l);
+    fklVMvalueCgLibsAdd2(libs, rp, pt, l);
     return FKL_VM_VAL(l);
 }
 
 static inline FklCgAct *make_fixup_done_act(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvaluePcFixup *fixup,
-        FklVMvalueVec *vec,
+        CgFixupRes *r,
         FklCgAct *prev) {
     FklCgAct *act = make_cg_act(fixup_done_cb,
-            createPairCtx(FKL_VM_VAL(fixup), FKL_VM_VAL(vec)),
+            createPairCtx(FKL_VM_VAL(fixup), FKL_VM_VAL(r)),
             NULL,
             1,
             info->global_env->macros,
@@ -6548,19 +6705,13 @@ static FklVMvalue *fixup_begin_cb(const FklCgActCbArgs *args) {
 
     PairCtx *d = FKL_TYPE_CAST(PairCtx *, data);
     FklVMvaluePcFixup *fixup = fklVMvaluePcFixup(d->car);
-    FklVMvalueVec *v = FKL_VM_VEC(d->cdr);
+    CgFixupRes *r = as_cg_fixup_res(d->cdr);
 
-    FKL_ASSERT(v->size == 3);
-
-    FklCgAct *last_act = make_fixup_done_act(ctx, //
-            info,
-            fixup,
-            v,
-            args->prev);
+    FklCgAct *last_act = make_fixup_done_act(ctx, info, fixup, r, args->prev);
 
     fklCgActVectorPushBack2(ctx->action_vector, last_act);
 
-    FklVMvalue *rp_s = v->base[0];
+    FklVMvalue *rp_s = r->rp;
     const char *rp = FKL_VM_SYM(rp_s)->str;
 
     FklVMvalueCgInfo *info1 = fklCreateVMvalueCgInfo(ctx,
@@ -6586,11 +6737,12 @@ static FklVMvalue *fixup_begin_cb(const FklCgActCbArgs *args) {
 
         FklVMvalue *rp = dep->rp;
         FklFileType ft = dep->ft;
+        FklCgLibPathType pt = dep->pt;
         FklVMvalue *name = dep->name;
 
         FKL_ASSERT(ft != FKL_FILE_NONE);
 
-        FklCgAct *a = fklMakeImportAct(ctx, name, ft, rp, info, last_act);
+        FklCgAct *a = fklMakeImportAct(ctx, name, ft, rp, pt, info, last_act);
         fklCgActVectorPushBack2(ctx->action_vector, a);
     }
 
@@ -6599,6 +6751,7 @@ static FklVMvalue *fixup_begin_cb(const FklCgActCbArgs *args) {
 
 static inline FklCgAct *make_fixup_begin_act(FklCgCtx *ctx,
         FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueCgInfo *info,
         FklVMvaluePcFixup *fixup,
         FklCgLib *l,
@@ -6610,14 +6763,11 @@ static inline FklCgAct *make_fixup_begin_act(FklCgCtx *ctx,
                 .is_lib = 1,
             });
 
-    FklVMvalue *p = fklCreateVMvalueVecExt(ctx->vm,
-            3,
-            rp,
-            FKL_VM_VAL(l),
-            FKL_VM_VAL(info->libraries));
+    FklVM *vm = ctx->vm;
+    CgFixupRes *p = create_cg_fixup_res(vm, rp, l, info->libraries, pt);
 
     FklCgAct *act = make_cg_act(fixup_begin_cb,
-            createPairCtx(FKL_VM_VAL(fixup), p),
+            createPairCtx(FKL_VM_VAL(fixup), FKL_VM_VAL(p)),
             NULL,
             1,
             next_info->global_env->macros,
@@ -6671,7 +6821,7 @@ static inline FklCgAct *make_fixup_act(const CheckImportedCtx *d,
         return NULL;
     }
 
-    return make_fixup_begin_act(ctx, rp_v, info, fixup, lib, args->prev);
+    return make_fixup_begin_act(ctx, rp_v, d->pt, info, fixup, lib, args->prev);
 }
 
 static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
@@ -6684,7 +6834,8 @@ static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
     FklVMvalue *rp = d->rp;
 
     FklVMvalue *name = d->name;
-    const FklCgLib *lib = fklVMvalueCgLibsGet1(info->libraries, rp);
+    const FklCgLib *lib =
+            fklVMvalueCgLibsBind1(info->libraries, rp, d->pt, name);
     if (lib == NULL) {
         switch (d->ft) {
         case FKL_FILE_PACKAGE:
@@ -6696,9 +6847,10 @@ static FklVMvalue *check_imported_cb(const FklCgActCbArgs *args) {
             fklCgActVectorPushBack2(ctx->action_vector, act);
         } break;
 
-        case FKL_FILE_DLL:
-            lib = load_dll(args->ctx, name, info->libraries, rp, args->line);
-            break;
+        case FKL_FILE_DLL: {
+            FklCgLibKey key = { .rp = rp, .path_type = d->pt };
+            lib = load_dll(args->ctx, name, info->libraries, &key, args->line);
+        } break;
 
         case FKL_FILE_PRECOMPILE: {
             FklCgAct *act = make_fixup_act(d, args);
@@ -6720,9 +6872,10 @@ FklCgAct *fklMakeImportAct(FklCgCtx *ctx,
         FklVMvalue *name,
         FklFileType ft,
         FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueCgInfo *info,
         FklCgAct *prev) {
-    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp, info);
+    FklCgActCtx *act_ctx = make_import_act_ctx(name, ft, rp, pt, info);
     FklCgAct *r = make_cg_act(check_imported_cb,
             act_ctx,
             NULL,
@@ -6841,18 +6994,19 @@ static inline void codegen_import_helper(const CgCbArgs *args,
                 actions);
     }
 
-    FklStrBuf buf;
-    fklInitStrBuf(&buf);
+    FklVMvalueVec *paths = FKL_VM_VEC(ctx->paths);
 
-    FklFileType type = get_mod_file_type(FKL_VM_SYM(name)->str, &buf);
-    if (type == FKL_FILE_NONE) {
+    FklFileType ft = FKL_FILE_NONE;
+    FklCgLibPathType pt = FKL_CG_LIB_PATH_NONE;
+    FklVMvalue *rp = fklSearchLibPath(vm, info->dir, paths, name, &ft, &pt);
+
+    if (rp == NULL) {
         errors->error = make_import_failed_error(vm, name);
         errors->line = CURLINE(orig);
+        return;
     }
 
-    import_lib_impl(args, import_args, fklStrBufBody(&buf), lib_info, type);
-
-    fklUninitStrBuf(&buf);
+    import_lib_impl(args, import_args, rp, lib_info, ft, pt);
 }
 
 static void codegen_import_impl(const CgCbArgs *args,
@@ -7986,7 +8140,7 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     ctx->arrow_s = add_symbol_cstr(ctx, "->");
     ctx->d_arrow_s = add_symbol_cstr(ctx, "=>");
 
-    ctx->paths = NULL;
+    ctx->paths = fklInitDefaultLibPath(vm);
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {
@@ -8017,8 +8171,8 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     }
 }
 
-void fklInitCgCtx(FklCgCtx *ctx, char *main_dir, FklVM *gc) {
-    fklInitCgCtxExceptPattern(ctx, gc);
+void fklInitCgCtx(FklCgCtx *ctx, char *main_dir, FklVM *vm) {
+    fklInitCgCtxExceptPattern(ctx, vm);
     ctx->cwd = fklSysgetcwd();
     ctx->main_file_real_path_dir = main_dir ? main_dir : fklZstrdup(ctx->cwd);
 

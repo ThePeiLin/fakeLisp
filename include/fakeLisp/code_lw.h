@@ -44,6 +44,7 @@ typedef struct {
     FklVMvalue *name;
     FklVMvalue *rp;
     FklFileType ft;
+    FklCgLibPathType pt;
 
     int is_imported_by_macro;
 } FklPcDep;

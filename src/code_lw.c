@@ -730,7 +730,7 @@ static void traverse_re_export_chain(FklVMvalue *re_exports,
     fklUninitLibTable(&visited);
 }
 
-#if 1
+#if 0
 
 #define DBG_INIT()
 #define DBG_LINE(...)
@@ -947,9 +947,9 @@ static void dbg_print_all_re_export_chains(const FklCgCtx *ctx,
         const WriteLibExtraArgs *extra_args) {
     DBG_LINE(
             "\033[41;30m[DEBUG] === re-export chain of libraries ===\033[0m\033[31m");
-    for (const FklValueHashMapNode *cur = ctx->libraries->ht.first; cur;
+    for (const FklCgLibHashMapNode *cur = ctx->libraries->ht.first; cur;
             cur = cur->next) {
-        const FklCgLib *l = fklVMvalueCgLib(cur->v);
+        const FklCgLib *l = cur->v;
         DBG_LINE(
                 "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
                 FKL_VM_SYM(l->lib->name)->str,
@@ -976,9 +976,9 @@ static void dbg_print_all_re_export_chains(const FklCgCtx *ctx,
 
     DBG_LINE(
             "\033[41;30m[DEBUG] === re-export chain of macro libraries ===\033[0m\033[31m");
-    for (const FklValueHashMapNode *cur = ctx->macro_libraries->ht.first; cur;
+    for (const FklCgLibHashMapNode *cur = ctx->macro_libraries->ht.first; cur;
             cur = cur->next) {
-        const FklCgLib *l = fklVMvalueCgLib(cur->v);
+        const FklCgLib *l = cur->v;
         DBG_LINE(
                 "\033[32m[DEBUG] re-export chain of lib: %s is \033[41;30m%s\033[0;0m",
                 FKL_VM_SYM(l->lib->name)->str,
@@ -1079,6 +1079,9 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
         uint8_t is_imported_by_macro = 0;
         fread(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
 
+        uint8_t pt = 0;
+        fread(&pt, sizeof(pt), 1, fp);
+
         FklFileType ft = FKL_FILE_NONE;
         FklVMvalue *rp = fklResolveLibPath(vm, dir, name, &ft);
         if (rp == NULL) {
@@ -1092,7 +1095,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
                                           ? cg_ctx->macro_libraries
                                           : cg_ctx->libraries;
 
-        const FklCgLib *l = fklVMvalueCgLibsGet1(cg_libs, rp);
+        const FklCgLib *l = fklVMvalueCgLibsBind1(cg_libs, rp, pt, name);
         if (l != NULL) {
             lib = l->lib;
             break;
@@ -1112,6 +1115,7 @@ static inline FklVMvalueLib *load_vm_lib(FILE *fp,
             .name = name,
             .rp = rp,
             .ft = ft,
+            .pt = pt,
         };
 
         fklPcDepVectorPushBack(&fixup->pendings, &dep);
@@ -1617,6 +1621,8 @@ static inline void write_vm_lib(const FklVMvalueLib *lib,
         LibIdx idx = fklLibTableGet(extra_args->imported_by_macros, lib);
         uint8_t is_imported_by_macro = idx != 0;
         fwrite(&is_imported_by_macro, sizeof(is_imported_by_macro), 1, fp);
+        // TODO: write path type
+        FKL_TODO();
         DBG_LINE("[DEBUG] is imported by macros: %d", is_imported_by_macro);
     } break;
     }
@@ -2672,7 +2678,10 @@ static inline void write_pre_compile(FILE *fp,
 }
 
 static FKL_ALWAYS_INLINE int is_internal_module(const char *main_dir,
+        FklCgLibPathType pt,
         const FklCgLib *l) {
+    if (pt != FKL_CG_LIB_PATH_REL)
+        return 0;
     const char *rp = fklCgLibRp(l);
     return fklStrStartWith(rp, main_dir);
 }
@@ -2681,27 +2690,31 @@ static void collect_internal_modules(const FklVMvalueCgInfo *info,
         FklLibTable *intern) {
     const char *main_dir = info->dir;
 
-    for (const FklValueHashMapNode *c = info->libraries->ht.first; c != NULL;
+    for (const FklCgLibHashMapNode *c = info->libraries->ht.first; c != NULL;
             c = c->next) {
-        const FklCgLib *l = fklVMvalueCgLib(c->v);
-        if (is_internal_module(main_dir, l)) {
+        FklCgLibPathType pt = c->k.path_type;
+        const FklCgLib *l = c->v;
+        int is_intern = is_internal_module(main_dir, pt, l);
+
+        if (is_intern) {
             fklLibTableAdd(intern, l->lib);
         }
 
         DBG_LINE("[DEBUG] lib rp: %s, is internal module: %d",
                 fklCgLibRp(l),
-                is_internal_module(main_dir, l));
+                is_intern);
     }
 }
 
 static void collect_libs_imported_by_macros(const FklCgCtx *ctx,
         FklLibTable *out) {
     const char *main_dir = ctx->main_file_real_path_dir;
-    for (const FklValueHashMapNode *c = ctx->macro_libraries->ht.first;
+    for (const FklCgLibHashMapNode *c = ctx->macro_libraries->ht.first;
             c != NULL;
             c = c->next) {
-        const FklCgLib *l = fklVMvalueCgLib(c->v);
-        if (!is_internal_module(main_dir, l)) {
+        FklCgLibPathType pt = c->k.path_type;
+        const FklCgLib *l = c->v;
+        if (!is_internal_module(main_dir, pt, l)) {
             fklLibTableAdd(out, l->lib);
         }
     }
@@ -2744,10 +2757,11 @@ static void collect_rmacros(FklVMvalueCgRmacroHashMap *rmacros,
 static void collect_external_macros1(const char *main_dir,
         const FklVMvalueCgLibs *libs,
         FklValueTable *t) {
-    for (const FklValueHashMapNode *c = libs->ht.first; c != NULL;
+    for (const FklCgLibHashMapNode *c = libs->ht.first; c != NULL;
             c = c->next) {
-        const FklCgLib *l = fklVMvalueCgLib(c->v);
-        if (is_internal_module(main_dir, l))
+        FklCgLibPathType pt = c->k.path_type;
+        const FklCgLib *l = c->v;
+        if (is_internal_module(main_dir, pt, l))
             continue;
         if (!FKL_IS_PROC(l->lib->proc))
             continue;
@@ -3635,7 +3649,7 @@ int fklPreCompileFixup(const Fixup *fixup,
         FklVMvalueCgLibs *libs = dep->is_imported_by_macro
                                        ? ctx->macro_libraries
                                        : ctx->libraries;
-        FklCgLib *l = fklVMvalueCgLibsGet1(libs, rp);
+        FklCgLib *l = fklVMvalueCgLibsBind1(libs, rp, dep->pt, dep->name);
         if (l == NULL) {
             if (missing_import != NULL) {
                 fklValueVectorPushBack2(missing_import, rp);

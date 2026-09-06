@@ -201,11 +201,12 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
         FklVMvalue *rp = dep->rp;
         FklFileType ft = dep->ft;
+        FklCgLibPathType pt = dep->pt;
         FklVMvalue *name = dep->name;
 
         FKL_ASSERT(ft != FKL_FILE_NONE);
 
-        FklCgAct *a = fklMakeImportAct(&ctx, name, ft, rp, info, NULL);
+        FklCgAct *a = fklMakeImportAct(&ctx, name, ft, rp, pt, info, NULL);
         fklCgActVectorPushBack2(&act_vec, a);
     }
 

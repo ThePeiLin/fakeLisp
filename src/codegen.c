@@ -5352,6 +5352,7 @@ typedef struct ExportContextData {
     FklVMvalueCgInfo *info;
     FklVMvalueCgEnv *env;
     FklVMvalue *rp;
+    FklCgLibPathType pt;
     FklVMvalueCgMacroScope *cms;
     FklVMvalueCgInfo *lib_info;
 
@@ -5377,8 +5378,7 @@ static void append_import_var_bc(const FklCgCtx *ctx,
     FklVMvalue *fid = info->fid;
 
     FklSymDef *def = fklAddCgDefBySid(k, scope, env);
-    if (info->is_precompile
-            && !fklIsInternalModule(ctx, FKL_VM_SYM(cg_lib->rp)->str)) {
+    if (info->is_precompile && !fklIsInternalModule(ctx, cg_lib->rp)) {
         def->from = lib_id->id;
         def->from_idx = v->idx;
         FklVMvalue *v = env->imported_symbols.base[lib_id->id];
@@ -6064,8 +6064,9 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
     FklVMvalueCgEnv *const env = d->env;
     FklVMvalueCgInfo *const info = d->info;
 
-    const char *rp = FKL_VM_SYM(d->rp)->str;
-    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, rp, lib->lib);
+    FklVMvalue *rp = d->rp;
+    FklCgLibPathType pt = d->pt;
+    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, rp, pt, lib->lib);
 
     if (info->is_precompile && !fklIsInternalModule(ctx, rp)) {
         fklValueVectorResize2(&env->imported_symbols, lib_id->id + 1, NULL);
@@ -6113,6 +6114,7 @@ typedef struct {
 static FklCgActCtx *createExportContext(const CgCbArgs *args,
         const CgImportHelperArgs *import_args,
         FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalue *mod_name,
         FklVMvalueCgInfo *lib_info) {
     ImportLibCb import_cb = import_args->import_cb;
@@ -6128,6 +6130,7 @@ static FklCgActCtx *createExportContext(const CgCbArgs *args,
 
     data->info = info;
     data->rp = rp;
+    data->pt = pt;
 
     data->scope = scope;
     data->env = target_env;
@@ -6362,8 +6365,15 @@ static inline void import_lib_impl(const CgCbArgs *args,
         return;
     }
 
+    FklCgActCtx *d = createExportContext(args,
+            import_args,
+            rp_v,
+            pt,
+            module_name,
+            lib_info);
+
     FklCgAct *load_lib_act = make_cg_act(load_lib_cb,
-            createExportContext(args, import_args, rp_v, module_name, lib_info),
+            d,
             NULL,
             scope,
             macro_scope,
@@ -6551,15 +6561,14 @@ static inline FklCgAct *make_lib_create_act(const CheckImportedCtx *d,
         return NULL;
     }
 
-    const char *rp = FKL_VM_SYM(d->rp)->str;
     FklVMvalueCgInfo *next_info = fklCreateVMvalueCgInfo(ctx,
             info,
-            rp,
+            FKL_VM_SYM(d->rp)->str,
             &(FklCgInfoArgs){
                 .is_lib = 1,
             });
 
-    if (!fklIsInternalModule(ctx, rp)) {
+    if (!fklIsInternalModule(ctx, d->rp)) {
         next_info->is_precompile = 0;
     }
 

@@ -64,19 +64,30 @@ typedef struct {
     (A)->sid == (B)->sid && (A)->scope == (B)->scope
 #include "cont/hash.h"
 
+typedef enum {
+    FKL_CG_LIB_PATH_REL = 0,
+    FKL_CG_LIB_PATH_ENV,
+    FKL_CG_LIB_PATH_ABS,
+    FKL_CG_LIB_PATH_NONE = 0xff,
+} FklCgLibPathType;
+
+typedef struct {
+    FklVMvalue *rp;
+    FklCgLibPathType path_type;
+} FklCgLibKey;
+
 typedef struct {
     FklVMvalueLib *lib;
     uint32_t id;
 } FklLibId;
 
-// FklLibIdHashMap
-#define FKL_HASH_KEY_TYPE const char *
+// FklCgUsedLibHashMap
+#define FKL_HASH_KEY_TYPE FklCgLibKey
 #define FKL_HASH_VAL_TYPE FklLibId
-#define FKL_HASH_ELM_NAME LibId
-#define FKL_HASH_KEY_HASH return fklCharBufHash(*pk, strlen(*pk));
-#define FKL_HASH_KEY_EQUAL(A, B) (!(strcmp(*(A), *(B))))
-#define FKL_HASH_KEY_INIT(X, K) *(X) = fklZstrdup(*(K))
-#define FKL_HASH_KEY_UNINIT(K) fklZfree((void *)*(K));
+#define FKL_HASH_ELM_NAME CgUsedLib
+#define FKL_HASH_KEY_HASH return fklVMvalueEqHashv((pk)->rp);
+#define FKL_HASH_KEY_EQUAL(A, B)                                               \
+    ((A)->rp == (B)->rp && (A)->path_type == (B)->path_type)
 #include "cont/hash.h"
 
 struct FklVMvalueCgEnv;
@@ -110,7 +121,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgEnv, {
     FklValueTable konsts;
     struct FklPreDefRefVector ref_pdef;
     FklValueVector child_proc_protos;
-    FklLibIdHashMap used_libraries;
+    FklCgUsedLibHashMap used_libraries;
     int is_debugging;
 
     FklVMvalueProto *proto;
@@ -274,24 +285,12 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLib, {
     FklVMvalueLib *lib;
 });
 
-typedef enum {
-    FKL_CG_LIB_PATH_REL = 0,
-    FKL_CG_LIB_PATH_ENV,
-    FKL_CG_LIB_PATH_ABS,
-    FKL_CG_LIB_PATH_NONE = 0xff,
-} FklCgLibPathType;
-
-typedef struct {
-    FklVMvalue *rp;
-    FklCgLibPathType path_type;
-} FklCgLibKey;
-
 #define FKL_HASH_KEY_TYPE FklCgLibKey
 #define FKL_HASH_VAL_TYPE FklVMvalueCgLib *
 #define FKL_HASH_ELM_NAME CgLib
 #define FKL_HASH_KEY_HASH return fklVMvalueEqHashv((pk)->rp);
 #define FKL_HASH_KEY_EQUAL(A, B)                                               \
-    (A)->rp == (B)->rp && (A)->path_type == (B)->path_type
+    ((A)->rp == (B)->rp && (A)->path_type == (B)->path_type)
 #include "cont/hash.h"
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgLibs, { FklCgLibHashMap ht; });
@@ -673,7 +672,8 @@ void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 const char *fklCgLibRp(const FklVMvalueCgLib *c);
 
 static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
-        const char *rp) {
+        const FklVMvalue *rp_v) {
+    const char *rp = FKL_VM_SYM(rp_v)->str;
     return fklStrStartWith(rp, ctx->main_file_real_path_dir);
 }
 
@@ -840,7 +840,8 @@ typedef struct {
 FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
         const FklCgEnvCreateArgs *args);
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
-        const char *rp,
+        FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueLib *lib);
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,

@@ -1208,8 +1208,9 @@ static void env_atomic(const FklVMvalue *ud, FklVMgc *gc) {
         fklVMgcToGray(e->child_proc_protos.base[i], gc);
     }
 
-    for (const FklLibIdHashMapNode *cur = e->used_libraries.first; cur;
+    for (const FklCgUsedLibHashMapNode *cur = e->used_libraries.first; cur;
             cur = cur->next) {
+        fklVMgcToGray(cur->k.rp, gc);
         fklVMgcToGray(FKL_VM_VAL(cur->v.lib), gc);
     }
 
@@ -1238,7 +1239,7 @@ static FklVMudFinalizeResult env_finalizer(FklVMvalue *ud, FklVMgc *gc) {
     fklPredefHashMapUninit(&cur->pdef);
     fklPreDefRefVectorUninit(&cur->ref_pdef);
 
-    fklLibIdHashMapUninit(&cur->used_libraries);
+    fklCgUsedLibHashMapUninit(&cur->used_libraries);
     fklUninitValueTable(&cur->konsts);
     fklValueVectorUninit(&cur->child_proc_protos);
     fklValueVectorUninit(&cur->imported_symbols);
@@ -1295,7 +1296,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
     r->macros = fklCreateVMvalueCgMacroScope(c, prev_ms);
     fklInitValueTable(&r->konsts);
     fklValueVectorInit(&r->child_proc_protos, 4);
-    fklLibIdHashMapInit(&r->used_libraries);
+    fklCgUsedLibHashMapInit(&r->used_libraries);
 
     r->proto_env_map = c->proto_env_map;
     insert_proto_to_parent(r);
@@ -1305,10 +1306,17 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
 }
 
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
-        const char *rp,
+        FklVMvalue *rp,
+        FklCgLibPathType pt,
         FklVMvalueLib *lib) {
     FKL_ASSERT(lib != NULL);
-    FklLibId *id = &fklLibIdHashMapInsert(&env->used_libraries, &rp, NULL)->v;
+    FklCgLibKey key = {
+        .rp = rp,
+        .path_type = pt,
+    };
+
+    FklCgUsedLibHashMap *libs = &env->used_libraries;
+    FklLibId *id = &fklCgUsedLibHashMapInsert(libs, &key, NULL)->v;
     if (id->lib == NULL) {
         id->id = env->used_libraries.count - 1;
         id->lib = lib;
@@ -2640,7 +2648,7 @@ FklVMvalueCgLib *fklVMvalueCgLibsBind1(FklVMvalueCgLibs *libs,
         FklCgLibHashMapNode *node = fklCgLibHashMapCreateNode(hashv, &key);
         node->v = r;
 
-		fklCgLibHashMapInsertNode(&libs->ht, node);
+        fklCgLibHashMapInsertNode(&libs->ht, node);
         if (type == FKL_CG_LIB_PATH_ENV) {
             r->lib->name = name;
         }
@@ -2818,7 +2826,7 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
 
     FklVMvalue **const libs = &vals[used_libraries_offset];
 
-    for (const FklLibIdHashMapNode *cur = env->used_libraries.first; cur;
+    for (const FklCgUsedLibHashMapNode *cur = env->used_libraries.first; cur;
             cur = cur->next) {
         FKL_ASSERT(cur->v.lib);
         libs[cur->v.id] = FKL_VM_VAL(cur->v.lib);
@@ -5054,9 +5062,8 @@ static void import_symbol(FklVM *vm,
     if (to->exports != NULL) {
         uint8_t not_owned = item->f.not_owned;
         if (to->cg_ctx != NULL) {
-            const char *rp = FKL_VM_SYM(from->rp)->str;
             // 不是内部模块，我们把 not_owned 设置为 true
-            not_owned |= !fklIsInternalModule(to->cg_ctx, rp);
+            not_owned |= !fklIsInternalModule(to->cg_ctx, from->rp);
         }
 
         FklCgExportIdx *i = fklCgExportAdd(to->exports, new_head, not_owned);

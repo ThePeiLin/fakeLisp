@@ -64,7 +64,8 @@ typedef enum {
 
 typedef struct {
     FklReExportOp op;
-    FklCgImportType type;
+    uint8_t type;
+    uint8_t pt;
     FklVMvalue *arg0;
     FklVMvalue *arg1;
 } FklReExportCmd;
@@ -89,9 +90,11 @@ static FKL_ALWAYS_INLINE FklVMvalueReExportCmds *fklVMvalueReExportCmds(
 }
 
 typedef struct {
-    const FklVMvalue *lib;
     const FklVMvalueProc *proc;
     FklVMvalue *sym;
+    FklVMvalueCgLib *lib;
+
+    FklCgLibPathType pt;
     uint32_t ins;
     uint8_t used;
 } FklReloc;

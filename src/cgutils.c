@@ -1308,7 +1308,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
         FklVMvalue *rp,
         FklCgLibPathType pt,
-        FklVMvalueLib *lib) {
+        FklVMvalueCgLib *lib) {
     FKL_ASSERT(lib != NULL);
     FklCgLibKey key = {
         .rp = rp,
@@ -1318,7 +1318,7 @@ FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
     FklCgUsedLibHashMap *libs = &env->used_libraries;
     FklLibId *id = &fklCgUsedLibHashMapInsert(libs, &key, NULL)->v;
     if (id->lib == NULL) {
-        id->id = env->used_libraries.count - 1;
+        id->id = libs->count - 1;
         id->lib = lib;
     }
 
@@ -2620,6 +2620,7 @@ FklVMvalueCgLib *fklVMvalueCgLibsBind1(FklVMvalueCgLibs *libs,
         FklCgLibPathType type,
         FklVMvalue *name) {
     FKL_ASSERT(FKL_IS_SYM(rp_s));
+    FKL_ASSERT(type != FKL_CG_LIB_PATH_NONE);
 
     FklCgLibKey key = {
         .rp = rp_s,
@@ -2829,7 +2830,8 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
     for (const FklCgUsedLibHashMapNode *cur = env->used_libraries.first; cur;
             cur = cur->next) {
         FKL_ASSERT(cur->v.lib);
-        libs[cur->v.id] = FKL_VM_VAL(cur->v.lib);
+        libs[cur->v.id] = FKL_VM_VAL(cur->v.lib->lib);
+        FKL_ASSERT(fklIsVMvalueLib(libs[cur->v.id]));
     }
 
     update_parent_env_proto(env, FKL_VM_VAL(proto));
@@ -2936,7 +2938,7 @@ realpath_to_module_name(FklVM *vm, const char *main_dir, const char *rp) {
     return module_name;
 }
 
-FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp) {
+FklVMvalue *fklCgRealpathToModuleName(const FklCgCtx *ctx, const char *rp) {
     return realpath_to_module_name(ctx->vm, ctx->main_file_real_path_dir, rp);
 }
 
@@ -4891,6 +4893,7 @@ int fklIsVMvalueCgReExport(const FklVMvalue *v) {
 
 FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
         FklVMvalueCgLib *lib,
+        FklCgLibPathType pt,
         FklCgImportType type,
         FklVMvalue *args) {
     FKL_ASSERT(lib != NULL);
@@ -4898,6 +4901,7 @@ FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
     FklVMvalueCgReExport *r = fklVMvalueCgReExport(v);
 
     r->lib = lib;
+    r->pt = pt;
     r->type = type;
     r->args = args;
 

@@ -276,6 +276,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
     case FKL_OP_LOAD_LIB: {
         plib = frame->libs[uC(ins)];
+        FKL_ASSERT(fklIsVMvalueLib(FKL_VM_VAL(plib)));
         int state = atomic_load(&plib->import_state);
 
         if (state == FKL_VM_LIB_IMPORTING || state == FKL_VM_LIB_NONE) {

@@ -3451,14 +3451,13 @@ FklVMvalue *fklResolveLibPathIn(FklVM *vm,
     return NULL;
 }
 
-FklVMvalue *fklSearchLibPath(FklVM *vm,
+FklVMvalue *fklSearchLibPath1(FklVM *vm,
         const char *cwd,
         FklVMvalueVec *paths,
         FklVMvalue *name_v,
-        FklFileType *p_ft,
-        FklCgLibPathType *p_pt) {
+        FklCgLibPathType pt,
+        FklFileType *p_ft) {
     const char *name = FKL_VM_SYM(name_v)->str;
-    FklCgLibPathType pt = get_mod_path_type(name);
 
     FklStrBuf out = { 0 };
     fklInitStrBuf(&out);
@@ -3473,6 +3472,7 @@ FklVMvalue *fklSearchLibPath(FklVM *vm,
         ft = get_mod_file_type(cwd, name, &out);
         break;
     case FKL_CG_LIB_PATH_ENV: {
+        FKL_ASSERT(paths != NULL);
         for (size_t i = 0; i < paths->size; ++i) {
             FklVMvalue *cur = paths->base[i];
             const char *dir = val_to_str(cur);
@@ -3505,10 +3505,23 @@ FklVMvalue *fklSearchLibPath(FklVM *vm,
 
     if (p_ft != NULL)
         *p_ft = ft;
+
+    fklUninitStrBuf(&out);
+    return rp;
+}
+
+FklVMvalue *fklSearchLibPath(FklVM *vm,
+        const char *cwd,
+        FklVMvalueVec *paths,
+        FklVMvalue *name_v,
+        FklFileType *p_ft,
+        FklCgLibPathType *p_pt) {
+    FklCgLibPathType pt = get_mod_path_type(FKL_VM_SYM(name_v)->str);
+    FklVMvalue *rp = fklSearchLibPath1(vm, cwd, paths, name_v, pt, p_ft);
+
     if (p_pt != NULL)
         *p_pt = pt;
 
-    fklUninitStrBuf(&out);
     return rp;
 }
 
@@ -6066,7 +6079,7 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
 
     FklVMvalue *rp = d->rp;
     FklCgLibPathType pt = d->pt;
-    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, rp, pt, lib->lib);
+    const FklLibId *lib_id = fklVMvalueCgEnvAddUsedLib(env, rp, pt, lib);
 
     if (info->is_precompile && !fklIsInternalModule(ctx, rp)) {
         fklValueVectorResize2(&env->imported_symbols, lib_id->id + 1, NULL);
@@ -6091,6 +6104,7 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
         FKL_ASSERT(import_type != FKL_CG_IMPORT_NONE);
         FklVMvalueCgReExport *re_export = fklCreateVMvalueCgReExport(vm,
                 lib,
+                pt,
                 import_type,
                 d->import_cb_args);
 
@@ -6608,7 +6622,7 @@ FKL_VM_TYPE_ATTR FklVMvalueType CgFixupResultType;
 
 static FKL_ALWAYS_INLINE int is_cg_fixup_res(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)
-        && FKL_VM_UD(v)->tp_->token == &CgFixupResultType.token;
+        && FKL_VM_UD(v)->tp_->token == &CgFixupResultType.mt;
 }
 
 static FKL_ALWAYS_INLINE CgFixupRes *as_cg_fixup_res(const FklVMvalue *v) {

@@ -77,7 +77,7 @@ typedef struct {
 } FklCgLibKey;
 
 typedef struct {
-    FklVMvalueLib *lib;
+    struct FklVMvalueCgLib *lib;
     uint32_t id;
 } FklLibId;
 
@@ -269,6 +269,7 @@ typedef enum {
 // 我们使用 PAIR 来实现链表的功能
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgReExport, {
     struct FklVMvalueCgLib *lib; // cg_lib
+    FklCgLibPathType pt;
     FklCgImportType type;
     FklVMvalue *args; // import args, like prefix or only symbol list
 });
@@ -621,6 +622,13 @@ FklVMvalue *fklSearchLibPath(FklVM *vm,
         FklFileType *ft,
         FklCgLibPathType *pt);
 
+FklVMvalue *fklSearchLibPath1(FklVM *vm,
+        const char *cwd,
+        FklVMvalueVec *paths,
+        FklVMvalue *name,
+        FklCgLibPathType pt,
+        FklFileType *ft);
+
 FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s);
 int fklIsVMvalueCgLib(const FklVMvalue *v);
 static FKL_ALWAYS_INLINE FklVMvalueCgLib *fklVMvalueCgLib(const FklVMvalue *v) {
@@ -677,7 +685,7 @@ static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
     return fklStrStartWith(rp, ctx->main_file_real_path_dir);
 }
 
-FklVMvalue *fklCgRealpathToModuleName(FklCgCtx *ctx, const char *rp);
+FklVMvalue *fklCgRealpathToModuleName(const FklCgCtx *ctx, const char *rp);
 
 FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
 FklVMvalueCgEnv *fklVMvalueCgEnvWeakMapGet(const FklVMvalueCgEnvWeakMap *,
@@ -701,6 +709,7 @@ static FKL_ALWAYS_INLINE FklVMvalueCgInfo *fklVMvalueCgInfo(
 int fklIsVMvalueCgReExport(const FklVMvalue *v);
 FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
         FklVMvalueCgLib *lib,
+        FklCgLibPathType pt,
         FklCgImportType type,
         FklVMvalue *args);
 
@@ -842,7 +851,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
         FklVMvalue *rp,
         FklCgLibPathType pt,
-        FklVMvalueLib *lib);
+        FklVMvalueCgLib *lib);
 
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklVMvalueCgLib *lib,

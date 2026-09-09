@@ -1,5 +1,5 @@
-(import (only ../lib/utils/m assert))
-(import ../lib/dvec)
+(import (only utils/m assert))
+(import dvec)
 
 (define code "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")
 

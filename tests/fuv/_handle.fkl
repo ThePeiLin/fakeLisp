@@ -1,8 +1,8 @@
-(import (prefix ../../lib/fuv uv-))
+(import (prefix fuv uv-))
 
-(import ../../lib/os)
+(import os)
 
-(import (only ../../lib/utils/m assert))
+(import (only utils/m assert))
 
 (define loop (uv-make-loop))
 

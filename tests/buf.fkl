@@ -1,5 +1,5 @@
-(import ../lib/buf)
-(import (only ../lib/utils/m assert))
+(import buf)
+(import (only utils/m assert))
 
 (define b (make-strbuf 10 #\a))
 

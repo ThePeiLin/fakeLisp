@@ -1,6 +1,13 @@
-(import (prefix ../../lib/fuv uv-))
+(import (prefix fuv uv-))
 
-(import (only ../../lib/utils/m assert))
+(import (only utils/m assert))
+
+(import (only os getenv getcwd))
+
+(define FKL_PATH (getenv "FKL_PATH"))
+(setq FKL_PATH (format "FKL_PATH=%s/%s"
+                       (getcwd)
+                       FKL_PATH))
 
 (define loop (uv-make-loop))
 
@@ -68,6 +75,7 @@
                                          'signal signal))
                       (uv-handle-close child))
                     'args (list "fakeLisp" (append *file-dir* "_pipe-read.fkl"))
+                    'env `(~FKL_PATH)
                     'stdio (list (car pipe-fd) stdout stderr)))
 
 (uv-loop-run loop)
@@ -149,7 +157,7 @@
                       (uv-handle-close pipe))
                     'args (list "fakeLisp" (append *file-dir* "_pipe-send.fkl"))
                     'stdio (list input stdout stderr pipe)
-                    'env '("PIPE_FD=3")))
+                    'env `("PIPE_FD=3" ~FKL_PATH)))
 
 (uv-stream-write pipe nil send-pipe "42")
 

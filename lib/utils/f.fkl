@@ -12,7 +12,7 @@
 ;  vector-merge-sort! vector-merge-sort
 ;  dvec-merge-sort! dvec-merge-sort
 
-(import lib/dvec)
+(import ../dvec)
 
 (export
   (define (caar a) (car (car a)))

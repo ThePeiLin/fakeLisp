@@ -1,8 +1,15 @@
-(import (prefix ../../lib/fuv uv-))
+(import (prefix fuv uv-))
 
-(import (only ../../lib/utils/m assert))
+(import (only utils/m assert))
+
+(import (only os getenv getcwd))
 
 (define loop (uv-make-loop))
+
+(define FKL_PATH (getenv "FKL_PATH"))
+(setq FKL_PATH (format "FKL_PATH=%s/%s"
+                       (getcwd)
+                       FKL_PATH))
 
 (define child
   (uv-process-spawn loop
@@ -14,7 +21,7 @@
                       (uv-handle-close child))
                     'cwd (append *file-dir* "..")
                     'args (list "fakeLisp" (append *file-dir* "_signal.fkl"))
-                    'env '("TEST=test_env_value")
+                    'env `("TEST=test_env_value" ~FKL_PATH)
                     'stdio (list stdin stdout stderr)))
 
 (uv-process? child)

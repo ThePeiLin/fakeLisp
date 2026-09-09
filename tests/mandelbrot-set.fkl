@@ -1,5 +1,5 @@
-(import (only ../lib/utils/m assert static-strcat))
-(import ../lib/dvec)
+(import (only utils/m assert static-strcat))
+(import dvec)
 
 (define code
   (static-strcat

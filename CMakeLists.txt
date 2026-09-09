@@ -70,10 +70,11 @@ set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+set(LIB_PATH ${PROJECT_BINARY_DIR}/lib/)
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ ${PROJECT_BINARY_DIR}/lib/
-	BYPRODUCTS ${PROJECT_BINARY_DIR}/lib/
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ LIB_PATH
+	BYPRODUCTS LIB_PATH
 	VERBATIM)
 
 #copy tests/*.fkl
@@ -514,10 +515,16 @@ add_test(NAME test-path
 	COMMAND $<TARGET_FILE:test-path>)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json)
+	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-script PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 add_test(NAME test-pre-compile
-	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre)
+	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-pre-compile PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 message(STATUS "options")
 list(APPEND CMAKE_MESSAGE_INDENT "	")

@@ -6,10 +6,11 @@
          ~@(local
              (define num 0)
              (map (lambda (t)
+                    (define tt (string->symbol (append "./" (symbol->string t))))
                     (define r
                       `(local
                          (define test-num ~num)
-                         (let [(err (pcall (lambda () (import (only ~t)))))]
+                         (let [(err (pcall (lambda () (import (only ~tt)))))]
                            (if (error? err)
                              (vector-set! ~msg
                                           test-num

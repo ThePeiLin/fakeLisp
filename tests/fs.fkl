@@ -1,6 +1,6 @@
-(import ../lib/fs)
-(import ../lib/os)
-(import ../lib/utils)
+(import fs)
+(import os)
+(import utils)
 
 (assert (facce? *file-rp*))
 (assert (freg? *file-rp*))

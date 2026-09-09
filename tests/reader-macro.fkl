@@ -154,4 +154,4 @@ pop:=18
 #'println(#'mul(pop,3))
 #'println(#'sum(1,2,3,4))
 
-#'import(comp)
+#'import(./comp)

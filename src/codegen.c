@@ -3383,72 +3383,12 @@ static inline FklCgLibPathType get_mod_path_type(const char *name) {
     FKL_TODO();
 }
 
-FklVMvalue *fklResolveLibPath(FklVM *vm,
-        const char *cwd,
-        FklVMvalue *name_v,
-        FklFileType *p_ft) {
-    FklStrBuf out_buf;
-    fklInitStrBuf(&out_buf);
-
-    const char *name = FKL_VM_SYM(name_v)->str;
-
-    FklFileType t = get_mod_file_type(cwd, name, &out_buf);
-
-    FklVMvalue *rp = NULL;
-    switch (t) {
-    case FKL_FILE_NONE:
-        // do nothing
-        break;
-    case FKL_FILE_DLL:
-    case FKL_FILE_PRECOMPILE:
-    case FKL_FILE_SCRIPT:
-    case FKL_FILE_PACKAGE: {
-        char *rp_cstr = fklRealpath(fklStrBufBody(&out_buf));
-        rp = fklVMaddSymbolCstr(vm, rp_cstr);
-        fklZfree(rp_cstr);
-    } break;
-    }
-
-    if (p_ft != NULL) {
-        *p_ft = t;
-    }
-
-    fklUninitStrBuf(&out_buf);
-
-    return rp;
-}
-
 static FKL_ALWAYS_INLINE const char *val_to_str(const FklVMvalue *v) {
     const char *r = FKL_IS_SYM(v)     ? FKL_VM_SYM(v)->str
                   : FKL_IS_KEYWORD(v) ? FKL_VM_KEYWORD(v)->str
                   : FKL_IS_STR(v)     ? FKL_VM_STR(v)->str
                                       : NULL;
     return r;
-}
-
-FklVMvalue *fklResolveLibPathIn(FklVM *vm,
-        FklVMvalue *path_vec_v,
-        FklVMvalue *name,
-        FklFileType *ft) {
-    FKL_ASSERT(path_vec_v != NULL);
-    FKL_ASSERT(FKL_IS_VECTOR(path_vec_v));
-
-    FklVMvalueVec *path_vec = FKL_VM_VEC(path_vec_v);
-    for (size_t i = 0; i < path_vec->size; ++i) {
-        FklVMvalue *d = path_vec->base[i];
-        FKL_ASSERT(FKL_IS_SYM(d) || FKL_IS_KEYWORD(d) || FKL_IS_STR(d));
-
-        const char *dir = val_to_str(d);
-        FKL_ASSERT(dir != NULL);
-        FklVMvalue *rp = fklResolveLibPath(vm, dir, name, ft);
-        if (rp != NULL)
-            return rp;
-    }
-
-    if (ft != NULL) {
-        *ft = FKL_FILE_NONE;
-    }
-    return NULL;
 }
 
 FklVMvalue *fklSearchLibPath1(FklVM *vm,

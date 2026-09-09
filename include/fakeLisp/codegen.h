@@ -605,16 +605,6 @@ FklCgExportIdx *fklCgExportAdd(FklCgExportSidIdxHashMap *exports,
         FklVMvalue *s,
         uint8_t not_owned);
 
-FklVMvalue *fklResolveLibPath(FklVM *vm,
-        const char *main_dir,
-        FklVMvalue *name,
-        FklFileType *ft);
-
-FklVMvalue *fklResolveLibPathIn(FklVM *vm,
-        FklVMvalue *path_vec,
-        FklVMvalue *name,
-        FklFileType *ft);
-
 FklVMvalue *fklSearchLibPath(FklVM *vm,
         const char *cwd,
         FklVMvalueVec *paths,

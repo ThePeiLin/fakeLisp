@@ -2588,7 +2588,7 @@ static FklVMudFinalizeResult cg_libs_finalize(FklVMvalue *v, FklVMgc *gc) {
 FKL_VM_TYPE_ATTR FklVMvalueType CgLibsType = FKL_VM_TYPE_STATIC_INIT(CgLibsType,
         {
             .name = "cg-libs",
-            .size = sizeof(FklVMvalueCgLib),
+            .size = sizeof(FklVMvalueCgLibs),
             .atomic = cg_libs_atomic,
             .prin1 = cg_libs_print,
             .princ = cg_libs_print,

@@ -3332,6 +3332,7 @@ static FKL_ALWAYS_INLINE FklFileType get_mod_file_type(const char *cwd,
         const char *name,
         FklStrBuf *buf) {
     size_t base_idx = 0;
+    fklStrBufClear(buf);
     fklStrBufPrintf(buf, "%s%c%s", cwd, FKL_PATH_SEPARATOR, name);
     base_idx = buf->index;
 
@@ -3430,11 +3431,19 @@ FklVMvalue *fklSearchLibPath1(FklVM *vm,
     case FKL_FILE_SCRIPT:
     case FKL_FILE_PACKAGE: {
         char *rp_cstr = fklRealpath(fklStrBufBody(&out));
+        if (rp_cstr == NULL) {
+            // should not happened
+            ft = FKL_FILE_NONE;
+            rp = NULL;
+            goto done;
+        }
+
         rp = fklVMaddSymbolCstr(vm, rp_cstr);
         fklZfree(rp_cstr);
     } break;
     }
 
+done:
     if (p_ft != NULL)
         *p_ft = ft;
 

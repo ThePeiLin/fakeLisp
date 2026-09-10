@@ -2441,8 +2441,9 @@ FklVMvalue *fklVMpathVecToString(FklVM *vm, FklVMvalue *path_vec) {
         const char *s = fklVMstr(c);
         if (s == NULL)
             goto done;
+        if (i != 0)
+            fklStrBufPutc(&result, FKL_PATH_ENV_SEP);
         fklStrBufPuts(&result, s);
-        fklStrBufPutc(&result, FKL_PATH_ENV_SEP);
     }
 
     r = fklCreateVMvalueStr2(vm, result.index, fklStrBufBody(&result));

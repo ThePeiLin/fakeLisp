@@ -1444,7 +1444,7 @@ static inline void write_prototype(const FklVMvalueProto *pt,
             1,
             fp);
 
-    if (extra_args == NULL) {
+    if (ctx == NULL) {
         FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);
         for (uint32_t i = 0; i < pt->used_libraries_count; ++i) {
             write_lib_id(lib_table, 0, libs[i], fp);

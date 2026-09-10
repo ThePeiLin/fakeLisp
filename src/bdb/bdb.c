@@ -418,6 +418,10 @@ static FklVMinterruptResult dbg_interrupt_handler(FklVM *exe,
 static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
         const char *filename) {
     FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        return 1;
+    }
+
     char *rp = fklRealpath(filename);
 
     FklVMgc *gc = &dctx->gc;

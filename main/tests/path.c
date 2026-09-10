@@ -116,9 +116,7 @@ int main() {
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    dir1 = fklRealpath("./foo");
-    dir2 = fklRealpath("../foo");
-    verify(vm, v, 2, dir1, dir2);
+    verify(vm, v, 2, "./foo", "../foo");
     fklZfree(dir1);
     fklZfree(dir2);
     dir1 = NULL;

@@ -110,6 +110,8 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
 
     vm = fklCreateVM(FKL_VM_VAL(proc), gc);
 
+	fklSetVMgcPath(gc, fklInitDefaultLibPath(vm));
+
     fklInitVMargs(vm->gc, argc, argv);
     int r = fklRunVMidleLoop(vm);
 

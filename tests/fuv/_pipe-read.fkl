@@ -1,3 +1,8 @@
+(defmacro ~(print-env-path)
+  (printf "_pipe-read: FKL_PATH: %S\n" (env-path)))
+
+(print-env-path)
+
 (import (only utils/m assert))
 
 (define read-res (fgetd))

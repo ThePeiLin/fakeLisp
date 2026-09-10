@@ -4533,6 +4533,7 @@ static int builtin_env_path(FKL_CPROC_ARGL) {
                 c);
     }
 
+    FKL_UNREACHABLE();
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }

@@ -1,8 +1,3 @@
-(defmacro ~(print-env-path)
-  (printf "_pipe-send: FKL_PATH: %S\n" (env-path)))
-
-(print-env-path)
-
 (import os)
 
 (import (prefix fuv uv-))

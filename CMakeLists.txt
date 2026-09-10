@@ -515,7 +515,7 @@ add_test(NAME test-path
 	COMMAND $<TARGET_FILE:test-path>)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} tests ${PROJECT_SOURCE_DIR}/tests/test.json
+	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json
 	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-script PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
@@ -525,6 +525,36 @@ add_test(NAME test-pre-compile
 	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-pre-compile PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
+
+add_test(NAME test-bytecode-compile
+	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -o test-main tests/main.fkl
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-bytecode-compile PROPERTIES
+	ENVIRONMENT "FKL_PATH=${LIB_PATH}")
+
+add_test(NAME test-bytecode-run
+	COMMAND ${INTERPRETER_TARGET_NAME} test-main.fklc ${PROJECT_SOURCE_DIR}/tests/test.json
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-bytecode-run PROPERTIES
+	ENVIRONMENT "FKL_PATH=${LIB_PATH}"
+	DEPENDS test-bytecode-compile)
+
+add_test(NAME test-pre-compile-run-compile
+	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-pre-compile-run-compile PROPERTIES
+	ENVIRONMENT "FKL_PATH=${LIB_PATH}")
+
+add_test(NAME test-pre-compile-run
+	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests/main.fklp ${PROJECT_SOURCE_DIR}/tests/test.json
+	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+)
+set_tests_properties(test-pre-compile-run PROPERTIES
+	ENVIRONMENT "FKL_PATH=${LIB_PATH}"
+	DEPENDS test-pre-compile-run-compile)
 
 message(STATUS "options")
 list(APPEND CMAKE_MESSAGE_INDENT "	")

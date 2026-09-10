@@ -172,6 +172,8 @@ target_define_relative_file(test-ins)
 
 add_executable(test-path "main/tests/path.c")
 target_link_libraries(test-path grammer_lib ${LINK_TARGET})
+target_compile_definitions(test-path PRIVATE
+	TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
 target_define_relative_file(test-path)
 
 # print some struct size

@@ -4508,7 +4508,31 @@ static int builtin_env_paths(FKL_CPROC_ARGL) {
 static int builtin_env_path(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FklVMvalue *v = exe->gc->path_vec;
+    if (!FKL_IS_VECTOR(v)) {
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                exe,
+                "Expected vector but got %S",
+                v);
+    }
+
     FklVMvalue *r = fklVMpathVecToString(exe, v);
+    if (r != NULL) {
+        FKL_CPROC_RETURN(exe, ctx, r);
+        return 0;
+    }
+
+    FklVMvalueVec *vv = FKL_VM_VEC(v);
+    for (size_t i = 0; i < vv->size; ++i) {
+        FklVMvalue *c = vv->base[i];
+        const char *s = fklVMstr(c);
+        if (s != NULL)
+            continue;
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
+                exe,
+                "Expected string, symbol or keyword, but got %S",
+                c);
+    }
+
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }

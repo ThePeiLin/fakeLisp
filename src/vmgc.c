@@ -148,6 +148,8 @@ static inline void gc_extra_mark(FklVMgc *gc) {
     fklVMgcToGray(gc->regex_k, gc);
     fklVMgcToGray(gc->ignore_k, gc);
     fklVMgcToGray(gc->delim_k, gc);
+
+    fklVMgcToGray(gc->path_vec, gc);
 }
 
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
@@ -453,6 +455,8 @@ void fklInitVMgc(FklVMgc *gc) {
     gc->regex_k = fklVMaddKeywordCstr(&gc->gcvm, "regex");
     gc->ignore_k = fklVMaddKeywordCstr(&gc->gcvm, "ignore");
     gc->delim_k = fklVMaddKeywordCstr(&gc->gcvm, "delim");
+
+    gc->path_vec = fklCreateVMvalueVec(&gc->gcvm, 0);
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
     fklInitGlobalVMclosureForGC(gc);
@@ -862,4 +866,11 @@ void fklVMunregisterExtraMarkFunc(FklVMgc *gc, FklVMextraMarkArgs *ptr) {
     fklVMextraMarkHashMapShrink(&gc->extra_marks);
 
     uv_mutex_unlock(&gc->extra_mark_lock);
+}
+
+FklVMvalue *fklSetVMgcPath(FklVMgc *gc, FklVMvalue *path_vec) {
+    FKL_ASSERT(FKL_IS_VECTOR(path_vec));
+    FklVMvalue *r = gc->path_vec;
+    gc->path_vec = path_vec;
+    return r;
 }

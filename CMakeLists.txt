@@ -70,11 +70,11 @@ set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
-set(LIB_PATH ${PROJECT_BINARY_DIR}/lib/)
+set(LIB_PATH "${PROJECT_BINARY_DIR}/lib/")
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ LIB_PATH
-	BYPRODUCTS LIB_PATH
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ ${LIB_PATH}
+	BYPRODUCTS ${LIB_PATH}
 	VERBATIM)
 
 #copy tests/*.fkl
@@ -325,34 +325,34 @@ endfunction()
 #ht.so
 add_fkl_native_module(ht
 	SRC "src/ht/ht.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #os.so
 add_fkl_native_module(os
 	SRC "src/os/os.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #math.so
 add_fkl_native_module(math
 	SRC "src/math/math.c"
 	LIB ${LINK_TARGET}
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #sync.so
 add_fkl_native_module(sync
 	SRC "src/sync/sync.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #fs.so
 add_fkl_native_module(fs
 	SRC "src/fs/fs.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #bdb.so
 file(GLOB BDB_SOURCE "src/bdb/*.c")
 add_fkl_native_module(bdb
 	 SRC ${BDB_SOURCE}
-	 OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	 OUTPUT_DIR ${LIB_PATH})
 
 # fuv-header
 set(FUV_HEADER fuv-header)
@@ -374,22 +374,22 @@ file(GLOB FUV_SOURCE "src/fuv/*.c")
 add_fkl_native_module(fuv
 	SRC ${FUV_SOURCE} ${FUV_MACRO_HEADER}
 	LIB $<$<BOOL:${MSVC}>:ws2_32>
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #buf.so
 add_fkl_native_module(buf
 	SRC "src/buf/buf.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #dvec.so
 add_fkl_native_module(dvec
 	SRC "src/dvec/dvec.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 #bvec.so
 add_fkl_native_module(bvec
 	SRC "src/bvec/bvec.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/lib")
+	OUTPUT_DIR ${LIB_PATH})
 
 if(FANALYZER)
 	set(FANALYZER_OPTIONS "-fanalyzer"
@@ -449,7 +449,7 @@ add_custom_command(OUTPUT "vmparse.c"
 
 # 清理
 if(MSVC)
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/lib/")
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${LIB_PATH})
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
 endif()
 

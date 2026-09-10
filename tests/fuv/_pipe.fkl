@@ -2,12 +2,7 @@
 
 (import (only utils/m assert))
 
-(import (only os getenv getcwd))
-
-(define FKL_PATH (getenv "FKL_PATH"))
-(setq FKL_PATH (format "FKL_PATH=%s/%s"
-                       (getcwd)
-                       FKL_PATH))
+(define FKL_PATH (format "FKL_PATH=%s" (env-path)))
 
 (define loop (uv-make-loop))
 

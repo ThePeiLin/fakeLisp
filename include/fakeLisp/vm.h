@@ -670,6 +670,8 @@ typedef struct FklVMgc {
     FklVMvalue *ignore_k;
     FklVMvalue *delim_k;
 
+    FklVMvalue *path_vec;
+
     // only for create objects before idle loop start
     FklVM gcvm;
 } FklVMgc;
@@ -889,6 +891,7 @@ FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
 void fklInitVMgc(FklVMgc *);
 FklVMgc *fklCreateVMgc(void);
+FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
 
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
@@ -1963,6 +1966,14 @@ static FKL_ALWAYS_INLINE FklVMvalueType *FKL_VM_TYPE(const FklVMvalue *v) {
     return (FklVMvalueType *)v;
 }
 
+static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
+    const char *r = FKL_IS_SYM(v)     ? FKL_VM_SYM(v)->str
+                  : FKL_IS_KEYWORD(v) ? FKL_VM_KEYWORD(v)->str
+                  : FKL_IS_STR(v)     ? FKL_VM_STR(v)->str
+                                      : NULL;
+    return r;
+}
+
 #define FKL_VM_TYPE_STATIC_INIT(NAME, ...)                                     \
     ((FklVMvalueType){                                                         \
         .next_ = NULL,                                                         \
@@ -1981,6 +1992,10 @@ FklVMvalueType *fklCreateVMvalueType(FklVM *,
         FklVMvalue *dll,
         const void *token,
         const FklVMudMetaTable *mt);
+
+FklVMvalue *fklVMpathVecToString(FklVM *vm, FklVMvalue *path_vec);
+
+FklVMvalue *fklVMpathStrToVec(FklVM *vm, const char *p);
 
 #ifdef __cplusplus
 }

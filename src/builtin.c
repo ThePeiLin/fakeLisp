@@ -4499,6 +4499,20 @@ static int builtin_funcall(FKL_CPROC_ARGL) {
     return 1;
 }
 
+static int builtin_env_paths(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
+    FKL_CPROC_RETURN(exe, ctx, exe->gc->path_vec);
+    return 0;
+}
+
+static int builtin_env_path(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
+    FklVMvalue *v = exe->gc->path_vec;
+    FklVMvalue *r = fklVMpathVecToString(exe, v);
+    FKL_CPROC_RETURN(exe, ctx, r);
+    return 0;
+}
+
 #undef PREDICATE
 // end
 
@@ -5129,6 +5143,9 @@ static const struct SymbolFuncStruct {
     {"keyword?",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("keyword?",        builtin_keyword_p),            {NULL,         NULL,              NULL,               NULL               } },
     {"string->keyword", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->keyword", builtin_string_to_keyword),    {NULL,         NULL,              NULL,               NULL               } },
     {"keyword->string", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("keyword->string", builtin_keyword_to_string),    {NULL,         NULL,              NULL,               NULL               } },
+
+    {"env-paths",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("env-paths",       builtin_env_paths),            {NULL,         NULL,              NULL,               NULL               } },
+    {"env-path",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("env-path",        builtin_env_path),             {NULL,         NULL,              NULL,               NULL               } },
     {NULL,              NULL,                                                                                          {NULL,         NULL,              NULL,               NULL               } },
     // clang-format on
 };

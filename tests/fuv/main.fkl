@@ -1,6 +1,6 @@
 (import ../make-test)
 
-(define msg-vec
+(define msg-pair
   (make-test
     _handle
     _dns
@@ -11,6 +11,7 @@
     _fs
     _misc))
 
+(define msg-vec (car msg-pair))
 (define msgs (vector->list msg-vec))
 
 (when (memp car msgs)

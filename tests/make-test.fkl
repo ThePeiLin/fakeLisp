@@ -1,8 +1,10 @@
 (export
   (defmacro ~(make-test,~rest)
-    (let [(msg (make-symbol "msg"))]
+    (let [(msg (make-symbol "msg"))
+          (err-count (make-symbol "err-count"))]
     (if rest
-      `(let [(~msg (make-vector ~(length rest) ()))]
+      `(let [(~msg (make-vector ~(length rest) ()))
+             (~err-count 0)]
          ~@(local
              (define num 0)
              (map (lambda (t)
@@ -12,14 +14,16 @@
                          (define test-num ~num)
                          (let [(err (pcall (lambda () (import (only ~tt)))))]
                            (if (error? err)
-                             (vector-set! ~msg
-                                          test-num
-                                          (cons err
-                                                (format "test-%S<%S> failed: %S: %s"
-                                                        test-num
-                                                        (quote ~t)
-                                                        (error-type err)
-                                                        (error-msg err))))
+                             (begin
+                               (vector-set! ~msg
+                                            test-num
+                                            (cons err
+                                                  (format "test-%S<%S> failed: %S: %s"
+                                                          test-num
+                                                          (quote ~t)
+                                                          (error-type err)
+                                                          (error-msg err))))
+                               (setq ~err-count (1+ ~err-count)))
                              (vector-set! ~msg
                                           test-num
                                           (cons ()
@@ -30,5 +34,5 @@
                     (setq num (1+ num))
                     r)
                   rest))
-         ~msg)
+        (cons ~msg ~err-count))
       `()))))

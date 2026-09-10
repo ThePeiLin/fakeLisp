@@ -5,7 +5,7 @@
 
 (import ./make-test)
 
-(define msg-vec
+(define msg-pair
   (make-test
     ascii-art
     bf
@@ -49,6 +49,11 @@
     macro-context))
 
 (newline)
+
+(define msg-vec (car msg-pair))
+(define err-count (cdr msg-pair))
+
 (foreach (lambda (t) (println (cdr t)))
          (vector->list msg-vec))
 (println "\ntest done!")
+(exit err-count)

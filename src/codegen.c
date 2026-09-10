@@ -3383,14 +3383,6 @@ static inline FklCgLibPathType get_mod_path_type(const char *name) {
     FKL_TODO();
 }
 
-static FKL_ALWAYS_INLINE const char *val_to_str(const FklVMvalue *v) {
-    const char *r = FKL_IS_SYM(v)     ? FKL_VM_SYM(v)->str
-                  : FKL_IS_KEYWORD(v) ? FKL_VM_KEYWORD(v)->str
-                  : FKL_IS_STR(v)     ? FKL_VM_STR(v)->str
-                                      : NULL;
-    return r;
-}
-
 FklVMvalue *fklSearchLibPath1(FklVM *vm,
         const char *cwd,
         FklVMvalueVec *paths,
@@ -3415,7 +3407,7 @@ FklVMvalue *fklSearchLibPath1(FklVM *vm,
         FKL_ASSERT(paths != NULL);
         for (size_t i = 0; i < paths->size; ++i) {
             FklVMvalue *cur = paths->base[i];
-            const char *dir = val_to_str(cur);
+            const char *dir = fklVMstr(cur);
             FKL_ASSERT(dir != NULL);
             ft = get_mod_file_type(dir, name, &out);
             if (ft != FKL_FILE_NONE)
@@ -8104,6 +8096,7 @@ void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
     ctx->d_arrow_s = add_symbol_cstr(ctx, "=>");
 
     ctx->paths = fklInitDefaultLibPath(vm);
+    fklSetVMgcPath(vm->gc, ctx->paths);
 }
 
 static inline void init_builtin_patterns(FklCgCtx *ctx) {

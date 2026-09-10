@@ -363,9 +363,11 @@ void *fklCopyMemory(const void *pm, size_t size) {
 }
 
 char *fklRealpath(const char *filename) {
-    char path_buf[FKL_PATH_MAX];
-    REALPATH(filename, path_buf, sizeof(path_buf));
-    return fklZstrdup(path_buf);
+	char path_buf[FKL_PATH_MAX];
+	const char* r = REALPATH(filename, path_buf, sizeof(path_buf));
+	if(r == NULL)
+		return NULL;
+	return fklZstrdup(path_buf);
 }
 
 char *fklDupDir(const char *filename) {

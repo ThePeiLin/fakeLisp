@@ -350,9 +350,11 @@ void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv) {
                     fklZmallocSize(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv));
             fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
             num--;
-        } else
+        } else {
             locv_cache->num++;
-        for (uint8_t j = num; j > i; j--)
+        }
+        FKL_ASSERT(num < 256);
+        for (uint8_t j = (uint8_t)num; j > i; j--)
             locvs[j] = locvs[j - 1];
         locvs[i].llast = llast;
         locvs[i].locv = locv;
@@ -473,8 +475,10 @@ FklVMgc *fklCreateVMgc(void) {
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast, uint32_t *pllast) {
     uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
+    FKL_ASSERT(idx < 256);
     FklVMvalue **r = NULL;
-    for (uint8_t i = idx; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
+    uint8_t i = (uint8_t)idx;
+    for (; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
         struct FklLocvCacheLevel *l = &gc->locv_cache[i];
         uv_mutex_lock(&l->lock);
         if (l->num) {
@@ -494,16 +498,17 @@ fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast, uint32_t *pllast) {
         }
         uv_mutex_unlock(&l->lock);
     }
-    if (!r) {
-        *pllast = llast;
-        if (!llast)
-            r = NULL;
-        else {
-            r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
-            FKL_ASSERT(r);
-        }
-        atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
+    if (r != NULL)
+        return r;
+
+    *pllast = llast;
+    if (!llast)
+        r = NULL;
+    else {
+        r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
+        FKL_ASSERT(r);
     }
+    atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
     return r;
 }
 
@@ -511,8 +516,10 @@ FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc,
         uint32_t llast,
         uint32_t *pllast) {
     uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
+    FKL_ASSERT(idx < 256);
     FklVMvalue **r = NULL;
-    for (uint8_t i = idx; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
+    uint8_t i = (uint8_t)idx;
+    for (; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
         struct FklLocvCacheLevel *l = &gc->locv_cache[i];
         if (l->num) {
             struct FklLocvCache *ll = l->locv;

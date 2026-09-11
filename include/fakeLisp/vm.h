@@ -156,7 +156,7 @@ typedef struct {
     FklVMvalue *dll;
 } FklVMvalueCproc;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, {});
+FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, { uint8_t reserved; });
 
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
@@ -724,12 +724,12 @@ typedef struct {
 
 #define FKL_VM_DEF_DLL_STRUCT(NAME, ...)                                       \
     FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
-        const FklDllStateDesc *desc;                                           \
+        alignas (8) const FklDllStateDesc *desc;                                           \
         uv_lib_t dll;                                                          \
-        alignas(void *[1]) struct __VA_ARGS__;                                 \
+        struct __VA_ARGS__;                                 \
     })
 
-FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll, {});
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll, { uint8_t reserved; });
 
 typedef enum {
     FKL_WEAK_MAP_V = 1,
@@ -1054,7 +1054,7 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 
 #define FKL_CPROC_RETURN(EXE, CTX, V)                                          \
     do {                                                                       \
-        (EXE)->bp = FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));          \
+        (EXE)->bp = (uint32_t)FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));          \
         (EXE)->tp = FKL_VM_FRAME_OF(CTX)->bp;                                  \
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)

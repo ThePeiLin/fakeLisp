@@ -929,41 +929,43 @@ static int builtin_number_to_string(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(obj, fklIsVMnumber, exe);
     FklVMvalue *retval = NULL;
     if (fklIsVMint(obj)) {
-        uint32_t base = 10;
+        uint8_t base = 10;
         if (radix) {
             FKL_CHECK_TYPE(radix, fklIsVMint, exe);
             int64_t t = fklVMgetInt(radix);
             if (t != 8 && t != 10 && t != 16)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER, exe);
-            base = t;
+            base = (uint8_t)t;
         }
-        if (FKL_IS_BIGINT(obj))
+        if (FKL_IS_BIGINT(obj)) {
             retval = vmbigint_to_string(exe,
                     FKL_VM_BI(obj),
                     base,
                     FKL_BIGINT_FMT_FLAG_ALTERNATE
                             | FKL_BIGINT_FMT_FLAG_CAPITALS);
-        else
+        } else {
             retval = i64_to_string(exe,
                     FKL_GET_FIX(obj),
                     base,
                     FKL_BIGINT_FMT_FLAG_ALTERNATE
                             | FKL_BIGINT_FMT_FLAG_CAPITALS);
+        }
     } else {
-        uint32_t base = 10;
+        uint8_t base = 10;
         if (radix) {
             FKL_CHECK_TYPE(radix, fklIsVMint, exe);
             int64_t t = fklVMgetInt(radix);
             if (t != 10 && t != 16)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_FLOAT, exe);
-            base = t;
+            base = (uint8_t)t;
         }
         char buf[64] = { 0 };
         size_t size = 0;
-        if (base == 10)
+        if (base == 10) {
             size = fklWriteDoubleToBuf(buf, 64, FKL_VM_F64(obj));
-        else
+        } else {
             size = snprintf(buf, 64, "%a", FKL_VM_F64(obj));
+        }
         retval = fklCreateVMvalueStr2(exe, size, buf);
     }
     FKL_CPROC_RETURN(exe, ctx, retval);
@@ -976,24 +978,25 @@ static int builtin_integer_to_string(FKL_CPROC_ARGL) {
     FklVMvalue *radix = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(obj, fklIsVMint, exe);
     FklVMvalue *retval = NULL;
-    uint32_t base = 10;
+    uint8_t base = 10;
     if (radix) {
         FKL_CHECK_TYPE(radix, fklIsVMint, exe);
         int64_t t = fklVMgetInt(radix);
         if (t != 8 && t != 10 && t != 16)
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDRADIX_FOR_INTEGER, exe);
-        base = t;
+        base = (uint8_t)t;
     }
-    if (FKL_IS_BIGINT(obj))
+    if (FKL_IS_BIGINT(obj)) {
         retval = vmbigint_to_string(exe,
                 FKL_VM_BI(obj),
                 base,
                 FKL_BIGINT_FMT_FLAG_CAPITALS | FKL_BIGINT_FMT_FLAG_ALTERNATE);
-    else
+    } else {
         retval = i64_to_string(exe,
                 FKL_GET_FIX(obj),
                 base,
                 FKL_BIGINT_FMT_FLAG_CAPITALS | FKL_BIGINT_FMT_FLAG_ALTERNATE);
+    }
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;
 }
@@ -1046,6 +1049,12 @@ static int builtin_string_to_bytevector(FKL_CPROC_ARGL) {
     return 0;
 }
 
+#define RAISE_INVALID_BYTE_VALUE_ERR(EXE, V)                                   \
+    FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                         \
+            (EXE),                                                             \
+            "Expect value in [-128, 255], but got %S",                         \
+            (V));
+
 static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -1058,7 +1067,11 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        ptr[i] = fklVMgetInt(cur);
+        int64_t v = fklVMgetInt(cur);
+        if (v < -128 || v > 255) {
+            RAISE_INVALID_BYTE_VALUE_ERR(exe, cur);
+        }
+        ptr[i] = (uint8_t)v;
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -1073,7 +1086,12 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL) {
     for (size_t i = 0; list != FKL_VM_NIL; i++, list = FKL_VM_CDR(list)) {
         FklVMvalue *cur = FKL_VM_CAR(list);
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        ptr[i] = fklVMgetInt(cur);
+
+        int64_t v = fklVMgetInt(cur);
+        if (v < -128 || v > 255) {
+            RAISE_INVALID_BYTE_VALUE_ERR(exe, cur);
+        }
+        ptr[i] = (uint8_t)v;
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -1246,7 +1264,12 @@ static int builtin_bvec_set1(FKL_CPROC_ARGL) {
     size_t size = bv->size;
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-    bv->ptr[index] = fklVMgetInt(target);
+    int64_t v = fklVMgetInt(target);
+    if (v < -128 || v > 255) {
+        RAISE_INVALID_BYTE_VALUE_ERR(exe, target);
+    }
+
+    bv->ptr[index] = (uint8_t)v;
     FKL_CPROC_RETURN(exe, ctx, target);
     return 0;
 }
@@ -1270,7 +1293,12 @@ static int builtin_bytevector_fill(FKL_CPROC_ARGL) {
     if (!fklIsVMint(content) || !FKL_IS_BYTEVECTOR(bvec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklBytevector *bv = FKL_VM_BVEC(bvec);
-    memset(bv->ptr, fklVMgetInt(content), bv->size);
+    int64_t v = fklVMgetInt(content);
+    if (v < -128 || v > 255) {
+        RAISE_INVALID_BYTE_VALUE_ERR(exe, content);
+    }
+
+    memset(bv->ptr, (uint8_t)v, bv->size);
     FKL_CPROC_RETURN(exe, ctx, bvec);
     return 0;
 }
@@ -1478,8 +1506,8 @@ struct ParseCtx {
     FklAnalysisSymbolVector symbolStack;
     FklParseStateVector stateStack;
     FklVMvalue *reducing_sid;
+    size_t offset;
     uint8_t start_with_ignore;
-    uint32_t offset;
 };
 
 typedef struct {
@@ -2595,7 +2623,7 @@ static int builtin_parse(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *vm_fgetc(FklVM *exe, FILE *fp) {
-    int ch;
+    int ch = EOF;
     FKL_VM_UNLOCK_BLOCK(exe, flag) { ch = fgetc(fp); }
     if (ch == EOF)
         return FKL_VM_NIL;
@@ -2613,7 +2641,7 @@ static int builtin_fgetc(FKL_CPROC_ARGL) {
 }
 
 static inline FklVMvalue *vm_fgeti(FklVM *exe, FILE *fp) {
-    int ch;
+    int ch = EOF;
     FKL_VM_UNLOCK_BLOCK(exe, flag) { ch = fgetc(fp); }
     if (ch == EOF)
         return FKL_VM_NIL;
@@ -3052,7 +3080,7 @@ static int builtin_chanl(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FKL_CPROC_RETURN(exe,
             ctx,
-            fklCreateVMvalueChanl(exe, fklVMgetUint(maxSize)));
+            fklCreateVMvalueChanl(exe, (uint32_t)fklVMgetUint(maxSize)));
     return 0;
 }
 
@@ -3961,7 +3989,7 @@ static int builtin_fseek(FKL_CPROC_ARGL) {
 
     if (whence == -1)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
-    if (fseek(fp, fklVMgetInt(offset), whence))
+    if (fseek(fp, (long)fklVMgetInt(offset), whence))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     else {
         int64_t pos = ftell(fp);
@@ -4126,7 +4154,11 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL) {
     uint8_t u_8 = 0;
     if (content) {
         FKL_CHECK_TYPE(content, fklIsVMint, exe);
-        u_8 = fklVMgetUint(content);
+        int64_t v = fklVMgetInt(content);
+        if (v < -128 || v > 255) {
+            RAISE_INVALID_BYTE_VALUE_ERR(exe, content);
+        }
+        u_8 = (uint8_t)v;
     }
     memset(bytevec->ptr, u_8, len);
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -4459,14 +4491,18 @@ static int builtin_exit(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 0, 1);
     FklVMvalue *exit_val = argc ? FKL_CPROC_GET_ARG(exe, ctx, 0) : NULL;
     if (exe->chan == NULL) {
-        if (exit_val) {
-            exe->gc->exit_code =
-                    exit_val == FKL_VM_NIL
-                            ? 0
-                            : (FKL_IS_FIX(exit_val) ? FKL_GET_FIX(exit_val)
-                                                    : 255);
-        } else
+        if (exit_val != NULL) {
+            int exit_code = 255;
+            if (FKL_IS_FIX(exit_val)) {
+                exit_code = (int)FKL_GET_FIX(exit_val);
+            } else if (exit_val == FKL_VM_NIL) {
+                exit_code = 0;
+            }
+
+            exe->gc->exit_code = exit_code;
+        } else {
             exe->gc->exit_code = 0;
+        }
     }
     exe->state = FKL_VM_EXIT;
     FKL_CPROC_RETURN(exe, ctx, exit_val ? exit_val : FKL_VM_NIL);

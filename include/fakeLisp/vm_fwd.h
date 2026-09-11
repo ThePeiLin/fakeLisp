@@ -45,15 +45,12 @@ typedef enum {
     FklVMvalueMark volatile mark_ : 32;                                        \
     FklValueType type_ : 32
 
-#define FKL_VM_UD_COMMON_HEADER const struct FklVMvalueType *tp_
+#define FKL_VM_UD_COMMON_HEADER alignas(8) const struct FklVMvalueType *tp_
 
 #define FKL_VM_DEF_UD_STRUCT(NAME, ...)                                        \
     typedef struct NAME {                                                      \
         FKL_VM_VALUE_COMMON_HEADER;                                            \
-        alignas(struct {                                                       \
-            FKL_VM_UD_COMMON_HEADER;                                           \
-            void *data[];                                                      \
-        }) struct {                                                            \
+        struct {                                                            \
             FKL_VM_UD_COMMON_HEADER;                                           \
             struct __VA_ARGS__;                                                \
         };                                                                     \

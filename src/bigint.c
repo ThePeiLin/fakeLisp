@@ -667,7 +667,7 @@ static inline int x_cmp(const FklBigInt *a, const FklBigInt *b) {
 }
 
 int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b) {
-    int sign;
+    int64_t sign;
     if (a->num != b->num)
         sign = a->num - b->num;
     else {
@@ -706,7 +706,7 @@ int fklBigIntCmpI(const FklBigInt *a, int64_t b) {
 int fklBigIntAbsCmp(const FklBigInt *a, const FklBigInt *b) {
     int64_t num_a = fklAbs(a->num);
     int64_t num_b = fklAbs(b->num);
-    int sign = num_a != num_b ? num_a - num_b : x_cmp(a, b);
+    int64_t sign = num_a != num_b ? num_a - num_b : x_cmp(a, b);
 
     return sign < 0 ? -1 : sign > 0 ? 1 : 0;
 }
@@ -1018,7 +1018,7 @@ void fklMulBigInt(FklBigInt *a, const FklBigInt *b) {
                 result[i + j] = carry & FKL_BIGINT_DIGIT_MASK;
                 carry >>= FKL_BIGINT_DIGIT_SHIFT;
             }
-            result[i + num_b] += carry;
+            result[i + num_b] += (FklBigIntDigit)carry;
         }
         fklZfree(a->digits);
         a->digits = result;
@@ -1104,7 +1104,7 @@ static inline uint8_t bit_length_digit(uint64_t x) {
         x >>= 6;
     }
     msb += BIT_LENGTH_TABLE[x];
-    return msb;
+    return (uint8_t)msb;
 }
 
 static inline FklBigIntDigit

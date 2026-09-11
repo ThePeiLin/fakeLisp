@@ -115,7 +115,7 @@ void fklDestroyByteCode(FklByteCode *obj) {
 }
 
 void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
-    uint32_t len = fir->len;
+    uint64_t len = fir->len;
     fir->len = sec->len + fir->len;
     if (!fir->len)
         fir->code = NULL;
@@ -127,7 +127,7 @@ void fklCodeConcat(FklByteCode *fir, const FklByteCode *sec) {
 }
 
 void fklCodeReverseConcat(const FklByteCode *fir, FklByteCode *sec) {
-    uint32_t len = fir->len;
+    uint64_t len = fir->len;
     if (fir->len + sec->len == 0)
         sec->code = NULL;
     else {
@@ -202,7 +202,7 @@ static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
             break;
         if (fklIsMakeProcIns(*ins)) {
             FklInsArg arg = { 0 };
-            int8_t l = fklGetInsOpArg(ins, &arg);
+            int l = fklGetInsOpArg(ins, &arg);
             r += arg.ux + l;
         } else {
             r++;
@@ -215,7 +215,7 @@ static uint64_t skipToCall(uint64_t index, const FklByteCode *bc) {
 static inline int64_t get_next(const FklIns *ins) {
     if (fklIsJmpIns(*ins)) {
         FklInsArg arg = { 0 };
-        int8_t l = fklGetInsOpArg(ins, &arg);
+        int l = fklGetInsOpArg(ins, &arg);
         return arg.ix + l;
     }
     return 1;
@@ -227,7 +227,7 @@ int fklGetNextIns(const FklIns *c, const FklIns *ins[2]) {
     ins[1] = NULL;
 
     FklInsArg arg = { 0 };
-    int8_t l = fklGetInsOpArg(c, &arg);
+    int l = fklGetInsOpArg(c, &arg);
     if (fklIsCallIns(*c) || fklIsRetIns(*c)) {
         r = 0;
     } else if (fklIsMakeProcIns(*c)) {
@@ -441,7 +441,7 @@ emit_ins:
         break;
 
     case FKL_OP_MODE_IsBB:
-        set_ins_ux(ins, ix);
+        set_ins_ux(ins, (uint32_t)ix);
         break;
 
     case FKL_OP_MODE_IsCCB:
@@ -458,7 +458,7 @@ emit_ins:
         break;
 
     case FKL_OP_MODE_IuBB:
-        set_ins_ux(ins, ux);
+        set_ins_ux(ins, (uint32_t)ux);
         break;
 
     case FKL_OP_MODE_IuCCB:

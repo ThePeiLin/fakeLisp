@@ -9,7 +9,7 @@
 static inline uint32_t enter_new_scope(uint32_t p, FklVMvalueCgEnv *env) {
     FklCgEnvScopeVector *scopes = &env->scopes;
     FklCgEnvScope *scope = fklCgEnvScopeVectorPushBack(scopes, NULL);
-    uint32_t r = env->scopes.size;
+    uint32_t r = (uint32_t)env->scopes.size;
     scope->p = p;
     fklSymDefHashMapInit(&scope->defs);
     scope->start = 0;

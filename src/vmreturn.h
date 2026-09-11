@@ -21,7 +21,7 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
 
     switch (F->mark) {
     case FKL_VM_COMPOUND_FRAME_MARK_RET: {
-        VM->bp = FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
+        VM->bp = (uint32_t)FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
         // copy stack values
         uint32_t const value_count = (VM->tp - F->sp);
         if (value_count > 1 || value_count < 1)

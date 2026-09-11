@@ -889,7 +889,7 @@ FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *c,
         FklVMvalue *action_type,
         FklVMvalue *action,
         int add_extra,
-        uint32_t len);
+        size_t len);
 
 int fklIsVMvalueCgRmacroProd(const FklVMvalue *v);
 FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r);

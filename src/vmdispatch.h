@@ -73,7 +73,9 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
         *pcur = last;
         exe->tp = bp - 1;
-        exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
+        int64_t v = FKL_GET_FIX(exe->base[exe->tp]);
+        FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+        exe->bp = (uint32_t)v;
         FKL_VM_PUSH_VALUE(exe, pair);
     } break;
     case FKL_OP_PUSH_VEC_0: {
@@ -82,7 +84,9 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalueVec *vv = FKL_VM_VEC(vec);
         memcpy(vv->base, &exe->base[exe->bp], size * sizeof(FklVMvalue *));
         exe->tp = exe->bp - 1;
-        exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
+        int64_t v = FKL_GET_FIX(exe->base[exe->tp]);
+        FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+        exe->bp = (uint32_t)v;
         FKL_VM_PUSH_VALUE(exe, vec);
     } break;
     case FKL_OP_PUSH_HASHEQ_0: {
@@ -106,7 +110,9 @@ void fklVMexecuteInstruction(FklVM *exe,
             fklVMhashTableSet(ht, key, value);
         }
         exe->tp = bp - 1;
-        exe->bp = FKL_GET_FIX(exe->base[exe->tp]);
+        int64_t v = FKL_GET_FIX(exe->base[exe->tp]);
+        FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+        exe->bp = (uint32_t)v;
         FKL_VM_PUSH_VALUE(exe, hash);
     } break;
 
@@ -890,7 +896,14 @@ void fklVMexecuteInstruction(FklVM *exe,
             size_t size = s->size;
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-            s->ptr[index] = fklVMgetInt(value);
+            int64_t v = fklVMgetInt(value);
+            if (v < -128 || v > 255) {
+                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,
+                        exe,
+                        "Expect value in [-128, 255], but got %S",
+                        value);
+            }
+            s->ptr[index] = (uint8_t)v;
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:

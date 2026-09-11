@@ -3377,7 +3377,9 @@ static void collect_import_in_range(const FklVMvalueProc *proc,
 
             reloc.sym = fklVMvalueLibNames(cur_lib)[uC(ins)];
             reloc.proc = proc;
-            reloc.ins = cur - spc - 1;
+            FKL_ASSERT((cur - spc - 1) <= UINT32_MAX);
+
+            reloc.ins = (uint32_t)(cur - spc - 1);
             reloc.used = (*p_used == FKL_IMPORT_SYMBOL_USED);
 
             FKL_ASSERT(reloc.sym != NULL);
@@ -3692,7 +3694,7 @@ static inline void fixup_proto_external_libs(FklVMvalueProto *p,
         if (!FKL_IS_FIX(idx_v))
             continue;
 
-        LibIdx idx = FKL_GET_FIX(idx_v);
+        LibIdx idx = (LibIdx)FKL_GET_FIX(idx_v);
         FKL_ASSERT(idx < lib_vec->size);
         FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
         libs[j] = FKL_VM_VAL(cg_lib->lib);
@@ -3716,7 +3718,7 @@ static inline void fixup_re_export_cmds_external_libs(ReExportCmds *cmds,
         case FKL_RE_EXPORT_OP_IMPORT:
             if (!fklIsVMvalueLib(cmd->arg0))
                 break;
-            idx = FKL_GET_FIX(fklVMvalueLib(cmd->arg0)->proc);
+            idx = (LibIdx)FKL_GET_FIX(fklVMvalueLib(cmd->arg0)->proc);
             FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
             cmd->arg0 = FKL_VM_VAL(cg_lib);
             break;
@@ -3738,7 +3740,7 @@ static inline void fixup_relocations_external_libs(const Fixup *fixup,
         FklVMvalue *idx_v = fklVMvalueLib(lib_v)->proc;
         FKL_ASSERT(FKL_IS_FIX(idx_v));
 
-        LibIdx idx = FKL_GET_FIX(idx_v);
+        LibIdx idx = (LibIdx)FKL_GET_FIX(idx_v);
         FklVMvalueCgLib *cg_lib = fklVMvalueCgLib(lib_vec->base[idx]);
 
         reloc->lib = cg_lib;

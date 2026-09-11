@@ -488,7 +488,7 @@ static int fp_cb_puts(void *ctx, const char *fmt) {
     return fputs(fmt, fp);
 }
 
-static int fp_cb_putc(void *ctx, char c) {
+static int fp_cb_putc(void *ctx, int c) {
     FILE *fp = FKL_TYPE_CAST(FILE *, ctx);
     return fputc(c, fp);
 }

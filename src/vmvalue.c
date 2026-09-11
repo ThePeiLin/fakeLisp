@@ -2217,7 +2217,7 @@ fklCreateVMvalueLib(FklVM *exe, FklVMvalue *name, const FklVMvalueVec *names) {
     r = (FklVMvalueLib *)fklCreateVMvalueUd2(exe, &LibType, extra_size);
     uv_mutex_init_recursive(&r->lock);
     r->name = name;
-    r->count = count;
+    r->count = (uint32_t)count;
 
     FklVMvalue **cur = &r->values[count];
     for (size_t i = 0; i < count; ++i) {

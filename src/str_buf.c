@@ -83,8 +83,8 @@ void fklStrBufClear(FklStrBuf *b) {
     b->buf[0] = '\0';
 }
 
-void fklStrBufMoveToFront(FklStrBuf *b, uint32_t idx) {
-    uint32_t new_idx = b->index - idx;
+void fklStrBufMoveToFront(FklStrBuf *b, size_t idx) {
+    size_t new_idx = b->index - idx;
     memmove(b->buf, &b->buf[idx], new_idx);
     b->buf[new_idx] = '\0';
     b->index = new_idx;
@@ -99,9 +99,9 @@ void fklStrBufBincpy(FklStrBuf *b, const void *p, size_t l) {
     b->buf[b->index] = '\0';
 }
 
-void fklStrBufPutc(FklStrBuf *b, char c) {
+void fklStrBufPutc(FklStrBuf *b, int c) {
     fklStrBufReserve(b, 2);
-    b->buf[b->index++] = c;
+    b->buf[b->index++] = (char)c;
     b->buf[b->index] = '\0';
 }
 
@@ -159,7 +159,7 @@ static int strbuf_cb_puts(void *ctx, const char *fmt) {
     return 0;
 }
 
-static int strbuf_cb_putc(void *ctx, char c) {
+static int strbuf_cb_putc(void *ctx, int c) {
     FklStrBuf *fp = FKL_TYPE_CAST(FklStrBuf *, ctx);
     fklStrBufPutc(fp, c);
     return (uint8_t)c;

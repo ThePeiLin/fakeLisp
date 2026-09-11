@@ -168,11 +168,12 @@ int fklCharBufToChar(const char *buf, size_t len) {
     } else {
         static const char *escapeChars = FKL_ESCAPE_CHARS;
         static const char *escapeCharsTo = FKL_ESCAPE_CHARS_TO;
-        char ch = toupper(*(buf));
-        for (size_t i = 0; escapeChars[i]; i++)
-            if (ch == escapeChars[i])
+        int ch = toupper(*(buf));
+        for (size_t i = 0; escapeChars[i]; i++) {
+            if (ch == escapeChars[i]) {
                 return escapeCharsTo[i];
-        ;
+            };
+        }
         return *buf;
     }
     return ch;
@@ -189,8 +190,8 @@ int fklIsNumberString(const FklString *str) {
 }
 
 int fklIsNumberCstr(const char *objStr) {
-    int len = strlen(objStr);
-    if (!len)
+    size_t len = strlen(objStr);
+    if (len == 0)
         return 0;
     int i = (*objStr == '-' || *objStr == '+') ? 1 : 0;
     int hasDot = 0;
@@ -201,10 +202,11 @@ int fklIsNumberCstr(const char *objStr) {
         if (!strncmp(objStr + i, "0x", 2) || !strncmp(objStr + i, "0X", 2)) {
             for (i += 2; i < len; i++) {
                 if (objStr[i] == '.') {
-                    if (hasDot)
+                    if (hasDot) {
                         return 0;
-                    else
+                    } else {
                         hasDot = 1;
+                    }
                 } else if (!isxdigit(objStr[i])) {
                     if (toupper(objStr[i]) == 'P') {
                         if (i < 3 || hasExp || i > (len - 2))
@@ -280,13 +282,14 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
             0x04000000,
         },
     };
-    size_t i = 0;
-    for (; i < 6; i++)
+    unsigned int i = 0;
+    for (; i < 6; i++) {
         if ((byte[0] | utf8bits[i].a) == utf8bits[i].a)
             break;
-    if (i >= max || i == 6)
+    }
+    if (i >= max || i == 6) {
         return 7;
-    else {
+    } else {
 #define UTF8_REST_HEAD_MASK (0xC0)
 #define UTF8_REST_HEAD_BITS (0x80)
         // check rest
@@ -301,10 +304,11 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
                      + (byte[1] & UTF8_M_BITS << ((i - 1) * 6));
 #undef UTF8_M_BITS
         uint32_t min = utf8bits[i].min;
-        if (sum < min)
+        if (sum < min) {
             return 7;
-        else
+        } else {
             return i + 1;
+        }
     }
 }
 
@@ -363,15 +367,15 @@ void *fklCopyMemory(const void *pm, size_t size) {
 }
 
 char *fklRealpath(const char *filename) {
-	char path_buf[FKL_PATH_MAX];
-	const char* r = REALPATH(filename, path_buf, sizeof(path_buf));
-	if(r == NULL)
-		return NULL;
-	return fklZstrdup(path_buf);
+    char path_buf[FKL_PATH_MAX];
+    const char *r = REALPATH(filename, path_buf, sizeof(path_buf));
+    if (r == NULL)
+        return NULL;
+    return fklZstrdup(path_buf);
 }
 
 char *fklDupDir(const char *filename) {
-    int i = strlen(filename) - 1;
+    size_t i = strlen(filename) - 1;
     for (; filename[i] != FKL_PATH_SEPARATOR; --i)
         ;
     char *tmp = (char *)fklZmalloc((i + 1) * sizeof(char));
@@ -659,27 +663,31 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
             size_t len = 1;
             if (isdigit(backSlashStr[len])) {
                 if (backSlashStr[len] == '0') {
-                    if (toupper(backSlashStr[len + 1]) == 'X')
+                    if (toupper(backSlashStr[len + 1]) == 'X') {
                         for (len++; isxdigit(backSlashStr[len]) && len < 5;
                                 len++)
                             ;
-                    else
+                    } else {
                         for (; isdigit(backSlashStr[len])
                                 && backSlashStr[len] < '8' && len < 5;
                                 len++)
                             ;
-                } else
+                    }
+                } else {
                     for (; isdigit(backSlashStr[len]) && len < 4; len++)
                         ;
-            } else if (toupper(backSlashStr[len]) == 'X')
+                }
+            } else if (toupper(backSlashStr[len]) == 'X') {
                 for (len++; isxdigit(backSlashStr[len]) && len < 4; len++)
                     ;
-            else
+            } else {
                 len++;
+            }
             ch = fklCharBufToChar(backSlashStr, len);
             i += len;
-        } else
+        } else {
             ch = str[i++];
+        }
         strSize++;
         if (strSize > memSize - 1) {
             char *ttmp = (char *)fklZrealloc(tmp,
@@ -688,7 +696,7 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
             tmp = ttmp;
             memSize += FKL_MAX_STRING_SIZE;
         }
-        tmp[strSize - 1] = ch;
+        tmp[strSize - 1] = (char)ch;
     }
     *psize = strSize;
     return tmp;
@@ -718,12 +726,13 @@ int fklMkdir(const char *dir) { return MKDIR(dir); }
 
 int fklRewindStream(FILE *fp, const char *buf, ssize_t len) {
     if (fp == stdin) {
-        for (size_t i = len; i > 0; i--)
+        for (size_t i = len; i > 0; i--) {
             if (ungetc(buf[i - 1], fp) == -1)
                 return -1;
+        }
         return 0;
     }
-    return fseek(fp, -len, SEEK_CUR);
+    return fseek(fp, (long)-len, SEEK_CUR);
 }
 
 int fklIsDecInt(const char *cstr, size_t maxLen) {
@@ -926,7 +935,7 @@ int64_t fklStringToInt(const char *cstr, size_t maxLen, int *base) {
 }
 
 int fklGetDelim(FILE *fp, FklStrBuf *b, char d) {
-    int c;
+    int c = EOF;
     while ((c = fgetc(fp)) != EOF) {
         fklStrBufPutc(b, c);
         if (c == d)

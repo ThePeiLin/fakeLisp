@@ -14,7 +14,7 @@ extern "C" {
 
 typedef int (*FklCodeBuilderPrintf)(void *ctx, const char *fmt, va_list va);
 typedef int (*FklCodeBuilderPuts)(void *ctx, const char *s);
-typedef int (*FklCodeBuilderPutc)(void *ctx, char c);
+typedef int (*FklCodeBuilderPutc)(void *ctx, int c);
 typedef size_t (*FklCodeBuilderWrite)(void *ctx, size_t len, const void *s);
 
 typedef struct {
@@ -60,7 +60,7 @@ static inline int fklCodeBuilderPuts(const FklCodeBuilder *b, const char *s) {
     return b->t->cb_puts(b->ctx, s);
 }
 
-static inline int fklCodeBuilderPutc(const FklCodeBuilder *b, char c) {
+static inline int fklCodeBuilderPutc(const FklCodeBuilder *b, int c) {
     return b->t->cb_putc(b->ctx, c);
 }
 

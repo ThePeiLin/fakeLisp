@@ -172,7 +172,9 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
     FklVarRefDef *const refs = fklVMvalueProtoVarRefs(pt);
 
     for (uint32_t i = 0; i < proc->ref_count; ++i) {
-        uint32_t cidx = FKL_GET_FIX(refs[i].cidx);
+        int64_t v = FKL_GET_FIX(refs[i].cidx);
+        FKL_ASSERT(v <= UINT32_MAX);
+        uint32_t cidx = (uint32_t)v;
         closure[i] = fetch_main_env_ref(exe, i, cidx, refs);
     }
 }
@@ -487,10 +489,9 @@ static inline void set_recover(FklVMrecoverArgs *re,
 FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
     FklVMvalue *callee = FKL_VM_GET_ARG(exe, exe, -1);
     FKL_ASSERT(fklIsCallable(callee));
-    set_recover(re,
-            FKL_GET_FIX(FKL_VM_GET_ARG(exe, exe, -2)),
-            re->bp - 1,
-            exe->top_frame);
+    int64_t v = FKL_GET_FIX(FKL_VM_GET_ARG(exe, exe, -2));
+    FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+    set_recover(re, (uint32_t)v, re->bp - 1, exe->top_frame);
 
     fklCallObj(exe, callee);
 
@@ -556,7 +557,7 @@ static inline void switch_un_notice_lock_ins(FklVM *exe) {
 }
 
 int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame) {
-    int is_single_thread = exe->is_single_thread;
+    int8_t is_single_thread = exe->is_single_thread;
 
     exe->is_single_thread = 1;
 
@@ -1326,7 +1327,9 @@ static inline FklVMvalue *get_compound_frame_code_obj(FklVMframe *frame) {
 
 static inline FklVMvalue *
 fetch_var_ref(FklVM *exe, const FklVarRefDef *c, FklVMframe *f) {
-    uint32_t cidx = FKL_GET_FIX(c->cidx);
+    int64_t v = FKL_GET_FIX(c->cidx);
+    FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+    uint32_t cidx = (uint32_t)v;
     FklVMvalue **ref = f->ref;
     if (FKL_IS_TRUE(c->is_local)) {
         init_lref_vec(exe, f, f->lcount);

@@ -12,8 +12,8 @@ extern "C" {
 #endif
 
 typedef struct FklStrBuf {
-    uint32_t size;
-    uint32_t index;
+    size_t size;
+    size_t index;
     char *buf;
 } FklStrBuf;
 
@@ -28,11 +28,11 @@ void fklStrBufResize(FklStrBuf *, size_t s, char content);
 void fklUninitStrBuf(FklStrBuf *);
 void fklDestroyStrBuf(FklStrBuf *);
 void fklStrBufClear(FklStrBuf *);
-void fklStrBufMoveToFront(FklStrBuf *buf, uint32_t idx);
+void fklStrBufMoveToFront(FklStrBuf *buf, size_t idx);
 void fklStrBufFill(FklStrBuf *, char);
 void fklStrBufBincpy(FklStrBuf *, const void *, size_t);
 
-void fklStrBufPutc(FklStrBuf *, char);
+void fklStrBufPutc(FklStrBuf *, int);
 long fklStrBufPrintfVa(FklStrBuf *b, const char *fmt, va_list ap);
 
 FKL_FMT_ATTR(2, 3)
@@ -40,7 +40,7 @@ long fklStrBufPrintf(FklStrBuf *, const char *fmt, ...);
 
 int fklStrBufCmp(const FklStrBuf *a, const FklStrBuf *b);
 
-static inline uint32_t fklStrBufLen(const FklStrBuf *b) { return b->index; }
+static inline size_t fklStrBufLen(const FklStrBuf *b) { return b->index; }
 
 static inline char *fklStrBufBody(const FklStrBuf *b) { return b->buf; }
 

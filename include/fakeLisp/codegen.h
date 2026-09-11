@@ -192,7 +192,7 @@ typedef struct {
     union {
         uint32_t flags;
         struct FklCgExportIdxFlags {
-            uint8_t not_owned : 1;
+            uint32_t not_owned : 1;
             uint32_t reserved : 31;
         } f;
     };

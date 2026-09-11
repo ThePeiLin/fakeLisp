@@ -233,7 +233,7 @@ typedef struct FklVMframe {
             const FklIns *pc;
             const FklIns *end;
             uint32_t arg_num : 24;
-            unsigned int mark : 8;
+            uint32_t mark : 8;
             uint32_t sp;
 
             FklVMvalue *lref;
@@ -1975,7 +1975,7 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
 }
 
 #define FKL_VM_TYPE_STATIC_INIT(NAME, ...)                                     \
-    ((FklVMvalueType){                                                         \
+    {                                                                          \
         .next_ = NULL,                                                         \
         .gray_next_ = NULL,                                                    \
         .mark_ = FKL_MARK_B,                                                   \
@@ -1984,7 +1984,7 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
         .dll = NULL,                                                           \
         .token = &NAME.mt,                                                     \
         .mt = __VA_ARGS__,                                                     \
-    })
+    }
 
 #define FKL_VM_TYPE_ATTR alignas(8) static const
 

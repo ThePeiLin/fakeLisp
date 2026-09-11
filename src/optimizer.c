@@ -829,7 +829,7 @@ static inline int is_foldable_const(const FklIns in, int32_t *oprand) {
 union I24u {
     struct {
         int32_t i24 : 24;
-        int8_t o : 8;
+        int32_t o : 8;
     };
     int32_t i;
 };

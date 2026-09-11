@@ -21,7 +21,7 @@ typedef struct FklBigInt {
     FklBigIntDigit *digits;
     int64_t num;
     uint64_t size : 63;
-    uint8_t const_size : 1;
+    uint64_t const_size : 1;
 } FklBigInt;
 
 typedef enum FklBigIntFmtFlags {

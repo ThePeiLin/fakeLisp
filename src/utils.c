@@ -603,7 +603,7 @@ int fklIsI64AddOverflow(int64_t a, int64_t b) {
 union Fixu {
     struct {
         int64_t fix : 61;
-        int8_t o : 3;
+        int64_t o : 3;
     };
     int64_t i;
 };

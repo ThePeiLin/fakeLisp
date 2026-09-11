@@ -193,12 +193,12 @@ int fklIsNumberCstr(const char *objStr) {
     size_t len = strlen(objStr);
     if (len == 0)
         return 0;
-    int i = (*objStr == '-' || *objStr == '+') ? 1 : 0;
+    size_t i = (*objStr == '-' || *objStr == '+') ? 1 : 0;
     int hasDot = 0;
     int hasExp = 0;
-    if (i && !isdigit(objStr[1]))
+    if (i && !isdigit(objStr[1])) {
         return 0;
-    else {
+    } else {
         if (!strncmp(objStr + i, "0x", 2) || !strncmp(objStr + i, "0X", 2)) {
             for (i += 2; i < len; i++) {
                 if (objStr[i] == '.') {

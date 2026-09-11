@@ -116,7 +116,7 @@ long fklStrBufPrintfVa(FklStrBuf *b, const char *fmt, va_list ap) {
 #endif
         n = vsnprintf(&b->buf[b->index], b->size - b->index, fmt, cp);
         va_end(cp);
-        if ((n > -1) && n < (b->size - b->index)) {
+        if ((n > -1) && (size_t)n < (b->size - b->index)) {
             b->index += n;
             return n;
         }

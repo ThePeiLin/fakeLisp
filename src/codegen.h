@@ -101,7 +101,7 @@ typedef struct ListElm {
 
 static inline FklVMvalue *create_list(ListElm *a,
         size_t num,
-        uint32_t line,
+        size_t line,
         FklVM *vm,
         FklVMvalueLnt *ln) {
     FklVMvalue *r = FKL_VM_NIL;

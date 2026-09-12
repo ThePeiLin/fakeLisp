@@ -135,13 +135,13 @@ FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
 FklByteCodelnt *fklCreateSingleInsBclnt(FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 void fklInitSingleInsBcl(FklByteCodelnt *bcl,
         FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 void fklUninitByteCodelnt(FklByteCodelnt *);
@@ -153,13 +153,13 @@ void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
 void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         const FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 void fklByteCodeLntInsertFrontIns(const FklIns ins,
         FklByteCodelnt *bcl,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 void fklByteCodePushBack(FklByteCode *bc, FklIns ins);
@@ -171,7 +171,7 @@ FklIns fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
 void fklInitLineNumTabNode(FklLntItem *,
         FklVMvalue *fid,
         uint64_t scp,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 const FklLntItem *fklFindLntItem(uint64_t cp, size_t ls, const FklLntItem *l);

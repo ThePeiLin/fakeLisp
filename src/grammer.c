@@ -476,8 +476,7 @@ static inline int ignore_match(const FklGrammer *g,
 
         case FKL_TERM_REGEX: {
             int last_is_true = 0;
-            uint32_t len =
-                    fklRegexLexMatchp(ig->re, str, restLen, &last_is_true);
+            size_t len = fklRegexLexMatchp(ig->re, str, restLen, &last_is_true);
             if (len > restLen) {
                 *is_waiting_for_more |= last_is_true;
                 return 0;
@@ -1347,7 +1346,7 @@ static inline FklGrammerSym *get_item_next(const FklLalrItem *item) {
 }
 
 static inline FklLalrItem lalr_item_init(FklGrammerProduction *prod,
-        size_t idx,
+        uint32_t idx,
         const FklLalrItemLookAhead *la) {
     FklLalrItem item = {
         .prod = prod,
@@ -1369,7 +1368,7 @@ static inline FklLalrItem get_item_advance(const FklLalrItem *i) {
 
     const FklGrammerSym *s = get_item_next(&item);
     int is_at_delim_v = s && is_at_delim_sym(&item);
-    size_t advance = is_at_delim_v ? 2 : 1;
+    uint32_t advance = is_at_delim_v ? 2 : 1;
 
     if (s && s->type == FKL_TERM_COMP)
         advance += s->comp.len;
@@ -1948,7 +1947,7 @@ static inline FklLookAheadHashSet *get_first_set_from_first_sets(
         size_t lastIdx = len - 1;
         int hasEpsilon = 0;
         const FklFirstSetHashMap *firstSets = &g->firstSets;
-        for (uint32_t i = idx; i < len; i++) {
+        for (size_t i = idx; i < len; i++) {
             const FklGrammerSym *sym = &prod->syms[i];
 
             FklLalrItemLookAhead la = { .t = sym->type };
@@ -2135,7 +2134,7 @@ static inline void check_lookahead_self_generated_and_spread(FklGrammer *g,
                 FklLalrItem i = cl->k;
                 const FklGrammerSym *s = get_item_next(&i);
                 int is_at_delim_v = s && is_at_delim_sym(&i);
-                size_t advance = is_at_delim_v ? 2 : 1;
+                uint32_t advance = is_at_delim_v ? 2 : 1;
 
                 if (s && s->type == FKL_TERM_COMP)
                     advance += s->comp.len;
@@ -4731,7 +4730,7 @@ static inline ssize_t match_comp(const FklGrammer *g,
             break;
         case FKL_TERM_REGEX: {
             int last_is_true = 0;
-            uint32_t len = fklRegexLexMatchp(p->re, cur, rest, &last_is_true);
+            size_t len = fklRegexLexMatchp(p->re, cur, rest, &last_is_true);
             if (len > rest) {
                 *is_waiting_for_more |= last_is_true;
                 return -1;
@@ -4814,11 +4813,11 @@ match_start:
     } break;
     case FKL_TERM_REGEX: {
         int last_is_true = 0;
-        uint32_t len = fklRegexLexMatchp(match->re,
+        size_t len = fklRegexLexMatchp(match->re,
                 cstr + args->skip_ignore_len,
                 restLen - args->skip_ignore_len,
                 &last_is_true);
-        if (len > restLen - args->skip_ignore_len)
+        if (len > (restLen - args->skip_ignore_len))
             *p_is_waiting_for_more |= last_is_true;
         else {
             args->matchLen = len;
@@ -5132,7 +5131,7 @@ void fklEmplaceAnalysisSymbol(const FklGrammer *g,
             break;
         case FKL_TERM_REGEX: {
             int last_is_true = 0;
-            uint32_t len = fklRegexLexMatchp(p->re, cur, rest, &last_is_true);
+            size_t len = fklRegexLexMatchp(p->re, cur, rest, &last_is_true);
             if (len > rest) {
                 FKL_UNREACHABLE();
             }

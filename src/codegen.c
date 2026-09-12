@@ -174,7 +174,7 @@ static inline FklVMvalue *set_and_append_ins_with_unsigned_imm(FklVM *exe,
         FklOpcode op,
         uint64_t k,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     int l = FKL_MAKE_INS(ins, op, .ux = k);
@@ -201,7 +201,7 @@ static inline FklVMvalue *set_and_append_ins_with_signed_imm(FklVM *exe,
         FklOpcode op,
         int64_t k,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklIns ins[4] = { FKL_INS_STATIC_INIT };
     int l = FKL_MAKE_INS(ins, op, .ix = k);
@@ -229,7 +229,7 @@ static inline FklVMvalue *append_push_i24_ins(FklVM *exe,
         FklVMvalue *bcl,
         int64_t k,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklIns ins = FKL_INS_STATIC_INIT;
     if (k == 0 || k == 1) {
@@ -262,7 +262,7 @@ static inline FklVMvalue *append_push_proc_ins(FklVM *exe,
         uint32_t proto_id,
         uint64_t len,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklOpcode ops[2] = { 0 };
     FklInsArg args[2] = { 0 };
@@ -308,7 +308,7 @@ static inline FklVMvalue *append_jmp_ins(FklVM *exe,
         JmpInsCondition condition,
         JmpInsOrientation orien,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklOpcode op = FKL_OP_DUMMY;
     switch (condition) {
@@ -355,7 +355,7 @@ static inline FklVMvalue *append_import_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -372,7 +372,7 @@ static inline FklVMvalue *append_load_lib_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t lib_id,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -388,7 +388,7 @@ static inline FklVMvalue *append_drop_one_ins(FklVM *exe,
         InsAppendMode m,
         FklVMvalue *bcl,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -405,7 +405,7 @@ static inline FklVMvalue *append_export_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -422,7 +422,7 @@ static inline FklVMvalue *append_pop_loc_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -439,7 +439,7 @@ static inline FklVMvalue *append_put_loc_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -456,7 +456,7 @@ static inline FklVMvalue *append_put_var_ref_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -525,7 +525,7 @@ static FklVMvalue *_empty_bc_process(const FklCgActCbArgs *args) {
 static FklVMvalue *sequnce_exp_bc_process(FklVM *exe,
         FklValueVector *stack,
         FklVMvalue *fid,
-        uint32_t line,
+        uint64_t line,
         uint32_t scope) {
     if (stack->size) {
         FklIns drop = FKL_MAKE_INS_I(FKL_OP_DROP);
@@ -593,7 +593,7 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
     const FklIns *ins = &bc->code[0];
     unsigned ins_len = (unsigned)fklGetInsOpArg(ins, &arg);
     if (is_get_var_ref_ins(*ins) && bc->len == ins_len) {
-        uint32_t idx = arg.ux;
+        uint32_t idx = (uint32_t)arg.ux;
         FklSymDefHashMapElm *ref = NULL;
         while (env) {
             FklSymDefHashMapNode *list = env->refs.first;
@@ -634,7 +634,7 @@ static FklVMvalue *_funcall_exp_bc_process(const FklCgActCbArgs *args) {
     if (bcl_vec->size) {
         FklVMvalue *func = bcl_vec->base[0];
         FklByteCode *funcBc = &FKL_VM_CO(func)->bc;
-        uint32_t argNum = bcl_vec->size - 1;
+        uint32_t argNum = (uint32_t)(bcl_vec->size - 1);
         FklBuiltinInlineFunc inlFunc = NULL;
         if (argNum < 4
                 && (inlFunc = is_inlinable_func_ref(funcBc,
@@ -906,7 +906,7 @@ static inline FklVMvalue *append_close_ref_ins(FklVM *exe,
         FklVMvalue *retval,
         uint32_t s,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -923,7 +923,7 @@ static inline void check_and_close_ref(FklVM *exe,
         uint32_t scope,
         FklVMvalueCgEnv *env,
         FklVMvalue *fid,
-        uint32_t line) {
+        size_t line) {
     uint32_t start = 0;
     if (reset_flag_and_check_var_be_refed(env, scope, &start)) {
         append_close_ref_ins(exe,
@@ -1429,11 +1429,11 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklVM *exe,
         FklVMvalue *cond,
         FklVMvalue *rest,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklByteCode *cond_bc = &FKL_VM_CO(cond)->bc;
     FklByteCode *rest_bc = &FKL_VM_CO(rest)->bc;
-    uint32_t jmp_back_ins_len = 3;
+    uint64_t jmp_back_ins_len = 3;
 
     uint64_t cond_len = cond_bc->len;
     uint64_t rest_len = rest_bc->len;
@@ -1458,7 +1458,7 @@ static inline void insert_jmp_if_true_and_jmp_back_between(FklVM *exe,
             line,
             scope);
 
-    uint32_t jmp_back_actual_len = rest_bc->len - rest_len;
+    uint64_t jmp_back_actual_len = rest_bc->len - rest_len;
 
     while (jmp_back_ins_len > jmp_back_actual_len) {
         rest_bc->len = rest_len;
@@ -1681,11 +1681,12 @@ static FklVMvalue *_do1_init_val_bc_process(const FklCgActCbArgs *args) {
 
     FklIns pop = FKL_MAKE_INS_I(FKL_OP_DROP);
 
-    uint64_t *idxbase = ss->base;
+    uintmax_t *idxbase = ss->base;
     FklVMvalue **bclBase = bcl_vec->base;
-    uint32_t top = bcl_vec->size;
+    size_t top = bcl_vec->size;
     for (uint32_t i = 0; i < top; i++) {
-        uint32_t idx = idxbase[i];
+        FKL_ASSERT(idxbase[i] <= UINT32_MAX);
+        uint32_t idx = (uint32_t)idxbase[i];
         FklVMvalue *curBcl = bclBase[i];
         append_put_loc_ins(vm, INS_APPEND_BACK, curBcl, idx, fid, line, scope);
         fklByteCodeLntPushBackIns(FKL_VM_CO(curBcl), pop, fid, line, scope);
@@ -1709,11 +1710,12 @@ static FklVMvalue *_do1_next_val_bc_process(const FklCgActCbArgs *args) {
         FklVMvalue *ret = create_0len_bcl(vm);
         FklIns pop = FKL_MAKE_INS_I(FKL_OP_DROP);
 
-        uint64_t *idxbase = ss->base;
+        uintmax_t *idxbase = ss->base;
         FklVMvalue **bclBase = bcl_vec->base;
-        uint32_t top = bcl_vec->size;
+        size_t top = bcl_vec->size;
         for (uint32_t i = 0; i < top; i++) {
-            uint32_t idx = idxbase[i];
+            FKL_ASSERT(idxbase[i] <= UINT32_MAX);
+            uint32_t idx = (uint32_t)idxbase[i];
             FklVMvalue *curBcl = bclBase[i];
             append_put_loc_ins(vm,
                     INS_APPEND_BACK,
@@ -1924,7 +1926,7 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
         FklVMvalueCgEnv *env,
         uint32_t scope_id,
         FklVMvalue *fid,
-        uint32_t line) {
+        size_t line) {
     if (stack->size >= 2) {
         FklVMvalue *cur = *fklValueVectorPopBackNonNull(stack);
         FklVMvalue *popVar = *fklValueVectorPopBackNonNull(stack);
@@ -1935,7 +1937,8 @@ static inline FklVMvalue *process_set_var(FklValueVector *stack,
             fklGetInsOpArg(cur_ins, &arg);
             uint64_t proto_id = arg.ux;
             fklGetInsOpArg(popVar_ins, &arg);
-            uint64_t idx = arg.ux;
+            FKL_ASSERT(arg.ux <= UINT32_MAX);
+            uint32_t idx = (uint32_t)arg.ux;
 
             FklVMvalue *pt_v = env->child_proc_protos.base[proto_id];
             FKL_ASSERT(pt_v && fklIsVMvalueProto(pt_v));
@@ -1967,7 +1970,7 @@ typedef struct {
     FklVMvalue *id;
     const FklVMvalue *container;
     uint32_t scope;
-    uint32_t line;
+    size_t line;
 } DefineVarContext;
 
 static const FklCgActCtxMt DefineVarContextMethodTable = {
@@ -1975,7 +1978,7 @@ static const FklCgActCtxMt DefineVarContextMethodTable = {
 };
 
 static inline FklCgActCtx *
-create_def_var_context(const FklPmatchRes *id, uint32_t scope, uint32_t line) {
+create_def_var_context(const FklPmatchRes *id, uint32_t scope, size_t line) {
     FklCgActCtx *r = createCgActCtx(&DefineVarContextMethodTable);
     DefineVarContext *ctx = FKL_TYPE_CAST(DefineVarContext *, r->d);
     ctx->id = id->value;
@@ -2117,9 +2120,9 @@ static inline FklVMvalue *processArgsInStack(FklVM *exe,
         FklVMvalueCgInfo *info,
         uint64_t curline) {
     FklVMvalue *retval = create_0len_bcl(exe);
-    uint32_t top = stack->size;
+    size_t top = stack->size;
     FklVMvalue **base = stack->base;
-    for (uint32_t i = 0; i < top; i++) {
+    for (size_t i = 0; i < top; i++) {
         FklVMvalue *curId = base[i];
 
         fklAddCgDefBySid(curId, 1, env);
@@ -2617,7 +2620,7 @@ static inline FklUnbound *get_resolvable_assign_ref(FklVMvalue *id,
         uint32_t scope,
         FklVMvalueCgEnv *env) {
     FklUnbound *urefs = env->uref.base;
-    uint32_t top = env->uref.size;
+    size_t top = env->uref.size;
     for (uint32_t i = 0; i < top; i++) {
         FklUnbound *cur = &urefs[i];
         if (cur->sid == id && cur->scope == scope && cur->assign)
@@ -5281,7 +5284,7 @@ static inline FklVMvalue *append_get_loc_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,
@@ -5321,7 +5324,7 @@ static void append_import_var_bc(const FklCgCtx *ctx,
         const FklLibId *lib_id,
         const FklCgLib *cg_lib,
         const FklCgExportIdx *v,
-        uint32_t line,
+        size_t line,
         FklVMvalue *bcl,
         const ExportContextData *d) {
     FklVM *vm = ctx->vm;
@@ -5361,7 +5364,7 @@ static void append_import_variables(const FklCgCtx *ctx,
         const FklLibId *lib_id,
         const FklCgLib *lib,
         FklVMvalue *bcl,
-        uint32_t line,
+        size_t line,
         const ExportContextData *d) {
     const FklCgExportSidIdxHashMap *exports = &lib->exports;
     for (size_t i = 0; i < import_cache->size; ++i) {
@@ -6103,7 +6106,7 @@ static FklCgActCtx *createExportContext(const CgCbArgs *args,
 static inline FklVMvalue *make_export_sequnce(FklVM *exe,
         FklValueVector *stack,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     if (stack->size) {
         FklIns drop = FKL_MAKE_INS_I(FKL_OP_DROP);
@@ -8217,7 +8220,7 @@ static inline FklVMvalue *append_get_var_ref_ins(FklVM *exe,
         FklVMvalue *bcl,
         uint32_t idx,
         FklVMvalue *fid,
-        uint32_t curline,
+        size_t curline,
         uint32_t scope) {
     return set_and_append_ins_with_unsigned_imm(exe,
             m,

@@ -53,7 +53,7 @@ int fklIsScriptFile(const char *);
 int fklIsByteCodeFile(const char *);
 int fklIsPrecompileFile(const char *filename);
 
-int fklGetDelim(FILE *fp, FklStrBuf *b, char d);
+int fklGetDelim(FILE *fp, FklStrBuf *b, int d);
 
 void *fklCopyMemory(const void *, size_t);
 
@@ -110,7 +110,7 @@ static int fklComputeDigitsCount(uint64_t len) {
 }
 
 const char *fklSysGetEnv(const char *name);
-int fklSysSetEnv(const char *name, const char* value, int overwrite);
+int fklSysSetEnv(const char *name, const char *value, int overwrite);
 int fklSysUnsetEnv(const char *name);
 
 #ifdef __cplusplus

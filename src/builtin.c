@@ -4580,13 +4580,12 @@ static int builtin_env_path(FKL_CPROC_ARGL) {
 #include <fakeLisp/opcode.h>
 
 #define INL_FUNC_ARGS                                                          \
-    FklVM *exe, FklVMvalue *bcs[], FklVMvalue *fid, uint32_t line,             \
-            uint32_t scope
+    FklVM *exe, FklVMvalue *bcs[], FklVMvalue *fid, size_t line, uint32_t scope
 
 static inline FklVMvalue *inl_0_arg_func(FklVM *exe,
         FklOpcode opc,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return fklCreateVMvalueCodeObjExt(exe,
             FKL_MAKE_INS_I(opc),
@@ -4598,7 +4597,7 @@ static inline FklVMvalue *inl_0_arg_func(FklVM *exe,
 static inline FklVMvalue *inl_0_arg_func2(FklVM *exe,
         const FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return fklCreateVMvalueCodeObjExt(exe, ins, fid, line, scope);
 }
@@ -4632,7 +4631,7 @@ static inline FklVMvalue *inlfunc_mul0(INL_FUNC_ARGS) {
 static inline FklVMvalue *inl_1_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     fklByteCodeLntPushBackIns(FKL_VM_CO(bcs[0]), ins, fid, line, scope);
     return bcs[0];
@@ -4641,7 +4640,7 @@ static inline FklVMvalue *inl_1_arg_func2(const FklIns ins,
 static inline FklVMvalue *inl_1_arg_func(FklOpcode opc,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return inl_1_arg_func2(FKL_MAKE_INS_I(opc), bcs, fid, line, scope);
 }
@@ -4730,7 +4729,7 @@ static FklVMvalue *inlfunc_ret1(INL_FUNC_ARGS) {
 static inline FklVMvalue *inl_2_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     fklCodeLntConcat(FKL_VM_CO(bcs[0]), FKL_VM_CO(bcs[1]));
     fklByteCodeLntPushBackIns(FKL_VM_CO(bcs[0]), ins, fid, line, scope);
@@ -4740,7 +4739,7 @@ static inline FklVMvalue *inl_2_arg_func2(const FklIns ins,
 static inline FklVMvalue *inl_2_arg_func(FklOpcode opc,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     return inl_2_arg_func2(FKL_MAKE_INS_I(opc), bcs, fid, line, scope);
 }
@@ -4865,7 +4864,7 @@ static FklVMvalue *inlfunc_le2(INL_FUNC_ARGS) {
 static inline FklVMvalue *inl_3_arg_func2(const FklIns ins,
         FklVMvalue *bcs[],
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     fklCodeLntConcat(FKL_VM_CO(bcs[0]), FKL_VM_CO(bcs[1]));
     fklCodeLntConcat(FKL_VM_CO(bcs[0]), FKL_VM_CO(bcs[2]));
@@ -4876,7 +4875,7 @@ static inline FklVMvalue *inl_3_arg_func2(const FklIns ins,
 #if 0
 static inline FklVMvalue *inl_3_arg_func(FklOpcode opc,
                                              FklByteCodelnt *bcs[],
-                                             FklSid_t fid, uint32_t line,
+                                             FklSid_t fid, size_t line,
                                              uint32_t scope) {
 	FklIns ins = FKL_MAKE_INS_I(opc);
     return inl_3_arg_func2(ins, bcs, fid, line, scope);

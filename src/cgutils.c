@@ -3346,7 +3346,9 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
     case FKL_TERM_COMP:
         out->type = FKL_TERM_COMP;
-        out->comp.len = FKL_GET_FIX(in->v);
+        int64_t v = FKL_GET_FIX(in->v);
+        FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
+        out->comp.len = (uint32_t)v;
         out->comp.parts = &out[1];
         break;
 

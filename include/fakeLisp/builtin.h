@@ -13,7 +13,7 @@ extern "C" {
 typedef FklVMvalue *(*FklBuiltinInlineFunc)(FklVM *exe,
         FklVMvalue *[],
         FklVMvalue *,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum);
 

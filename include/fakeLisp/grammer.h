@@ -131,7 +131,7 @@ typedef enum {
 } FklGrammerSymType;
 
 typedef struct FklCompSym {
-    size_t len;
+    uint32_t len;
     const struct FklGrammerSym *parts;
 } FklCompositeSym;
 

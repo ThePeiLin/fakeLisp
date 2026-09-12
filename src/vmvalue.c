@@ -1851,7 +1851,7 @@ FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *exe) {
 FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
         FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope) {
     FklVMvalue *r = fklCreateVMvalueCodeObj1(exe);
     fklInitByteCodelnt(FKL_VM_CO(r), 1);

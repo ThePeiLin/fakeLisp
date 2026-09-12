@@ -1288,7 +1288,7 @@ FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);
 FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
         FklIns ins,
         FklVMvalue *fid,
-        uint32_t line,
+        size_t line,
         uint32_t scope);
 
 int fklIsVMvalueCodeObj(const FklVMvalue *v);

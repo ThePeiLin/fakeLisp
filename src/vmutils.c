@@ -1635,15 +1635,16 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll) {
 }
 
 void fklVMsleep(FklVM *exe, uint64_t ms) {
-    FKL_VM_UNLOCK_BLOCK(exe, flag) { uv_sleep(ms); }
+    FKL_VM_UNLOCK_BLOCK(exe, flag) { uv_sleep((unsigned int)ms); }
 }
 
 void fklVMread(FklVM *exe, FILE *fp, FklStrBuf *buf, uint64_t len, int d) {
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
-        if (d != EOF)
+        if (d != EOF) {
             fklGetDelim(fp, buf, d);
-        else
+        } else {
             buf->index = fread(buf->buf, sizeof(char), len, fp);
+        }
     }
 }
 
@@ -1668,13 +1669,13 @@ void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
 #define FLAGS_CHAR (1u << 6u)
 #define FLAGS_PRECISION (1u << 7u)
 
-static void format_out_char(void *arg, char c) {
+static void format_out_char(void *arg, int c) {
     FklCodeBuilder *build = arg;
     fklCodeBuilderPutc(build, c);
 }
 
 static inline void
-out_cstr(void (*outc)(void *, char), void *arg, const char *s) {
+out_cstr(void (*outc)(void *, int), void *arg, const char *s) {
     while (*s)
         outc(arg, *s++);
 }
@@ -1684,7 +1685,7 @@ static inline uint64_t format_fix_int(int64_t integer_val,
         uint32_t base,
         uint64_t width,
         uint64_t precision,
-        void (*outc)(void *, char c),
+        void (*outc)(void *, int c),
         void *buffer) {
     static const char digits[] = "0123456789abcdef0123456789ABCDEF";
 #define MAXBUF (sizeof(int64_t) * 8)
@@ -1759,23 +1760,23 @@ static inline void
 format_prin1_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, buf, NULL);
-    return print_value(v, &builder, prin1VMatom, exe);
+    print_value(v, &builder, prin1VMatom, exe);
 }
 
 static inline void
 format_princ_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderStrBuf(&builder, buf, NULL);
-    return print_value(v, &builder, princVMatom, exe);
+    print_value(v, &builder, princVMatom, exe);
 }
 
 static inline uint64_t format_bigint(FklStrBuf *buf,
         const FklVMvalueBigInt *bi,
         uint32_t flags,
-        uint32_t base,
+        uint8_t radix,
         uint64_t width,
         uint64_t precision,
-        void(outc)(void *, char),
+        void(outc)(void *, int),
         void *arg) {
     uint64_t length = 0;
     if (FKL_BIGINT_IS_0(bi))
@@ -1787,7 +1788,7 @@ static inline uint64_t format_bigint(FklStrBuf *buf,
     if (flags & FLAGS_UPPERCASE)
         bigint_fmt_flags |= FKL_BIGINT_FMT_FLAG_CAPITALS;
     const FklBigInt bigint = fklVMbigIntToBigInt(bi);
-    fklBigIntToStrBuf(&bigint, buf, base, bigint_fmt_flags);
+    fklBigIntToStrBuf(&bigint, buf, radix, bigint_fmt_flags);
 
     const char *p = buf->buf;
     length += buf->index;
@@ -1811,9 +1812,9 @@ static inline uint64_t format_bigint(FklStrBuf *buf,
         outc(arg, '+');
 
     if (flags & FLAGS_HASH) {
-        if (base == 8)
+        if (radix == 8)
             outc(arg, *p++);
-        else if (base == 16) {
+        else if (radix == 16) {
             outc(arg, *p++);
             outc(arg, *p++);
         }
@@ -1844,7 +1845,7 @@ static inline uint64_t format_f64(FklStrBuf *buf,
         uint32_t flags,
         uint64_t width,
         uint64_t precision,
-        void (*outc)(void *, char),
+        void (*outc)(void *, int),
         void *buffer) {
     if (isnan(value)) {
         out_cstr(outc, buffer, isupper(ch) ? "NAN" : "nan");
@@ -1936,13 +1937,13 @@ static inline uint64_t format_f64(FklStrBuf *buf,
 static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         const char *fmt,
         const char *end,
-        void (*outc)(void *, char),
+        void (*outc)(void *, int),
         void (*outs)(void *, const char *, size_t len),
         void *arg,
         uint64_t *plen,
         FklVMvalue *const *cur_val,
         FklVMvalue *const *const val_end) {
-    uint32_t base;
+    uint8_t base;
     uint32_t flags;
     uint64_t width;
     uint64_t precision;
@@ -2064,7 +2065,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
             }
             FklVMvalue *integer_obj = *(cur_val++);
             if (fklIsVMint(integer_obj)) {
-                if (FKL_IS_FIX(integer_obj))
+                if (FKL_IS_FIX(integer_obj)) {
                     length += format_fix_int(FKL_GET_FIX(integer_obj),
                             flags,
                             base,
@@ -2072,7 +2073,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
                             precision,
                             outc,
                             (void *)arg);
-                else
+                } else {
                     length += format_bigint(&buf,
                             FKL_VM_BI(integer_obj),
                             flags,
@@ -2081,6 +2082,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
                             precision,
                             outc,
                             (void *)arg);
+                }
             } else {
                 err = FKL_ERR_INCORRECT_TYPE_VALUE;
                 goto exit;
@@ -2123,9 +2125,11 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
                 int ch = FKL_GET_CHR(chr_obj);
                 uint64_t len = 1;
 
-                if (!(flags & FLAGS_LEFT))
-                    for (; len < width; len++)
+                if (!(flags & FLAGS_LEFT)) {
+                    for (; len < width; len++) {
                         outc(arg, ' ');
+                    }
+                }
                 outc(arg, ch);
 
                 if (flags & FLAGS_LEFT)

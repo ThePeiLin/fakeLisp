@@ -569,7 +569,7 @@ void fklGraFoldConcatChains(FklGraSymVector *v) {
         }
         if (foldable) {
             FklGrammerSym marker = { .type = FKL_TERM_COMP };
-            marker.comp.len = len;
+            marker.comp.len = (uint32_t)len;
             marker.comp.parts = NULL;
             fklGraSymVectorPushBack(&out, &marker);
         }

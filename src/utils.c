@@ -934,7 +934,7 @@ int64_t fklStringToInt(const char *cstr, size_t maxLen, int *base) {
     }
 }
 
-int fklGetDelim(FILE *fp, FklStrBuf *b, char d) {
+int fklGetDelim(FILE *fp, FklStrBuf *b, int d) {
     int c = EOF;
     while ((c = fgetc(fp)) != EOF) {
         fklStrBufPutc(b, c);

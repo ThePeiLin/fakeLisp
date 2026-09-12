@@ -458,8 +458,8 @@ void fklDestroyByteCodeBuffer(FklByteCodeBuffer *buf) {
 void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
         const FklByteCodeBuffer *buf) {
     FKL_ASSERT(buf->size);
-    FklLntItem *ln =
-            (FklLntItem *)fklZrealloc(bcl->l, buf->size * sizeof(FklLntItem));
+    size_t new_size = buf->size * sizeof(FklLntItem);
+    FklLntItem *ln = (FklLntItem *)fklZrealloc(bcl->l, new_size);
     FKL_ASSERT(ln);
 
     FklByteCode *bc = &bcl->bc;
@@ -472,7 +472,7 @@ void fklSetByteCodelntWithBuf(FklByteCodelnt *bcl,
     bcl->l = ln;
 
     const FklInsLn *ins_ln_base = buf->base;
-    uint64_t ln_idx = 0;
+    uint32_t ln_idx = 0;
     ln[ln_idx] = (FklLntItem){ .fid = ins_ln_base->fid,
         .scp = 0,
         .line = ins_ln_base->line,
@@ -693,7 +693,7 @@ static uint32_t put_loc_drop_output(const FklByteCodeBuffer *buf,
     FklInsArg arg;
     set_insln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
-    uint32_t loc_idx = arg.ux;
+    uint64_t loc_idx = arg.ux;
     FklOpcode op = FKL_OP_POP_LOC;
 
     uint32_t nl = FKL_MAKE_INS(ins, op, .ux = loc_idx);
@@ -718,7 +718,7 @@ static uint32_t pop_and_get_loc_predicate(const FklByteCodeBuffer *buf,
         return 0;
 
     fklGetInsOpArg(ins, &arg);
-    uint32_t loc_idx = arg.ux;
+    uint64_t loc_idx = arg.ux;
     i += set_insln_to_ins(&peephole[i], ins);
     if (OP(ins[0]) != FKL_OP_GET_LOC)
         return 0;
@@ -737,7 +737,7 @@ static uint32_t pop_and_get_loc_output(const FklByteCodeBuffer *buf,
     FklInsArg arg;
     set_insln_to_ins(&peephole[0], ins);
     fklGetInsOpArg(ins, &arg);
-    uint32_t loc_idx = arg.ux;
+    uint64_t loc_idx = arg.ux;
     FklOpcode op = FKL_OP_PUT_LOC;
     uint32_t nl = FKL_MAKE_INS(ins, op, .ux = loc_idx);
 
@@ -1436,7 +1436,7 @@ static inline int do_peephole_optimize(FklByteCodeBuffer *buf,
 
     for (uint64_t i = 0; i < buf->size;) {
         uint64_t j = 0;
-        uint64_t peephole_len = 0;
+        uint32_t peephole_len = 0;
 
         for (; j + i < buf->size && peephole_len < PEEPHOLE_SIZE; j++) {
             if (OP(buf->base[i + j].ins) != FKL_OP_DUMMY) {

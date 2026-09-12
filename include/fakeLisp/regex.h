@@ -55,7 +55,7 @@ typedef struct {
 typedef struct {
     uint32_t totalsize;
     uint32_t pstsize;
-    FklRegexObj data[];
+    FklRegexObj data[FKL_FLEX_ARRAY_MEMBER];
 } FklRegexCode;
 
 // FklRegexStrHashMap

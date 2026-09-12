@@ -97,7 +97,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueProto, {
 
     uint32_t used_libraries_count;
     uint32_t used_libraries_offset;
-    FklVMvalue *vals[];
+    FklVMvalue *vals[FKL_FLEX_ARRAY_MEMBER];
 });
 
 int fklIsVMvalueProto(const FklVMvalue *v);

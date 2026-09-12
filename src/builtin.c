@@ -3503,7 +3503,7 @@ static int builtin_idle(FKL_CPROC_ARGL) {
 
 struct AtExitArg {
     uint32_t arg_num;
-    FklVMvalue *args[];
+    FklVMvalue *args[FKL_FLEX_ARRAY_MEMBER];
 };
 
 static void vm_atexit_idle_queue_work_cb(FklVM *exe, void *a) {

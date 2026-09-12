@@ -77,7 +77,7 @@ typedef struct {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueReExportCmds, {
     uint64_t count;
-    FklReExportCmd cmds[];
+    FklReExportCmd cmds[FKL_FLEX_ARRAY_MEMBER];
 });
 
 FklVMvalueReExportCmds *fklCreateVMvalueReExportCmds(FklVM *vm, uint64_t count);

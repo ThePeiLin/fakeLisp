@@ -241,7 +241,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacroProd, {
     FklVMvalue *action;
     uint8_t add_extra;
     uint32_t len;
-    FklCgRmacroGraSym syms[];
+    FklCgRmacroGraSym syms[FKL_FLEX_ARRAY_MEMBER];
 });
 
 typedef struct {
@@ -252,7 +252,7 @@ typedef struct {
 // 读取器宏的本质是一系列对语法的修改的指令
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCgRmacro, {
     uint64_t len;
-    FklCgRmacroCmd cmds[];
+    FklCgRmacroCmd cmds[FKL_FLEX_ARRAY_MEMBER];
 });
 
 typedef FklVMvalueHash FklVMvalueCgRmacroHashMap;
@@ -498,7 +498,7 @@ typedef struct {
 
 typedef struct FklCgActCtx {
     const FklCgActCtxMt *t;
-    alignas(void *) uint8_t d[];
+    alignas(void *) uint8_t d[FKL_FLEX_ARRAY_MEMBER];
 } FklCgActCtx;
 
 typedef struct FklCgErrorState {
@@ -595,7 +595,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     FklVMvalue *proc;
 
     uint64_t actual_len;
-    FklVMvalue *dollars[];
+    FklVMvalue *dollars[FKL_FLEX_ARRAY_MEMBER];
 });
 
 FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,

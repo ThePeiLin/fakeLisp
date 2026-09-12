@@ -64,6 +64,12 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 #define FKL_DLL_FILE_EXTENSION ".so"
 #endif
 
+#if defined(_MSC_VER) || defined(__cplusplus)
+#define FKL_FLEX_ARRAY_MEMBER 1
+#else
+#define FKL_FLEX_ARRAY_MEMBER
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 
 #define FKL_FMT_ATTR(A, B) __attribute__((format(printf, A, B)))

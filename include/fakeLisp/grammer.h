@@ -372,7 +372,7 @@ typedef struct FklGrammerProduction {
     FklGrammerNonterm left;
     size_t len;
     size_t idx;
-    FklGrammerSym syms[];
+    FklGrammerSym syms[FKL_FLEX_ARRAY_MEMBER];
 } FklGrammerProduction;
 
 void fklDestroyGrammerProduction(FklGrammerProduction *h);
@@ -559,7 +559,7 @@ typedef struct {
 typedef struct FklGrammerIgnore {
     struct FklGrammerIgnore *next;
     size_t len;
-    FklGrammerIgnoreSym ig[];
+    FklGrammerIgnoreSym ig[FKL_FLEX_ARRAY_MEMBER];
 } FklGrammerIgnore;
 
 typedef struct FklGrammer {

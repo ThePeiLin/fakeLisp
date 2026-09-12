@@ -110,7 +110,7 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
 
     vm = fklCreateVM(FKL_VM_VAL(proc), gc);
 
-	fklSetVMgcPath(gc, fklInitDefaultLibPath(vm));
+    fklSetVMgcPath(gc, fklInitDefaultLibPath(vm));
 
     fklInitVMargs(vm->gc, argc, argv);
     int r = fklRunVMidleLoop(vm);
@@ -670,6 +670,7 @@ typedef struct {
     FklVMvalueCgInfo *info;
     FklVMvalueCgEnv *main_env;
 
+    int eof;
     int err;
     FklVMvalue *node;
     FklVM *exe;
@@ -678,7 +679,6 @@ typedef struct {
         WAITING,
         READING,
     } state : 8;
-    int8_t eof;
     int8_t interactive;
     uint32_t new_var_count;
 

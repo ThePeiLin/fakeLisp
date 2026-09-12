@@ -85,7 +85,7 @@ typedef struct {
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
     size_t size;
-    struct FklVMvalue *base[];
+    struct FklVMvalue *base[FKL_FLEX_ARRAY_MEMBER];
 } FklVMvalueVec;
 
 typedef struct {
@@ -146,7 +146,7 @@ typedef struct {
     uint32_t local_count;
     uint32_t ref_count;
 
-    FklVMvalue *closure[];
+    FklVMvalue *closure[FKL_FLEX_ARRAY_MEMBER];
 } FklVMvalueProc;
 
 typedef struct {
@@ -156,7 +156,8 @@ typedef struct {
     FklVMvalue *dll;
 } FklVMvalueCproc;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueUd, { uint8_t reserved; });
+FKL_VM_DEF_UD_STRUCT(FklVMvalueUd,
+        { uint8_t reserved[FKL_FLEX_ARRAY_MEMBER]; });
 
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
@@ -296,7 +297,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueLib, {
     FklVMvalue *proc;
 
     // 前半部分用来存值，后半部分存名字
-    FklVMvalue *values[];
+    FklVMvalue *values[FKL_FLEX_ARRAY_MEMBER];
 });
 
 #define FKL_VM_ERR_RAISE (1)
@@ -711,7 +712,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueChanl, {
     uint32_t sendx;
     uint32_t count;
     uint32_t qsize;
-    struct FklVMvalue *buf[];
+    struct FklVMvalue *buf[FKL_FLEX_ARRAY_MEMBER];
 });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueCodeObj, { FklByteCodelnt bcl; });
@@ -724,12 +725,13 @@ typedef struct {
 
 #define FKL_VM_DEF_DLL_STRUCT(NAME, ...)                                       \
     FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
-        alignas (8) const FklDllStateDesc *desc;                                           \
+        alignas(8) const FklDllStateDesc *desc;                                \
         uv_lib_t dll;                                                          \
-        struct __VA_ARGS__;                                 \
+        struct __VA_ARGS__;                                                    \
     })
 
-FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll, { uint8_t reserved; });
+FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll,
+        { uint8_t reserved[FKL_FLEX_ARRAY_MEMBER]; });
 
 typedef enum {
     FKL_WEAK_MAP_V = 1,
@@ -1054,7 +1056,8 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 
 #define FKL_CPROC_RETURN(EXE, CTX, V)                                          \
     do {                                                                       \
-        (EXE)->bp = (uint32_t)FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));          \
+        (EXE)->bp =                                                            \
+                (uint32_t)FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));    \
         (EXE)->tp = FKL_VM_FRAME_OF(CTX)->bp;                                  \
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)
@@ -1535,17 +1538,19 @@ typedef const FklDllStateDesc *(*FklDllStateDescGet)(void);
 FklDllUninitFunc fklVMdllGetUninitCb(FklVMvalueDll *dll);
 
 #define FKL_CHECK_IMPORT_DLL_INIT_FUNC()                                       \
-    static_assert((FklImportDllInitFunc) & _fklImportInit == &_fklImportInit,  \
+    static_assert(                                                             \
+            _Generic(&_fklImportInit, FklImportDllInitFunc: 1, default: 0),    \
             "invalid import dll init func")
 
 #define FKL_CHECK_EXPORT_DLL_INIT_FUNC()                                       \
-    static_assert((FklCgDllLibInitExportCb)                                    \
-                          & _fklExportSymbolInit == &_fklExportSymbolInit,     \
+    static_assert(_Generic(&_fklExportSymbolInit,                              \
+                    FklCgDllLibInitExportCb: 1,                                \
+                    default: 0),                                               \
             "invalid export dll init func")
 
 #define FKL_CHECK_DLL_DESC_GET_FUNC()                                          \
-    static_assert((FklDllStateDescGet)                                         \
-                          & _fklDllStateDescGet == &_fklDllStateDescGet,       \
+    static_assert(                                                             \
+            _Generic(&_fklDllStateDescGet, FklDllStateDescGet: 1, default: 0), \
             "invalid dll desc get func")
 
 uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);

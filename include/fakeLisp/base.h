@@ -162,7 +162,7 @@ static inline void fklPrintSymLiteral2(const char *fstr,
 
 typedef struct FklBytevector {
     uint64_t size;
-    uint8_t ptr[];
+    uint8_t ptr[FKL_FLEX_ARRAY_MEMBER];
 } FklBytevector;
 FklBytevector *fklStrBufToBytevector(FklStrBuf *);
 

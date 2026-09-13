@@ -96,7 +96,7 @@ char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args) {
         } else if (ast) {
             if (restLen) {
                 fklRewindStream(fp, buf.buf + buf.index - restLen, restLen);
-                buf.index -= (uint32_t)restLen;
+                buf.index -= restLen;
                 buf.buf[buf.index] = '\0';
             }
             args->output = ast;
@@ -167,7 +167,7 @@ char *fklReadWithAnalysisTable(const FklGrammer *g, //
         } else if (ast) {
             if (restLen) {
                 fklRewindStream(fp, buf.buf + buf.index - restLen, restLen);
-                buf.index -= (uint32_t)restLen;
+                buf.index -= restLen;
                 buf.buf[buf.index] = '\0';
             }
             args->output = ast;

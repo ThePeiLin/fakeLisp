@@ -1417,10 +1417,14 @@ static inline int lalr_lookahead_cmp(const FklLalrItemLookAhead *la0,
         case FKL_TERM_KEYWORD:
             return fklStringCmp(la0->s, la1->s);
             break;
-        case FKL_TERM_REGEX:
-            return ((int64_t)la0->re->totalsize)
-                 - ((int64_t)la1->re->totalsize);
-            break;
+        case FKL_TERM_REGEX: {
+            int64_t r = ((int64_t)la0->re->totalsize)
+                      - ((int64_t)la1->re->totalsize);
+
+            return r > 0 ? 1 //
+                 : r < 0 ? -1
+                         : 0;
+        } break;
         case FKL_TERM_NONTERM:
             FKL_UNREACHABLE();
             break;

@@ -381,7 +381,7 @@ void fklWriteBytevector(const FklBytevector *b, FILE *fp) {
 static char *string_buffer_alloc(void *ptr, size_t len) {
     FklStrBuf *buf = ptr;
     fklStrBufReserve(buf, len + 1);
-    buf->index = (uint32_t)len;
+    buf->index = len;
     char *body = fklStrBufBody(buf);
     body[len] = '\0';
     return body;

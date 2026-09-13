@@ -525,7 +525,7 @@ static FklVMvalue *_empty_bc_process(const FklCgActCbArgs *args) {
 static FklVMvalue *sequnce_exp_bc_process(FklVM *exe,
         FklValueVector *stack,
         FklVMvalue *fid,
-        uint64_t line,
+        size_t line,
         uint32_t scope) {
     if (stack->size) {
         FklIns drop = FKL_MAKE_INS_I(FKL_OP_DROP);
@@ -1684,7 +1684,7 @@ static FklVMvalue *_do1_init_val_bc_process(const FklCgActCbArgs *args) {
     uintmax_t *idxbase = ss->base;
     FklVMvalue **bclBase = bcl_vec->base;
     size_t top = bcl_vec->size;
-    for (uint32_t i = 0; i < top; i++) {
+    for (size_t i = 0; i < top; i++) {
         FKL_ASSERT(idxbase[i] <= UINT32_MAX);
         uint32_t idx = (uint32_t)idxbase[i];
         FklVMvalue *curBcl = bclBase[i];
@@ -1713,7 +1713,7 @@ static FklVMvalue *_do1_next_val_bc_process(const FklCgActCbArgs *args) {
         uintmax_t *idxbase = ss->base;
         FklVMvalue **bclBase = bcl_vec->base;
         size_t top = bcl_vec->size;
-        for (uint32_t i = 0; i < top; i++) {
+        for (size_t i = 0; i < top; i++) {
             FKL_ASSERT(idxbase[i] <= UINT32_MAX);
             uint32_t idx = (uint32_t)idxbase[i];
             FklVMvalue *curBcl = bclBase[i];
@@ -2621,7 +2621,7 @@ static inline FklUnbound *get_resolvable_assign_ref(FklVMvalue *id,
         FklVMvalueCgEnv *env) {
     FklUnbound *urefs = env->uref.base;
     size_t top = env->uref.size;
-    for (uint32_t i = 0; i < top; i++) {
+    for (size_t i = 0; i < top; i++) {
         FklUnbound *cur = &urefs[i];
         if (cur->sid == id && cur->scope == scope && cur->assign)
             return cur;

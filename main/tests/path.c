@@ -332,6 +332,39 @@ int main() {
         check_str("fkl-no-b", FKL_VM_SYM(vec->base[1])->str, "path entry 1");
     }
 
+    // fklDupDir
+    {
+        const char *s = "";
+        char *r = fklDupDir(s);
+        check_str(".", r, "dir dup 1");
+        fklZfree(r);
+        r = NULL;
+
+        s = "abcd/efgh/";
+        r = fklDupDir(s);
+        check_str("abcd", r, "dir dup 2");
+        fklZfree(r);
+        r = NULL;
+
+        s = "abcd";
+        r = fklDupDir(s);
+        check_str(".", r, "dir dup 3");
+        fklZfree(r);
+        r = NULL;
+
+        s = "abcd/";
+        r = fklDupDir(s);
+        check_str(".", r, "dir dup 4");
+        fklZfree(r);
+        r = NULL;
+
+        s = "/abcd";
+        r = fklDupDir(s);
+        check_str("/", r, "dir dup 5");
+        fklZfree(r);
+        r = NULL;
+    }
+
     fklDestroyVMgc(gc);
     return 0;
 }

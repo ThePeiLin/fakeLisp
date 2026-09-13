@@ -374,14 +374,32 @@ char *fklRealpath(const char *filename) {
     return fklZstrdup(path_buf);
 }
 
+// steal from musl
 char *fklDupDir(const char *filename) {
+    if (!filename || !*filename)
+        return fklZstrdup(".");
     size_t i = strlen(filename) - 1;
-    for (; filename[i] != FKL_PATH_SEPARATOR; --i)
-        ;
-    char *tmp = (char *)fklZmalloc((i + 1) * sizeof(char));
+
+    for (; filename[i] == FKL_PATH_SEPARATOR; i--) {
+        if (!i)
+            return fklZstrdup(FKL_PATH_SEPARATOR_STR);
+    }
+
+    for (; filename[i] != FKL_PATH_SEPARATOR; i--) {
+        if (!i)
+            return fklZstrdup(".");
+    }
+
+    for (; filename[i] == FKL_PATH_SEPARATOR; i--) {
+        if (!i)
+            return fklZstrdup(FKL_PATH_SEPARATOR_STR);
+    }
+
+    size_t len = i + 1;
+    char *tmp = (char *)fklZmalloc((len + 2) * sizeof(char));
     FKL_ASSERT(tmp);
-    tmp[i] = '\0';
-    memcpy(tmp, filename, i);
+    tmp[len] = '\0';
+    memcpy(tmp, filename, len);
     return tmp;
 }
 

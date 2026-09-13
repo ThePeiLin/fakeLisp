@@ -156,8 +156,7 @@ typedef struct {
     FklVMvalue *dll;
 } FklVMvalueCproc;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueUd,
-        { uint8_t reserved[FKL_FLEX_ARRAY_MEMBER]; });
+FKL_VM_DEF_UD(FklVMvalueUd, /* no extra members */);
 
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
@@ -723,15 +722,17 @@ typedef struct {
     FklVMudFinalizer finalizer;
 } FklDllStateDesc;
 
-#define FKL_VM_DEF_DLL_STRUCT(NAME, ...)                                       \
+#define FKL_VM_DEF_DLL(NAME, ...)                                              \
     FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
         alignas(8) const FklDllStateDesc *desc;                                \
         uv_lib_t dll;                                                          \
-        struct __VA_ARGS__;                                                    \
+        __VA_ARGS__                                                            \
     })
 
-FKL_VM_DEF_DLL_STRUCT(FklVMvalueDll,
-        { uint8_t reserved[FKL_FLEX_ARRAY_MEMBER]; });
+#define FKL_VM_DEF_DLL_STRUCT(NAME, ...)                                       \
+    FKL_VM_DEF_DLL(NAME, struct __VA_ARGS__;)
+
+FKL_VM_DEF_DLL(FklVMvalueDll, /* no extra members */);
 
 typedef enum {
     FKL_WEAK_MAP_V = 1,

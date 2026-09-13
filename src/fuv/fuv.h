@@ -78,40 +78,40 @@ FKL_VM_DEF_UD_STRUCT(FuvValueLoop, {
     FuvLoopData data;
 });
 
-#define FUV_DEF_HANDLE_1(NAME, UV_TYPE_NAME, ...)                              \
+#define FUV_DEF_HANDLE(NAME, UV_TYPE_NAME, ...)                                \
     FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
         FuvHandleData data;                                                    \
         uv_##UV_TYPE_NAME##_t handle;                                          \
         __VA_ARGS__                                                            \
     })
 
-#define FUV_DEF_HANDLE(NAME, UV_TYPE_NAME, ...)                                \
-    FUV_DEF_HANDLE_1(NAME, UV_TYPE_NAME, struct __VA_ARGS__;)
+#define FUV_DEF_HANDLE_STRUCT(NAME, UV_TYPE_NAME, ...)                         \
+    FUV_DEF_HANDLE(NAME, UV_TYPE_NAME, struct __VA_ARGS__;)
 
-FUV_DEF_HANDLE_1(FuvValueHandle, handle, );
-FUV_DEF_HANDLE_1(FuvValueCheck, check, );
-FUV_DEF_HANDLE_1(FuvValueFsEvent, fs_event, );
+FUV_DEF_HANDLE(FuvValueHandle, handle, /* no extra members */);
+FUV_DEF_HANDLE(FuvValueCheck, check, /* no extra members */);
+FUV_DEF_HANDLE(FuvValueFsEvent, fs_event, /* no extra members */);
 
-FUV_DEF_HANDLE_1(FuvValueFsPoll, fs_poll, );
+FUV_DEF_HANDLE(FuvValueFsPoll, fs_poll, /* no extra members */);
 
-FUV_DEF_HANDLE_1(FuvValueIdle, idle, );
-FUV_DEF_HANDLE_1(FuvValuePrepare, prepare, );
+FUV_DEF_HANDLE(FuvValueIdle, idle, /* no extra members */);
+FUV_DEF_HANDLE(FuvValuePrepare, prepare, /* no extra members */);
 
-FUV_DEF_HANDLE_1(FuvValueTcp, tcp, );
-FUV_DEF_HANDLE_1(FuvValueTimer, timer, );
+FUV_DEF_HANDLE(FuvValueTcp, tcp, /* no extra members */);
+FUV_DEF_HANDLE(FuvValueTimer, timer, /* no extra members */);
 
-FUV_DEF_HANDLE_1(FuvValueSignal, signal, );
+FUV_DEF_HANDLE(FuvValueSignal, signal, /* no extra members */);
 
-FUV_DEF_HANDLE(FuvValueAsync, async, {
+FUV_DEF_HANDLE_STRUCT(FuvValueAsync, async, {
     _Atomic(struct FuvAsyncExtraData *) extra;
     atomic_flag send_ready;
     atomic_flag copy_done;
     atomic_flag send_done;
 });
 
-FUV_DEF_HANDLE(FuvValuePipe, pipe, { FklVMvalue *fp; });
-FUV_DEF_HANDLE(FuvValuePoll, poll, { FklVMvalue *fp; });
-FUV_DEF_HANDLE(FuvValueProcess, process, {
+FUV_DEF_HANDLE_STRUCT(FuvValuePipe, pipe, { FklVMvalue *fp; });
+FUV_DEF_HANDLE_STRUCT(FuvValuePoll, poll, { FklVMvalue *fp; });
+FUV_DEF_HANDLE_STRUCT(FuvValueProcess, process, {
     FklVMvalue *args_obj;
     FklVMvalue *env_obj;
     FklVMvalue *file_obj;
@@ -119,35 +119,35 @@ FUV_DEF_HANDLE(FuvValueProcess, process, {
     FklVMvalue *cwd_obj;
 });
 
-FUV_DEF_HANDLE(FuvValueTty, tty, { FklVMvalue *fp; });
-FUV_DEF_HANDLE(FuvValueUdp, udp, { int64_t mmsg_num_msgs; });
+FUV_DEF_HANDLE_STRUCT(FuvValueTty, tty, { FklVMvalue *fp; });
+FUV_DEF_HANDLE_STRUCT(FuvValueUdp, udp, { int64_t mmsg_num_msgs; });
 
-#define FUV_DEF_REQ_1(NAME, UV_TYPE_NAME, ...)                                 \
+#define FUV_DEF_REQ(NAME, UV_TYPE_NAME, ...)                                   \
     FKL_VM_DEF_UD_STRUCT(NAME, {                                               \
         FuvReqData data;                                                       \
         uv_##UV_TYPE_NAME##_t req;                                             \
         __VA_ARGS__                                                            \
     })
 
-#define FUV_DEF_REQ(NAME, UV_TYPE_NAME, ...)                                   \
-    FUV_DEF_REQ_1(NAME, UV_TYPE_NAME, struct __VA_ARGS__;)
+#define FUV_DEF_REQ_STRUCT(NAME, UV_TYPE_NAME, ...)                            \
+    FUV_DEF_REQ(NAME, UV_TYPE_NAME, struct __VA_ARGS__;)
 
-FUV_DEF_REQ_1(FuvValueReq, req, );
-FUV_DEF_REQ_1(FuvValueConnect, connect, );
-FUV_DEF_REQ_1(FuvValueShutdown, shutdown, );
-FUV_DEF_REQ_1(FuvValueGetaddrinfo, getaddrinfo, );
-FUV_DEF_REQ_1(FuvValueGetnameinfo, getnameinfo, );
+FUV_DEF_REQ(FuvValueReq, req, /* no extra members */);
+FUV_DEF_REQ(FuvValueConnect, connect, /* no extra members */);
+FUV_DEF_REQ(FuvValueShutdown, shutdown, /* no extra members */);
+FUV_DEF_REQ(FuvValueGetaddrinfo, getaddrinfo, /* no extra members */);
+FUV_DEF_REQ(FuvValueGetnameinfo, getnameinfo, /* no extra members */);
 
-FUV_DEF_REQ(FuvValueWrite, write, { FklVMvalue *write_objs[1]; });
-FUV_DEF_REQ(FuvValueUdpSend, udp_send, { FklVMvalue *send_objs[1]; });
-FUV_DEF_REQ(FuvValueFsReq, fs, {
+FUV_DEF_REQ_STRUCT(FuvValueWrite, write, { FklVMvalue *write_objs[1]; });
+FUV_DEF_REQ_STRUCT(FuvValueUdpSend, udp_send, { FklVMvalue *send_objs[1]; });
+FUV_DEF_REQ_STRUCT(FuvValueFsReq, fs, {
     FklVMvalue *dest_path;
     size_t nentries;
     FklVMvalue *dir;
     uv_buf_t buf;
     char base[1];
 });
-FUV_DEF_REQ(FuvValueRandom, random, { uint8_t buf[1]; });
+FUV_DEF_REQ_STRUCT(FuvValueRandom, random, { uint8_t buf[1]; });
 
 FKL_VM_DEF_UD_STRUCT(FuvValueDir, {
     uv_dir_t *dir;

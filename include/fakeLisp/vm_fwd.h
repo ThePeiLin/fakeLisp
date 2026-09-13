@@ -40,10 +40,10 @@ typedef enum {
 } FklVMvalueMark;
 
 #define FKL_VM_VALUE_COMMON_HEADER                                             \
+    FklVMvalueMark volatile mark_;                                             \
+    FklValueType type_;                                                        \
     alignas(8) struct FklVMvalue *next_;                                       \
-    struct FklVMvalue *gray_next_;                                             \
-    FklVMvalueMark volatile mark_ : 32;                                        \
-    FklValueType type_ : 32
+    struct FklVMvalue *gray_next_
 
 #define FKL_VM_UD_COMMON_HEADER alignas(8) const struct FklVMvalueType *tp_
 

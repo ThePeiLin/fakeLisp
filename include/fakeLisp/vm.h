@@ -157,6 +157,10 @@ typedef struct {
 } FklVMvalueCproc;
 
 FKL_VM_DEF_UD(FklVMvalueUd, /* no extra members */);
+static_assert(sizeof(FklVMvalueUd) % sizeof(int64_t) == 0, "invalid ud size");
+static_assert(offsetof(FklVMvalueUd, tp_) == sizeof(FklVMvalue),
+        "invalid tp_ offset");
+static_assert(alignof(FklVMvalueUd) % sizeof(int64_t) == 0, "invalid ud align");
 
 #define FKL_VM_FP_R_MASK (1)
 #define FKL_VM_FP_W_MASK (2)
@@ -733,6 +737,11 @@ typedef struct {
     FKL_VM_DEF_DLL(NAME, struct __VA_ARGS__;)
 
 FKL_VM_DEF_DLL(FklVMvalueDll, /* no extra members */);
+static_assert(sizeof(FklVMvalueDll) % sizeof(int64_t) == 0, "invalid dll size");
+static_assert(alignof(FklVMvalueDll) % sizeof(int64_t) == 0,
+        "invalid dll align");
+static_assert(offsetof(FklVMvalueDll, desc) == sizeof(FklVMvalueUd),
+        "invalid dll desc offset");
 
 typedef enum {
     FKL_WEAK_MAP_V = 1,

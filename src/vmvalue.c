@@ -2378,7 +2378,8 @@ void fklVMtypePrint(const FklVMvalue *v, FklCodeBuilder *b, FklVM *exe) {
 
 void fklVMtypeCall(FklVMvalue *v, FklVM *vm) { FKL_TODO(); }
 
-alignas(8) const FklVMvalueType FklVMtypeType = {
+FKL_VM_TYPE_TYPE_ATTR
+FklVMvalueType FklVMtypeType = {
     .next_ = NULL,
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,

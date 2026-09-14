@@ -329,7 +329,8 @@ void *fklDefaultParseForCharBuf(const char *cstr,
 
 // value line number table
 
-static const FklVMvalueType LntType;
+FKL_VM_TYPE_ATTR
+FklVMvalueType LntType;
 
 int fklIsVMvalueLnt(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &LntType.mt;
@@ -361,8 +362,8 @@ static void lnt_ud_update_weak_ref(const FklVMvalue *ud, FklVMgc *gc) {
     }
 }
 
-alignas(8) static const FklVMvalueType LntType = FKL_VM_TYPE_STATIC_INIT(
-        LntType,
+FKL_VM_TYPE_ATTR
+FklVMvalueType LntType = FKL_VM_TYPE_STATIC_INIT(LntType,
         {
             .name = "lnt",
             .size = sizeof(FklVMvalueLnt),

@@ -174,7 +174,8 @@ typedef uint8_t LibType;
 
 FKL_VM_DEF_UD_STRUCT(LibPlaceholder, { LibIdx idx; });
 
-static const alignas(8) FklVMvalueType LibPlaceholderType;
+FKL_VM_TYPE_ATTR
+FklVMvalueType LibPlaceholderType;
 
 static FKL_ALWAYS_INLINE FKL_UNUSED int is_lib_placeholder(
         const FklVMvalue *v) {
@@ -195,14 +196,14 @@ lib_placeholder_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
             as_lib_placeholder(ud)->idx);
 }
 
-alignas(8) static const FklVMvalueType LibPlaceholderType =
-        FKL_VM_TYPE_STATIC_INIT(LibPlaceholderType,
-                {
-                    .name = "lib-placeholder",
-                    .size = sizeof(LibPlaceholder),
-                    .princ = lib_placeholder_print,
-                    .prin1 = lib_placeholder_print,
-                });
+FKL_VM_TYPE_ATTR
+FklVMvalueType LibPlaceholderType = FKL_VM_TYPE_STATIC_INIT(LibPlaceholderType,
+        {
+            .name = "lib-placeholder",
+            .size = sizeof(LibPlaceholder),
+            .princ = lib_placeholder_print,
+            .prin1 = lib_placeholder_print,
+        });
 
 static inline FklVMvalue *create_lib_placeholder(FklVM *vm, LibIdx idx) {
     FklVMvalue *v = fklCreateVMvalueUd(vm, &LibPlaceholderType);

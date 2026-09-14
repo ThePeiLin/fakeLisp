@@ -499,8 +499,12 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
 void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
 void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
 
-FKL_DLL_EXPORT
-extern alignas(8) const FklVMvalueType FklVMtypeType;
+#define FKL_VM_TYPE_TYPE_ATTR alignas(8) const
+
+extern
+FKL_VM_TYPE_TYPE_ATTR
+FKL_DLL_API
+FklVMvalueType FklVMtypeType;
 
 typedef enum {
     FKL_GC_NONE = 0,

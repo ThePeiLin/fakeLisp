@@ -1599,7 +1599,8 @@ static const FklVMframeContextMethodTable ReadContextMethodTable = {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueGra, { FklGrammer g; });
 
-static const alignas(8) FklVMvalueType CustomParserType;
+FKL_VM_TYPE_ATTR
+FklVMvalueType CustomParserType;
 
 static inline int is_gra(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v)

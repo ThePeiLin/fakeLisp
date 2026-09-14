@@ -101,8 +101,17 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 #endif
 
 #ifdef _WIN32
-#define FKL_DLL_EXPORT __declspec(dllexport)
+
+#ifdef FKL_USING_DLL
+#define FKL_DLL_API __declspec(dllimport)
 #else
+#define FKL_DLL_API __declspec(dllexport)
+#endif
+
+#define FKL_DLL_EXPORT __declspec(dllexport)
+
+#else
+#define FKL_DLL_API
 #define FKL_DLL_EXPORT
 #endif
 

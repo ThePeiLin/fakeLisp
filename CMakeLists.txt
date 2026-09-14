@@ -313,6 +313,7 @@ function(add_fkl_native_module name)
 	add_library(${name} SHARED ${MOD_SRC})
 	set_target_properties(${name} PROPERTIES PREFIX "")
 	target_define_relative_file(${name})
+	target_compile_definitions(${name} PRIVATE FKL_USING_DLL)
 	if(MSVC)
 		add_custom_command(TARGET ${name} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"

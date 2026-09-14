@@ -407,7 +407,7 @@ FklRegexCode *fklRegexCompileCstr(const char *cstr) {
     return fklRegexCompileCharBuf(cstr, strlen(cstr));
 }
 
-static inline void print_char(char ch, FILE *fp) {
+static inline void print_char(int ch, FILE *fp) {
     if (ch == '[')
         fputs("\\[", fp);
     else if (ch == ']')

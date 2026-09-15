@@ -215,6 +215,7 @@ typedef struct {
     BdbWrapper error;
 } BdbIntArg;
 
+void bdbInitStaticTypes(void);
 int bdbInitDbgCtx(DebugCtx *,
         FklVM *exe,
         const char *filename,

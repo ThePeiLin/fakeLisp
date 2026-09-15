@@ -1093,6 +1093,11 @@ FKL_VM_TYPE_ATTR FklVMvalueType BreakpointWrapperType =
                     .princ = bp_wrapper_print,
                 });
 
+void bdbInitStaticTypes(void) {
+    BdbStepBreakType.tp_ = &FklVMtypeType;
+    BreakpointWrapperType.tp_ = &FklVMtypeType;
+}
+
 FklVMvalueBpWrapper *bdbCreateBpWrapper(FklVM *vm, BdbBp *bp) {
     FklVMvalueBpWrapper *r = (FklVMvalueBpWrapper *)fklCreateVMvalueUd(vm,
             &BreakpointWrapperType);

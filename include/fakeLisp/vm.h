@@ -499,12 +499,13 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
 void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
 void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
 
+#ifdef FKL_USING_WIN32
+#define FKL_VM_TYPE_TYPE_ATTR alignas(8)
+#else
 #define FKL_VM_TYPE_TYPE_ATTR alignas(8) const
+#endif
 
-extern
-FKL_VM_TYPE_TYPE_ATTR
-FKL_DLL_API
-FklVMvalueType FklVMtypeType;
+extern FKL_DLL_API FKL_VM_TYPE_TYPE_ATTR FklVMvalueType FklVMtypeType;
 
 typedef enum {
     FKL_GC_NONE = 0,
@@ -1993,19 +1994,29 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
     return r;
 }
 
+#ifdef FKL_USING_DLL
+#define FKL_VM_TYPE_TP_INIT NULL
+#else
+#define FKL_VM_TYPE_TP_INIT &FklVMtypeType
+#endif
+
 #define FKL_VM_TYPE_STATIC_INIT(NAME, ...)                                     \
     {                                                                          \
         .next_ = NULL,                                                         \
         .gray_next_ = NULL,                                                    \
         .mark_ = FKL_MARK_B,                                                   \
         .type_ = FKL_TYPE_USERDATA,                                            \
-        .tp_ = &FklVMtypeType,                                                 \
+        .tp_ = FKL_VM_TYPE_TP_INIT,                                                 \
         .dll = NULL,                                                           \
         .token = &NAME.mt,                                                     \
         .mt = __VA_ARGS__,                                                     \
     }
 
+#ifdef FKL_USING_WIN32
+#define FKL_VM_TYPE_ATTR alignas(8) static
+#else
 #define FKL_VM_TYPE_ATTR alignas(8) static const
+#endif
 
 FklVMvalueType *fklCreateVMvalueType(FklVM *,
         FklVMvalue *dll,

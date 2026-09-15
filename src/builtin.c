@@ -5234,8 +5234,6 @@ static alignas(8)
 
 static FklVMvalue *builtin_refs[FKL_BUILTIN_SYMBOL_NUM];
 
-static uv_once_t init_builtin_refs_once = UV_ONCE_INIT;
-
 static void init_builtin_refs_once_cb(void) {
     fklInitVMvalueFp(&StdinUserDataValue, stdin, FKL_VM_FP_R);
     fklInitVMvalueFp(&StdoutUserDataValue, stdout, FKL_VM_FP_W);
@@ -5249,6 +5247,7 @@ static void init_builtin_refs_once_cb(void) {
 }
 
 static inline FklVMvalue **init_builtin_refs(void) {
+    static uv_once_t init_builtin_refs_once = UV_ONCE_INIT;
     uv_once(&init_builtin_refs_once, init_builtin_refs_once_cb);
     return builtin_refs;
 }

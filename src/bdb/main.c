@@ -68,6 +68,7 @@ static inline void atomic_cmd_read_ctx(const BdbCmdReadCtx *ctx, FklVMgc *gc) {
 static const FklVMudMetaTable DebugCtxMt;
 
 static void init_bdb_public_data(FklVMvalue *dll, FklVM *exe) {
+    bdbInitStaticTypes();
     FklVMvalueBdbDll *pd = as_bdb_dll(dll);
     pd->BdbCtxType = fklCreateVMvalueType(exe, dll, &DebugCtxMt, &DebugCtxMt);
     pd->done_sym = fklVMaddSymbolCstr(exe, "done");

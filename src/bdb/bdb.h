@@ -29,7 +29,7 @@ struct BdbBpInsHashMapElm;
 typedef struct {
     const FklString *str;
     const FklString *filename;
-    uint32_t line;
+    size_t line;
 } BdbPos;
 
 // 用于区分宿主的值和调试器的值
@@ -73,7 +73,7 @@ typedef struct BdpBp {
     atomic_uint reached_count;
     uint32_t idx;
     uint32_t count;
-    uint32_t line;
+    size_t line;
 
     uint8_t is_errored;
     uint8_t is_temporary;
@@ -152,8 +152,8 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
     int8_t running;
     int8_t done;
 
-    uint32_t curlist_line;
-    uint32_t curline;
+    size_t curlist_line;
+    size_t curline;
 
     uint64_t cur_ins_pc;
 
@@ -236,12 +236,12 @@ BdbCodepoint *bdbGetCodepoint(DebugCtx *, const FklIns *ins);
 
 const FklIns *bdbGetIns(DebugCtx *ctx,
         const FklString *filename,
-        uint32_t line,
+        size_t line,
         BdbPutBpErrorType *);
 
 BdbBp *bdbPutBp(DebugCtx *ctx,
         const FklString *filename,
-        uint32_t line,
+        size_t line,
         BdbPutBpErrorType *);
 
 BdbBp *bdbPutBp1(DebugCtx *ctx, const FklString *func_name);
@@ -252,9 +252,9 @@ BdbBp *bdbGetBp(const FklVMvalue *v);
 
 const char *bdbGetPutBpErrorMsg(BdbPutBpErrorType t);
 
-BdbBp *bdbDisableBp(DebugCtx *ctx, uint32_t idx);
-BdbBp *bdbEnableBp(DebugCtx *ctx, uint32_t idx);
-BdbBp *bdbDeleteBp(DebugCtx *ctx, uint32_t idx);
+BdbBp *bdbDisableBp(DebugCtx *ctx, size_t idx);
+BdbBp *bdbEnableBp(DebugCtx *ctx, size_t idx);
+BdbBp *bdbDeleteBp(DebugCtx *ctx, size_t idx);
 void bdbClearDeletedBp(DebugCtx *dctx);
 
 BdbPos bdbBpPos(const BdbBp *bp);
@@ -279,7 +279,7 @@ void bdbUnsetStepping(DebugCtx *);
 
 void bdbSetStepOut(DebugCtx *);
 
-void bdbSetStepUntil(DebugCtx *, uint32_t line);
+void bdbSetStepUntil(DebugCtx *, size_t line);
 
 typedef enum {
     BDB_STEP_INS_NEXT = 0,

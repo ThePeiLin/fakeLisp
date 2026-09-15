@@ -201,7 +201,7 @@ static void src_vec_move(FklStringVector *to, const FklStringVector *from) {
 }
 
 static inline const FklString *
-get_line(DebugCtx *ctx, const FklString *filename, uint32_t line) {
+get_line(DebugCtx *ctx, const FklString *filename, size_t line) {
     if (!bdbHasSymbol(ctx, filename))
         return NULL;
     FklVMvalue *file_sym = fklVMaddSymbol(&ctx->gc.gcvm, filename);
@@ -471,7 +471,7 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
 }
 
 static inline void set_argv_with_list(FklVMgc *gc, FklVMvalue *argv_list) {
-    int argc = fklVMlistLength(argv_list);
+    int argc = (int)fklVMlistLength(argv_list);
     gc->argc = argc;
     if (argc == 0) {
         gc->argv = NULL;
@@ -626,7 +626,7 @@ const FklStringVector *bdbGetSource(DebugCtx *dctx, const FklString *filename) {
 
 const FklIns *bdbGetIns(DebugCtx *ctx,
         const FklString *filename,
-        uint32_t line,
+        size_t line,
         BdbPutBpErrorType *err) {
     const FklStringVector *sc_item = bdbGetSource(ctx, filename);
     if (!sc_item) {
@@ -682,7 +682,7 @@ FklVMvalue *bdbGetCurBacktrace(DebugCtx *ctx, FklVM *host_vm) {
     if (ctx->reached_thread_frames.size == 0)
         return NULL;
     FklVM *reached_thread = ctx->reached_thread;
-    uint32_t top = ctx->reached_thread_frames.size;
+    size_t top = ctx->reached_thread_frames.size;
     FklVMframe **base = ctx->reached_thread_frames.base;
 
     FklStrBuf buf = { 0 };
@@ -693,7 +693,7 @@ FklVMvalue *bdbGetCurBacktrace(DebugCtx *ctx, FklVM *host_vm) {
 
     FklVMvalue *retval = FKL_VM_NIL;
     FklVMvalue **ppcdr = &retval;
-    for (uint32_t i = 0; i < top; i++) {
+    for (size_t i = 0; i < top; i++) {
         fklStrBufClear(&buf);
 
         FklVMframe *cur = base[i];
@@ -900,7 +900,7 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
         fklInitStrBuf(&buf);
         fklStrBufPuts(&buf, fklGetOpcodeName(op));
         fklStrBufPuts(&buf, "::");
-        fklStrBufPuts(&buf, fklGetSubOpcodeName(op, arg.ix));
+        fklStrBufPuts(&buf, fklGetSubOpcodeName(op, (uint8_t)arg.ix));
         opcode_str = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
         fklUninitStrBuf(&buf);
         goto op_with_subop;
@@ -1126,8 +1126,8 @@ static FKL_ALWAYS_INLINE BdbBp *get_bp(DebugCtx *dctx, uint32_t idx) {
     return NULL;
 }
 
-BdbBp *bdbDisableBp(DebugCtx *dctx, uint32_t idx) {
-    BdbBp *bp = get_bp(dctx, idx);
+BdbBp *bdbDisableBp(DebugCtx *dctx, size_t idx) {
+    BdbBp *bp = get_bp(dctx, (uint32_t)idx);
     if (bp) {
         bp->is_disabled = 1;
         return bp;
@@ -1135,8 +1135,8 @@ BdbBp *bdbDisableBp(DebugCtx *dctx, uint32_t idx) {
     return NULL;
 }
 
-BdbBp *bdbEnableBp(DebugCtx *dctx, uint32_t idx) {
-    BdbBp *bp = get_bp(dctx, idx);
+BdbBp *bdbEnableBp(DebugCtx *dctx, size_t idx) {
+    BdbBp *bp = get_bp(dctx, (uint32_t)idx);
     if (bp) {
         bp->is_disabled = 0;
         return bp;
@@ -1162,10 +1162,11 @@ void bdbClearDeletedBp(DebugCtx *dctx) {
     }
 }
 
-BdbBp *bdbDeleteBp(DebugCtx *dctx, uint32_t idx) {
+BdbBp *bdbDeleteBp(DebugCtx *dctx, size_t idx) {
     BdbBp *bp = NULL;
     BdbBpTable *bt = &dctx->bt;
-    if (bdbBpIdxHashMapErase(&bt->idx_ht, &idx, &bp, NULL)) {
+    uint32_t idx1 = (uint32_t)idx;
+    if (bdbBpIdxHashMapErase(&bt->idx_ht, &idx1, &bp, NULL)) {
         mark_breakpoint_deleted(bp, bt);
         return bp;
     }
@@ -1218,7 +1219,7 @@ BdbPos bdbBpPos(const BdbBp *bp) {
 static inline BdbBp *make_breakpoint(BdbBpInsHashMapElm *item,
         BdbBpTable *bt,
         FklVMvalue *fid,
-        uint32_t line) {
+        size_t line) {
     BdbBp *bp = (BdbBp *)fklZcalloc(1, sizeof(BdbBp));
     FKL_ASSERT(bp);
     bp->filename = bdbWrap(fid);
@@ -1236,7 +1237,7 @@ static inline BdbBp *make_breakpoint(BdbBpInsHashMapElm *item,
 
 static inline BdbBp *create_bp(DebugCtx *ctx,
         const FklString *filename,
-        uint32_t line,
+        size_t line,
         const FklIns *ins) {
     FKL_ASSERT(bdbHasSymbol(ctx, filename));
     FklVMvalue *s = fklVMaddSymbol(&ctx->gc.gcvm, filename);
@@ -1251,7 +1252,7 @@ static inline BdbBp *create_bp(DebugCtx *ctx,
 
 BdbBp *bdbPutBp(DebugCtx *ctx,
         const FklString *filename,
-        uint32_t line,
+        size_t line,
         BdbPutBpErrorType *err) {
     const FklIns *ins = bdbGetIns(ctx, filename, line, err);
     if (ins == NULL)
@@ -1399,13 +1400,13 @@ static inline void set_step_ins(DebugCtx *ctx,
             ins[0] = p->spc;
         } else {
             FklInsArg arg = { 0 };
-            int8_t l = fklGetInsOpArg(f->pc, &arg);
+            int l = fklGetInsOpArg(f->pc, &arg);
             ins[0] = f->pc + l;
         }
 
     } else if (fklIsLoadLibIns(*(f->pc))) {
         FklInsArg arg = { 0 };
-        int8_t l = fklGetInsOpArg(f->pc, &arg);
+        int l = fklGetInsOpArg(f->pc, &arg);
         FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
         FklVMvalueLib *lib = fklVMvalueProtoUsedLibs(proto)[arg.ux];
 
@@ -1537,14 +1538,14 @@ static inline void set_step_line(DebugCtx *ctx,
         }
 
         FklInsArg arg = { 0 };
-        int8_t l = fklGetInsOpArg(cur_ins, &arg);
+        int l = fklGetInsOpArg(cur_ins, &arg);
         ins[0] = cur_ins + l;
         cur_ins = ins[0];
         goto get_next_line_ins;
 
     } else if (fklIsLoadLibIns(tmp_ins)) {
         FklInsArg arg = { 0 };
-        int8_t l = fklGetInsOpArg(cur_ins, &arg);
+        int l = fklGetInsOpArg(cur_ins, &arg);
         FklVMvalueProto *proto = FKL_VM_PROC(f->proc)->proto;
         FklVMvalueLib *lib = fklVMvalueProtoUsedLibs(proto)[arg.ux];
 
@@ -1640,7 +1641,7 @@ void bdbSetStepOut(DebugCtx *ctx) {
             &(SetSteppingArgs){ .i = 0, .flags = BDB_INT3_STEPPING });
 }
 
-void bdbSetStepUntil(DebugCtx *ctx, uint32_t target_line) {
+void bdbSetStepUntil(DebugCtx *ctx, size_t target_line) {
     FklVM *exe = ctx->reached_thread;
 
     if (exe == NULL || exe->top_frame == NULL)

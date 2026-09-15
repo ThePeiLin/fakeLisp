@@ -259,8 +259,8 @@ FklVMvalue *bdbListThreads(DebugCtx *ctx, FklVM *host_vm) {
     FklVMvalue *retval = FKL_VM_NIL;
     FklVMvalue **ppcdr = &retval;
     FklVM **base = (FklVM **)ctx->threads.base;
-    uint32_t top = ctx->threads.size;
-    for (uint32_t i = 0; i < top; i++) {
+    size_t top = ctx->threads.size;
+    for (size_t i = 0; i < top; i++) {
         FklVM *cur = base[i];
         int is_cur = i + 1 == ctx->curthread_idx;
 

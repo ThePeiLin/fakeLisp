@@ -14,7 +14,7 @@ FKL_VM_DEF_DLL_STRUCT(FklVMvalueBdbDll, {
     FklVMvalue *err_sym;
 });
 
-static const FklDllStateDesc state_desc;
+static FklDllStateDesc state_desc;
 
 static FKL_ALWAYS_INLINE FklVMvalueBdbDll *as_bdb_dll(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -30,7 +30,7 @@ static void bdb_dll_atomic(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(pd->err_sym, gc);
 }
 
-static FklDllStateDesc const state_desc = {
+static FklDllStateDesc state_desc = {
     .size = sizeof(FklVMvalueBdbDll),
     .atomic = bdb_dll_atomic,
 };
@@ -65,7 +65,7 @@ static inline void atomic_cmd_read_ctx(const BdbCmdReadCtx *ctx, FklVMgc *gc) {
         fklVMgcToGray(base->ast, gc);
 }
 
-static const FklVMudMetaTable DebugCtxMt;
+static FklVMudMetaTable DebugCtxMt;
 
 static void init_bdb_public_data(FklVMvalue *dll, FklVM *exe) {
     bdbInitStaticTypes();
@@ -92,7 +92,7 @@ static void debug_ctx_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 
 static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
     DebugCtx *ctx = as_dbg_ctx(data);
-    if (ctx->exit == 0) {
+    if (ctx->inited != 0 && ctx->exit == 0) {
         fprintf(stderr,
                 "[%s: %d] debug ctx should be exit manually before it be finalized\n",
                 __REL_FILE__,
@@ -103,7 +103,7 @@ static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static const FklVMudMetaTable DebugCtxMt = {
+static FklVMudMetaTable DebugCtxMt = {
     .name = "debug-ctx",
     .size = sizeof(DebugCtx),
     .prin1 = debug_ctx_print,
@@ -143,8 +143,9 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
     }
 
     fklZfree(valid_filename);
-    if (r)
+    if (r) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
+    }
     FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
 }
@@ -431,7 +432,7 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
     DebugCtx *dctx = as_dbg_ctx(dctx_obj);
 
     FklVMvalue *filename = NULL;
-    uint32_t line = 0;
+    uint64_t line = 0;
     BdbPutBpErrorType err = 0;
     BdbBp *item = NULL;
 
@@ -616,9 +617,10 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
         if (line_num <= 0 || line_num >= dctx->curfile_lines->v.size)
             FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
         else {
-            uint32_t curline_num = line_num;
-            const FklString *line_str =
-                    dctx->curfile_lines->v.base[curline_num - 1];
+            size_t curline_num = line_num;
+
+            const FklString *line_str;
+            line_str = dctx->curfile_lines->v.base[curline_num - 1];
 
             FklVMvalue *num_val = FKL_MAKE_VM_FIX(curline_num);
             FklVMvalue *is_cur_line =
@@ -633,9 +635,9 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
             FKL_CPROC_RETURN(exe, ctx, r);
         }
     } else if (dctx->curlist_line <= dctx->curfile_lines->v.size) {
-        uint32_t curline_num = dctx->curlist_line;
-        const FklString *line_str =
-                dctx->curfile_lines->v.base[curline_num - 1];
+        size_t curline_num = dctx->curlist_line;
+        const FklString *line_str;
+        line_str = dctx->curfile_lines->v.base[curline_num - 1];
 
         FklVMvalue *num_val = FKL_MAKE_VM_FIX(curline_num);
         FklVMvalue *is_cur_line =
@@ -684,7 +686,7 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     if (FKL_TYPE_CAST(uint64_t, line_num) >= item->size) {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
     } else {
-        uint32_t target_line = line_num;
+        size_t target_line = line_num;
         const FklString *line_str = item->base[target_line - 1];
 
         FklVMvalue *num_val = FKL_MAKE_VM_FIX(target_line);
@@ -1062,7 +1064,7 @@ static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL) {
 
     int64_t id = FKL_GET_FIX(id_obj);
     if (id > 0 && id <= (int64_t)dctx->threads.size) {
-        bdbSwitchCurThread(dctx, FKL_GET_FIX(id_obj));
+        bdbSwitchCurThread(dctx, (uint32_t)FKL_GET_FIX(id_obj));
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_TRUE);
     } else {
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_NIL);
@@ -1124,7 +1126,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

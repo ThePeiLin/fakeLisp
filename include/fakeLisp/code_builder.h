@@ -69,7 +69,7 @@ fklCodeBuilderWrite(const FklCodeBuilder *b, size_t c, const void *s) {
     return b->t->cb_write(b->ctx, c, s);
 }
 
-static inline int fklCodeBuilderPutEscSeq(const FklCodeBuilder *b, char ch) {
+static inline int fklCodeBuilderPutEscSeq(const FklCodeBuilder *b, int ch) {
     int r = 0;
     if ((r = ch == '\n'))
         fklCodeBuilderPuts(b, "\\n");

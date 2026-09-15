@@ -332,7 +332,7 @@ void fklPrintCharLiteral2(int chr, FklCodeBuilder *build) {
         else
             fklCodeBuilderFmt(build, "%c", chr);
     } else {
-        uint8_t j = chr;
+        uint8_t j = (uint8_t)chr;
         fklCodeBuilderFmt(build, "\\x%02X", j);
     }
 }

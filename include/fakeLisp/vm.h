@@ -2012,7 +2012,7 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
         .mt = __VA_ARGS__,                                                     \
     }
 
-#ifdef FKL_USING_WIN32
+#ifdef FKL_USING_DLL
 #define FKL_VM_TYPE_ATTR alignas(8) static
 #else
 #define FKL_VM_TYPE_ATTR alignas(8) static const

@@ -312,13 +312,13 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
     }
 }
 
-void fklPrintCharLiteral(char chr, FILE *out) {
+void fklPrintCharLiteral(int chr, FILE *out) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderFp(&builder, out, NULL);
     fklPrintCharLiteral2(chr, &builder);
 }
 
-void fklPrintCharLiteral2(char chr, FklCodeBuilder *build) {
+void fklPrintCharLiteral2(int chr, FklCodeBuilder *build) {
     fklCodeBuilderPuts(build, "#\\");
     if (chr == ' ')
         fklCodeBuilderPuts(build, "\\s");

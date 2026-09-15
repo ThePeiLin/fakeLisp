@@ -30,8 +30,8 @@ int fklIsNumberCharBuf(const char *, size_t);
 
 int fklPower(int, int);
 
-void fklPrintCharLiteral(char, FILE *);
-void fklPrintCharLiteral2(char, FklCodeBuilder *);
+void fklPrintCharLiteral(int, FILE *);
+void fklPrintCharLiteral2(int, FklCodeBuilder *);
 
 double fklStringToDouble(const FklString *);
 size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64);

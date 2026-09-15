@@ -492,10 +492,10 @@ void fklRegexPrint(const FklRegexCode *re, FILE *fp) {
                 regex_obj_type_name[obj->type],
                 obj->trueoffset,
                 obj->falseoffset);
-        if (obj->type == FKL_REGEX_CHAR)
+        if (obj->type == FKL_REGEX_CHAR) {
             print_char(obj->ch, fp);
-        else if (obj->type == FKL_REGEX_CHAR_CLASS
-                 || obj->type == FKL_REGEX_INV_CHAR_CLASS) {
+        } else if (obj->type == FKL_REGEX_CHAR_CLASS
+                   || obj->type == FKL_REGEX_INV_CHAR_CLASS) {
             fputc('[', fp);
             print_char_class(&patrns[obj->ccl], fp);
             fputc(']', fp);

@@ -1325,7 +1325,7 @@ FklVMvalue *fklVMvalueUndefined(void);
 #define FKL_GET_TAG(P) ((FklVMptrTag)(((uintptr_t)(P)) & FKL_TAG_MASK))
 #define FKL_GET_PTR(P) ((FklVMptr)(((uintptr_t)(P)) & FKL_PTR_MASK))
 
-#define FKL_GET_CHR(P) ((char)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
+#define FKL_GET_CHR(P) ((uint8_t)((uintptr_t)(P) >> FKL_UNUSEDBITNUM))
 #define FKL_GET_SYM(P) (P)
 
 #define FKL_IS_FIX(P) (FKL_GET_TAG(P) == FKL_TAG_FIX)

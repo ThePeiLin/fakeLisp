@@ -19,6 +19,7 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #define FKL_PATH_ENV "FKL_PATH"
 #define FKL_LIB_PATH_REL_PREFIX "./"
+#define FKL_LIB_PATH_REL_UPPER_DIR_PREFIX "../"
 #define FKL_PRIV_MOD_PREFIX '_'
 #define FKL_PRIV_MOD_PREFIX_STR "_"
 

@@ -3260,8 +3260,8 @@ static inline uint64_t skip_mod_name_prefix(const char *name) {
         return strlen(FKL_LIB_PATH_REL_PREFIX);
     }
 
-    if (fklStrStartWith(name, FKL_PATH_UPPER_DIR)) {
-        return strlen(FKL_PATH_UPPER_DIR);
+    if (fklStrStartWith(name, FKL_LIB_PATH_REL_UPPER_DIR_PREFIX)) {
+        return strlen(FKL_LIB_PATH_REL_UPPER_DIR_PREFIX);
     }
 
     return 0;

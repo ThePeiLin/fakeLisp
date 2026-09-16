@@ -10,7 +10,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueStrBuf, { FklStrBuf buf; });
 
 FKL_VM_DEF_DLL_STRUCT(FklVMvalueBufDll, { FklVMvalueType *BufType; });
 
-static const FklDllStateDesc state_desc;
+static FklDllStateDesc state_desc;
 
 static FKL_ALWAYS_INLINE FklVMvalueBufDll *as_buf_dll(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -24,12 +24,12 @@ static void buf_dll_atomic(const FklVMvalue *d, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(dd->BufType), gc);
 }
 
-static const FklDllStateDesc state_desc = {
+static FklDllStateDesc state_desc = {
     .size = sizeof(FklVMvalueBufDll),
     .atomic = buf_dll_atomic,
 };
 
-static FklVMudMetaTable const StrBufMt;
+static FklVMudMetaTable StrBufMt;
 
 static inline int is_strbuf_ud(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &StrBufMt;
@@ -156,7 +156,7 @@ static int strbuf_cmp(const FklVMvalue *ud, const FklVMvalue *v, int *err) {
     return 0;
 }
 
-static FklVMudMetaTable const StrBufMt = {
+static FklVMudMetaTable StrBufMt = {
     .name = "buf",
     .size = sizeof(FklVMvalueStrBuf),
     .equal = strbuf_equal,
@@ -347,8 +347,14 @@ static int export_strbuf_set1(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     if (!FKL_IS_CHR(target) && !fklIsVMint(target))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    buf->buf[index] =
-            FKL_IS_CHR(target) ? FKL_GET_CHR(target) : fklVMgetInt(target);
+    if (FKL_IS_CHR(target)) {
+        buf->buf[index] = FKL_GET_CHR(target);
+    } else {
+        int64_t v = fklVMgetInt(target);
+        FKL_CHECK_BYTE_RANGE(target, v, exe);
+        buf->buf[index] = (uint8_t)fklVMgetInt(target);
+    }
+
     FKL_CPROC_RETURN(exe, ctx, target);
     return 0;
 }
@@ -557,7 +563,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

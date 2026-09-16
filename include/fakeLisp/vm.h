@@ -1051,9 +1051,9 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE);        \
     } while (0)
 
-#define FKL_CHECK_BYTE_RANGE(V, v, EXE)                                        \
+#define FKL_CHECK_BYTE_RANGE(V, EXE)                                           \
     do {                                                                       \
-        if ((v) < -128 || (v) > 255) {                                         \
+        if (!fklVMintegerInRangeI(V, -128, 255)) {                             \
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                 \
                     (EXE),                                                     \
                     "Expect value in [-128, 255], but got %S",                 \
@@ -1091,7 +1091,6 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 
 int fklIsList(const FklVMvalue *p);
 int fklIsList2(const FklVMvalue *p, size_t *len);
-int64_t fklVMgetInt(const FklVMvalue *p);
 uint64_t fklVMintToHashv(const FklVMvalue *p);
 double fklVMgetDouble(const FklVMvalue *p);
 
@@ -1637,7 +1636,6 @@ int fklIsCallable(FklVMvalue *);
 void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv);
 
 int fklIsVMnumberLt0(const FklVMvalue *);
-uint64_t fklVMgetUint(const FklVMvalue *);
 
 void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval);
 
@@ -1883,6 +1881,7 @@ FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FklCodeBuilder *, fklPrintBigInt2);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntEqual, int, fklBigIntEqual);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntCmp, int, fklBigIntCmp);
 FKL_VM_BIGINT_CALL_2R(fklVMbigIntCmpI, int, int64_t, fklBigIntCmpI);
+FKL_VM_BIGINT_CALL_2R(fklVMbigIntCmpU, int, uint64_t, fklBigIntCmpU);
 FKL_VM_CALL_WITH_1_VB_1BI(fklAddVMbigInt, fklAddBigInt);
 FKL_VM_CALL_WITH_1_VB_1BI(fklSubVMbigInt, fklSubBigInt);
 FKL_VM_CALL_WITH_1_VB_1BI(fklMulVMbigInt, fklMulBigInt);
@@ -1892,6 +1891,50 @@ FKL_VM_CALL_WITH_1_VB_1BI(fklMulVMbigInt, fklMulBigInt);
 #undef FKL_VM_BIGINT_CALL_2
 #undef FKL_VM_CALL_WITH_2_BI
 #undef FKL_VM_CALL_WITH_1_VB_1BI
+
+static FKL_ALWAYS_INLINE int64_t fklVMgetInt(const FklVMvalue *p) {
+    return FKL_IS_FIX(p) ? FKL_GET_FIX(p) : fklVMbigIntToI(FKL_VM_BI(p));
+}
+
+static FKL_ALWAYS_INLINE uint64_t fklVMgetUint(const FklVMvalue *p) {
+    return FKL_IS_FIX(p) ? (uint64_t)FKL_GET_FIX(p)
+                         : fklVMbigIntToU(FKL_VM_BI(p));
+}
+
+static FKL_ALWAYS_INLINE int fklVMintegerCmpI(FklVMvalue *p, int64_t i) {
+    if (FKL_IS_BIGINT(p)) {
+        return fklVMbigIntCmpI(FKL_VM_BI(p), i);
+    } else if (FKL_IS_FIX(p)) {
+        int64_t v = FKL_GET_FIX(p);
+        if (v > i) {
+            return 1;
+        } else if (v < i) {
+            return -1;
+        } else
+            return 0;
+    } else {
+        FKL_UNREACHABLE();
+    }
+}
+
+static FKL_ALWAYS_INLINE int fklVMintegerCmpU(FklVMvalue *p, uint64_t u) {
+    if (FKL_IS_BIGINT(p)) {
+        return fklVMbigIntCmpU(FKL_VM_BI(p), u);
+    } else if (FKL_IS_FIX(p)) {
+        int64_t vv = FKL_GET_FIX(p);
+        if (vv < 0)
+            return -1;
+        uint64_t v = (uint64_t)vv;
+        if (v > u) {
+            return 1;
+        } else if (v < u) {
+            return -1;
+        } else
+            return 0;
+    } else {
+        FKL_UNREACHABLE();
+    }
+}
 
 static inline void fklSetBigIntWithVMbigInt(FklBigInt *a,
         const FklVMvalueBigInt *b) {
@@ -2004,6 +2047,20 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
                   : FKL_IS_STR(v)     ? FKL_VM_STR(v)->str
                                       : NULL;
     return r;
+}
+
+/// 闭区间 [from, to]
+static FKL_ALWAYS_INLINE int
+fklVMintegerInRangeI(FklVMvalue *v, int64_t from, int64_t to) {
+    FKL_ASSERT(fklIsVMint(v));
+    return fklVMintegerCmpI(v, from) >= 0 && fklVMintegerCmpI(v, to) <= 0;
+}
+
+/// 闭区间 [from, to]
+static FKL_ALWAYS_INLINE int
+fklVMintegerInRangeU(FklVMvalue *v, uint64_t from, uint64_t to) {
+    FKL_ASSERT(fklIsVMint(v));
+    return fklVMintegerCmpU(v, from) >= 0 && fklVMintegerCmpU(v, to) <= 0;
 }
 
 #ifdef FKL_USING_DLL

@@ -16,6 +16,7 @@ typedef int64_t FklBigIntSTwoDigit;
 #define FKL_BIGINT_DIGIT_BASE ((FklBigIntDigit)1 << FKL_BIGINT_DIGIT_SHIFT)
 #define FKL_BIGINT_DIGIT_MASK ((FklBigIntDigit)(FKL_BIGINT_DIGIT_BASE - 1))
 #define FKL_MAX_INT64_DIGITS_COUNT (3)
+#define FKL_MAX_UINT64_DIGITS_COUNT (3)
 
 typedef struct FklBigInt {
     FklBigIntDigit *digits;
@@ -133,6 +134,7 @@ int fklIsDivisibleIBigInt(int64_t a, const FklBigInt *b);
 int fklBigIntEqual(const FklBigInt *a, const FklBigInt *b);
 int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b);
 int fklBigIntCmpI(const FklBigInt *a, int64_t b);
+int fklBigIntCmpU(const FklBigInt *a, uint64_t b);
 int fklBigIntAbsCmp(const FklBigInt *a, const FklBigInt *b);
 
 int64_t fklBigIntToI(const FklBigInt *a);

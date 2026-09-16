@@ -59,18 +59,9 @@ int fklIsList2(const FklVMvalue *p, size_t *plen) {
     return 1;
 }
 
-int64_t fklVMgetInt(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) ? FKL_GET_FIX(p) : fklVMbigIntToI(FKL_VM_BI(p));
-}
-
 uint64_t fklVMintToHashv(const FklVMvalue *p) {
     return FKL_IS_FIX(p) ? (uint64_t)FKL_GET_FIX(p)
                          : fklVMbigIntHash(FKL_VM_BI(p));
-}
-
-uint64_t fklVMgetUint(const FklVMvalue *p) {
-    return FKL_IS_FIX(p) ? (uint64_t)FKL_GET_FIX(p)
-                         : fklVMbigIntToU(FKL_VM_BI(p));
 }
 
 int fklIsVMnumberLt0(const FklVMvalue *p) {

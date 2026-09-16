@@ -1061,9 +1061,8 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        int64_t v = fklVMgetInt(cur);
-        FKL_CHECK_BYTE_RANGE(cur, v, exe);
-        ptr[i] = (uint8_t)v;
+        FKL_CHECK_BYTE_RANGE(cur, exe);
+        ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -1079,9 +1078,8 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL) {
         FklVMvalue *cur = FKL_VM_CAR(list);
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
 
-        int64_t v = fklVMgetInt(cur);
-        FKL_CHECK_BYTE_RANGE(cur, v, exe);
-        ptr[i] = (uint8_t)v;
+        FKL_CHECK_BYTE_RANGE(cur, exe);
+        ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -1254,9 +1252,8 @@ static int builtin_bvec_set1(FKL_CPROC_ARGL) {
     size_t size = bv->size;
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-    int64_t v = fklVMgetInt(target);
-    FKL_CHECK_BYTE_RANGE(target, v, exe);
-    bv->ptr[index] = (uint8_t)v;
+    FKL_CHECK_BYTE_RANGE(target, exe);
+    bv->ptr[index] = (uint8_t)fklVMgetInt(target);
     FKL_CPROC_RETURN(exe, ctx, target);
     return 0;
 }
@@ -1280,9 +1277,8 @@ static int builtin_bytevector_fill(FKL_CPROC_ARGL) {
     if (!fklIsVMint(content) || !FKL_IS_BYTEVECTOR(bvec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklBytevector *bv = FKL_VM_BVEC(bvec);
-    int64_t v = fklVMgetInt(content);
-    FKL_CHECK_BYTE_RANGE(content, v, exe);
-    memset(bv->ptr, (uint8_t)v, bv->size);
+    FKL_CHECK_BYTE_RANGE(content, exe);
+    memset(bv->ptr, (uint8_t)fklVMgetInt(content), bv->size);
     FKL_CPROC_RETURN(exe, ctx, bvec);
     return 0;
 }
@@ -4139,9 +4135,8 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL) {
     uint8_t u_8 = 0;
     if (content) {
         FKL_CHECK_TYPE(content, fklIsVMint, exe);
-        int64_t v = fklVMgetInt(content);
-        FKL_CHECK_BYTE_RANGE(content, v, exe);
-        u_8 = (uint8_t)v;
+        FKL_CHECK_BYTE_RANGE(content, exe);
+        u_8 = (uint8_t)fklVMgetInt(content);
     }
     memset(bytevec->ptr, u_8, len);
     FKL_CPROC_RETURN(exe, ctx, r);

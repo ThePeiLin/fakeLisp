@@ -350,8 +350,7 @@ static int export_strbuf_set1(FKL_CPROC_ARGL) {
     if (FKL_IS_CHR(target)) {
         buf->buf[index] = FKL_GET_CHR(target);
     } else {
-        int64_t v = fklVMgetInt(target);
-        FKL_CHECK_BYTE_RANGE(target, v, exe);
+        FKL_CHECK_BYTE_RANGE(target, exe);
         buf->buf[index] = (uint8_t)fklVMgetInt(target);
     }
 

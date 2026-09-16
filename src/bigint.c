@@ -679,16 +679,21 @@ int fklBigIntCmp(const FklBigInt *a, const FklBigInt *b) {
     return sign < 0 ? -1 : sign > 0 ? 1 : 0;
 }
 
-static inline void set_bigint_i64_without_ensure(FklBigInt *to,
-        int64_t const v) {
-    uint64_t uv = fklAbs(v);
+static FKL_ALWAYS_INLINE void set_bigint_u64_without_ensure(FklBigInt *to,
+        uint64_t const uv) {
     if (uv) {
         size_t c = count_digits_size(uv);
-        FKL_ASSERT(c < 4);
+        FKL_ASSERT(c <= to->size);
         to->num = c;
         set_uint64_to_digits(to->digits, c, uv);
     } else
         to->num = 0;
+}
+
+static inline void set_bigint_i64_without_ensure(FklBigInt *to,
+        int64_t const v) {
+    uint64_t uv = fklAbs(v);
+    set_bigint_u64_without_ensure(to, uv);
     if (v < 0)
         to->num = -to->num;
 }
@@ -700,6 +705,16 @@ int fklBigIntCmpI(const FklBigInt *a, int64_t b) {
     bi.digits = digits;
     bi.const_size = 1;
     set_bigint_i64_without_ensure(&bi, b);
+    return fklBigIntCmp(a, &bi);
+}
+
+int fklBigIntCmpU(const FklBigInt *a, uint64_t b) {
+    FklBigIntDigit digits[FKL_MAX_UINT64_DIGITS_COUNT];
+    FklBigInt bi = FKL_BIGINT_0;
+    bi.size = FKL_MAX_UINT64_DIGITS_COUNT;
+    bi.digits = digits;
+    bi.const_size = 1;
+    set_bigint_u64_without_ensure(&bi, b);
     return fklBigIntCmp(a, &bi);
 }
 

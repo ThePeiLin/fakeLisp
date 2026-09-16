@@ -896,9 +896,8 @@ void fklVMexecuteInstruction(FklVM *exe,
             size_t size = s->size;
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
-            int64_t v = fklVMgetInt(value);
-            FKL_CHECK_BYTE_RANGE(value, v, exe);
-            s->ptr[index] = (uint8_t)v;
+            FKL_CHECK_BYTE_RANGE(value, exe);
+            s->ptr[index] = (uint8_t)fklVMgetInt(value);
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;
         default:

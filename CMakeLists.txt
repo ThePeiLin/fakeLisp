@@ -61,11 +61,13 @@ include_directories("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
 #libuv
-option(LIBUV_BUILD_SHARED OFF)
+set(LIBUV_BUILD_SHARED OFF)
 add_compile_definitions(USING_UV_SHARED)
+set(FKL_LIBUV uv_a)
+
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
-set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(${FKL_LIBUV} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
@@ -222,11 +224,11 @@ add_executable(test-fs-event "main/tests/fs_event.c")
 target_define_relative_file(test-fs-event)
 
 if(MSVC)
-	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
-	target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
+	target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 else()
-	target_link_libraries(test-dns uv_a ${LINK_TARGET})
-	target_link_libraries(test-fs-event uv_a ${LINK_TARGET})
+	target_link_libraries(test-dns ${FKL_LIBUV} ${LINK_TARGET})
+	target_link_libraries(test-fs-event ${FKL_LIBUV} ${LINK_TARGET})
 endif()
 
 #generated-header
@@ -423,11 +425,11 @@ endif()
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME}
 	PUBLIC ${VMPARSE}
-	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 
 target_link_libraries(${LIBFKL_TARGET_NAME}
 	PUBLIC ${VMPARSE}
-	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
+	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})

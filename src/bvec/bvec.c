@@ -93,7 +93,8 @@ static int export_bvf64ref(FKL_CPROC_ARGL){ BV_F_REF(double) }
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
-    TYPE r = fklVMgetUint(target);                                             \
+    FKL_CHECK_BYTE_RANGE(target, exe);                                         \
+    TYPE r = (TYPE)fklVMgetUint(target);                                       \
     bv->ptr[index] = r;                                                        \
     FKL_CPROC_RETURN(exe, ctx, target);                                        \
     return 0;
@@ -146,7 +147,7 @@ static int export_bvu64set1(FKL_CPROC_ARGL){ SET_BV_REF(uint64_t) }
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
-    TYPE r = FKL_VM_F64(target);                                               \
+    TYPE r = (TYPE)FKL_VM_F64(target);                                         \
     memcpy(&bv->ptr[index], &r, sizeof(r));                                    \
     FKL_CPROC_RETURN(exe, ctx, target);                                        \
     return 0;
@@ -258,7 +259,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

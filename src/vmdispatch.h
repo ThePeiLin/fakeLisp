@@ -897,12 +897,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             int64_t v = fklVMgetInt(value);
-            if (v < -128 || v > 255) {
-                FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,
-                        exe,
-                        "Expect value in [-128, 255], but got %S",
-                        value);
-            }
+            FKL_CHECK_BYTE_RANGE(value, v, exe);
             s->ptr[index] = (uint8_t)v;
             FKL_VM_GET_TOP_VALUE(exe) = value;
         } break;

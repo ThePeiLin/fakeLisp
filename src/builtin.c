@@ -1049,12 +1049,6 @@ static int builtin_string_to_bytevector(FKL_CPROC_ARGL) {
     return 0;
 }
 
-#define RAISE_INVALID_BYTE_VALUE_ERR(EXE, V)                                   \
-    FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                         \
-            (EXE),                                                             \
-            "Expect value in [-128, 255], but got %S",                         \
-            (V));
-
 static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -1068,9 +1062,7 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
         int64_t v = fklVMgetInt(cur);
-        if (v < -128 || v > 255) {
-            RAISE_INVALID_BYTE_VALUE_ERR(exe, cur);
-        }
+        FKL_CHECK_BYTE_RANGE(cur, v, exe);
         ptr[i] = (uint8_t)v;
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -1088,9 +1080,7 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL) {
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
 
         int64_t v = fklVMgetInt(cur);
-        if (v < -128 || v > 255) {
-            RAISE_INVALID_BYTE_VALUE_ERR(exe, cur);
-        }
+        FKL_CHECK_BYTE_RANGE(cur, v, exe);
         ptr[i] = (uint8_t)v;
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -1265,10 +1255,7 @@ static int builtin_bvec_set1(FKL_CPROC_ARGL) {
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     int64_t v = fklVMgetInt(target);
-    if (v < -128 || v > 255) {
-        RAISE_INVALID_BYTE_VALUE_ERR(exe, target);
-    }
-
+    FKL_CHECK_BYTE_RANGE(target, v, exe);
     bv->ptr[index] = (uint8_t)v;
     FKL_CPROC_RETURN(exe, ctx, target);
     return 0;
@@ -1294,10 +1281,7 @@ static int builtin_bytevector_fill(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     FklBytevector *bv = FKL_VM_BVEC(bvec);
     int64_t v = fklVMgetInt(content);
-    if (v < -128 || v > 255) {
-        RAISE_INVALID_BYTE_VALUE_ERR(exe, content);
-    }
-
+    FKL_CHECK_BYTE_RANGE(content, v, exe);
     memset(bv->ptr, (uint8_t)v, bv->size);
     FKL_CPROC_RETURN(exe, ctx, bvec);
     return 0;
@@ -4156,9 +4140,7 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL) {
     if (content) {
         FKL_CHECK_TYPE(content, fklIsVMint, exe);
         int64_t v = fklVMgetInt(content);
-        if (v < -128 || v > 255) {
-            RAISE_INVALID_BYTE_VALUE_ERR(exe, content);
-        }
+        FKL_CHECK_BYTE_RANGE(content, v, exe);
         u_8 = (uint8_t)v;
     }
     memset(bytevec->ptr, u_8, len);

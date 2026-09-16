@@ -1046,8 +1046,20 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
         FklBigInt *bi);
 
 #define FKL_CHECK_TYPE(V, P, EXE)                                              \
-    if (!P(V))                                                                 \
-    FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE)
+    do {                                                                       \
+        if (!P(V))                                                             \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE);        \
+    } while (0)
+
+#define FKL_CHECK_BYTE_RANGE(V, v, EXE)                                        \
+    do {                                                                       \
+        if ((v) < -128 || (v) > 255) {                                         \
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                 \
+                    (EXE),                                                     \
+                    "Expect value in [-128, 255], but got %S",                 \
+                    (V));                                                      \
+        }                                                                      \
+    } while (0)
 
 #define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
 
@@ -2006,7 +2018,7 @@ static FKL_ALWAYS_INLINE const char *fklVMstr(const FklVMvalue *v) {
         .gray_next_ = NULL,                                                    \
         .mark_ = FKL_MARK_B,                                                   \
         .type_ = FKL_TYPE_USERDATA,                                            \
-        .tp_ = FKL_VM_TYPE_TP_INIT,                                                 \
+        .tp_ = FKL_VM_TYPE_TP_INIT,                                            \
         .dll = NULL,                                                           \
         .token = &NAME.mt,                                                     \
         .mt = __VA_ARGS__,                                                     \

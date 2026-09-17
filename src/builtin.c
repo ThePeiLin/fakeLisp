@@ -1060,8 +1060,7 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     uint8_t *ptr = FKL_VM_BVEC(r)->ptr;
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
-        FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        FKL_CHECK_BYTE_RANGE(cur, exe);
+        FKL_CHECK_BYTE_RANGE_AT(cur, i, exe);
         ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
@@ -1077,8 +1076,7 @@ static int builtin_list_to_bytevector(FKL_CPROC_ARGL) {
     for (size_t i = 0; list != FKL_VM_NIL; i++, list = FKL_VM_CDR(list)) {
         FklVMvalue *cur = FKL_VM_CAR(list);
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-
-        FKL_CHECK_BYTE_RANGE(cur, exe);
+        FKL_CHECK_BYTE_RANGE_AT(cur, i, exe);
         ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

@@ -717,7 +717,7 @@ static int export_dvec_to_bytevector(FKL_CPROC_ARGL) {
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        FKL_CHECK_BYTE_RANGE(cur, exe);
+        FKL_CHECK_BYTE_RANGE_AT(cur, i, exe);
         ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);

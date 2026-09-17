@@ -1073,6 +1073,17 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 
 #define FKL_CHECK_BYTE_RANGE(V, EXE) FKL_CHECK_RANGE_I(V, EXE, -128, 255)
 
+#define FKL_CHECK_BYTE_RANGE_AT(V, AT, EXE)                                    \
+    do {                                                                       \
+        if (!fklVMintegerInRangeI(V, -128, 255)) {                             \
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                 \
+                    (EXE),                                                     \
+                    "Expect value in [-128, 255], but got %S at %S",           \
+                    (V),                                                       \
+                    fklMakeVMintU((EXE), (AT)));                               \
+        }                                                                      \
+    } while (0)
+
 #define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
 
 #define FKL_CPROC_CHECK_ARG_NUM(EXE, NUM, N)                                   \

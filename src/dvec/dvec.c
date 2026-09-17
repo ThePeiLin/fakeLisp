@@ -1,13 +1,13 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-static FklVMudMetaTable const DvecMt;
+static FklVMudMetaTable DvecMt;
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueDvec, { FklValueVector vec; });
 
 FKL_VM_DEF_DLL_STRUCT(FklVMvalueDvecDll, { FklVMvalueType *DvecType; });
 
-static const FklDllStateDesc state_desc;
+static FklDllStateDesc state_desc;
 
 static FKL_ALWAYS_INLINE FklVMvalueDvecDll *as_dvec_dll(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -21,7 +21,7 @@ static void dvec_dll_atomic(const FklVMvalue *d, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(dd->DvecType), gc);
 }
 
-static const FklDllStateDesc state_desc = {
+static FklDllStateDesc state_desc = {
     .size = sizeof(FklVMvalueDvecDll),
     .atomic = dvec_dll_atomic,
 };
@@ -180,7 +180,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
 
 FKL_VM_USER_DATA_DEFAULT_PRINT(_dvec_print, "dvec");
 
-static FklVMudMetaTable const DvecMt = {
+static FklVMudMetaTable DvecMt = {
     .name = "dvec",
     .size = sizeof(FklVMvalueDvec),
     .equal = _dvec_equal,
@@ -582,7 +582,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
             FklVMvalue **const end = &v->base[idx + count - 1];
             for (FklVMvalue **last = &v->base[v->size + count - 1]; last > end;
                     last--)
-                *last = last[-count];
+                *last = *(last - count);
 
             for (FklVMvalue **cur = &v->base[idx]; cur <= end; cur++)
                 *cur = obj;
@@ -624,7 +624,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
             FklVMvalue **const end = &v->base[idx + count - 1];
             for (FklVMvalue **last = &v->base[v->size + count - 1]; last > end;
                     last--)
-                *last = last[-count];
+                *last = *(last - count);
             memcpy(&v->base[idx], src_mem, count * sizeof(FklVMvalue *));
             v->size += count;
         }
@@ -717,7 +717,8 @@ static int export_dvec_to_bytevector(FKL_CPROC_ARGL) {
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
-        ptr[i] = fklVMgetInt(cur);
+        FKL_CHECK_BYTE_RANGE(cur, exe);
+        ptr[i] = (uint8_t)fklVMgetInt(cur);
     }
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
@@ -826,7 +827,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

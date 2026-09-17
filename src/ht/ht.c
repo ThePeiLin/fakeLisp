@@ -1,7 +1,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-static FklVMudMetaTable const HtMt;
+static FklVMudMetaTable HtMt;
 
 static inline int IS_HASH_UD(const FklVMvalue *V) {
     return (FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &HtMt);
@@ -39,7 +39,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueHt, {
 
 FKL_VM_DEF_DLL_STRUCT(FklVMvalueHtDll, { FklVMvalueType *HtType; });
 
-static const FklDllStateDesc state_desc;
+static FklDllStateDesc state_desc;
 
 static FKL_ALWAYS_INLINE FklVMvalueHtDll *as_ht_dll(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -53,7 +53,7 @@ static void ht_dll_atomic(const FklVMvalue *d, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_VAL(dd->HtType), gc);
 }
 
-static const FklDllStateDesc state_desc = {
+static FklDllStateDesc state_desc = {
     .size = sizeof(FklVMvalueHtDll),
     .atomic = ht_dll_atomic,
 };
@@ -108,7 +108,7 @@ static size_t ht_length(const FklVMvalue *ud) {
     return ht->ht.count;
 }
 
-static FklVMudMetaTable const HtMt = {
+static FklVMudMetaTable HtMt = {
     .name = "ht",
     .size = sizeof(FklVMvalueHt),
     .length = ht_length,
@@ -126,7 +126,7 @@ static int ht_make_ht(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(hashv, fklIsCallable, exe);
     FKL_CHECK_TYPE(equal, fklIsCallable, exe);
     FklVMvalueType *tp = as_ht_dll(ctx->dll)->HtType;
-	FKL_ASSERT(tp->token == &HtMt);
+    FKL_ASSERT(tp->token == &HtMt);
 
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
     FklVMvalueHt *ht = as_ht(ud);
@@ -579,7 +579,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint8_t)EXPORT_NUM;
     size_t total_size = EXPORT_NUM * sizeof(FklVMvalue *);
     FklVMvalue **symbols = (FklVMvalue **)fklZmalloc(total_size);
     FKL_ASSERT(symbols);

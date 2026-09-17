@@ -1051,15 +1051,27 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, EXE);        \
     } while (0)
 
-#define FKL_CHECK_BYTE_RANGE(V, EXE)                                           \
+#define FKL_CHECK_RANGE_I(V, EXE, FROM, TO)                                    \
     do {                                                                       \
-        if (!fklVMintegerInRangeI(V, -128, 255)) {                             \
+        if (!fklVMintegerInRangeI(V, FROM, TO)) {                              \
             FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                 \
                     (EXE),                                                     \
-                    "Expect value in [-128, 255], but got %S",                 \
+                    "Expect value in [" #FROM ", " #TO "], but got %S",        \
                     (V));                                                      \
         }                                                                      \
     } while (0)
+
+#define FKL_CHECK_RANGE_U(V, EXE, FROM, TO)                                    \
+    do {                                                                       \
+        if (!fklVMintegerInRangeU(V, FROM, TO)) {                              \
+            FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INVALID_VALUE,                 \
+                    (EXE),                                                     \
+                    "Expect value in [" #FROM ", " #TO "], but got %S",        \
+                    (V));                                                      \
+        }                                                                      \
+    } while (0)
+
+#define FKL_CHECK_BYTE_RANGE(V, EXE) FKL_CHECK_RANGE_I(V, EXE, -128, 255)
 
 #define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
 

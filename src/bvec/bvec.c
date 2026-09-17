@@ -2,6 +2,8 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <stdint.h>
+
 #define BV_U_S_8_REF(TYPE)                                                     \
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
@@ -79,59 +81,64 @@ static int export_bvf32ref(FKL_CPROC_ARGL) {
 static int export_bvf64ref(FKL_CPROC_ARGL){ BV_F_REF(double) }
 #undef BV_F_REF
 
-#define SET_BV_S_U_8_REF(TYPE)                                                 \
-    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
-    FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
-    FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
-    FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec) || !fklIsVMint(target)) \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
-    if (fklIsVMnumberLt0(place))                                               \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
-    size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
-    size_t size = bv->size;                                                    \
-    if (index >= size || size - index < sizeof(TYPE))                          \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
-    FKL_CHECK_BYTE_RANGE(target, exe);                                         \
-    TYPE r = (TYPE)fklVMgetUint(target);                                       \
-    bv->ptr[index] = r;                                                        \
-    FKL_CPROC_RETURN(exe, ctx, target);                                        \
-    return 0;
+#define SET_BV_S_REF(NAME, TYPE, FROM, TO)                                     \
+    static int export_##NAME(FKL_CPROC_ARGL) {                                 \
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                 \
+        FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                     \
+        FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                    \
+        FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                   \
+        if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)                     \
+                || !fklIsVMint(target))                                        \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);        \
+        if (fklIsVMnumberLt0(place))                                           \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);   \
+        size_t index = fklVMgetUint(place);                                    \
+        FklBytevector *bv = FKL_VM_BVEC(bvec);                                 \
+        size_t size = bv->size;                                                \
+        if (index >= size || size - index < sizeof(TYPE))                      \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);               \
+        FKL_CHECK_RANGE_I(target, exe, FROM, TO);                              \
+        TYPE r = (TYPE)fklVMgetInt(target);                                    \
+        memcpy(&bv->ptr[index], &r, sizeof(r));                                \
+        FKL_CPROC_RETURN(exe, ctx, target);                                    \
+        return 0;                                                              \
+    }
 
-#define SET_BV_REF(TYPE)                                                       \
-    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
-    FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
-    FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
-    FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec) || !fklIsVMint(target)) \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
-    if (fklIsVMnumberLt0(place))                                               \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
-    size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
-    size_t size = bv->size;                                                    \
-    if (index >= size || size - index < sizeof(TYPE))                          \
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
-    TYPE r = fklVMgetUint(target);                                             \
-    memcpy(&bv->ptr[index], &r, sizeof(r));                                    \
-    FKL_CPROC_RETURN(exe, ctx, target);                                        \
-    return 0;
+#define SET_BV_U_REF(NAME, TYPE, TO)                                           \
+    static int export_##NAME(FKL_CPROC_ARGL) {                                 \
+        FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                 \
+        FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                     \
+        FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                    \
+        FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                   \
+        if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)                     \
+                || !fklIsVMint(target))                                        \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);        \
+        if (fklIsVMnumberLt0(place))                                           \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);   \
+        size_t index = fklVMgetUint(place);                                    \
+        FklBytevector *bv = FKL_VM_BVEC(bvec);                                 \
+        size_t size = bv->size;                                                \
+        if (index >= size || size - index < sizeof(TYPE))                      \
+            FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);               \
+        FKL_CHECK_RANGE_U(target, exe, 0, TO);                                 \
+        TYPE r = (TYPE)fklVMgetUint(target);                                   \
+        memcpy(&bv->ptr[index], &r, sizeof(r));                                \
+        FKL_CPROC_RETURN(exe, ctx, target);                                    \
+        return 0;                                                              \
+    }
 
-static int export_bvs8set1(FKL_CPROC_ARGL) {
-    SET_BV_S_U_8_REF(int8_t)
-}
-static int export_bvs16set1(FKL_CPROC_ARGL) { SET_BV_REF(int16_t) }
-static int export_bvs32set1(FKL_CPROC_ARGL) { SET_BV_REF(int32_t) }
-static int export_bvs64set1(FKL_CPROC_ARGL) { SET_BV_REF(int64_t) }
+SET_BV_S_REF(bvs8set1, int8_t, INT8_MIN, INT8_MAX);
+SET_BV_S_REF(bvs16set1, int16_t, INT16_MIN, INT16_MAX);
+SET_BV_S_REF(bvs32set1, int32_t, INT32_MIN, INT32_MAX);
+SET_BV_S_REF(bvs64set1, int64_t, INT64_MIN, INT64_MAX);
 
-static int export_bvu8set1(FKL_CPROC_ARGL) { SET_BV_S_U_8_REF(uint8_t) }
-static int export_bvu16set1(FKL_CPROC_ARGL) { SET_BV_REF(uint16_t) }
-static int export_bvu32set1(FKL_CPROC_ARGL) { SET_BV_REF(uint32_t) }
-static int export_bvu64set1(FKL_CPROC_ARGL){ SET_BV_REF(uint64_t) }
+SET_BV_U_REF(bvu8set1, uint8_t, UINT8_MAX);
+SET_BV_U_REF(bvu16set1, uint16_t, UINT16_MAX);
+SET_BV_U_REF(bvu32set1, uint32_t, UINT32_MAX);
+SET_BV_U_REF(bvu64set1, uint64_t, UINT64_MAX);
 
-#undef SET_BV_S_U_8_REF
-#undef SET_BV_REF
+#undef SET_BV_U_REF
+#undef SET_BV_S_REF
 
 #define SET_BV_F_REF(TYPE)                                                     \
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);                                     \
@@ -152,9 +159,7 @@ static int export_bvu64set1(FKL_CPROC_ARGL){ SET_BV_REF(uint64_t) }
     FKL_CPROC_RETURN(exe, ctx, target);                                        \
     return 0;
 
-static int export_bvf32set1(FKL_CPROC_ARGL) {
-    SET_BV_F_REF(float)
-}
+static int export_bvf32set1(FKL_CPROC_ARGL) { SET_BV_F_REF(float) }
 static int export_bvf64set1(FKL_CPROC_ARGL) { SET_BV_F_REF(double) }
 #undef SET_BV_F_REF
 

@@ -288,7 +288,7 @@ static int math_log(FKL_CPROC_ARGL) {
     return 0;
 }
 
-#define DOUBLE_ARG_MATH_FUNC(NAME, ERROR_NAME, FUNC)                           \
+#define DOUBLE_ARG_MATH_FUNC(NAME, FUNC)                                       \
     static int math_##NAME(FKL_CPROC_ARGL) {                                   \
         FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                 \
         FklVMvalue *x = FKL_CPROC_GET_ARG(exe, ctx, 0);                        \
@@ -302,15 +302,26 @@ static int math_log(FKL_CPROC_ARGL) {
         return 0;                                                              \
     }
 
-DOUBLE_ARG_MATH_FUNC(remainder, remainder, remainder);
-DOUBLE_ARG_MATH_FUNC(hypot, hypot, hypot);
-DOUBLE_ARG_MATH_FUNC(atan2, atan2, atan2);
-DOUBLE_ARG_MATH_FUNC(pow, pow, pow);
-DOUBLE_ARG_MATH_FUNC(ldexp, ldexp, ldexp);
-DOUBLE_ARG_MATH_FUNC(nextafter, nextafter, nextafter);
-DOUBLE_ARG_MATH_FUNC(copysign, copysign, copysign);
+DOUBLE_ARG_MATH_FUNC(remainder, remainder);
+DOUBLE_ARG_MATH_FUNC(hypot, hypot);
+DOUBLE_ARG_MATH_FUNC(atan2, atan2);
+DOUBLE_ARG_MATH_FUNC(pow, pow);
+DOUBLE_ARG_MATH_FUNC(nextafter, nextafter);
+DOUBLE_ARG_MATH_FUNC(copysign, copysign);
 
 #undef DOUBLE_ARG_MATH_FUNC
+
+static int math_ldexp(FKL_CPROC_ARGL) {
+    FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
+    FklVMvalue *x = FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMvalue *y = FKL_CPROC_GET_ARG(exe, ctx, 1);
+    FKL_CHECK_TYPE(x, fklIsVMnumber, exe);
+    FKL_CHECK_TYPE(y, fklIsVMint, exe);
+    int i = (int)fklVMgetInt(y);
+    double f = ldexp(fklVMgetDouble(x), i);
+    FKL_CPROC_RETURN(exe, ctx, fklCreateVMvalueF64(exe, f));
+    return 0;
+}
 
 #define PREDICATE_FUNC(NAME, FUNC)                                             \
     static int math_##NAME(FKL_CPROC_ARGL) {                                   \
@@ -430,7 +441,7 @@ static const size_t EXPORT_NUM =
         sizeof(exports_and_func) / sizeof(struct SymFunc);
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

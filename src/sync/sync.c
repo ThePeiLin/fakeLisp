@@ -17,7 +17,7 @@ FKL_VM_DEF_DLL_STRUCT(FklVMvalueSyncDll, {
 });
 #undef XX
 
-static const FklDllStateDesc state_desc;
+static FklDllStateDesc state_desc;
 
 static FKL_ALWAYS_INLINE FklVMvalueSyncDll *as_sync_dll(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueDll(v));
@@ -40,7 +40,7 @@ static void sync_dll_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 #undef XX
 }
 
-static const FklDllStateDesc state_desc = {
+static FklDllStateDesc state_desc = {
     .size = sizeof(FklVMvalueSyncDll),
     .atomic = sync_dll_atomic,
 };
@@ -72,7 +72,7 @@ raiseUvError(int err_id, FklVM *exe, FklVMvalue *pd_obj) {
     if ((R) < 0)                                                               \
     raiseUvError((R), (EXE), (PD))
 
-static FklVMudMetaTable const MutexMt;
+static FklVMudMetaTable MutexMt;
 FKL_VM_DEF_UD_STRUCT(FklVMvalueMutex, { uv_mutex_t l; });
 
 static FKL_ALWAYS_INLINE int IS_MUTEX(const FklVMvalue *V) {
@@ -92,7 +92,7 @@ static FklVMudFinalizeResult mutex_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const MutexMt = {
+static FklVMudMetaTable MutexMt = {
     .name = "mutex",
     .size = sizeof(FklVMvalueMutex),
     .princ = mutex_print,
@@ -147,7 +147,7 @@ static int sync_mutex_trylock(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static FklVMudMetaTable const CondMt;
+static FklVMudMetaTable CondMt;
 
 static FKL_ALWAYS_INLINE int IS_COND(const FklVMvalue *V) {
     return FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &CondMt;
@@ -168,7 +168,7 @@ static FklVMudFinalizeResult cond_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const CondMt = {
+static FklVMudMetaTable CondMt = {
     .name = "cond",
     .size = sizeof(FklVMvalueCond),
     .prin1 = cond_print,
@@ -220,7 +220,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
         if (fklIsVMnumberLt0(timeout_obj))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
         uint64_t timeout = fklVMgetUint(timeout_obj);
-        int r;
+        int r = 0;
         FKL_VM_UNLOCK_BLOCK(exe, flag) {
             r = uv_cond_timedwait(cond, mutex, timeout);
         }
@@ -235,7 +235,7 @@ static int sync_cond_wait(FKL_CPROC_ARGL) {
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueRwlock, { uv_rwlock_t l; });
 
-static FklVMudMetaTable const RwlockMt;
+static FklVMudMetaTable RwlockMt;
 
 static FKL_ALWAYS_INLINE int IS_RWLOCK(const FklVMvalue *V) {
     return FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &RwlockMt;
@@ -254,7 +254,7 @@ static FklVMudFinalizeResult rwlock_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const RwlockMt = {
+static FklVMudMetaTable RwlockMt = {
     .name = "rwlock",
     .size = sizeof(FklVMvalueRwlock),
     .prin1 = rwlock_print,
@@ -336,7 +336,7 @@ FKL_VM_USER_DATA_DEFAULT_PRINT(sem_print, "sem");
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueSem, { uv_sem_t s; });
 
-static FklVMudMetaTable const SemMt;
+static FklVMudMetaTable SemMt;
 
 static FKL_ALWAYS_INLINE int IS_SEM(const FklVMvalue *V) {
     return FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &SemMt;
@@ -353,7 +353,7 @@ static FklVMudFinalizeResult sem_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const SemMt = {
+static FklVMudMetaTable SemMt = {
     .name = "sem",
     .size = sizeof(FklVMvalueSem),
     .prin1 = sem_print,
@@ -372,7 +372,8 @@ static int sync_make_sem(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalueType *tp = as_sync_dll(ctx->dll)->SemType;
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
-    int r = uv_sem_init(&as_sem(ud)->s, fklVMgetUint(value_obj));
+    uint64_t v = fklVMgetUint(value_obj);
+    int r = uv_sem_init(&as_sem(ud)->s, (unsigned int)v);
     CHECK_UV_RESULT(r, exe, ctx->dll);
     FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
@@ -407,7 +408,7 @@ static int sync_sem_trywait(FKL_CPROC_ARGL) {
 }
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueBarrier, { uv_barrier_t b; });
-static FklVMudMetaTable const BarrierMt;
+static FklVMudMetaTable BarrierMt;
 
 static FKL_ALWAYS_INLINE int IS_BARRIER(const FklVMvalue *V) {
     return FKL_IS_USERDATA(V) && FKL_VM_UD(V)->tp_->token == &BarrierMt;
@@ -426,7 +427,7 @@ static FklVMudFinalizeResult barrier_finalize(FklVMvalue *ud, FklVMgc *gc) {
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
-static FklVMudMetaTable const BarrierMt = {
+static FklVMudMetaTable BarrierMt = {
     .name = "barrier",
     .size = sizeof(FklVMvalueBarrier),
     .prin1 = barrier_print,
@@ -444,7 +445,8 @@ static int sync_make_barrier(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     FklVMvalueType *tp = as_sync_dll(ctx->dll)->BarrierType;
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
-    int r = uv_barrier_init(&as_barrier(ud)->b, fklVMgetUint(count_obj));
+    uint64_t v = fklVMgetUint(count_obj);
+    int r = uv_barrier_init(&as_barrier(ud)->b, (unsigned int)v);
     CHECK_UV_RESULT(r, exe, ctx->dll);
     FKL_CPROC_RETURN(exe, ctx, ud);
     return 0;
@@ -514,7 +516,7 @@ static inline void init_sync_public_data(FklVMvalue *dll, FklVM *vm) {
 }
 
 FKL_DLL_EXPORT FklVMvalue **_fklExportSymbolInit(FklVM *vm, uint32_t *num) {
-    *num = EXPORT_NUM;
+    *num = (uint32_t)EXPORT_NUM;
     FklVMvalue **symbols =
             (FklVMvalue **)fklZmalloc(EXPORT_NUM * sizeof(FklVMvalue *));
     FKL_ASSERT(symbols);

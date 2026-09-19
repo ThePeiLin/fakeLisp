@@ -385,7 +385,7 @@ FuvValueRandom *createFuvRandom(FklVM *exe,
 
 int isFuvDir(const FklVMvalue *v);
 FklVMvalue *
-createFuvDir(FklVM *vm, FuvValueDll *dll, uv_fs_t *dir, size_t nentries);
+createFuvDir(FklVM *vm, const FuvValueDll *dll, uv_fs_t *dir, size_t nentries);
 
 FklVMvalueType *createFuvDirType(FklVM *vm, FklVMvalue *dll);
 

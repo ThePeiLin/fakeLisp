@@ -24,7 +24,7 @@ int isFuvDir(const FklVMvalue *v) {
 }
 
 FklVMvalue *
-createFuvDir(FklVM *vm, FuvValueDll *dll, uv_fs_t *req, size_t nentries) {
+createFuvDir(FklVM *vm, const FuvValueDll *dll, uv_fs_t *req, size_t nentries) {
     FklVMvalueType *tp = dll->DirType;
     FklVMvalue *v = fklCreateVMvalueUd(vm, tp);
 

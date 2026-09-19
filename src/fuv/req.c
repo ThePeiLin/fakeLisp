@@ -304,7 +304,7 @@ FuvValueFsReq *createFuvFsReq(FklVM *exe,
     FklVMvalue *v = fklCreateVMvalueUd2(exe, tp, len * sizeof(char));
     FuvValueFsReq *req = FKL_TYPE_CAST(FuvValueFsReq *, v);
     init_fuv_req(FUV_REQ(v), loop, callback);
-    req->buf = uv_buf_init(req->base, len);
+    req->buf = uv_buf_init(req->base, (unsigned int)len);
     if (len && str) {
         memcpy(req->buf.base, str, len * sizeof(char));
     }

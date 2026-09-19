@@ -2104,7 +2104,7 @@ fklVMintegerInRangeU(FklVMvalue *v, uint64_t from, uint64_t to) {
         .mt = __VA_ARGS__,                                                     \
     }
 
-#ifdef FKL_USING_DLL
+#if defined(FKL_USING_DLL) || defined(FKL_USING_WIN32)
 #define FKL_VM_TYPE_ATTR alignas(8) static
 #else
 #define FKL_VM_TYPE_ATTR alignas(8) static const

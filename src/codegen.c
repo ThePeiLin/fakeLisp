@@ -3200,7 +3200,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
             case FKL_TYPE_BIGINT:
             case FKL_TYPE_STR:
             case FKL_TYPE_SYM:
-            case FKL_TYPE_BYTEVECTOR:
+            case FKL_TYPE_BYTES:
             case FKL_TYPE_CPROC:
             case FKL_TYPE_VAR_REF:
             case FKL_TYPE_PROC:
@@ -5340,7 +5340,7 @@ static void append_import_var_bc(const FklCgCtx *ctx,
         def->from_idx = v->idx;
         FklVMvalue *v = env->imported_symbols.base[lib_id->id];
         FKL_ASSERT(v);
-        FKL_VM_BVEC(v)->ptr[def->from_idx] = FKL_IMPORT_SYMBOL_IMPORTED;
+        FKL_VM_BYTES(v)->ptr[def->from_idx] = FKL_IMPORT_SYMBOL_IMPORTED;
     }
 
     uint32_t target_idx = def->idx;
@@ -6029,8 +6029,8 @@ static FklVMvalue *load_lib_cb(const FklCgActCbArgs *args) {
         fklValueVectorResize2(&env->imported_symbols, lib_id->id + 1, NULL);
         FklVMvalue **const v = &env->imported_symbols.base[lib_id->id];
         if (*v == NULL) {
-            *v = fklCreateVMvalueBvec2(vm, lib->exports.count, NULL);
-            FklBytevector *bvec = FKL_VM_BVEC(*v);
+            *v = fklCreateVMvalueBytes2(vm, lib->exports.count, NULL);
+            FklBytes *bvec = FKL_VM_BYTES(*v);
             memset(bvec->ptr, FKL_IMPORT_SYMBOL_NONE, bvec->size);
         }
     }

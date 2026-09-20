@@ -390,7 +390,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
     case FKL_TYPE_VECTOR:
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
     case FKL_TYPE_VAR_REF:
     case FKL_TYPE_KEYWORD:
     case FKL_TYPE_HASHTABLE:

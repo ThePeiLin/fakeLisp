@@ -8,12 +8,12 @@
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec))                             \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
     if (fklIsVMnumberLt0(place))                                               \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
     size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
+    FklBytes *bv = FKL_VM_BYTES(bvec);                                         \
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
@@ -25,12 +25,12 @@
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec))                             \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
     if (fklIsVMnumberLt0(place))                                               \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
     size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
+    FklBytes *bv = FKL_VM_BYTES(bvec);                                         \
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
@@ -61,12 +61,12 @@ static int export_bvu64ref(FKL_CPROC_ARGL){ BV_U_REF(uint64_t) }
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);                                     \
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))                        \
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec))                             \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
     if (fklIsVMnumberLt0(place))                                               \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
     size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
+    FklBytes *bv = FKL_VM_BYTES(bvec);                                         \
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
@@ -87,13 +87,12 @@ static int export_bvf64ref(FKL_CPROC_ARGL){ BV_F_REF(double) }
         FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                     \
         FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                    \
         FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                   \
-        if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)                     \
-                || !fklIsVMint(target))                                        \
+        if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec) || !fklIsVMint(target))  \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);        \
         if (fklIsVMnumberLt0(place))                                           \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);   \
         size_t index = fklVMgetUint(place);                                    \
-        FklBytevector *bv = FKL_VM_BVEC(bvec);                                 \
+        FklBytes *bv = FKL_VM_BYTES(bvec);                                     \
         size_t size = bv->size;                                                \
         if (index >= size || size - index < sizeof(TYPE))                      \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);               \
@@ -110,13 +109,12 @@ static int export_bvf64ref(FKL_CPROC_ARGL){ BV_F_REF(double) }
         FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                     \
         FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                    \
         FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                   \
-        if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)                     \
-                || !fklIsVMint(target))                                        \
+        if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec) || !fklIsVMint(target))  \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);        \
         if (fklIsVMnumberLt0(place))                                           \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);   \
         size_t index = fklVMgetUint(place);                                    \
-        FklBytevector *bv = FKL_VM_BVEC(bvec);                                 \
+        FklBytes *bv = FKL_VM_BYTES(bvec);                                     \
         size_t size = bv->size;                                                \
         if (index >= size || size - index < sizeof(TYPE))                      \
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);               \
@@ -145,12 +143,12 @@ SET_BV_U_REF(bvu64set1, uint64_t, UINT64_MAX);
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);                         \
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);                        \
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);                       \
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec) || !FKL_IS_F64(target)) \
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec) || !FKL_IS_F64(target))      \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);            \
     if (fklIsVMnumberLt0(place))                                               \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);       \
     size_t index = fklVMgetUint(place);                                        \
-    FklBytevector *bv = FKL_VM_BVEC(bvec);                                     \
+    FklBytes *bv = FKL_VM_BYTES(bvec);                                         \
     size_t size = bv->size;                                                    \
     if (index >= size || size - index < sizeof(TYPE))                          \
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);                   \
@@ -166,8 +164,8 @@ static int export_bvf64set1(FKL_CPROC_ARGL) { SET_BV_F_REF(double) }
 static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     int8_t *s8a = (int8_t *)bvec->ptr;
     FklVMvalue *r = FKL_VM_NIL;
@@ -183,8 +181,8 @@ static int export_bytevector_to_s8_list(FKL_CPROC_ARGL) {
 static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *r = FKL_VM_NIL;
@@ -200,8 +198,8 @@ static int export_bytevector_to_u8_list(FKL_CPROC_ARGL) {
 static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     int8_t *s8a = (int8_t *)bvec->ptr;
     FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
@@ -215,8 +213,8 @@ static int export_bytevector_to_s8_vector(FKL_CPROC_ARGL) {
 static int export_bytevector_to_u8_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *vec = fklCreateVMvalueVec(exe, size);

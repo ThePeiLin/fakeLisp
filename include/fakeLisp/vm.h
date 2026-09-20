@@ -73,8 +73,8 @@ typedef struct {
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
-    FklBytevector bvec;
-} FklVMvalueBvec;
+    FklBytes bytes;
+} FklVMvalueBytes;
 
 typedef struct {
     FKL_VM_VALUE_COMMON_HEADER;
@@ -1197,8 +1197,8 @@ static inline FklVMvalue *fklCreateVMvalueSymFromCstr(FklVM *exe,
 
 FklVMvalue *fklCreateVMvalueKeyword(FklVM *, size_t size, const char *str);
 
-FklVMvalue *fklCreateVMvalueBvec(FklVM *, const FklBytevector *bvec);
-FklVMvalue *fklCreateVMvalueBvec2(FklVM *, size_t size, const uint8_t *);
+FklVMvalue *fklCreateVMvalueBytes(FklVM *, const FklBytes *bytes);
+FklVMvalue *fklCreateVMvalueBytes2(FklVM *, size_t size, const uint8_t *);
 
 FklVMvalue *fklCreateVMvalueVec(FklVM *, size_t);
 FklVMvalue *fklCreateVMvalueVec2(FklVM *, size_t, FklVMvalue *const *);
@@ -1418,9 +1418,9 @@ static FKL_ALWAYS_INLINE FklString *FKL_VM_KEYWORD(const FklVMvalue *V) {
 
 #define FKL_VM_SYM_INTERNED(V) (*FKL_VM_SYM_INTERNED(V))
 
-static FKL_ALWAYS_INLINE FklBytevector *FKL_VM_BVEC(const FklVMvalue *V) {
-    FKL_ASSERT(FKL_IS_BYTEVECTOR(V));
-    return (&((FklVMvalueBvec *)(V))->bvec);
+static FKL_ALWAYS_INLINE FklBytes *FKL_VM_BYTES(const FklVMvalue *V) {
+    FKL_ASSERT(FKL_IS_BYTES(V));
+    return (&((FklVMvalueBytes *)(V))->bytes);
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueVec *FKL_VM_VEC(const FklVMvalue *V) {

@@ -23,8 +23,8 @@ extern "C" {
 #define FKL_SUBOP_STR_REF         (0)
 #define FKL_SUBOP_STR_SET         (1)
 
-#define FKL_SUBOP_BVEC_REF        (0)
-#define FKL_SUBOP_BVEC_SET        (1)
+#define FKL_SUBOP_BYTES_REF        (0)
+#define FKL_SUBOP_BYTES_SET        (1)
 
 #define FKL_SUBOP_PAIR_CAR        (0)
 #define FKL_SUBOP_PAIR_CDR        (1)
@@ -96,7 +96,7 @@ extern "C" {
     X(FKL_OP_PAIR,             "pair",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_VEC,              "vec",              FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_STR,              "str",              FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
-    X(FKL_OP_BVEC,             "bvec",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
+    X(FKL_OP_BYTES,            "bytes",            FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_BOX,              "box",              FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_HASH,             "hash",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_CLOSE_REF,        "close-ref",        FKL_OP_MODE_IuC,      FKL_OP_DUMMY          )\

@@ -260,16 +260,16 @@ static int export_strbuf_to_string(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int export_strbuf_to_bytevector(FKL_CPROC_ARGL) {
+static int export_strbuf_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *buf = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(buf, is_strbuf_ud, exe);
     FklStrBuf *b = &as_strbuf(buf)->buf;
-    FKL_CPROC_RETURN(exe,
-            ctx,
-            fklCreateVMvalueBvec2(exe,
-                    b->index,
-                    FKL_TYPE_CAST(const uint8_t *, b->buf)));
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe,
+            b->index,
+            FKL_TYPE_CAST(const uint8_t *, b->buf));
+
+    FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
@@ -551,7 +551,7 @@ struct SymFunc {
     {"strbuf-resize!",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-resize!",       export_strbuf_resize            )},
     {"strbuf-fmt!",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf-fmt!",          export_strbuf_fmt               )},
     {"strbuf->string",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->string",       export_strbuf_to_string         )},
-    {"strbuf->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->bytes",        export_strbuf_to_bytevector     )},
+    {"strbuf->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->bytes",        export_strbuf_to_bytes          )},
     {"strbuf->vector",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->vector",       export_strbuf_to_vector         )},
     {"strbuf->list",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->list",         export_strbuf_to_list           )},
     {"strbuf->symbol",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("strbuf->symbol",       export_strbuf_to_symbol         )},

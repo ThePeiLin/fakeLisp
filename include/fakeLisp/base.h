@@ -160,26 +160,27 @@ static inline void fklPrintSymLiteral2(const char *fstr,
     fklPrintStrLiteralExt(fstr, "|", "|", '|', build);
 }
 
-typedef struct FklBytevector {
+typedef struct FklBytes {
     uint64_t size;
     uint8_t ptr[FKL_FLEX_ARRAY_MEMBER];
-} FklBytevector;
-FklBytevector *fklStrBufToBytevector(FklStrBuf *);
+} FklBytes;
 
-FklBytevector *fklCreateBytevector(size_t, const uint8_t *);
-FklBytevector *fklBytevectorRealloc(FklBytevector *b, size_t new_size);
-FklBytevector *fklCopyBytevector(const FklBytevector *);
-void fklBytevectorCat(FklBytevector **, const FklBytevector *);
-int fklBytevectorCmp(const FklBytevector *, const FklBytevector *);
-int fklBytevectorEqual(const FklBytevector *fir, const FklBytevector *sec);
+FklBytes *fklStrBufToBytes(FklStrBuf *);
 
-void fklPrintBytesLiteral(const FklBytevector *str, FILE *fp);
-void fklPrintBytesLiteral2(const FklBytevector *bvec, FklCodeBuilder *build);
+FklBytes *fklCreateBytes(size_t, const uint8_t *);
+FklBytes *fklBytesRealloc(FklBytes *b, size_t new_size);
+FklBytes *fklCopyBytes(const FklBytes *);
+void fklBytesCat(FklBytes **, const FklBytes *);
+int fklBytesCmp(const FklBytes *, const FklBytes *);
+int fklBytesEqual(const FklBytes *fir, const FklBytes *sec);
 
-void fklWriteBytevector(const FklBytevector *b, FILE *fp);
-FklBytevector *fklLoadBytevector(FILE *fp);
+void fklPrintBytesLiteral(const FklBytes *str, FILE *fp);
+void fklPrintBytesLiteral2(const FklBytes *bytes, FklCodeBuilder *build);
 
-uintptr_t fklBytevectorHash(const FklBytevector *bv);
+void fklWriteBytes(const FklBytes *b, FILE *fp);
+FklBytes *fklLoadBytes(FILE *fp);
+
+uintptr_t fklBytesHash(const FklBytes *bv);
 
 // FklUintVector
 #define FKL_VECTOR_ELM_TYPE uintmax_t

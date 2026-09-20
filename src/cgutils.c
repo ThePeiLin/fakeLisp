@@ -483,7 +483,7 @@ void fklSetImportedSymbolUsed(const FklVMvalueCgEnv *env,
     FklVMvalue *v = env->imported_symbols.base[def->from];
     FKL_ASSERT(v != NULL);
 
-    uint8_t *ptr = FKL_VM_BVEC(v)->ptr;
+    uint8_t *ptr = FKL_VM_BYTES(v)->ptr;
     ptr[def->from_idx] = FKL_IMPORT_SYMBOL_USED;
 }
 
@@ -496,10 +496,10 @@ const uint8_t *fklGetImportedSymbolUsed(const FklVMvalueCgEnv *env,
     FklVMvalue *v = env->imported_symbols.base[from];
     if (v == NULL)
         return NULL;
-    const FklBytevector *bvec = FKL_VM_BVEC(v);
+    const FklBytes *bvec = FKL_VM_BYTES(v);
 
     if (idx < bvec->size) {
-        return &FKL_VM_BVEC(v)->ptr[idx];
+        return &FKL_VM_BYTES(v)->ptr[idx];
     } else {
         return NULL;
     }
@@ -1962,11 +1962,11 @@ static inline void *simple_action_bytes(FklProdActionArgs *actx,
         char *s = fklCastEscapeCharBuf(&cstr[start_size],
                 str->size - end_size - start_size,
                 &size);
-        FklVMvalue *retval = fklCreateVMvalueBvec2(ct->exe, size, (uint8_t *)s);
+        FklVMvalue *r = fklCreateVMvalueBytes2(ct->exe, size, (uint8_t *)s);
         fklZfree(s);
-        return retval;
+        return r;
     } else {
-        FklVMvalue *v = fklCreateVMvalueBvec2(ct->exe,
+        FklVMvalue *v = fklCreateVMvalueBytes2(ct->exe,
                 FKL_VM_STR(node)->size,
                 (uint8_t *)FKL_VM_STR(node)->str);
         return v;
@@ -2417,7 +2417,7 @@ static inline void *builtin_prod_action_bytes(FklProdActionArgs *action_ctx,
     FklVMvalue *node = nodes[0].ast;
     if (!FKL_IS_STR(node))
         return NULL;
-    return fklCreateVMvalueBvec2(c->exe,
+    return fklCreateVMvalueBytes2(c->exe,
             FKL_VM_STR(node)->size,
             (const uint8_t *)FKL_VM_STR(node)->str);
 }

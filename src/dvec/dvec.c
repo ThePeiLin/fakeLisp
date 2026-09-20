@@ -705,15 +705,15 @@ static int export_dvec_to_string(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int export_dvec_to_bytevector(FKL_CPROC_ARGL) {
+static int export_dvec_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, is_dvec_ud, exe);
     FklValueVector *v = &as_dvec(vec)->vec;
     size_t size = v->size;
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, v->size, NULL);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, v->size, NULL);
     FklVMvalue **base = v->base;
-    uint8_t *ptr = FKL_VM_BVEC(r)->ptr;
+    uint8_t *ptr = FKL_VM_BYTES(r)->ptr;
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
@@ -767,11 +767,11 @@ exit:
     return 0;
 }
 
-static int export_bytevector_to_dvec(FKL_CPROC_ARGL) {
+static int export_bytes_to_dvec(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalueDvecDll *dll = as_dvec_dll(ctx->dll);
@@ -815,11 +815,11 @@ struct SymFunc {
     {"dvec->vector",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->vector",       export_dvec_to_vector         )},
     {"dvec->list",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->list",         export_dvec_to_list           )},
     {"dvec->string",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->string",       export_dvec_to_string         )},
-    {"dvec->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->bytes",        export_dvec_to_bytevector     )},
+    {"dvec->bytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dvec->bytes",        export_dvec_to_bytes          )},
     {"list->dvec",         (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->dvec",         export_list_to_dvec           )},
     {"vector->dvec",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->dvec",       export_vector_to_dvec         )},
     {"string->dvec",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->dvec",       export_string_to_dvec         )},
-    {"bytes->dvec",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->dvec",        export_bytevector_to_dvec     )},
+    {"bytes->dvec",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->dvec",        export_bytes_to_dvec          )},
     // clang-format on
 };
 

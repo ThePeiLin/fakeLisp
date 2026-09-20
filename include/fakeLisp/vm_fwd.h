@@ -16,7 +16,7 @@ typedef struct FklVMvalueLib FklVMvalueLib;
     X(STR, STR)                                                                \
     X(SYM, SYM)                                                                \
     X(KEYWORD, KEYWORD)                                                        \
-    X(BYTEVECTOR, BYTEVECTOR)                                                  \
+    X(BYTES, BYTES)                                                            \
     X(PAIR, PAIR)                                                              \
     X(VECTOR, VECTOR)                                                          \
     X(BOX, BOX)                                                                \

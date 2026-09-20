@@ -212,7 +212,7 @@ static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
     case FKL_TYPE_STR:
     case FKL_TYPE_SYM:
     case FKL_TYPE_KEYWORD:
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
         return;
         break;
     }
@@ -300,7 +300,7 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     case FKL_TYPE_VECTOR:
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
     case FKL_TYPE_CPROC:
     case FKL_TYPE_VAR_REF:
     case FKL_TYPE_PROC:

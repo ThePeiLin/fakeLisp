@@ -636,16 +636,16 @@ int fklHasCircleRef(const FklVMvalue *v) {
 }
 
 static inline int is_serializable_leaf_node(const FklVMvalue *v) {
-    return v == FKL_VM_NIL ||      //
-           FKL_IS_FIX(v) ||        //
-           FKL_IS_CHR(v) ||        //
-           FKL_IS_F64(v) ||        //
-           FKL_IS_BIGINT(v) ||     //
-           FKL_IS_STR(v) ||        //
-           FKL_IS_SYM(v) ||        //
-           FKL_IS_KEYWORD(v) ||    //
-           FKL_IS_BYTEVECTOR(v) || //
-           fklIsVMvalueSlot(v) ||  //
+    return v == FKL_VM_NIL ||     //
+           FKL_IS_FIX(v) ||       //
+           FKL_IS_CHR(v) ||       //
+           FKL_IS_F64(v) ||       //
+           FKL_IS_BIGINT(v) ||    //
+           FKL_IS_STR(v) ||       //
+           FKL_IS_SYM(v) ||       //
+           FKL_IS_KEYWORD(v) ||   //
+           FKL_IS_BYTES(v) ||     //
+           fklIsVMvalueSlot(v) || //
            v == FKL_VM_HEADER_WILDCARD;
 }
 
@@ -743,8 +743,8 @@ static void vmvalue_keyword_princ(VMVALUE_PRINTER_ARGS) {
     fklPrintString2(FKL_VM_KEYWORD(v), build);
 }
 
-static void vmvalue_bytevector_printer(VMVALUE_PRINTER_ARGS) {
-    fklPrintBytesLiteral2(FKL_VM_BVEC(v), build);
+static void vmvalue_bytes_printer(VMVALUE_PRINTER_ARGS) {
+    fklPrintBytesLiteral2(FKL_VM_BYTES(v), build);
 }
 
 static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
@@ -819,8 +819,8 @@ static FKL_ALWAYS_INLINE void vmvalue_obj_print(VMVALUE_PRINTER_ARGS,
         return;
         break;
 
-    case FKL_TYPE_BYTEVECTOR:
-        vmvalue_bytevector_printer(v, build, exe);
+    case FKL_TYPE_BYTES:
+        vmvalue_bytes_printer(v, build, exe);
         return;
         break;
 
@@ -1101,7 +1101,7 @@ first_call:
     case FKL_TYPE_SYM:
     case FKL_TYPE_BOX:
     case FKL_TYPE_USERDATA:
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
     case FKL_TYPE_CPROC:
     case FKL_TYPE_VAR_REF:
     case FKL_TYPE_PROC:

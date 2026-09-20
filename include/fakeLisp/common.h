@@ -8,6 +8,7 @@ extern "C" {
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdio.h>
 
 typedef intptr_t ssize_t;
 
@@ -142,13 +143,13 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
         FKL_UNREACHABLE_();                                                    \
-        abort();                                                               \
+        FKL_ASSERT(0);                                                         \
     } while (0)
 #else
 #define FKL_UNREACHABLE()                                                      \
     do {                                                                       \
         fprintf(stderr, "[%s: %d] unreachable!\n", __REL_FILE__, __LINE__);    \
-        abort();                                                               \
+        FKL_ASSERT(0);                                                         \
     } while (0)
 #endif
 

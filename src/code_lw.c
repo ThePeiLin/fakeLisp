@@ -363,9 +363,9 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
         int8_t interned = FKL_VM_SYM_INTERNED(v);
         fwrite(&interned, sizeof(interned), 1, fp);
         fklWriteString(FKL_VM_SYM(v), fp);
-    } else if (FKL_IS_BYTEVECTOR(v)) {
+    } else if (FKL_IS_BYTES(v)) {
         write_value_create_op(MAKE_BYTES, fp);
-        fklWriteBytevector(FKL_VM_BVEC(v), fp);
+        fklWriteBytes(FKL_VM_BYTES(v), fp);
     } else if (v == FKL_VM_HEADER_WILDCARD) {
         write_value_create_op(MAKE_HEADER_WILDCARD, fp);
     } else if (fklIsVMvalueSlot(v)) {
@@ -505,8 +505,8 @@ static inline FklVMvalue *load_and_make_values(FILE *fp,
     case MAKE_BYTES: {
         uint64_t size = 0;
         fread(&size, sizeof(size), 1, fp);
-        FklVMvalue *b = fklCreateVMvalueBvec2(vm, size, NULL);
-        FklBytevector *bb = FKL_VM_BVEC(b);
+        FklVMvalue *b = fklCreateVMvalueBytes2(vm, size, NULL);
+        FklBytes *bb = FKL_VM_BYTES(b);
         fread(bb->ptr, size * sizeof(*(bb->ptr)), 1, fp);
         return b;
     } break;

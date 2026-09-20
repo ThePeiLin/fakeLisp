@@ -453,7 +453,7 @@ static inline void *prod_action_bytes(FklProdActionArgs *args,
 
     const FklVMparseCtx *c = ctx;
     FklVM *exe = c->exe;
-    FklVMvalue *retval = fklCreateVMvalueBvec2(exe, size, (uint8_t *)s);
+    FklVMvalue *retval = fklCreateVMvalueBytes2(exe, size, (uint8_t *)s);
 
     fklZfree(s);
     return retval;

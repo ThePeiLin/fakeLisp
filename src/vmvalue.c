@@ -71,7 +71,7 @@ FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *obj) {
             case FKL_TYPE_STR:
             case FKL_TYPE_SYM:
             case FKL_TYPE_KEYWORD:
-            case FKL_TYPE_BYTEVECTOR:
+            case FKL_TYPE_BYTES:
             case FKL_TYPE_VECTOR:
             case FKL_TYPE_BOX:
             case FKL_TYPE_HASHTABLE:
@@ -116,8 +116,8 @@ static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
         return fklCreateVMvalueStr(vm, FKL_VM_STR(obj));
         break;
 
-    case FKL_TYPE_BYTEVECTOR:
-        return fklCreateVMvalueBvec(vm, FKL_VM_BVEC(obj));
+    case FKL_TYPE_BYTES:
+        return fklCreateVMvalueBytes(vm, FKL_VM_BYTES(obj));
         break;
 
     case FKL_TYPE_VECTOR: {
@@ -279,22 +279,22 @@ static FKL_ALWAYS_INLINE FklVMvalue *bytes_copy_append(FklVM *exe,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base) {
-    uint64_t new_size = FKL_VM_BVEC(v)->size;
+    uint64_t new_size = FKL_VM_BYTES(v)->size;
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
-        if (FKL_IS_BYTEVECTOR(cur))
-            new_size += FKL_VM_BVEC(cur)->size;
+        if (FKL_IS_BYTES(cur))
+            new_size += FKL_VM_BYTES(cur)->size;
         else
             return NULL;
     }
-    FklVMvalue *bv = fklCreateVMvalueBvec2(exe, new_size, NULL);
-    FklBytevector *bvec = FKL_VM_BVEC(bv);
-    new_size = FKL_VM_BVEC(v)->size;
-    memcpy(bvec->ptr, FKL_VM_BVEC(v)->ptr, new_size * sizeof(char));
+    FklVMvalue *bv = fklCreateVMvalueBytes2(exe, new_size, NULL);
+    FklBytes *bvec = FKL_VM_BYTES(bv);
+    new_size = FKL_VM_BYTES(v)->size;
+    memcpy(bvec->ptr, FKL_VM_BYTES(v)->ptr, new_size * sizeof(char));
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
-        size_t ss = FKL_VM_BVEC(cur)->size;
-        memcpy(&bvec->ptr[new_size], FKL_VM_BVEC(cur)->ptr, ss * sizeof(char));
+        size_t ss = FKL_VM_BYTES(cur)->size;
+        memcpy(&bvec->ptr[new_size], FKL_VM_BYTES(cur)->ptr, ss * sizeof(char));
         new_size += ss;
     }
     return bv;
@@ -325,7 +325,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *obj_copy_append(FklVM *vm,
     case FKL_TYPE_PAIR:
         return pair_copy_append(vm, v, argc, base);
         break;
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
         return bytes_copy_append(vm, v, argc, base);
         break;
     case FKL_TYPE_USERDATA:
@@ -445,7 +445,7 @@ obj_append(FklVM *vm, FklVMvalue *v, uint32_t argc, FklVMvalue *const *base) {
     case FKL_TYPE_BIGINT:
     case FKL_TYPE_KEYWORD:
     case FKL_TYPE_HASHTABLE:
-    case FKL_TYPE_BYTEVECTOR:
+    case FKL_TYPE_BYTES:
         return NULL;
         break;
 
@@ -506,8 +506,8 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         case FKL_TYPE_STR:
             return fklStringEqual(FKL_VM_STR(fir), FKL_VM_STR(sec));
             break;
-        case FKL_TYPE_BYTEVECTOR:
-            return fklBytevectorEqual(FKL_VM_BVEC(fir), FKL_VM_BVEC(sec));
+        case FKL_TYPE_BYTES:
+            return fklBytesEqual(FKL_VM_BYTES(fir), FKL_VM_BYTES(sec));
             break;
         case FKL_TYPE_BIGINT:
             return fklVMbigIntEqual(FKL_VM_BI(fir), FKL_VM_BI(sec));
@@ -580,9 +580,8 @@ nested_equal:
                     r = fklStringEqual(FKL_VM_STR(root1), FKL_VM_STR(root2));
                     goto done;
                     break;
-                case FKL_TYPE_BYTEVECTOR:
-                    r = fklBytevectorEqual(FKL_VM_BVEC(root1),
-                            FKL_VM_BVEC(root2));
+                case FKL_TYPE_BYTES:
+                    r = fklBytesEqual(FKL_VM_BYTES(root1), FKL_VM_BYTES(root2));
                     goto done;
                     break;
                 case FKL_TYPE_PAIR:
@@ -709,8 +708,8 @@ int fklVMvalueCmp(FklVMvalue *a, FklVMvalue *b, int *err) {
         r = -1 * (fklVMbigIntCmpI(FKL_VM_BI(b), FKL_GET_FIX(a)));
     else if (FKL_IS_STR(a) && FKL_IS_STR(b))
         r = fklStringCmp(FKL_VM_STR(a), FKL_VM_STR(b));
-    else if (FKL_IS_BYTEVECTOR(a) && FKL_IS_BYTEVECTOR(b))
-        r = fklBytevectorCmp(FKL_VM_BVEC(a), FKL_VM_BVEC(b));
+    else if (FKL_IS_BYTES(a) && FKL_IS_BYTES(b))
+        r = fklBytesCmp(FKL_VM_BYTES(a), FKL_VM_BYTES(b));
     else if (FKL_IS_CHR(a) && FKL_IS_CHR(b))
         r = FKL_GET_CHR(a) - FKL_GET_CHR(b);
     else if (FKL_IS_USERDATA(a) && is_cmpable_ud(FKL_VM_UD(a)))
@@ -966,8 +965,8 @@ static FKL_ALWAYS_INLINE uintptr_t _str_hashFunc(const FklVMvalue *v) {
     return fklStringHash(FKL_VM_STR(v));
 }
 
-static FKL_ALWAYS_INLINE uintptr_t _bytevector_hashFunc(const FklVMvalue *v) {
-    return fklBytevectorHash(FKL_VM_BVEC(v));
+static FKL_ALWAYS_INLINE uintptr_t _bytes_hashFunc(const FklVMvalue *v) {
+    return fklBytesHash(FKL_VM_BYTES(v));
 }
 
 static FKL_ALWAYS_INLINE uintptr_t _vector_hashFunc(const FklVMvalue *v) {
@@ -1027,8 +1026,8 @@ static inline uintptr_t obj_hash(const FklVMvalue *v) {
     case FKL_TYPE_BOX:
         return _box_hashFunc(v);
         break;
-    case FKL_TYPE_BYTEVECTOR:
-        return _bytevector_hashFunc(v);
+    case FKL_TYPE_BYTES:
+        return _bytes_hashFunc(v);
         break;
     case FKL_TYPE_USERDATA:
         return _userdata_hashFunc(v);
@@ -1358,38 +1357,39 @@ FklVMvalue *fklCreateVMvalueKeyword(FklVM *exe, size_t size, const char *str) {
     return r;
 }
 
-static const alignas(8) FklVMvalueBvec ZeroLenBvecSingleton = {
+static const alignas(8) FklVMvalueBytes ZeroLenBvecSingleton = {
     .next_ = NULL,
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,
-    .type_ = FKL_TYPE_BYTEVECTOR,
-    .bvec.size = 0,
+    .type_ = FKL_TYPE_BYTES,
+    .bytes.size = 0,
 };
 
-FklVMvalue *fklCreateVMvalueBvec(FklVM *exe, const FklBytevector *b) {
+FklVMvalue *fklCreateVMvalueBytes(FklVM *exe, const FklBytes *b) {
     if (b->size == 0)
         return FKL_VM_VAL(&ZeroLenBvecSingleton);
 
-    size_t total_size = sizeof(FklVMvalueBvec) + b->size * sizeof(b->ptr[0]);
+    size_t total_size = sizeof(FklVMvalueBytes) + b->size * sizeof(b->ptr[0]);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_BYTEVECTOR;
-    FklBytevector *bvec = FKL_VM_BVEC(r);
+    r->type_ = FKL_TYPE_BYTES;
+    FklBytes *bvec = FKL_VM_BYTES(r);
     bvec->size = b->size;
     memcpy(bvec->ptr, b->ptr, bvec->size * sizeof(bvec->ptr[0]));
     fklAddToGC(r, exe);
     return r;
 }
 
-FklVMvalue *fklCreateVMvalueBvec2(FklVM *exe, size_t size, const uint8_t *ptr) {
+FklVMvalue *
+fklCreateVMvalueBytes2(FklVM *exe, size_t size, const uint8_t *ptr) {
     if (size == 0)
         return FKL_VM_VAL(&ZeroLenBvecSingleton);
 
-    size_t total_size = sizeof(FklVMvalueBvec) + size * sizeof(ptr[0]);
+    size_t total_size = sizeof(FklVMvalueBytes) + size * sizeof(ptr[0]);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_BYTEVECTOR;
-    FklBytevector *bvec = FKL_VM_BVEC(r);
+    r->type_ = FKL_TYPE_BYTES;
+    FklBytes *bvec = FKL_VM_BYTES(r);
     bvec->size = size;
     if (ptr)
         memcpy(bvec->ptr, ptr, bvec->size * sizeof(bvec->ptr[0]));
@@ -2120,8 +2120,8 @@ int fklWriteVMvalue(const FklVMvalue *r, FklCodeBuilder *b) {
     if (FKL_IS_STR(r)) {
         FklString *str = FKL_VM_STR(r);
         fklCodeBuilderWrite(b, str->size, str->str);
-    } else if (FKL_IS_BYTEVECTOR(r)) {
-        FklBytevector *bvec = FKL_VM_BVEC(r);
+    } else if (FKL_IS_BYTES(r)) {
+        FklBytes *bvec = FKL_VM_BYTES(r);
         fklCodeBuilderWrite(b, bvec->size, bvec->ptr);
     } else if (FKL_IS_USERDATA(r) && is_writable_ud(FKL_VM_UD(r))) {
         write_vm_ud(r, b);
@@ -2135,17 +2135,17 @@ int fklVMvalueLength(const FklVMvalue *obj, size_t *len) {
         *len = 0;
     else if (FKL_IS_PAIR(obj)) {
         return !fklIsList2(obj, len);
-    } else if (FKL_IS_STR(obj))
+    } else if (FKL_IS_STR(obj)) {
         *len = FKL_VM_STR(obj)->size;
-    else if (FKL_IS_VECTOR(obj))
+    } else if (FKL_IS_VECTOR(obj)) {
         *len = FKL_VM_VEC(obj)->size;
-    else if (FKL_IS_BYTEVECTOR(obj))
-        *len = FKL_VM_BVEC(obj)->size;
-    else if (FKL_IS_HASHTABLE(obj))
+    } else if (FKL_IS_BYTES(obj)) {
+        *len = FKL_VM_BYTES(obj)->size;
+    } else if (FKL_IS_HASHTABLE(obj)) {
         *len = FKL_VM_HASH(obj)->ht.count;
-    else if (FKL_IS_USERDATA(obj) && is_ud_has_length(FKL_VM_UD(obj)))
+    } else if (FKL_IS_USERDATA(obj) && is_ud_has_length(FKL_VM_UD(obj))) {
         *len = ud_length(obj);
-    else {
+    } else {
         return 1;
     }
     return 0;

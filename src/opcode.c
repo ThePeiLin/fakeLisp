@@ -2,8 +2,6 @@
 #include <fakeLisp/opcode.h>
 
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static struct {
@@ -161,10 +159,10 @@ static inline const char *get_str_subop(int8_t subop) {
 
 static inline const char *get_bvec_subop(int8_t subop) {
     switch (subop) {
-    case FKL_SUBOP_BVEC_REF:
+    case FKL_SUBOP_BYTES_REF:
         return "ref";
         break;
-    case FKL_SUBOP_BVEC_SET:
+    case FKL_SUBOP_BYTES_SET:
         return "set";
         break;
     default:
@@ -206,7 +204,7 @@ const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop) {
     case FKL_OP_STR:
         return get_str_subop(subop);
         break;
-    case FKL_OP_BVEC:
+    case FKL_OP_BYTES:
         return get_bvec_subop(subop);
         break;
     case FKL_OP_BOX:

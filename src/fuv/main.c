@@ -2340,9 +2340,9 @@ static inline FklBuiltinErrorType setup_write_data(FklVMvalue **parg,
             FklString *str = FKL_VM_STR(val);
             bufs[i].base = str->str;
             bufs[i].len = (unsigned long)str->size;
-        } else if (FKL_IS_BYTEVECTOR(val)) {
+        } else if (FKL_IS_BYTES(val)) {
             *cur = val;
-            FklBytevector *bvec = FKL_VM_BVEC(val);
+            FklBytes *bvec = FKL_VM_BYTES(val);
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = (unsigned long)bvec->size;
         } else {
@@ -2424,8 +2424,8 @@ static inline FklBuiltinErrorType setup_try_write_data(FklVMvalue **parg,
             FklString *str = FKL_VM_STR(val);
             bufs[i].base = str->str;
             bufs[i].len = (unsigned long)str->size;
-        } else if (FKL_IS_BYTEVECTOR(val)) {
-            FklBytevector *bvec = FKL_VM_BVEC(val);
+        } else if (FKL_IS_BYTES(val)) {
+            FklBytes *bvec = FKL_VM_BYTES(val);
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = (unsigned long)bvec->size;
         } else {
@@ -3633,9 +3633,9 @@ static inline FklBuiltinErrorType setup_udp_send_data(FklVMvalue **parg,
             FklString *str = FKL_VM_STR(val);
             bufs[i].base = str->str;
             bufs[i].len = (unsigned long)str->size;
-        } else if (FKL_IS_BYTEVECTOR(val)) {
+        } else if (FKL_IS_BYTES(val)) {
             *cur = val;
-            FklBytevector *bvec = FKL_VM_BVEC(val);
+            FklBytes *bvec = FKL_VM_BYTES(val);
             bufs[i].base = (char *)bvec->ptr;
             bufs[i].len = (unsigned long)bvec->size;
         } else {
@@ -4857,12 +4857,15 @@ static inline FklBuiltinErrorType setup_fs_write_buf(FklVMvalue **parg,
         FklStrBuf *buf) {
     for (; parg < arg_end; ++parg) {
         FklVMvalue *cur = *parg;
-        if (FKL_IS_STR(cur))
+        if (FKL_IS_STR(cur)) {
             fklStrBufConcatWithString(buf, FKL_VM_STR(cur));
-        else if (FKL_IS_BYTEVECTOR(cur))
-            fklStrBufBincpy(buf, FKL_VM_BVEC(cur)->ptr, FKL_VM_BVEC(cur)->size);
-        else
+        } else if (FKL_IS_BYTES(cur)) {
+            const uint8_t *ptr = FKL_VM_BYTES(cur)->ptr;
+            size_t size = FKL_VM_BYTES(cur)->size;
+            fklStrBufBincpy(buf, ptr, size);
+        } else {
             return FKL_ERR_INCORRECT_TYPE_VALUE;
+        }
     }
     return 0;
 }
@@ -6372,11 +6375,11 @@ static inline FklVMvalue *interface_addresses_to_vec(FklVM *exe,
                 fpd->ifa_f_name_sid,
                 fklCreateVMvalueStr1(exe, cur->name));
 
-        fklVMhashTableSet(ht,
-                fpd->ifa_f_mac_sid,
-                fklCreateVMvalueBvec2(exe,
-                        sizeof(cur->phys_addr),
-                        FKL_TYPE_CAST(const uint8_t *, cur->phys_addr)));
+        FklVMvalue *b = fklCreateVMvalueBytes2(exe,
+                sizeof(cur->phys_addr),
+                FKL_TYPE_CAST(const uint8_t *, cur->phys_addr));
+
+        fklVMhashTableSet(ht, fpd->ifa_f_mac_sid, b);
 
         fklVMhashTableSet(ht,
                 fpd->ifa_f_internal_sid,
@@ -6861,7 +6864,7 @@ static void fuv_random_cb_value_creator(FklVM *exe, void *a) {
     FklVMvalue *err = arg->status < 0
                             ? createUvError2(arg->status, exe, FUV_DLL(fpd_obj))
                             : FKL_VM_NIL;
-    FklVMvalue *res = fklCreateVMvalueBvec2(exe, arg->buflen, arg->buf);
+    FklVMvalue *res = fklCreateVMvalueBytes2(exe, arg->buflen, arg->buf);
     FKL_VM_PUSH_VALUE(exe, err);
     FKL_VM_PUSH_VALUE(exe, res);
 }
@@ -6906,8 +6909,8 @@ static int fuv_random(FKL_CPROC_ARGL) {
         FKL_CPROC_RETURN(exe, ctx, retval);
     } else {
         uv_random_t req;
-        FklVMvalue *v = fklCreateVMvalueBvec2(exe, len, NULL);
-        FklBytevector *bvec = FKL_VM_BVEC(v);
+        FklVMvalue *v = fklCreateVMvalueBytes2(exe, len, NULL);
+        FklBytes *bvec = FKL_VM_BYTES(v);
         int r = uv_random(&l->loop, &req, bvec->ptr, len, 0, NULL);
         CHECK_UV_RESULT(r, exe, ctx->dll);
         FKL_CPROC_RETURN(exe, ctx, v);

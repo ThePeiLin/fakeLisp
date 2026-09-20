@@ -488,11 +488,11 @@ static int builtin_string_to_list(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_bytevector_to_list(FKL_CPROC_ARGL) {
+static int builtin_bytes_to_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *r = FKL_VM_NIL;
@@ -505,11 +505,11 @@ static int builtin_bytevector_to_list(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_bytevector_to_vector(FKL_CPROC_ARGL) {
+static int builtin_bytes_to_vector(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(obj);
+    FKL_CHECK_TYPE(obj, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(obj);
     size_t size = bvec->size;
     uint8_t *u8a = bvec->ptr;
     FklVMvalue *vec = fklCreateVMvalueVec(exe, size);
@@ -616,46 +616,46 @@ static int builtin_sub_string(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_subbytevector(FKL_CPROC_ARGL) {
+static int builtin_subbytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *ostr = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *vend = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FKL_CHECK_TYPE(ostr, FKL_IS_BYTEVECTOR, exe);
+    FKL_CHECK_TYPE(ostr, FKL_IS_BYTES, exe);
     FKL_CHECK_TYPE(vstart, fklIsVMint, exe);
     FKL_CHECK_TYPE(vend, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vend))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(ostr);
+    FklBytes *bvec = FKL_VM_BYTES(ostr);
     size_t size = bvec->size;
     size_t start = fklVMgetUint(vstart);
     size_t end = fklVMgetUint(vend);
     if (start > size || end < start || end > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     size = end - start;
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, size, bvec->ptr + start);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, size, bvec->ptr + start);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
-static int builtin_sub_bytevector(FKL_CPROC_ARGL) {
+static int builtin_sub_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 3);
     FklVMvalue *ostr = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *vsize = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FKL_CHECK_TYPE(ostr, FKL_IS_BYTEVECTOR, exe);
+    FKL_CHECK_TYPE(ostr, FKL_IS_BYTES, exe);
     FKL_CHECK_TYPE(vstart, fklIsVMint, exe);
     FKL_CHECK_TYPE(vsize, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vsize))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(ostr);
+    FklBytes *bvec = FKL_VM_BYTES(ostr);
     size_t size = bvec->size;
     size_t start = fklVMgetUint(vstart);
     size_t osize = fklVMgetUint(vsize);
     if (start + osize > size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
     size = osize;
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, size, bvec->ptr + start);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, size, bvec->ptr + start);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
@@ -790,8 +790,8 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
             size_t size = fklWriteDoubleToBuf(buf, 64, FKL_VM_F64(obj));
             retval = fklCreateVMvalueStr2(exe, size, buf);
         }
-    } else if (FKL_IS_BYTEVECTOR(obj)) {
-        FklBytevector *bvec = FKL_VM_BVEC(obj);
+    } else if (FKL_IS_BYTES(obj)) {
+        FklBytes *bvec = FKL_VM_BYTES(obj);
         retval = fklCreateVMvalueStr2(exe, bvec->size, (const char *)bvec->ptr);
     } else if (FKL_IS_VECTOR(obj)) {
         FklVMvalueVec *vec = FKL_VM_VEC(obj);
@@ -1027,37 +1027,37 @@ static int builtin_vector_to_string(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_bytevector_to_string(FKL_CPROC_ARGL) {
+static int builtin_bytes_to_string(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(vec, FKL_IS_BYTEVECTOR, exe);
-    FklBytevector *bvec = FKL_VM_BVEC(vec);
+    FKL_CHECK_TYPE(vec, FKL_IS_BYTES, exe);
+    FklBytes *bvec = FKL_VM_BYTES(vec);
     FklVMvalue *r =
             fklCreateVMvalueStr2(exe, bvec->size, (const char *)bvec->ptr);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
-static int builtin_string_to_bytevector(FKL_CPROC_ARGL) {
+static int builtin_string_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *str = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(str, FKL_IS_STR, exe);
     FklString *s = FKL_VM_STR(str);
     FklVMvalue *r =
-            fklCreateVMvalueBvec2(exe, s->size, (const uint8_t *)s->str);
+            fklCreateVMvalueBytes2(exe, s->size, (const uint8_t *)s->str);
     FKL_CPROC_RETURN(exe, ctx, r);
     return 0;
 }
 
-static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
+static int builtin_vector_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, v->size, NULL);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, v->size, NULL);
     uint64_t size = v->size;
     FklVMvalue **base = v->base;
-    uint8_t *ptr = FKL_VM_BVEC(r)->ptr;
+    uint8_t *ptr = FKL_VM_BYTES(r)->ptr;
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
         FKL_CHECK_BYTE_RANGE_AT(cur, i, exe);
@@ -1067,12 +1067,12 @@ static int builtin_vector_to_bytevector(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_list_to_bytevector(FKL_CPROC_ARGL) {
+static int builtin_list_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *list = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(list, fklIsList, exe);
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, fklVMlistLength(list), NULL);
-    uint8_t *ptr = FKL_VM_BVEC(r)->ptr;
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, fklVMlistLength(list), NULL);
+    uint8_t *ptr = FKL_VM_BYTES(r)->ptr;
     for (size_t i = 0; list != FKL_VM_NIL; i++, list = FKL_VM_CDR(list)) {
         FklVMvalue *cur = FKL_VM_CAR(list);
         FKL_CHECK_TYPE(cur, fklIsVMint, exe);
@@ -1204,12 +1204,12 @@ static int builtin_bvec_ref(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FklBytevector *bv = FKL_VM_BVEC(bvec);
+    FklBytes *bv = FKL_VM_BYTES(bvec);
     size_t size = bv->size;
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -1241,12 +1241,12 @@ static int builtin_bvec_set1(FKL_CPROC_ARGL) {
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec) || !fklIsVMint(target))
+    if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec) || !fklIsVMint(target))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t index = fklVMgetUint(place);
-    FklBytevector *bv = FKL_VM_BVEC(bvec);
+    FklBytes *bv = FKL_VM_BYTES(bvec);
     size_t size = bv->size;
     if (index >= size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -1268,13 +1268,13 @@ static int builtin_string_fill(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_bytevector_fill(FKL_CPROC_ARGL) {
+static int builtin_bytes_fill(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *bvec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *content = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    if (!fklIsVMint(content) || !FKL_IS_BYTEVECTOR(bvec))
+    if (!fklIsVMint(content) || !FKL_IS_BYTES(bvec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
-    FklBytevector *bv = FKL_VM_BVEC(bvec);
+    FklBytes *bv = FKL_VM_BYTES(bvec);
     FKL_CHECK_BYTE_RANGE(content, exe);
     memset(bv->ptr, (uint8_t)fklVMgetInt(content), bv->size);
     FKL_CPROC_RETURN(exe, ctx, bvec);
@@ -2699,7 +2699,7 @@ static int builtin_fgetb(FKL_CPROC_ARGL) {
     FklStrBuf buf;
     fklInitStrBufWithCapacity(&buf, len);
     fklVMread(exe, FKL_VM_FP(file)->fp, &buf, len, EOF);
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe,
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe,
             fklStrBufLen(&buf),
             (const uint8_t *)fklStrBufBody(&buf));
     fklUninitStrBuf(&buf);
@@ -4052,27 +4052,27 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
         }
         uint8_t r = FKL_TYPE_CAST(uint8_t, i);
-        retval = fklCreateVMvalueBvec2(exe, 1, &r);
+        retval = fklCreateVMvalueBytes2(exe, 1, &r);
     } else if (FKL_IS_CHR(obj)) {
         uint8_t r = FKL_GET_CHR(obj);
-        retval = fklCreateVMvalueBvec2(exe, 1, &r);
+        retval = fklCreateVMvalueBytes2(exe, 1, &r);
     } else if (FKL_IS_STR(obj))
-        retval = fklCreateVMvalueBvec2(exe,
+        retval = fklCreateVMvalueBytes2(exe,
                 FKL_VM_STR(obj)->size,
                 (const uint8_t *)(FKL_VM_STR(obj)->str));
-    else if (FKL_IS_BYTEVECTOR(obj)) {
-        retval = fklCreateVMvalueBvec(exe, FKL_VM_BVEC(obj));
+    else if (FKL_IS_BYTES(obj)) {
+        retval = fklCreateVMvalueBytes(exe, FKL_VM_BYTES(obj));
     } else if (FKL_IS_VECTOR(obj)) {
         FklVMvalueVec *vec = FKL_VM_VEC(obj);
         size_t size = vec->size;
-        retval = fklCreateVMvalueBvec2(exe, size, NULL);
-        FklBytevector *bvec = FKL_VM_BVEC(retval);
+        retval = fklCreateVMvalueBytes2(exe, size, NULL);
+        FklBytes *bvec = FKL_VM_BYTES(retval);
         for (size_t i = 0; i < size; i++) {
             bvec->ptr[i] = fix_or_chr_to_byte(exe, vec->base[i]);
         }
     } else if (fklIsList2(obj, &len)) {
-        retval = fklCreateVMvalueBvec2(exe, len, NULL);
-        FklBytevector *bvec = FKL_VM_BVEC(retval);
+        retval = fklCreateVMvalueBytes2(exe, len, NULL);
+        FklBytes *bvec = FKL_VM_BYTES(retval);
         for (size_t i = 0; i < len; i++) {
             bvec->ptr[i] = fix_or_chr_to_byte(exe, FKL_VM_CAR(obj));
             obj = FKL_VM_CDR(obj);
@@ -4086,7 +4086,7 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
 
         fklWriteVMvalue(obj, &b);
 
-        retval = fklCreateVMvalueBvec2(exe,
+        retval = fklCreateVMvalueBytes2(exe,
                 fklStrBufLen(&buf),
                 (const uint8_t *)fklStrBufBody(&buf));
 
@@ -4097,11 +4097,11 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
     return 0;
 }
 
-static int builtin_bytevector(FKL_CPROC_ARGL) {
+static int builtin_bytes(FKL_CPROC_ARGL) {
     if (argc == 1)
         return obj_to_bytes(exe, ctx, FKL_CPROC_GET_ARG(exe, ctx, 0));
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, argc, NULL);
-    FklBytevector *bytevec = FKL_VM_BVEC(r);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, argc, NULL);
+    FklBytes *bytevec = FKL_VM_BYTES(r);
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = FKL_CPROC_GET_ARG(exe, ctx, i);
         if (FKL_IS_FIX(cur)) {
@@ -4120,7 +4120,7 @@ static int builtin_bytevector(FKL_CPROC_ARGL) {
     return 0;
 }
 
-static int builtin_make_bytevector(FKL_CPROC_ARGL) {
+static int builtin_make_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, 2);
     FklVMvalue *size = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(size, fklIsVMint, exe);
@@ -4128,8 +4128,8 @@ static int builtin_make_bytevector(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(size))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
     size_t len = fklVMgetUint(size);
-    FklVMvalue *r = fklCreateVMvalueBvec2(exe, len, NULL);
-    FklBytevector *bytevec = FKL_VM_BVEC(r);
+    FklVMvalue *r = fklCreateVMvalueBytes2(exe, len, NULL);
+    FklBytes *bytevec = FKL_VM_BYTES(r);
     uint8_t u_8 = 0;
     if (content) {
         FKL_CHECK_TYPE(content, fklIsVMint, exe);
@@ -4439,9 +4439,7 @@ static int builtin_proc_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_PROC(val)) }
 static int builtin_cproc_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_CPROC(val)) }
 static int builtin_callable_p(FKL_CPROC_ARGL) { PREDICATE(fklIsCallable(val)) }
 static int builtin_vector_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_VECTOR(val)) }
-static int builtin_bytevector_p(FKL_CPROC_ARGL) {
-    PREDICATE(FKL_IS_BYTEVECTOR(val))
-}
+static int builtin_bytes_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_BYTES(val)) }
 static int builtin_chanl_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueChanl(val)) }
 static int builtin_dll_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueDll(val)) }
 static int builtin_fp_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueFp(val)) }
@@ -4783,7 +4781,7 @@ static FklVMvalue *inlfunc_str_ref(INL_FUNC_ARGS) {
 }
 
 static FklVMvalue *inlfunc_bvec_ref(INL_FUNC_ARGS) {
-    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BVEC, FKL_SUBOP_BVEC_REF);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BYTES, FKL_SUBOP_BYTES_REF);
     return inl_2_arg_func2(ins, bcs, fid, line, scope);
 }
 
@@ -4919,7 +4917,7 @@ static FklVMvalue *inlfunc_str_set(INL_FUNC_ARGS) {
 }
 
 static FklVMvalue *inlfunc_bvec_set(INL_FUNC_ARGS) {
-    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BVEC, FKL_SUBOP_BVEC_SET);
+    FklIns ins = FKL_MAKE_INS_IsA(FKL_OP_BYTES, FKL_SUBOP_BYTES_SET);
     return inl_3_arg_func2(ins, bcs, fid, line, scope);
 }
 
@@ -5044,7 +5042,7 @@ static const struct SymbolFuncStruct {
     {"integer->string", (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("integer->string", builtin_integer_to_string),    {NULL,         NULL,              NULL,               NULL               } },
     {"float->string",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("float->string",   builtin_f64_to_string),        {NULL,         NULL,              NULL,               NULL               } },
     {"vector->string",  (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->string",  builtin_vector_to_string),     {NULL,         NULL,              NULL,               NULL               } },
-    {"bytes->string",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->string",   builtin_bytevector_to_string), {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes->string",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->string",   builtin_bytes_to_string),      {NULL,         NULL,              NULL,               NULL               } },
     {"list->string",    (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->string",    builtin_list_to_string),       {NULL,         NULL,              NULL,               NULL               } },
     {"string-ref",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-ref",      builtin_str_ref),              {NULL,         NULL,              inlfunc_str_ref,    NULL               } },
     {"string-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string-set!",     builtin_str_set1),             {NULL,         NULL,              NULL,               inlfunc_str_set    } },
@@ -5077,20 +5075,20 @@ static const struct SymbolFuncStruct {
     {"nth-set!",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nth-set!",        builtin_nth_set),              {NULL,         NULL,              NULL,               NULL               } },
     {"nthcdr-set!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("nthcdr-set!",     builtin_nthcdr_set),           {NULL,         NULL,              NULL,               NULL               } },
                         
-    {"bytes?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes?",          builtin_bytevector_p),         {NULL,         NULL,              NULL,               NULL               } },
-    {"bytes",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes",           builtin_bytevector),           {NULL,         NULL,              NULL,               NULL               } },
-    {"subbytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subbytes",        builtin_subbytevector),        {NULL,         NULL,              NULL,               NULL               } },
-    {"sub-bytes",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-bytes",       builtin_sub_bytevector),       {NULL,         NULL,              NULL,               NULL               } },
-    {"make-bytes",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-bytes",      builtin_make_bytevector),      {NULL,         NULL,              NULL,               NULL               } },
-    {"string->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->bytes",   builtin_string_to_bytevector), {NULL,         NULL,              NULL,               NULL               } },
-    {"vector->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->bytes",   builtin_vector_to_bytevector), {NULL,         NULL,              NULL,               NULL               } },
-    {"list->bytes",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->bytes",     builtin_list_to_bytevector),   {NULL,         NULL,              NULL,               NULL               } },
-    {"bytes->list",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->list",     builtin_bytevector_to_list),   {NULL,         NULL,              NULL,               NULL               } },
-    {"bytes->vector",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->vector",   builtin_bytevector_to_vector), {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes?",          builtin_bytes_p),              {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes",           (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes",           builtin_bytes),                {NULL,         NULL,              NULL,               NULL               } },
+    {"subbytes",        (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("subbytes",        builtin_subbytes),             {NULL,         NULL,              NULL,               NULL               } },
+    {"sub-bytes",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("sub-bytes",       builtin_sub_bytes),            {NULL,         NULL,              NULL,               NULL               } },
+    {"make-bytes",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("make-bytes",      builtin_make_bytes),           {NULL,         NULL,              NULL,               NULL               } },
+    {"string->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("string->bytes",   builtin_string_to_bytes),      {NULL,         NULL,              NULL,               NULL               } },
+    {"vector->bytes",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("vector->bytes",   builtin_vector_to_bytes),      {NULL,         NULL,              NULL,               NULL               } },
+    {"list->bytes",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("list->bytes",     builtin_list_to_bytes),        {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes->list",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->list",     builtin_bytes_to_list),        {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes->vector",   (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes->vector",   builtin_bytes_to_vector),      {NULL,         NULL,              NULL,               NULL               } },
     {"bytes-ref",       (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-ref",       builtin_bvec_ref),             {NULL,         NULL,              inlfunc_bvec_ref,   NULL               } },
     {"bytes-set!",      (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-set!",      builtin_bvec_set1),            {NULL,         NULL,              NULL,               inlfunc_bvec_set   } },
                         
-    {"bytes-fill!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-fill!",     builtin_bytevector_fill),      {NULL,         NULL,              NULL,               NULL               } },
+    {"bytes-fill!",     (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("bytes-fill!",     builtin_bytes_fill),           {NULL,         NULL,              NULL,               NULL               } },
                         
     {"chanl?",          (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("chanl?",          builtin_chanl_p),              {NULL,         NULL,              NULL,               NULL               } },
     {"dll?",            (const FklVMvalue*)&FKL_VM_CPROC_STATIC_INIT("dll?",            builtin_dll_p),                {NULL,         NULL,              NULL,               NULL               } },

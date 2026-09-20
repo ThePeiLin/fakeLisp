@@ -866,33 +866,32 @@ void fklVMexecuteInstruction(FklVM *exe,
             break;
         }
     } break;
-    case FKL_OP_BVEC: {
+    case FKL_OP_BYTES: {
         switch (sA(ins)) {
-        case FKL_SUBOP_BVEC_REF: {
+        case FKL_SUBOP_BYTES_REF: {
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *bvec = FKL_VM_POP_TOP_VALUE(exe);
-            if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec))
+            if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
             size_t index = fklVMgetUint(place);
-            FklBytevector *ss = FKL_VM_BVEC(bvec);
+            FklBytes *ss = FKL_VM_BYTES(bvec);
             size_t size = ss->size;
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
             FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(ss->ptr[index]));
         } break;
-        case FKL_SUBOP_BVEC_SET: {
+        case FKL_SUBOP_BYTES_SET: {
             FklVMvalue *value = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *bvec = FKL_VM_GET_TOP_VALUE(exe);
-            if (!fklIsVMint(place) || !FKL_IS_BYTEVECTOR(bvec)
-                    || !fklIsVMint(value))
+            if (!fklIsVMint(place) || !FKL_IS_BYTES(bvec) || !fklIsVMint(value))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
             size_t index = fklVMgetUint(place);
-            FklBytevector *s = FKL_VM_BVEC(bvec);
+            FklBytes *s = FKL_VM_BYTES(bvec);
             size_t size = s->size;
             if (index >= size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);

@@ -266,13 +266,13 @@ size_t fklCountCharInString(FklString *s, char c) {
     return fklCountCharInBuf(s->str, s->size, c);
 }
 
-FklBytevector *fklStrBufToBytevector(FklStrBuf *b) {
-    return fklCreateBytevector(b->index, (uint8_t *)b->buf);
+FklBytes *fklStrBufToBytes(FklStrBuf *b) {
+    return fklCreateBytes(b->index, (uint8_t *)b->buf);
 }
 
-FklBytevector *fklCreateBytevector(size_t size, const uint8_t *ptr) {
-    FklBytevector *tmp = (FklBytevector *)fklZmalloc(
-            sizeof(FklBytevector) + size * sizeof(uint8_t));
+FklBytes *fklCreateBytes(size_t size, const uint8_t *ptr) {
+    FklBytes *tmp =
+            (FklBytes *)fklZmalloc(sizeof(FklBytes) + size * sizeof(uint8_t));
     FKL_ASSERT(tmp);
     tmp->size = size;
     if (ptr)
@@ -280,25 +280,25 @@ FklBytevector *fklCreateBytevector(size_t size, const uint8_t *ptr) {
     return tmp;
 }
 
-FklBytevector *fklBytevectorRealloc(FklBytevector *bvec, size_t new_size) {
-    FklBytevector *new = (FklBytevector *)fklZrealloc(bvec,
-            sizeof(FklBytevector) + new_size * sizeof(uint8_t));
+FklBytes *fklBytesRealloc(FklBytes *bytes, size_t new_size) {
+    size_t total_size = sizeof(FklBytes) + new_size * sizeof(uint8_t);
+    FklBytes *new = (FklBytes *)fklZrealloc(bytes, total_size);
     FKL_ASSERT(new);
     return new;
 }
 
-void fklBytevectorCat(FklBytevector **a, const FklBytevector *b) {
+void fklBytesCat(FklBytes **a, const FklBytes *b) {
     size_t aSize = (*a)->size;
-    FklBytevector *prev = *a;
-    prev = (FklBytevector *)fklZrealloc(prev,
-            sizeof(FklBytevector) + (aSize + b->size) * sizeof(char));
+    FklBytes *prev = *a;
+    prev = (FklBytes *)fklZrealloc(prev,
+            sizeof(FklBytes) + (aSize + b->size) * sizeof(char));
     FKL_ASSERT(prev);
     *a = prev;
     prev->size = aSize + b->size;
     memcpy(prev->ptr + aSize, b->ptr, b->size);
 }
 
-int fklBytevectorCmp(const FklBytevector *fir, const FklBytevector *sec) {
+int fklBytesCmp(const FklBytes *fir, const FklBytes *sec) {
     size_t size = fir->size < sec->size ? fir->size : sec->size;
     int r = memcmp(fir->ptr, sec->ptr, size);
     if (r)
@@ -310,23 +310,23 @@ int fklBytevectorCmp(const FklBytevector *fir, const FklBytevector *sec) {
     return r;
 }
 
-int fklBytevectorEqual(const FklBytevector *fir, const FklBytevector *sec) {
+int fklBytesEqual(const FklBytes *fir, const FklBytes *sec) {
     if (fir->size == sec->size)
         return !memcmp(fir->ptr, sec->ptr, fir->size);
     return 0;
 }
 
-void fklPrintBytesLiteral(const FklBytevector *bv, FILE *fp) {
+void fklPrintBytesLiteral(const FklBytes *bv, FILE *fp) {
     FklCodeBuilder builder = { 0 };
     fklInitCodeBuilderFp(&builder, fp, NULL);
     fklPrintBytesLiteral2(bv, &builder);
 }
 
-void fklPrintBytesLiteral2(const FklBytevector *bvec, FklCodeBuilder *b) {
+void fklPrintBytesLiteral2(const FklBytes *bytes, FklCodeBuilder *b) {
 #define SE ('"')
     fklCodeBuilderPuts(b, "#\"");
-    const uint8_t *const end = bvec->ptr + bvec->size;
-    for (const uint8_t *c = bvec->ptr; c < end; c++) {
+    const uint8_t *const end = bytes->ptr + bytes->size;
+    for (const uint8_t *c = bytes->ptr; c < end; c++) {
         uint8_t ch = *c;
         if (ch == SE) {
             fklCodeBuilderPutc(b, '\\');
@@ -345,18 +345,17 @@ void fklPrintBytesLiteral2(const FklBytevector *bvec, FklCodeBuilder *b) {
 #undef SE
 }
 
-FklBytevector *fklCopyBytevector(const FklBytevector *obj) {
+FklBytes *fklCopyBytes(const FklBytes *obj) {
     if (obj == NULL)
         return NULL;
-    FklBytevector *tmp =
-            (FklBytevector *)fklZmalloc(sizeof(FklBytevector) + obj->size);
+    FklBytes *tmp = (FklBytes *)fklZmalloc(sizeof(FklBytes) + obj->size);
     FKL_ASSERT(tmp);
     memcpy(tmp->ptr, obj->ptr, obj->size);
     tmp->size = obj->size;
     return tmp;
 }
 
-uintptr_t fklBytevectorHash(const FklBytevector *bv) {
+uintptr_t fklBytesHash(const FklBytes *bv) {
     uintptr_t h = 0;
     const uint8_t *val = bv->ptr;
     size_t size = bv->size;
@@ -365,15 +364,15 @@ uintptr_t fklBytevectorHash(const FklBytevector *bv) {
     return h;
 }
 
-FklBytevector *fklLoadBytevector(FILE *fp) {
+FklBytes *fklLoadBytes(FILE *fp) {
     uint64_t len;
     fread(&len, sizeof(len), 1, fp);
-    FklBytevector *b = fklCreateBytevector(len, NULL);
+    FklBytes *b = fklCreateBytes(len, NULL);
     fread(b->ptr, len, 1, fp);
     return b;
 }
 
-void fklWriteBytevector(const FklBytevector *b, FILE *fp) {
+void fklWriteBytes(const FklBytes *b, FILE *fp) {
     fwrite(&b->size, sizeof(b->size), 1, fp);
     fwrite(b->ptr, b->size, 1, fp);
 }

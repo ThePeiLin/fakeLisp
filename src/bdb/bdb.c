@@ -893,7 +893,7 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     case FKL_OP_PAIR:
     case FKL_OP_VEC:
     case FKL_OP_STR:
-    case FKL_OP_BVEC:
+    case FKL_OP_BYTES:
     case FKL_OP_BOX:
     case FKL_OP_HASH: {
         FklStrBuf buf = { 0 };

@@ -792,7 +792,7 @@ static inline void resolve_ref_for_repl(FklVMvalueCgEnv *env,
 static inline void
 alloc_more_space_for_var_ref(FklVM *vm, FklVMframe *f, uint32_t i, uint32_t n) {
     FklVMvalue *o_lref = f->lref;
-    if (!FKL_IS_VECTOR(o_lref)) {
+    if (!FKL_IS_VEC(o_lref)) {
         f->lref = fklCreateVMvalueVec(vm, n);
         return;
     }

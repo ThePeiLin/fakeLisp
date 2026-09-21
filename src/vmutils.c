@@ -365,7 +365,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                 fklValueVectorPushBack2(&stack, FKL_VM_CAR(v));
                 putValueInSet(circle_heads, v);
             }
-        } else if (FKL_IS_VECTOR(v)) {
+        } else if (FKL_IS_VEC(v)) {
             inc_value_degree(ht, v);
             if (!vmCircleHeadHashMapGet2(circle_heads, v)) {
                 FklVMvalueVec *vec = FKL_VM_VEC(v);
@@ -410,7 +410,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(ht, FKL_VM_CAR(v));
                 dec_value_degree(ht, FKL_VM_CDR(v));
-            } else if (FKL_IS_VECTOR(v)) {
+            } else if (FKL_IS_VEC(v)) {
                 FklVMvalueVec *vec = FKL_VM_VEC(v);
                 FklVMvalue **base = vec->base;
                 FklVMvalue **const end = &base[vec->size];
@@ -452,7 +452,7 @@ static inline void scan_value_and_find_value_in_circle(VmValueDegreeHashMap *ht,
                 if (FKL_IS_PAIR(v)) {
                     dec_value_degree(ht, FKL_VM_CAR(v));
                     dec_value_degree(ht, FKL_VM_CDR(v));
-                } else if (FKL_IS_VECTOR(v)) {
+                } else if (FKL_IS_VEC(v)) {
                     FklVMvalueVec *vec = FKL_VM_VEC(v);
                     FklVMvalue **base = vec->base;
                     FklVMvalue **const end = &base[vec->size];
@@ -493,7 +493,7 @@ static inline void traverse_value_dfs(const FklVMvalue *first_value,
                 fklValueVectorPushBack2(&stack, FKL_VM_CDR(v));
                 fklValueVectorPushBack2(&stack, FKL_VM_CAR(v));
             }
-        } else if (FKL_IS_VECTOR(v)) {
+        } else if (FKL_IS_VEC(v)) {
             if (!fklValueHashSetPut2(&value_set, v)) {
                 FklVMvalueVec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
@@ -537,7 +537,7 @@ static inline void traverse_value_bfs(const FklVMvalue *first_value,
                 fklValueQueuePush2(&queue, FKL_VM_CDR(v));
                 fklValueQueuePush2(&queue, FKL_VM_CAR(v));
             }
-        } else if (FKL_IS_VECTOR(v)) {
+        } else if (FKL_IS_VEC(v)) {
             if (!fklValueHashSetPut2(&value_set, v)) {
                 FklVMvalueVec *vec = FKL_VM_VEC(v);
                 for (size_t i = vec->size; i > 0; i--)
@@ -564,9 +564,9 @@ static inline void traverse_value_bfs(const FklVMvalue *first_value,
 
 static int has_circle_ref_cb(const FklVMvalue *v, void *ctx) {
     VmValueDegreeHashMap *degree_table = ctx;
-    if (FKL_IS_PAIR(v) ||       //
-            FKL_IS_VECTOR(v) || //
-            FKL_IS_BOX(v) ||    //
+    if (FKL_IS_PAIR(v) ||    //
+            FKL_IS_VEC(v) || //
+            FKL_IS_BOX(v) || //
             FKL_IS_HASHTABLE(v))
         inc_value_degree(degree_table, FKL_TYPE_CAST(FklVMvalue *, v));
     return 0;
@@ -591,7 +591,7 @@ static inline void reduce_degrees(VmValueDegreeHashMap *degree_table) {
             if (FKL_IS_PAIR(v)) {
                 dec_value_degree(degree_table, FKL_VM_CAR(v));
                 dec_value_degree(degree_table, FKL_VM_CDR(v));
-            } else if (FKL_IS_VECTOR(v)) {
+            } else if (FKL_IS_VEC(v)) {
                 FklVMvalueVec *vec = FKL_VM_VEC(v);
                 FklVMvalue **base = vec->base;
                 FklVMvalue **const end = &base[vec->size];
@@ -614,9 +614,9 @@ static inline void reduce_degrees(VmValueDegreeHashMap *degree_table) {
 
 int fklHasCircleRef(const FklVMvalue *v) {
     if (FKL_GET_TAG(v) != FKL_TAG_PTR
-            || (!FKL_IS_PAIR(v) &&       //
-                    !FKL_IS_BOX(v) &&    //
-                    !FKL_IS_VECTOR(v) && //
+            || (!FKL_IS_PAIR(v) &&    //
+                    !FKL_IS_BOX(v) && //
+                    !FKL_IS_VEC(v) && //
                     !FKL_IS_HASHTABLE(v)))
         return 0;
 
@@ -651,7 +651,7 @@ static inline int is_serializable_leaf_node(const FklVMvalue *v) {
 
 static int is_serializable_to_bytecode_value(const FklVMvalue *v) {
     return is_serializable_leaf_node(v) || //
-           FKL_IS_VECTOR(v) ||             //
+           FKL_IS_VEC(v) ||                //
            FKL_IS_PAIR(v) ||               //
            FKL_IS_BOX(v) ||                //
            FKL_IS_HASHTABLE(v);
@@ -670,9 +670,9 @@ static int serializable_to_bytecode_file_cb(const FklVMvalue *v, void *ctx) {
         c->r = 1;
         return 1;
     }
-    if (FKL_IS_PAIR(v) ||       //
-            FKL_IS_VECTOR(v) || //
-            FKL_IS_BOX(v) ||    //
+    if (FKL_IS_PAIR(v) ||    //
+            FKL_IS_VEC(v) || //
+            FKL_IS_BOX(v) || //
             FKL_IS_HASHTABLE(v)) {
         inc_value_degree(c->degree_table, FKL_TYPE_CAST(FklVMvalue *, v));
         if (c->lnt) {
@@ -688,9 +688,9 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *v,
     if (!is_serializable_to_bytecode_value(v))
         return 0;
     if (FKL_GET_TAG(v) != FKL_TAG_PTR
-            || (!FKL_IS_PAIR(v) &&       //
-                    !FKL_IS_BOX(v) &&    //
-                    !FKL_IS_VECTOR(v) && //
+            || (!FKL_IS_PAIR(v) &&    //
+                    !FKL_IS_BOX(v) && //
+                    !FKL_IS_VEC(v) && //
                     !FKL_IS_HASHTABLE(v)))
         return 1;
 
@@ -841,7 +841,7 @@ static FKL_ALWAYS_INLINE void vmvalue_obj_print(VMVALUE_PRINTER_ARGS,
 
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
     case FKL_TYPE_HASHTABLE:
     case FKL_TYPE_VAR_REF:
         FKL_UNREACHABLE();
@@ -1075,7 +1075,7 @@ first_call:
         pair_ctx->cur = FKL_VM_CDR(pair_ctx->cur);
         break;
 
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
         if (vec->size == 0) {
             PUTS(buf, "#()");
             return NULL;
@@ -1137,7 +1137,7 @@ cont_call:
         }
         break;
 
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
         if (vec_ctx->index >= vec->size) {
             PUTC(buf, ')');
             return NULL;
@@ -1185,7 +1185,7 @@ static inline void print_value(const FklVMvalue *v,
         FklCodeBuilder *result,
         void (*p_atom)(VMVALUE_PRINTER_ARGS),
         FklVM *exe) {
-    if (!FKL_IS_VECTOR(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
+    if (!FKL_IS_VEC(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
             && !FKL_IS_HASHTABLE(v)) {
         p_atom(v, result, exe);
         return;
@@ -1214,11 +1214,11 @@ static inline void print_value(const FklVMvalue *v,
             PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
             init_common_print_ctx(ctx, FKL_TYPE_PAIR);
             print_pair_ctx_init(ctx, v, &circle_head_set);
-        } else if (FKL_IS_VECTOR(v)) {
+        } else if (FKL_IS_VEC(v)) {
             if (print_circle_head(result, v, &circle_head_set))
                 goto get_next;
             PrintCtx *ctx = vmPrintCtxVectorPushBack(&print_ctxs, NULL);
-            init_common_print_ctx(ctx, FKL_TYPE_VECTOR);
+            init_common_print_ctx(ctx, FKL_TYPE_VEC);
             print_vector_ctx_init(ctx, v);
         } else if (FKL_IS_BOX(v)) {
             if (print_circle_head(result, v, &circle_head_set))

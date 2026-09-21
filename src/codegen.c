@@ -3153,7 +3153,7 @@ static inline int is_compile_check_pattern_matched(FklVMvalue *p,
                         });
                 continue;
                 break;
-            case FKL_TYPE_VECTOR:
+            case FKL_TYPE_VEC:
                 if (FKL_VM_VEC(p)->size != FKL_VM_VEC(e)->size) {
                     r = 0;
                     goto exit;
@@ -4396,7 +4396,7 @@ static void qsquote_state_none(const QsquoteStateNoneArgs *args) {
                 info);
     } else if (FKL_IS_PAIR(value)) {
         qsquote_state_none_pair(value, container, args, &table);
-    } else if (FKL_IS_VECTOR(value)) {
+    } else if (FKL_IS_VEC(value)) {
         qsquote_state_none_vector(value, container, args, &table);
     } else if (FKL_IS_BOX(value)) {
         qsquote_state_none_box(value, container, args, &table);

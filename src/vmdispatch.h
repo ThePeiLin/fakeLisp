@@ -779,7 +779,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         switch (sA(ins)) {
         case FKL_SUBOP_VEC_LAST: {
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
-            if (!FKL_IS_VECTOR(vec))
+            if (!FKL_IS_VEC(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             FklVMvalueVec *vv = FKL_VM_VEC(vec);
             if (!vv->size)
@@ -788,7 +788,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         } break;
         case FKL_SUBOP_VEC_FIRST: {
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
-            if (!FKL_IS_VECTOR(vec))
+            if (!FKL_IS_VEC(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             FklVMvalueVec *vv = FKL_VM_VEC(vec);
             if (!vv->size)
@@ -798,7 +798,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         case FKL_SUBOP_VEC_REF: {
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *vec = FKL_VM_POP_TOP_VALUE(exe);
-            if (!fklIsVMint(place) || !FKL_IS_VECTOR(vec))
+            if (!fklIsVMint(place) || !FKL_IS_VEC(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -812,7 +812,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             FklVMvalue *value = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *place = FKL_VM_POP_TOP_VALUE(exe);
             FklVMvalue *vec = FKL_VM_GET_TOP_VALUE(exe);
-            if (!fklIsVMint(place) || !FKL_IS_VECTOR(vec))
+            if (!fklIsVMint(place) || !FKL_IS_VEC(vec))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
             if (fklIsVMnumberLt0(place))
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -991,7 +991,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         if (!fklIsVMvalueLib(callee))
             break;
         FklVMvalue *v = frame->konsts[uC(ins)];
-        if (!FKL_IS_VECTOR(v))
+        if (!FKL_IS_VEC(v))
             break;
         do_export_more(exe, FKL_VM_VEC(v), fklVMvalueLib(callee));
     } break;

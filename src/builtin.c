@@ -523,7 +523,7 @@ static int builtin_bytes_to_vector(FKL_CPROC_ARGL) {
 static int builtin_vector_to_list(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(obj, FKL_IS_VEC, exe);
     FklVMvalueVec *vec = FKL_VM_VEC(obj);
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
@@ -665,7 +665,7 @@ static int builtin_subvector(FKL_CPROC_ARGL) {
     FklVMvalue *ovec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *vend = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FKL_CHECK_TYPE(ovec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(ovec, FKL_IS_VEC, exe);
     FKL_CHECK_TYPE(vstart, fklIsVMint, exe);
     FKL_CHECK_TYPE(vend, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vend))
@@ -687,7 +687,7 @@ static int builtin_sub_vector(FKL_CPROC_ARGL) {
     FklVMvalue *ovec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *vstart = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *vsize = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FKL_CHECK_TYPE(ovec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(ovec, FKL_IS_VEC, exe);
     FKL_CHECK_TYPE(vstart, fklIsVMint, exe);
     FKL_CHECK_TYPE(vsize, fklIsVMint, exe);
     if (fklIsVMnumberLt0(vstart) || fklIsVMnumberLt0(vsize))
@@ -793,7 +793,7 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
     } else if (FKL_IS_BYTES(obj)) {
         FklBytes *bvec = FKL_VM_BYTES(obj);
         retval = fklCreateVMvalueStr2(exe, bvec->size, (const char *)bvec->ptr);
-    } else if (FKL_IS_VECTOR(obj)) {
+    } else if (FKL_IS_VEC(obj)) {
         FklVMvalueVec *vec = FKL_VM_VEC(obj);
         size_t size = vec->size;
         retval = fklCreateVMvalueStr2(exe, size, NULL);
@@ -1014,7 +1014,7 @@ static int builtin_f64_to_string(FKL_CPROC_ARGL) {
 static int builtin_vector_to_string(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(vec, FKL_IS_VEC, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
     size_t size = v->size;
     FklVMvalue *r = fklCreateVMvalueStr2(exe, size, NULL);
@@ -1052,7 +1052,7 @@ static int builtin_string_to_bytes(FKL_CPROC_ARGL) {
 static int builtin_vector_to_bytes(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(vec, FKL_IS_VEC, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
     FklVMvalue *r = fklCreateVMvalueBytes2(exe, v->size, NULL);
     uint64_t size = v->size;
@@ -1285,7 +1285,7 @@ static int builtin_vec_ref(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    if (!fklIsVMint(place) || !FKL_IS_VECTOR(vec))
+    if (!fklIsVMint(place) || !FKL_IS_VEC(vec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -1301,7 +1301,7 @@ static int builtin_vec_ref(FKL_CPROC_ARGL) {
 static int builtin_vec_first(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(vec, FKL_IS_VEC, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
     if (!v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -1312,7 +1312,7 @@ static int builtin_vec_first(FKL_CPROC_ARGL) {
 static int builtin_vec_last(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(vec, FKL_IS_VEC, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
     if (!v->size)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -1325,7 +1325,7 @@ static int builtin_vec_set(FKL_CPROC_ARGL) {
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *place = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *target = FKL_CPROC_GET_ARG(exe, ctx, 2);
-    if (!fklIsVMint(place) || !FKL_IS_VECTOR(vec))
+    if (!fklIsVMint(place) || !FKL_IS_VEC(vec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -1343,7 +1343,7 @@ static int builtin_vector_fill(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 2);
     FklVMvalue *vec = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FklVMvalue *content = FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FKL_CHECK_TYPE(vec, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(vec, FKL_IS_VEC, exe);
     FklVMvalueVec *v = FKL_VM_VEC(vec);
     size_t size = v->size;
     for (size_t i = 0; i < size; i++)
@@ -1360,7 +1360,7 @@ static int builtin_vec_cas(FKL_CPROC_ARGL) {
     FklVMvalue *new_v = FKL_CPROC_GET_ARG(exe, ctx, 3);
     if (!place || !vec || !old_v || !new_v)
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_TOOFEWARG, exe);
-    if (!fklIsVMint(place) || !FKL_IS_VECTOR(vec))
+    if (!fklIsVMint(place) || !FKL_IS_VEC(vec))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     if (fklIsVMnumberLt0(place))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
@@ -1993,7 +1993,7 @@ static inline ValueToGrammerSymErr value_to_grammer_sym(FklVMvalue *v,
         FklGrammerSym *s,
         FklGrammer *g,
         NextStrType next_str_type) {
-    if (FKL_IS_VECTOR(v)) {
+    if (FKL_IS_VEC(v)) {
         return vm_vector_to_builtin_terminal(FKL_VM_VEC(v), gc, s, g);
     } else if (FKL_IS_STR(v)) {
         switch (next_str_type) {
@@ -2232,7 +2232,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
             }
             break;
         case EXPECT_NEXT_ARG_VECTOR:
-            if (FKL_IS_VECTOR(next_arg)) {
+            if (FKL_IS_VEC(next_arg)) {
                 ValueToGrammerSymArgs args = { .gc = exe->gc, .g = grammer };
                 ValueToGrammerSymErr err_type = 0;
                 prod = vm_vec_to_production(sid,
@@ -2256,7 +2256,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
             break;
         case EXPECT_NEXT_ARG_IGNORE:
             next = EXPECT_NEXT_ARG_SYMBOL;
-            if (FKL_IS_VECTOR(next_arg)) {
+            if (FKL_IS_VEC(next_arg)) {
                 ValueToGrammerSymArgs args = { .gc = exe->gc, .g = grammer };
                 ValueToGrammerSymErr err_type = 0;
                 FklGrammerIgnore *ig = vm_vec_to_ignore(FKL_VM_VEC(next_arg),
@@ -2926,7 +2926,7 @@ static inline int match_pattern(const FklVMvalue *pattern,
                     (FklPair){ .car = FKL_VM_CDR(v0), .cdr = FKL_VM_CDR(v1) });
             fklPairVectorPushBack2(&s,
                     (FklPair){ .car = FKL_VM_CAR(v0), .cdr = FKL_VM_CAR(v1) });
-        } else if (FKL_IS_VECTOR(v0) && FKL_IS_VECTOR(v1)) {
+        } else if (FKL_IS_VEC(v0) && FKL_IS_VEC(v1)) {
             FklVMvalueVec *vec0 = FKL_VM_VEC(v0);
             FklVMvalueVec *vec1 = FKL_VM_VEC(v1);
             r = vec0->size != vec1->size;
@@ -2999,7 +2999,7 @@ static int isValidSyntaxPattern(const FklVMvalue *p) {
             fklValueVectorPushBack2(&exe, FKL_VM_CDR(c));
         } else if (FKL_IS_BOX(c))
             fklValueVectorPushBack2(&exe, FKL_VM_BOX(c));
-        else if (FKL_IS_VECTOR(c)) {
+        else if (FKL_IS_VEC(c)) {
             FklVMvalueVec *vec = FKL_VM_VEC(c);
             FklVMvalue **base = vec->base;
             size_t size = vec->size;
@@ -4062,7 +4062,7 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
                 (const uint8_t *)(FKL_VM_STR(obj)->str));
     else if (FKL_IS_BYTES(obj)) {
         retval = fklCreateVMvalueBytes(exe, FKL_VM_BYTES(obj));
-    } else if (FKL_IS_VECTOR(obj)) {
+    } else if (FKL_IS_VEC(obj)) {
         FklVMvalueVec *vec = FKL_VM_VEC(obj);
         size_t size = vec->size;
         retval = fklCreateVMvalueBytes2(exe, size, NULL);
@@ -4438,7 +4438,7 @@ static int builtin_procedure_p(FKL_CPROC_ARGL) {
 static int builtin_proc_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_PROC(val)) }
 static int builtin_cproc_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_CPROC(val)) }
 static int builtin_callable_p(FKL_CPROC_ARGL) { PREDICATE(fklIsCallable(val)) }
-static int builtin_vector_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_VECTOR(val)) }
+static int builtin_vector_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_VEC(val)) }
 static int builtin_bytes_p(FKL_CPROC_ARGL) { PREDICATE(FKL_IS_BYTES(val)) }
 static int builtin_chanl_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueChanl(val)) }
 static int builtin_dll_p(FKL_CPROC_ARGL) { PREDICATE(fklIsVMvalueDll(val)) }
@@ -4518,7 +4518,7 @@ static int builtin_env_paths(FKL_CPROC_ARGL) {
 static int builtin_env_path(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 0);
     FklVMvalue *v = exe->gc->path_vec;
-    if (!FKL_IS_VECTOR(v)) {
+    if (!FKL_IS_VEC(v)) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_INCORRECT_TYPE_VALUE,
                 exe,
                 "Expected vector but got %S",

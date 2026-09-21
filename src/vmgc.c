@@ -172,7 +172,7 @@ static void atomic_var_ref(FklVMvalue *ref, FklVMgc *gc) {
 
 static inline void propagateMark(FklVMvalue *root, FklVMgc *gc) {
     switch (root->type_) {
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
         fklAtomicVMvec(root, gc);
         return;
         break;
@@ -297,7 +297,7 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     case FKL_TYPE_BIGINT:
     case FKL_TYPE_STR:
     case FKL_TYPE_SYM:
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
     case FKL_TYPE_BYTES:
@@ -876,7 +876,7 @@ void fklVMunregisterExtraMarkFunc(FklVMgc *gc, FklVMextraMarkArgs *ptr) {
 }
 
 FklVMvalue *fklSetVMgcPath(FklVMgc *gc, FklVMvalue *path_vec) {
-    FKL_ASSERT(FKL_IS_VECTOR(path_vec));
+    FKL_ASSERT(FKL_IS_VEC(path_vec));
     FklVMvalue *r = gc->path_vec;
     gc->path_vec = path_vec;
     return r;

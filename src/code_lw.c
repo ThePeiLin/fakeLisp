@@ -379,7 +379,7 @@ static inline void write_value_create_instructions(const FklVMvalue *v,
         write_value_create_op(CREATE_PAIR, fp);
         write_value_id(vt, value_id, FKL_VM_CAR(v), fp);
         write_value_id(vt, value_id, FKL_VM_CDR(v), fp);
-    } else if (FKL_IS_VECTOR(v)) {
+    } else if (FKL_IS_VEC(v)) {
         write_value_create_op(CREATE_VECTOR, fp);
         uint64_t const len = FKL_VM_VEC(v)->size;
         fwrite(&len, sizeof(len), 1, fp);

@@ -14,7 +14,7 @@
 #endif
 
 static int verify(FklVM *vm, FklVMvalue *v, size_t count, ...) {
-    if (!FKL_IS_VECTOR(v)) {
+    if (!FKL_IS_VEC(v)) {
         fprintf(stderr, "not a vector\n");
         abort();
     }

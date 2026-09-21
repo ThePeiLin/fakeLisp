@@ -387,7 +387,7 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
     case FKL_TYPE_BIGINT:
     case FKL_TYPE_STR:
     case FKL_TYPE_SYM:
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
     case FKL_TYPE_PAIR:
     case FKL_TYPE_BOX:
     case FKL_TYPE_BYTES:
@@ -635,7 +635,7 @@ static inline FklImportDllInitFunc getImportInit(uv_lib_t *handle) {
 }
 
 static inline void close_var_ref_from(FklVMframe *f, uint32_t start) {
-    if (!FKL_IS_VECTOR(f->lref))
+    if (!FKL_IS_VEC(f->lref))
         return;
     FklVMvalueVec *lref = FKL_VM_VEC(f->lref);
 
@@ -1308,7 +1308,7 @@ FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v) {
 }
 
 static inline void init_lref_vec(FklVM *vm, FklVMframe *f, uint32_t lcount) {
-    if (!FKL_IS_VECTOR(f->lref)) {
+    if (!FKL_IS_VEC(f->lref)) {
         f->lref = fklCreateVMvalueVec(vm, lcount);
     }
 }

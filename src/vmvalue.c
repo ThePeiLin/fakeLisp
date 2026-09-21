@@ -72,7 +72,7 @@ FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *obj) {
             case FKL_TYPE_SYM:
             case FKL_TYPE_KEYWORD:
             case FKL_TYPE_BYTES:
-            case FKL_TYPE_VECTOR:
+            case FKL_TYPE_VEC:
             case FKL_TYPE_BOX:
             case FKL_TYPE_HASHTABLE:
             case FKL_TYPE_PROC:
@@ -120,7 +120,7 @@ static inline FklVMvalue *obj_copy(FklVM *vm, const FklVMvalue *obj) {
         return fklCreateVMvalueBytes(vm, FKL_VM_BYTES(obj));
         break;
 
-    case FKL_TYPE_VECTOR: {
+    case FKL_TYPE_VEC: {
         FklVMvalueVec *vec = FKL_VM_VEC(obj);
         return fklCreateVMvalueVec2(vm, vec->size, vec->base);
     } break;
@@ -228,7 +228,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *vec_copy_append(FklVM *exe,
     size_t new_size = FKL_VM_VEC(v)->size;
     for (uint32_t i = 0; i < argc; ++i) {
         FklVMvalue *cur = base[i];
-        if (FKL_IS_VECTOR(cur))
+        if (FKL_IS_VEC(cur))
             new_size += FKL_VM_VEC(cur)->size;
         else
             return NULL;
@@ -319,7 +319,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *obj_copy_append(FklVM *vm,
     case FKL_TYPE_STR:
         return str_copy_append(vm, v, argc, base);
         break;
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
         return vec_copy_append(vm, v, argc, base);
         break;
     case FKL_TYPE_PAIR:
@@ -436,7 +436,7 @@ obj_append(FklVM *vm, FklVMvalue *v, uint32_t argc, FklVMvalue *const *base) {
         break;
 
     case FKL_TYPE_STR:
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
     case FKL_TYPE_F64:
     case FKL_TYPE_SYM:
     case FKL_TYPE_BOX:
@@ -522,7 +522,7 @@ int fklVMvalueEqual(const FklVMvalue *fir, const FklVMvalue *sec) {
         } break;
         case FKL_TYPE_PAIR:
         case FKL_TYPE_BOX:
-        case FKL_TYPE_VECTOR:
+        case FKL_TYPE_VEC:
         case FKL_TYPE_HASHTABLE:
             goto nested_equal;
             break;
@@ -607,7 +607,7 @@ nested_equal:
                             });
                     goto done;
                     break;
-                case FKL_TYPE_VECTOR: {
+                case FKL_TYPE_VEC: {
                     FklVMvalueVec *vec1 = FKL_VM_VEC(root1);
                     FklVMvalueVec *vec2 = FKL_VM_VEC(root2);
                     if (vec1->size != vec2->size) {
@@ -1017,7 +1017,7 @@ static inline uintptr_t obj_hash(const FklVMvalue *v) {
     case FKL_TYPE_STR:
         return _str_hashFunc(v);
         break;
-    case FKL_TYPE_VECTOR:
+    case FKL_TYPE_VEC:
         return _vector_hashFunc(v);
         break;
     case FKL_TYPE_PAIR:
@@ -1200,7 +1200,7 @@ static const alignas(8) FklVMvalueVec ZeroLenVecSingleton = {
     .next_ = NULL,
     .gray_next_ = NULL,
     .mark_ = FKL_MARK_B,
-    .type_ = FKL_TYPE_VECTOR,
+    .type_ = FKL_TYPE_VEC,
     .size = 0,
 };
 
@@ -1211,7 +1211,7 @@ FklVMvalue *fklCreateVMvalueVec(FklVM *exe, size_t size) {
     size_t total_size = sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
+    r->type_ = FKL_TYPE_VEC;
     FklVMvalueVec *v = FKL_VM_VEC(r);
     v->size = size;
     fklAddToGC(r, exe);
@@ -1223,7 +1223,7 @@ FklVMvalue *fklCreateVMvalueVecExt(FklVM *exe, size_t size, ...) {
     size_t total_size = sizeof(FklVMvalueVec) + size * sizeof(FklVMvalue *);
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
+    r->type_ = FKL_TYPE_VEC;
     FklVMvalueVec *v = FKL_VM_VEC(r);
     v->size = size;
     fklAddToGC(r, exe);
@@ -1245,7 +1245,7 @@ fklCreateVMvalueVec2(FklVM *exe, size_t size, FklVMvalue *const *ptr) {
     size_t total_size = sizeof(FklVMvalueVec) + ss;
     FklVMvalue *r = (FklVMvalue *)fklZcalloc(1, total_size);
     FKL_ASSERT(r);
-    r->type_ = FKL_TYPE_VECTOR;
+    r->type_ = FKL_TYPE_VEC;
     FklVMvalueVec *v = FKL_VM_VEC(r);
     memcpy(v->base, ptr, ss);
     v->size = size;
@@ -2137,7 +2137,7 @@ int fklVMvalueLength(const FklVMvalue *obj, size_t *len) {
         return !fklIsList2(obj, len);
     } else if (FKL_IS_STR(obj)) {
         *len = FKL_VM_STR(obj)->size;
-    } else if (FKL_IS_VECTOR(obj)) {
+    } else if (FKL_IS_VEC(obj)) {
         *len = FKL_VM_VEC(obj)->size;
     } else if (FKL_IS_BYTES(obj)) {
         *len = FKL_VM_BYTES(obj)->size;

@@ -80,7 +80,7 @@ static FklVMvalue *_dvec_append(FklVM *vm,
         FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
             new_size += as_dvec(cur)->vec.size;
-        } else if (FKL_IS_VECTOR(cur)) {
+        } else if (FKL_IS_VEC(cur)) {
             new_size += FKL_VM_VEC(cur)->size;
         } else {
             return NULL;
@@ -150,7 +150,7 @@ static FklVMvalue *_dvec_copy_append(FklVM *exe,
         FklVMvalue *cur = base[i];
         if (is_dvec_ud(cur)) {
             new_size += as_dvec(cur)->vec.size;
-        } else if (FKL_IS_VECTOR(cur))
+        } else if (FKL_IS_VEC(cur))
             new_size += FKL_VM_VEC(cur)->size;
         else
             return NULL;
@@ -393,7 +393,7 @@ static int export_dvec_assign(FKL_CPROC_ARGL) {
     switch (argc) {
     case 2: {
         FklVMvalue *another_vec_val = FKL_CPROC_GET_ARG(exe, ctx, 1);
-        if (FKL_IS_VECTOR(another_vec_val)) {
+        if (FKL_IS_VEC(another_vec_val)) {
             FklValueVector *v = &as_dvec(vec)->vec;
             FklVMvalueVec *another_vec = FKL_VM_VEC(another_vec_val);
             fklValueVectorReserve(v, another_vec->size);
@@ -607,7 +607,7 @@ static int export_dvec_insert(FKL_CPROC_ARGL) {
         FklVMvalue **src_mem = NULL;
         size_t start_idx = fklVMgetUint(start_idx_val);
         size_t count = fklVMgetUint(count_val);
-        if (FKL_IS_VECTOR(another_vec_val)) {
+        if (FKL_IS_VEC(another_vec_val)) {
             FklVMvalueVec *v = FKL_VM_VEC(another_vec_val);
             if (start_idx + count > v->size)
                 FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALIDACCESS, exe);
@@ -742,7 +742,7 @@ static int export_string_to_dvec(FKL_CPROC_ARGL) {
 static int export_vector_to_dvec(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
-    FKL_CHECK_TYPE(obj, FKL_IS_VECTOR, exe);
+    FKL_CHECK_TYPE(obj, FKL_IS_VEC, exe);
     FklVMvalueVec *vec = FKL_VM_VEC(obj);
     FklVMvalueDvecDll *dll = as_dvec_dll(ctx->dll);
     FklVMvalue *r = create_dvec2(exe, vec->size, vec->base, dll->DvecType);

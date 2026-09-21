@@ -1424,7 +1424,7 @@ static FKL_ALWAYS_INLINE FklBytes *FKL_VM_BYTES(const FklVMvalue *V) {
 }
 
 static FKL_ALWAYS_INLINE FklVMvalueVec *FKL_VM_VEC(const FklVMvalue *V) {
-    FKL_ASSERT(FKL_IS_VECTOR(V));
+    FKL_ASSERT(FKL_IS_VEC(V));
     return FKL_TYPE_CAST(FklVMvalueVec *, V);
 }
 

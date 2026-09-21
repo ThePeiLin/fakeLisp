@@ -1677,7 +1677,7 @@ static int simple_action_nth_check(FklVMvalue *rest[], size_t rest_len) {
 }
 
 static inline uint64_t get_nth(FklVMvalue *vec) {
-    FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 2);
+    FKL_ASSERT(FKL_IS_VEC(vec) && FKL_VM_VEC(vec)->size == 2);
     FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
     return FKL_GET_FIX(FKL_VM_VEC(vec)->base[1]);
 }
@@ -1705,7 +1705,7 @@ static int simple_action_cons_check(FklVMvalue *rest[], size_t rest_len) {
 }
 
 static inline void get_car_cdr(FklVMvalue *vec, uint64_t *car, uint64_t *cdr) {
-    FKL_ASSERT(FKL_IS_VECTOR(vec) && FKL_VM_VEC(vec)->size == 3);
+    FKL_ASSERT(FKL_IS_VEC(vec) && FKL_VM_VEC(vec)->size == 3);
     FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[1]));
     FKL_ASSERT(FKL_IS_FIX(FKL_VM_VEC(vec)->base[2]));
     *car = FKL_GET_FIX(FKL_VM_VEC(vec)->base[1]);
@@ -1736,7 +1736,7 @@ static void *simple_action_head(FklProdActionArgs *c,
         size_t num,
         size_t line) {
     FklVMvalue *vec = FKL_TYPE_CAST(FklVMvalue *, c);
-    FKL_ASSERT(FKL_IS_VECTOR(vec));
+    FKL_ASSERT(FKL_IS_VEC(vec));
 
     for (size_t i = 2; i < FKL_VM_VEC(vec)->size; i++) {
         FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
@@ -1782,7 +1782,7 @@ static void *simple_action_list(FklProdActionArgs *c,
         size_t num,
         size_t line) {
     FklVMvalue *vec = FKL_TYPE_CAST(FklVMvalue *, c);
-    FKL_ASSERT(FKL_IS_VECTOR(vec));
+    FKL_ASSERT(FKL_IS_VEC(vec));
 
     for (size_t i = 1; i < FKL_VM_VEC(vec)->size; i++) {
         FklVMvalue *c = FKL_VM_VEC(vec)->base[i];
@@ -1908,7 +1908,7 @@ static inline void get_nth_start_end(FklVMvalue *v,
         FklString const **pend,
         uint64_t *nth) {
 
-    FKL_ASSERT(FKL_IS_VECTOR(v) && FKL_VM_VEC(v)->size > 1);
+    FKL_ASSERT(FKL_IS_VEC(v) && FKL_VM_VEC(v)->size > 1);
 
     FklVMvalue **rest = &FKL_VM_VEC(v)->base[1];
     size_t rest_len = FKL_VM_VEC(v)->size - 1;
@@ -2518,7 +2518,7 @@ FKL_VM_TYPE_ATTR FklVMvalueType SimpleActCtxType =
 
 FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx(FklVM *vm,
         FklVMvalue *act) {
-    FKL_ASSERT(FKL_IS_VECTOR(act));
+    FKL_ASSERT(FKL_IS_VEC(act));
     FklVMvalue *vv = fklCreateVMvalueUd(vm, &SimpleActCtxType);
 
     FklVMvalueSimpleActCtx *v = (FklVMvalueSimpleActCtx *)vv;
@@ -3253,7 +3253,7 @@ static inline BtError builtin_terminal_init(const FklCgCtx *ctx,
         bt = fklGetBuiltinMatch(&g->builtins, v);
         out->t = bt;
         err = fklBuiltinTermArgsCheck(bt, out->len);
-    } else if (FKL_IS_VECTOR(v)) {
+    } else if (FKL_IS_VEC(v)) {
         FklVMvalue *first = FKL_VM_VEC(v)->base[0];
         bt = fklGetBuiltinMatch(&g->builtins, first);
 
@@ -3354,7 +3354,7 @@ static inline int rmacro_prod_sym_to_gra_sym(const FklCgCtx *ctx,
 
     case FKL_TERM_BUILTIN: {
         FklVMvalue *v = in->v;
-        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VECTOR(v));
+        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VEC(v));
 
         *out = (FklGrammerSym){ .type = FKL_TERM_BUILTIN };
         err = builtin_terminal_init(ctx, v, &out->b, g);
@@ -3652,7 +3652,7 @@ static inline int rmacro_prod_sym_to_ig_sym(const FklCgCtx *ctx,
 
     case FKL_TERM_BUILTIN: {
         FklVMvalue *v = in->v;
-        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VECTOR(v));
+        FKL_ASSERT(FKL_IS_SYM(v) || FKL_IS_VEC(v));
 
         *out = (IgSym){ .term_type = FKL_TERM_BUILTIN };
         err = builtin_terminal_init(ctx, v, &out->b, g);
@@ -3836,7 +3836,7 @@ static FKL_ALWAYS_INLINE BtError do_check_bs_args(const BtS *bt,
     BtError err = FKL_BUILTIN_TERMINAL_INIT_ERR_DUMMY;
 
     if (args_vec != NULL) {
-        FKL_ASSERT(FKL_IS_VECTOR(FKL_VM_VAL(args_vec)));
+        FKL_ASSERT(FKL_IS_VEC(FKL_VM_VAL(args_vec)));
         FKL_ASSERT(args_vec->size > 0);
 
         arg_count = args_vec->size - 1;
@@ -4154,7 +4154,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
         if (FKL_IS_STR(cur)) {
             s.type = FKL_TERM_STRING;
             s.opa = cur;
-        } else if (FKL_IS_VECTOR(cur)) {
+        } else if (FKL_IS_VEC(cur)) {
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
                 const char *msg = get_val_to_gra_sym_err_msg(err);
@@ -4369,7 +4369,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         } else if (FKL_IS_STR(cur)) {
             s.type = FKL_TERM_STRING;
             s.opa = cur;
-        } else if (FKL_IS_VECTOR(cur)) {
+        } else if (FKL_IS_VEC(cur)) {
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
                 const char *msg = get_val_to_gra_sym_err_msg(err);
@@ -4537,8 +4537,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         break;
 
     case ACTION_TYPE_SIMPLE: {
-        if (!FKL_IS_VECTOR(action_ast)               //
-                || FKL_VM_VEC(action_ast)->size == 0 //
+        if (!FKL_IS_VEC(action_ast) || FKL_VM_VEC(action_ast)->size == 0
                 || !FKL_IS_SYM(FKL_VM_VEC(action_ast)->base[0])) {
             goto invalid_action_ast_error;
         }

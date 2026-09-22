@@ -921,7 +921,7 @@ static uint32_t oprand2_const_fold_output(const FklByteCodeBuffer *buf,
     int32_t oprand2 = 0;
     is_foldable_const(peephole[0].ins, &oprand1);
     is_foldable_const(peephole[1].ins, &oprand2);
-    int32_t r;
+    int32_t r = 0;
     switch (OP(peephole[2].ins)) {
     case FKL_OP_ADD:
         FKL_ASSERT(sA(peephole[2].ins) == 2);
@@ -1041,7 +1041,7 @@ static uint32_t oprand3_const_fold_output(const FklByteCodeBuffer *buf,
     is_foldable_const(peephole[0].ins, &oprand1);
     is_foldable_const(peephole[1].ins, &oprand2);
     is_foldable_const(peephole[2].ins, &oprand3);
-    int32_t r;
+    int32_t r = 0;
     switch (OP(peephole[3].ins)) {
     case FKL_OP_ADD:
         FKL_ASSERT(sA(peephole[3].ins) == 3);
@@ -1126,7 +1126,7 @@ static uint32_t oprand1_const_fold_output(const FklByteCodeBuffer *buf,
         FklInsLn *output) {
     int32_t oprand1 = 0;
     is_foldable_const(peephole[0].ins, &oprand1);
-    int32_t r;
+    int32_t r = 0;
     switch (OP(peephole[1].ins)) {
     case FKL_OP_ADDK:
         r = oprand1 + sA(peephole[1].ins);

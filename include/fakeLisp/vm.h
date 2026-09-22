@@ -1938,6 +1938,8 @@ static FKL_ALWAYS_INLINE int fklVMintegerCmpI(FklVMvalue *p, int64_t i) {
     } else {
         FKL_UNREACHABLE();
     }
+    FKL_ASSERT(0);
+    return 0;
 }
 
 static FKL_ALWAYS_INLINE int fklVMintegerCmpU(FklVMvalue *p, uint64_t u) {
@@ -1957,6 +1959,8 @@ static FKL_ALWAYS_INLINE int fklVMintegerCmpU(FklVMvalue *p, uint64_t u) {
     } else {
         FKL_UNREACHABLE();
     }
+    FKL_ASSERT(0);
+    return 0;
 }
 
 static inline void fklSetBigIntWithVMbigInt(FklBigInt *a,

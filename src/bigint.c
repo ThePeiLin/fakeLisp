@@ -1503,20 +1503,23 @@ size_t fklBigIntToStr(const FklBigInt *a,
         char *ptr = alloc_cb(ctx, 1);
         ptr[0] = '0';
         return 1;
-    } else if (radix == 10)
+    } else if (radix == 10) {
         return bigint_to_dec_string_buffer(a, alloc_cb, ctx);
-    else if (radix == 8)
+    } else if (radix == 8) {
+
         return bigint_to_bin_string_buffer(a, alloc_cb, ctx, 8, flags, "0");
-    else if (radix == 16)
+    } else if (radix == 16) {
         return bigint_to_bin_string_buffer(a,
                 alloc_cb,
                 ctx,
                 16,
                 flags,
                 flags & FKL_BIGINT_FMT_FLAG_CAPITALS ? "0X" : "0x");
-    else {
+    } else {
         FKL_UNREACHABLE();
     }
+
+    return 0;
 }
 
 static char *print_bigint_alloc(void *ptr, size_t len) {

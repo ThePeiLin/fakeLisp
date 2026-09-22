@@ -62,12 +62,12 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/argtable3")
 
 #libuv
 set(LIBUV_BUILD_SHARED OFF)
-add_compile_definitions(USING_UV_SHARED)
 set(FKL_LIBUV uv_a)
 
 include_directories("${PROJECT_SOURCE_DIR}/3rd/libuv/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/3rd/libuv")
 set_target_properties(${FKL_LIBUV} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(${FKL_LIBUV} PUBLIC BUILDING_UV_SHARED=1)
 
 set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
@@ -268,6 +268,7 @@ add_library(${LIBFKL_TARGET_NAME}
 	${LIBFKL_SOURCE})
 add_dependencies(${LIBFKL_TARGET_NAME} lisp.g)
 target_define_relative_file(${LIBFKL_TARGET_NAME})
+target_compile_definitions(${LIBFKL_TARGET_NAME} INTERFACE USING_UV_SHARED=1)
 
 if(MSVC)
 	set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)

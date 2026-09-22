@@ -1093,14 +1093,9 @@ FKL_VM_TYPE_ATTR FklVMvalueType BreakpointWrapperType =
                     .princ = bp_wrapper_print,
                 });
 
-static void init_static_type_cb(void) {
+void bdbInitStaticTypes(void) {
     BdbStepBreakType.tp_ = &FklVMtypeType;
     BreakpointWrapperType.tp_ = &FklVMtypeType;
-}
-
-void bdbInitStaticTypes(void) {
-    static uv_once_t once_flag = UV_ONCE_INIT;
-    uv_once(&once_flag, init_static_type_cb);
 }
 
 FklVMvalueBpWrapper *bdbCreateBpWrapper(FklVM *vm, BdbBp *bp) {

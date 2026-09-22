@@ -1060,6 +1060,7 @@ static int builtin_vector_to_bytes(FKL_CPROC_ARGL) {
     uint8_t *ptr = FKL_VM_BYTES(r)->ptr;
     for (uint64_t i = 0; i < size; i++) {
         FklVMvalue *cur = base[i];
+        FKL_CHECK_TYPE(cur, fklIsVMint, exe);
         FKL_CHECK_BYTE_RANGE_AT(cur, i, exe);
         ptr[i] = (uint8_t)fklVMgetInt(cur);
     }

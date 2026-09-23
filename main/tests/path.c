@@ -124,6 +124,36 @@ int main() {
 
     verify(vm, v, 0);
 
+#ifdef FKL_USING_WIN32
+    fklSysSetEnv(FKL_PATH_ENV, "D:/a;D:/b;", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    verify(vm, v, 2, "D:\\a", "D:\\b");
+
+    fklSysSetEnv(FKL_PATH_ENV, "F:/a;F:/b;F:/c", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    verify(vm, v, 3, "F:\\a", "F:\\b", "F:\\c");
+
+    fklSysSetEnv(FKL_PATH_ENV, "G:/a;;G:/c", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    verify(vm, v, 2, "G:\\a", "G:\\c");
+
+    fklSysSetEnv(FKL_PATH_ENV, "H:/foo;;H:/bar", 1);
+    v = fklInitDefaultLibPath(vm);
+    fklPrin1VMvalue(v, stdout, vm);
+    putchar('\n');
+
+    verify(vm, v, 2, "H:\\foo", "H:\\bar");
+
+#else
     fklSysSetEnv(FKL_PATH_ENV, "/a;/b;", 1);
     v = fklInitDefaultLibPath(vm);
     fklPrin1VMvalue(v, stdout, vm);
@@ -151,6 +181,7 @@ int main() {
     putchar('\n');
 
     verify(vm, v, 2, "/foo", "/bar");
+#endif
 
     fklSysSetEnv(FKL_PATH_ENV, ".;..", 1);
     v = fklInitDefaultLibPath(vm);
@@ -351,15 +382,34 @@ int main() {
         fklZfree(r);
         r = NULL;
 
-        s = "abcd/efgh/";
+        s = "abcd";
+        r = fklDupDir(s);
+        check_str(".", r, "dir dup 3");
+        fklZfree(r);
+        r = NULL;
+
+#ifdef FKL_USING_WIN32
+        s = "abcd\\efgh\\";
         r = fklDupDir(s);
         check_str("abcd", r, "dir dup 2");
         fklZfree(r);
         r = NULL;
 
-        s = "abcd";
+        s = "abcd\\";
         r = fklDupDir(s);
-        check_str(".", r, "dir dup 3");
+        check_str(".", r, "dir dup 4");
+        fklZfree(r);
+        r = NULL;
+
+        s = "E:\\abcd";
+        r = fklDupDir(s);
+        check_str("E:", r, "dir dup 5");
+        fklZfree(r);
+        r = NULL;
+#else
+        s = "abcd/efgh/";
+        r = fklDupDir(s);
+        check_str("abcd", r, "dir dup 2");
         fklZfree(r);
         r = NULL;
 
@@ -374,6 +424,7 @@ int main() {
         check_str("/", r, "dir dup 5");
         fklZfree(r);
         r = NULL;
+#endif
     }
 
     fklDestroyVMgc(gc);

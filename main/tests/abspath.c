@@ -43,6 +43,18 @@ static char *join_expected(const char *dir, const char *rel) {
     return r;
 }
 
+// Rewrite '/' to the platform separator so the same literals can be used on
+// POSIX and Windows. On POSIX this is just a copy.
+static char *native_sep(const char *s) {
+    char *r = fklZstrdup(s);
+    if (r == NULL)
+        abort();
+    for (char *p = r; *p; ++p)
+        if (*p == '/')
+            *p = FKL_PATH_SEPARATOR;
+    return r;
+}
+
 int main(void) {
     // NULL in, NULL out
     if (fklAbspath(NULL) != NULL) {
@@ -52,7 +64,11 @@ int main(void) {
         printf("ok   null: abspath(NULL) = (null)\n");
     }
 
-    // absolute paths are normalized lexically (no filesystem access)
+#ifndef _WIN32
+    // Lexical normalization of absolute paths is a POSIX-only guarantee: on
+    // Windows fklAbspath() delegates to GetFullPathNameW() (via _fullpath(),
+    // see fklRealpath()), which also prefixes the drive and rewrites the
+    // separators, so the exact expected strings differ there.
     check_abspath("/a/b/../c", "/a/c", "dotdot");
     check_abspath("/a/./b", "/a/b", "dot");
     check_abspath("/a//b/", "/a/b", "collapse");
@@ -61,6 +77,7 @@ int main(void) {
     check_abspath("/..", "/", "dotdot-at-root");
     check_abspath("/", "/", "root");
     check_abspath("//a", "//a", "two-leading-slashes");
+#endif
 
     char *cwd = fklSysgetcwd();
     if (cwd == NULL)
@@ -76,23 +93,33 @@ int main(void) {
         fklZfree(e);
     }
     {
-        char *e = join_expected(cwd, "foo/baz");
-        check_abspath("foo/./bar/../baz", e, "relative-normalized");
+        char *in = native_sep("foo/./bar/../baz");
+        char *rel = native_sep("foo/baz");
+        char *e = join_expected(cwd, rel);
+        check_abspath(in, e, "relative-normalized");
+        fklZfree(in);
+        fklZfree(rel);
         fklZfree(e);
     }
     {
         // "../foo" -> parent(cwd)/foo
+        char *in = native_sep("../foo");
         char *parent = fklDupDir(cwd);
         char *e = join_expected(parent, "foo");
-        check_abspath("../foo", e, "parent");
+        check_abspath(in, e, "parent");
+        fklZfree(in);
         fklZfree(e);
         fklZfree(parent);
     }
     {
         // "a/../../b" -> parent(cwd)/b (a leading ".." is kept for relatives)
+        char *in = native_sep("a/../../b");
+        char *rel = native_sep("b");
         char *parent = fklDupDir(cwd);
-        char *e = join_expected(parent, "b");
-        check_abspath("a/../../b", e, "relative-dotdot");
+        char *e = join_expected(parent, rel);
+        check_abspath(in, e, "relative-dotdot");
+        fklZfree(in);
+        fklZfree(rel);
         fklZfree(e);
         fklZfree(parent);
     }
@@ -102,7 +129,8 @@ int main(void) {
 
     // idempotency: abspath(abspath(x)) == abspath(x)
     {
-        char *a = fklAbspath("../foo/./bar/..");
+        char *in = native_sep("../foo/./bar/..");
+        char *a = fklAbspath(in);
         char *b = a ? fklAbspath(a) : NULL;
         if (a == NULL || b == NULL || strcmp(a, b) != 0) {
             fprintf(stderr,
@@ -113,6 +141,7 @@ int main(void) {
         } else {
             printf("ok   idempotent: \"%s\"\n", a);
         }
+        fklZfree(in);
         fklZfree(a);
         fklZfree(b);
     }

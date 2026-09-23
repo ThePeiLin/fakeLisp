@@ -6,6 +6,7 @@
 #include "common.h"
 #include "grammer.h"
 #include "parser.h"
+#include "symbol.h"
 #include "vm_fwd.h"
 
 #include <math.h>
@@ -505,7 +506,7 @@ void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
 #define FKL_VM_TYPE_TYPE_ATTR alignas(8) const
 #endif
 
-extern FKL_DLL_API FKL_VM_TYPE_TYPE_ATTR FklVMvalueType FklVMtypeType;
+extern FKL_API FKL_VM_TYPE_TYPE_ATTR FklVMvalueType FklVMtypeType;
 
 typedef enum {
     FKL_GC_NONE = 0,

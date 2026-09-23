@@ -20,8 +20,10 @@ typedef enum {
 } FklLibRefType;
 
 // write and load byte code files
+FKL_API
 void fklWriteCodeFile(FklVM *vm, FILE *fp, const FklVMvalueProc *const proc);
 
+FKL_API
 FKL_NODISCARD
 FklVMvalueProc *fklLoadCodeFile(FILE *fp,
         FklVM *vm,
@@ -35,6 +37,7 @@ typedef struct {
     const FklVMvalueProc *main_proc;
 } FklWritePreCompileArgs;
 
+FKL_API
 void fklWritePreCompile(FILE *fp,
         const char *target_dir,
         const FklWritePreCompileArgs *const args);
@@ -80,8 +83,10 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueReExportCmds, {
     FklReExportCmd cmds[FKL_FLEX_ARRAY_MEMBER];
 });
 
+FKL_API
 FklVMvalueReExportCmds *fklCreateVMvalueReExportCmds(FklVM *vm, uint64_t count);
 
+FKL_API
 int fklIsVMvalueReExportCmds(const FklVMvalue *);
 static FKL_ALWAYS_INLINE FklVMvalueReExportCmds *fklVMvalueReExportCmds(
         const FklVMvalue *v) {
@@ -112,18 +117,23 @@ typedef struct {
     FklRelocVector relocations;
 } FklPreCompileFixup;
 
-void fklPreCompileFixupInit(FklPreCompileFixup *);
-void fklPreCompileFixupUninit(FklPreCompileFixup *);
+FKL_API void fklPreCompileFixupInit(FklPreCompileFixup *);
+FKL_API void fklPreCompileFixupUninit(FklPreCompileFixup *);
 
+FKL_API
 FKL_NODISCARD
 int fklPreCompileFixup(const FklPreCompileFixup *fixup,
         const FklCgCtx *cg_ctx,
         FklValueVector *const missing_import);
 
 FKL_VM_DEF_UD_STRUCT(FklVMvaluePcFixup, { FklPreCompileFixup f; });
+
+FKL_API
 FklVMvaluePcFixup *fklCreateVMvaluePcFixup(FklVM *vm);
 
+FKL_API
 int fklIsVMvaluePcFixup(const FklVMvalue *v);
+
 static FKL_ALWAYS_INLINE FklVMvaluePcFixup *fklVMvaluePcFixup(
         const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvaluePcFixup(v));
@@ -145,6 +155,7 @@ typedef struct {
     FklVMvalue *error_obj;
 } FklLoadPreCompileArgs;
 
+FKL_API
 FKL_NODISCARD
 FklVMvalueCgLib *
 fklLoadPreCompile(FILE *fp, const char *rp, FklLoadPreCompileArgs *const args);

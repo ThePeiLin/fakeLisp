@@ -40,15 +40,6 @@ typedef struct {
         },                                                                     \
     }
 
-FklVMvalue *fklCreateAst(FklVM *, const FklString *s, FklVMvalueLnt *ln);
-FklVMvalue *fklCreateAst1(FklVM *, const char *, FklVMvalueLnt *ln);
-FklVMvalue *fklCreateAst2(FklVM *, size_t len, const char *, FklVMvalueLnt *ln);
-
-int fklIsVMvalueLnt(const FklVMvalue *v);
-FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *v);
-void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line);
-uint64_t *fklVMvalueLntGet(FklVMvalueLnt *ht, const FklVMvalue *v);
-
 typedef struct {
     // in
     size_t const line;
@@ -67,24 +58,41 @@ typedef struct {
     FklVMvalue *output;
 } FklReadArgs;
 
-char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args);
+FKL_API
+FklVMvalue *fklCreateAst(FklVM *, const FklString *s, FklVMvalueLnt *ln);
 
-char *fklReadWithAnalysisTable(const FklGrammer *g, //
+FKL_API
+FklVMvalue *fklCreateAst1(FklVM *, const char *, FklVMvalueLnt *ln);
+
+FKL_API
+FklVMvalue *fklCreateAst2(FklVM *, size_t len, const char *, FklVMvalueLnt *ln);
+
+FKL_API int fklIsVMvalueLnt(const FklVMvalue *v);
+FKL_API FklVMvalueLnt *fklCreateVMvalueLnt(FklVM *v);
+
+FKL_API
+void fklVMvalueLntPut(FklVMvalueLnt *ht, const FklVMvalue *v, uint64_t line);
+
+FKL_API uint64_t *fklVMvalueLntGet(FklVMvalueLnt *ht, const FklVMvalue *v);
+
+FKL_API char *fklReadWithBuiltinParser(FILE *fp, FklReadArgs *args);
+
+FKL_API char *fklReadWithAnalysisTable(const FklGrammer *g, //
         FILE *fp,
         FklReadArgs *args);
 
-void *fklParseWithTableForCstr(const FklGrammer *,
+FKL_API void *fklParseWithTableForCstr(const FklGrammer *,
         const char *str,
         FklGrammerMatchCtx *,
         FklParseError *err);
 
-void *fklParseWithTableForCharBuf(const FklGrammer *,
+FKL_API void *fklParseWithTableForCharBuf(const FklGrammer *,
         const char *str,
         size_t len,
         FklGrammerMatchCtx *,
         FklParseError *err);
 
-void *fklParseWithTableForCharBuf2(const FklGrammer *,
+FKL_API void *fklParseWithTableForCharBuf2(const FklGrammer *,
         const char *str,
         size_t len,
         size_t *restLen,
@@ -94,14 +102,14 @@ void *fklParseWithTableForCharBuf2(const FklGrammer *,
         struct FklAnalysisSymbolVector *symbols,
         FklParseStateVector *states);
 
-void *fklDefaultParseForCstr(const char *str,
+FKL_API void *fklDefaultParseForCstr(const char *str,
         FklGrammerMatchCtx *,
         FklParseError *err,
         size_t *output_line,
         FklAnalysisSymbolVector *symbols,
         FklParseStateVector *states);
 
-void *fklDefaultParseForCharBuf(const char *str,
+FKL_API void *fklDefaultParseForCharBuf(const char *str,
         size_t len,
         size_t *restLen,
         FklGrammerMatchCtx *,

@@ -17,19 +17,22 @@ extern "C" {
 
 typedef FklStrHashSet FklStringTable;
 
-void fklInitStringTable(FklStringTable *st);
-FklStringTable *fklCreateStringTable(void);
+FKL_API void fklInitStringTable(FklStringTable *st);
+FKL_API FklStringTable *fklCreateStringTable(void);
 
+FKL_API
 const FklString *fklAddString(FklStringTable *s, const FklString *);
+FKL_API
 const FklString *fklAddStringCstr(FklStringTable *, const char *);
+FKL_API
 const FklString *fklAddStringCharBuf(FklStringTable *, const char *, size_t);
 
-void fklDestroyStringTable(FklStringTable *);
-void fklUninitStringTable(FklStringTable *);
-void fklClearStringTable(FklStringTable *);
+FKL_API void fklDestroyStringTable(FklStringTable *);
+FKL_API void fklUninitStringTable(FklStringTable *);
+FKL_API void fklClearStringTable(FklStringTable *);
 
-void fklWriteStringTable(const FklStringTable *, FILE *);
-void fklLoadStringTable(FILE *, FklStringTable *table);
+FKL_API void fklWriteStringTable(const FklStringTable *, FILE *);
+FKL_API void fklLoadStringTable(FILE *, FklStringTable *table);
 
 #ifdef __cplusplus
 }

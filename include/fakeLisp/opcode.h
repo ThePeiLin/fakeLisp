@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -142,13 +144,13 @@ typedef enum {
     FKL_OP_MODE_IxAxB,
 } FklOpcodeMode;
 
-const char *fklGetOpcodeName(FklOpcode);
-FklOpcodeMode fklGetOpcodeMode(FklOpcode);
-FklOpcode fklGetOpcodeNext(FklOpcode opcode);
+FKL_API const char *fklGetOpcodeName(FklOpcode);
+FKL_API FklOpcodeMode fklGetOpcodeMode(FklOpcode);
+FKL_API FklOpcode fklGetOpcodeNext(FklOpcode opcode);
 
-FklOpcode fklFindOpcode(const char *);
-int fklGetOpcodeModeLen(FklOpcode);
-const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop);
+FKL_API FklOpcode fklFindOpcode(const char *);
+FKL_API int fklGetOpcodeModeLen(FklOpcode);
+FKL_API const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop);
 
 #ifdef __cplusplus
 }

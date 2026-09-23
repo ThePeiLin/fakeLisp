@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "opcode.h"
-#include "symbol.h"
 #include "vm_fwd.h"
 
 #include <limits.h>
@@ -113,68 +112,70 @@ typedef struct {
 #define FKL_VECTOR_ELM_TYPE_NAME ByteCodelnt
 #include "cont/vector.h"
 
-void fklInitByteCode(FklByteCode *, size_t len);
-FklByteCode *fklCreateByteCode(size_t);
-void fklByteCodeRealloc(FklByteCode *b, size_t len);
+FKL_API void fklInitByteCode(FklByteCode *, size_t len);
+FKL_API FklByteCode *fklCreateByteCode(size_t);
+FKL_API void fklByteCodeRealloc(FklByteCode *b, size_t len);
 
-void fklCodeConcat(FklByteCode *, const FklByteCode *);
-void fklCodeReverseConcat(const FklByteCode *, FklByteCode *);
+FKL_API void fklCodeConcat(FklByteCode *, const FklByteCode *);
+FKL_API void fklCodeReverseConcat(const FklByteCode *, FklByteCode *);
 
-void fklMoveByteCode(FklByteCode *to, FklByteCode *from);
-void fklSetByteCode(FklByteCode *to, const FklByteCode *from);
-FklByteCode *fklCopyByteCode(const FklByteCode *);
-FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *);
-void fklSetByteCodelnt(FklByteCodelnt *, const FklByteCodelnt *);
-void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from);
+FKL_API void fklMoveByteCode(FklByteCode *to, FklByteCode *from);
+FKL_API void fklSetByteCode(FklByteCode *to, const FklByteCode *from);
+FKL_API FklByteCode *fklCopyByteCode(const FklByteCode *);
+FKL_API FklByteCodelnt *fklCopyByteCodelnt(const FklByteCodelnt *);
+FKL_API void fklSetByteCodelnt(FklByteCodelnt *, const FklByteCodelnt *);
+FKL_API void fklMoveByteCodelnt(FklByteCodelnt *to, FklByteCodelnt *from);
 
-void fklUninitByteCode(FklByteCode *);
-void fklDestroyByteCode(FklByteCode *);
+FKL_API void fklUninitByteCode(FklByteCode *);
+FKL_API void fklDestroyByteCode(FklByteCode *);
 
-void fklInitByteCodelnt(FklByteCodelnt *t, size_t len);
-FklByteCodelnt *fklCreateByteCodelnt(size_t len);
+FKL_API void fklInitByteCodelnt(FklByteCodelnt *t, size_t len);
+FKL_API FklByteCodelnt *fklCreateByteCodelnt(size_t len);
 
-FklByteCodelnt *fklCreateSingleInsBclnt(FklIns ins,
+FKL_API FklByteCodelnt *fklCreateSingleInsBclnt(FklIns ins,
         FklVMvalue *fid,
         size_t line,
         uint32_t scope);
 
-void fklInitSingleInsBcl(FklByteCodelnt *bcl,
+FKL_API void fklInitSingleInsBcl(FklByteCodelnt *bcl,
         FklIns ins,
         FklVMvalue *fid,
         size_t line,
         uint32_t scope);
 
-void fklUninitByteCodelnt(FklByteCodelnt *);
-void fklDestroyByteCodelnt(FklByteCodelnt *);
-void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *, uint64_t);
-void fklCodeLntConcat(FklByteCodelnt *, const FklByteCodelnt *);
-void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
+FKL_API void fklUninitByteCodelnt(FklByteCodelnt *);
+FKL_API void fklDestroyByteCodelnt(FklByteCodelnt *);
+FKL_API void fklIncreaseScpOfByteCodelnt(FklByteCodelnt *, uint64_t);
+FKL_API void fklCodeLntConcat(FklByteCodelnt *, const FklByteCodelnt *);
+FKL_API void fklCodeLntReverseConcat(const FklByteCodelnt *, FklByteCodelnt *);
 
-void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
+FKL_API void fklByteCodeLntPushBackIns(FklByteCodelnt *bcl,
         const FklIns ins,
         FklVMvalue *fid,
         size_t line,
         uint32_t scope);
 
-void fklByteCodeLntInsertFrontIns(const FklIns ins,
+FKL_API void fklByteCodeLntInsertFrontIns(const FklIns ins,
         FklByteCodelnt *bcl,
         FklVMvalue *fid,
         size_t line,
         uint32_t scope);
 
-void fklByteCodePushBack(FklByteCode *bc, FklIns ins);
-void fklByteCodeInsertFront(FklIns, FklByteCode *bc);
+FKL_API void fklByteCodePushBack(FklByteCode *bc, FklIns ins);
+FKL_API void fklByteCodeInsertFront(FklIns, FklByteCode *bc);
 
-void fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl, FklIns ins, uint64_t idx);
-FklIns fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
+FKL_API void
+fklByteCodeLntInsertInsAt(FklByteCodelnt *bcl, FklIns ins, uint64_t idx);
+FKL_API FklIns fklByteCodeLntRemoveInsAt(FklByteCodelnt *bcl, uint64_t idx);
 
-void fklInitLineNumTabNode(FklLntItem *,
+FKL_API void fklInitLineNumTabNode(FklLntItem *,
         FklVMvalue *fid,
         uint64_t scp,
         size_t line,
         uint32_t scope);
 
-const FklLntItem *fklFindLntItem(uint64_t cp, size_t ls, const FklLntItem *l);
+FKL_API const FklLntItem *
+fklFindLntItem(uint64_t cp, size_t ls, const FklLntItem *l);
 
 static FKL_ALWAYS_INLINE const FklLntItem *
 fklGetLntItem(const FklByteCodelnt *code, const FklIns *cp) {
@@ -187,13 +188,17 @@ typedef struct {
     uint64_t uy;
 } FklInsArg;
 
-int fklGetInsOpArg(const FklIns *ins, FklInsArg *arg);
-int fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *arg);
+FKL_API int fklGetInsOpArg(const FklIns *ins, FklInsArg *arg);
+FKL_API int
+fklGetInsOpArgWithOp(FklOpcode op, const FklIns *ins, FklInsArg *arg);
 
-int fklGetNextIns(const FklIns *cur_ins, const FklIns *ins[2]);
+FKL_API int fklGetNextIns(const FklIns *cur_ins, const FklIns *ins[2]);
 
+FKL_API
 FKL_NODISCARD
 int fklMakeIns(FklIns *ins, FklOpcode op, const FklInsArg *);
+
+FKL_API void fklScanAndSetTailCall(FklByteCode *bc);
 
 #define FKL_MAKE_INS(INS, OP, ...)                                             \
     (fklMakeIns((INS), (OP), &(const FklInsArg){ __VA_ARGS__ }));
@@ -244,8 +249,6 @@ static inline int fklIsRetIns(const FklIns ins) {
 static inline int fklIsLoadLibIns(const FklIns ins) {
     return FKL_INS_OP(ins) == FKL_OP_LOAD_LIB;
 }
-
-void fklScanAndSetTailCall(FklByteCode *bc);
 
 #define FKL_INS_uX(ins0, ins1)                                                 \
     (FKL_INS_uB(ins0) | (((uint32_t)FKL_INS_uB(ins1)) << FKL_I16_WIDTH))

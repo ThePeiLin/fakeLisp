@@ -14,91 +14,94 @@
 extern "C" {
 #endif
 
-int fklIsDecInt(const char *cstr, size_t maxLen);
-int fklIsOctInt(const char *cstr, size_t maxLen);
-int fklIsHexInt(const char *cstr, size_t maxLen);
-int fklIsDecFloat(const char *cstr, size_t maxLen);
-int fklIsHexFloat(const char *cstr, size_t maxLen);
-int fklIsFloat(const char *cstr, size_t maxLen);
-int fklIsAllDigit(const char *cstr, size_t maxLen);
+FKL_API int fklIsDecInt(const char *cstr, size_t maxLen);
+FKL_API int fklIsOctInt(const char *cstr, size_t maxLen);
+FKL_API int fklIsHexInt(const char *cstr, size_t maxLen);
+FKL_API int fklIsDecFloat(const char *cstr, size_t maxLen);
+FKL_API int fklIsHexFloat(const char *cstr, size_t maxLen);
+FKL_API int fklIsFloat(const char *cstr, size_t maxLen);
+FKL_API int fklIsAllDigit(const char *cstr, size_t maxLen);
 
-int64_t fklStringToInt(const char *cstr, size_t maxLen, int *base);
+FKL_API int64_t fklStringToInt(const char *cstr, size_t maxLen, int *base);
 
-int fklIsNumberString(const FklString *);
-int fklIsNumberCstr(const char *);
-int fklIsNumberCharBuf(const char *, size_t);
+FKL_API int fklIsNumberString(const FklString *);
+FKL_API int fklIsNumberCstr(const char *);
+FKL_API int fklIsNumberCharBuf(const char *, size_t);
 
-int fklPower(int, int);
+FKL_API int fklPower(int, int);
 
-void fklPrintCharLiteral(int, FILE *);
-void fklPrintCharLiteral2(int, FklCodeBuilder *);
+FKL_API void fklPrintCharLiteral(int, FILE *);
+FKL_API void fklPrintCharLiteral2(int, FklCodeBuilder *);
 
-double fklStringToDouble(const FklString *);
-size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64);
-size_t fklPrintDouble(double k, FILE *fp);
+FKL_API double fklStringToDouble(const FklString *);
+FKL_API size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64);
+FKL_API size_t fklPrintDouble(double k, FILE *fp);
 
-unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max);
+FKL_API unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max);
 
-char *fklIntToCstr(int64_t);
-FklString *fklIntToString(int64_t);
+FKL_API char *fklIntToCstr(int64_t);
+FKL_API FklString *fklIntToString(int64_t);
 
-size_t fklCountCharInBuf(const char *, size_t s, char);
+FKL_API size_t fklCountCharInBuf(const char *, size_t s, char);
 
-int fklIsValidCharBuf(const char *str, size_t len);
-int fklCharBufToChar(const char *, size_t);
+FKL_API int fklIsValidCharBuf(const char *str, size_t len);
+FKL_API int fklCharBufToChar(const char *, size_t);
 
-char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize);
+FKL_API char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize);
 
-int fklIsScriptFile(const char *);
-int fklIsByteCodeFile(const char *);
-int fklIsPrecompileFile(const char *filename);
+FKL_API int fklIsScriptFile(const char *);
+FKL_API int fklIsByteCodeFile(const char *);
+FKL_API int fklIsPrecompileFile(const char *filename);
 
-int fklGetDelim(FILE *fp, FklStrBuf *b, int d);
+FKL_API int fklGetDelim(FILE *fp, FklStrBuf *b, int d);
 
-void *fklCopyMemory(const void *, size_t);
+FKL_API void *fklCopyMemory(const void *, size_t);
 
-char *fklTruncDir(char *path);
-char *fklDupDir(const char *);
-char **fklSplit(char *str, const char *divider, size_t *);
-char *fklStrTok(char *str, const char *divstr, char **context);
-char *fklTrim(char *str);
+FKL_API char *fklTruncDir(char *path);
+FKL_API char *fklDupDir(const char *);
+FKL_API char **fklSplit(char *str, const char *divider, size_t *);
+FKL_API char *fklStrTok(char *str, const char *divstr, char **context);
+FKL_API char *fklTrim(char *str);
 
-char *fklRealpath(const char *);
-char* fklAbspath(const char*);
+FKL_API char *fklRealpath(const char *);
+FKL_API char *fklAbspath(const char *);
 
-char *fklRelpath(const char *start, const char *path);
+FKL_API char *fklRelpath(const char *start, const char *path);
 
+FKL_API int fklIsI64AddOverflow(int64_t a, int64_t b);
+FKL_API int fklIsI64MulOverflow(int64_t a, int64_t b);
 
-int fklIsI64AddOverflow(int64_t a, int64_t b);
-int fklIsI64MulOverflow(int64_t a, int64_t b);
+FKL_API int fklIsFixAddOverflow(int64_t a, int64_t b);
+FKL_API int fklIsFixMulOverflow(int64_t a, int64_t b);
 
-int fklIsFixAddOverflow(int64_t a, int64_t b);
-int fklIsFixMulOverflow(int64_t a, int64_t b);
+FKL_API char *fklStrCat(char *, const char *);
 
-char *fklStrCat(char *, const char *);
-
-char *fklStrstr(const char *haystack, const char *needle);
+FKL_API char *fklStrstr(const char *haystack, const char *needle);
 // steal from glib: https://gitlab.gnome.org/GNOME/glib
-char *fklStrrstr(const char *haystack, const char *needle);
-char *fklStrEndWith(const char *str, const char *sub);
-int fklStrStartWith(const char *haystack, const char *needle);
+FKL_API char *fklStrrstr(const char *haystack, const char *needle);
+FKL_API char *fklStrEndWith(const char *str, const char *sub);
+FKL_API int fklStrStartWith(const char *haystack, const char *needle);
 
-char *fklCharBufToCstr(const char *buf, size_t size);
+FKL_API char *fklCharBufToCstr(const char *buf, size_t size);
 
-int fklChdir(const char *);
-char *fklSysgetcwd(void);
+FKL_API int fklChdir(const char *);
+FKL_API char *fklSysgetcwd(void);
 
-int fklIsRegFile(const char *s);
-int fklIsDirectory(const char *s);
+FKL_API int fklIsRegFile(const char *s);
+FKL_API int fklIsDirectory(const char *s);
 
-int fklMkdir(const char *dir);
-int fklIsAccessibleRegFile(const char *s);
-int fklIsAccessibleDirectory(const char *s);
+FKL_API int fklMkdir(const char *dir);
+FKL_API int fklIsAccessibleRegFile(const char *s);
+FKL_API int fklIsAccessibleDirectory(const char *s);
 
-int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
-void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset);
+FKL_API int fklRewindStream(FILE *fp, const char *buf, ssize_t len);
+FKL_API void fklStoreHistoryInStrBuf(FklStrBuf *buf, size_t offset);
 
-int fklLoadLines(FklStringVector *lines, FILE *in);
+FKL_API int fklLoadLines(FklStringVector *lines, FILE *in);
+
+FKL_API const char *fklSysGetEnv(const char *name);
+FKL_API int fklSysSetEnv(const char *name, const char *value, int overwrite);
+FKL_API int fklSysUnsetEnv(const char *name);
 
 FKL_ALWAYS_INLINE
 static int fklComputeDigitsCount(uint64_t len) {
@@ -112,10 +115,6 @@ static int fklComputeDigitsCount(uint64_t len) {
 
     return sum;
 }
-
-const char *fklSysGetEnv(const char *name);
-int fklSysSetEnv(const char *name, const char *value, int overwrite);
-int fklSysUnsetEnv(const char *name);
 
 #ifdef __cplusplus
 }

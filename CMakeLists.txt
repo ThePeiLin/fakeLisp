@@ -273,8 +273,13 @@ add_library(${LIBFKL_TARGET_NAME}
 	SHARED
 	${LIBFKL_SOURCE})
 add_dependencies(${LIBFKL_TARGET_NAME} lisp.g)
+target_compile_definitions(${LIBFKL_TARGET_NAME}
+	INTERFACE
+		FKL_USING_DLL=1
+		USING_UV_SHARED=1
+	PRIVATE
+		FKL_BUILDING_DLL=1)
 target_define_relative_file(${LIBFKL_TARGET_NAME})
-target_compile_definitions(${LIBFKL_TARGET_NAME} INTERFACE USING_UV_SHARED=1)
 
 if(MSVC)
 	set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -322,17 +327,15 @@ function(add_fkl_native_module name)
 	add_library(${name} SHARED ${MOD_SRC})
 	set_target_properties(${name} PROPERTIES PREFIX "")
 	target_define_relative_file(${name})
-	target_compile_definitions(${name} PRIVATE FKL_USING_DLL)
+	target_link_libraries(${name} PRIVATE ${LIBFKL_TARGET_NAME} ${MOD_LIB})
 	if(MSVC)
 		add_custom_command(TARGET ${name} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
 			COMMENT "Copying ${name}"
 			VERBATIM)
-		target_link_libraries(${name} ${LIBFKL_TARGET_NAME})
 	else()
 		set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
 	endif()
-	target_link_libraries(${name} ${MOD_LIB})
 endfunction()
 
 #ht.so

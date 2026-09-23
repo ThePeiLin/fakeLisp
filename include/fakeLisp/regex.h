@@ -72,9 +72,9 @@ typedef struct {
     FklRegexCode *re;
 } FklRegexItem;
 
-void fklRegexFree(FklRegexCode *);
+FKL_API void fklRegexFree(FklRegexCode *);
 
-void fklStrRegexKeyFree(FklString *s);
+FKL_API void fklStrRegexKeyFree(FklString *s);
 
 // FklStrRegexHashMap
 #define FKL_HASH_KEY_TYPE FklString *
@@ -92,45 +92,54 @@ typedef struct {
     uint32_t num;
 } FklRegexTable;
 
-FklRegexCode *fklRegexCompileCstr(const char *pattern);
-FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len);
+FKL_API FklRegexCode *fklRegexCompileCstr(const char *pattern);
+FKL_API FklRegexCode *fklRegexCompileCharBuf(const char *pattern, size_t len);
 
+FKL_API
 size_t fklRegexMatchpInCstr(const FklRegexCode *pattern,
         const char *text,
         size_t *ppos);
+FKL_API
 size_t fklRegexMatchpInCharBuf(const FklRegexCode *pattern,
         const char *text,
         size_t len,
         size_t *ppos);
+FKL_API
 size_t fklRegexLexMatchp(const FklRegexCode *re,
         const char *str,
         size_t len,
         int *last_is_true);
 
-void fklRegexPrint(const FklRegexCode *, FILE *fp);
+FKL_API void fklRegexPrint(const FklRegexCode *, FILE *fp);
 
+FKL_API
 void fklRegexBuildAsC(const FklRegexCode *,
         const char *prefix,
         const char *pattern,
         size_t pattern_len,
         FklCodeBuilder *build);
 
+FKL_API
 void fklRegexBuildAsCwithNum(const FklRegexCode *,
         const char *prefix,
         uint64_t num,
         FklCodeBuilder *build);
 
-FklRegexTable *fklCreateRegexTable(void);
-void fklInitRegexTable(FklRegexTable *);
-void fklUninitRegexTable(FklRegexTable *);
+FKL_API FklRegexTable *fklCreateRegexTable(void);
+FKL_API void fklInitRegexTable(FklRegexTable *);
+FKL_API void fklUninitRegexTable(FklRegexTable *);
 
+FKL_API
 const FklRegexCode *fklAddRegexStr(FklRegexTable *table, const FklString *str);
 
+FKL_API
 const FklRegexCode *
 fklAddRegexCharBuf(FklRegexTable *table, const char *buf, size_t len);
 
+FKL_API
 const FklRegexCode *fklAddRegexCstr(FklRegexTable *table, const char *str);
 
+FKL_API
 const FklString *fklGetStringWithRegex(const FklRegexTable *t,
         const FklRegexCode *,
         uint64_t *num);

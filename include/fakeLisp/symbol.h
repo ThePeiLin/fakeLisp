@@ -12,12 +12,12 @@
 extern "C" {
 #endif
 
+#define FKL_VAR_REF_INVALID_CIDX (UINT32_MAX)
+
 typedef struct {
     struct FklVMvalue *sid;
     uint32_t scope;
 } FklSidScope;
-
-#define FKL_VAR_REF_INVALID_CIDX (UINT32_MAX)
 
 typedef struct FklSymDef {
     uint32_t idx;
@@ -100,13 +100,13 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueProto, {
     FklVMvalue *vals[FKL_FLEX_ARRAY_MEMBER];
 });
 
-int fklIsVMvalueProto(const FklVMvalue *v);
+FKL_API int fklIsVMvalueProto(const FklVMvalue *v);
+FKL_API FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count);
+
 static FKL_ALWAYS_INLINE FklVMvalueProto *fklVMvalueProto(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueProto(v));
     return FKL_TYPE_CAST(FklVMvalueProto *, v);
 }
-
-FklVMvalueProto *fklCreateVMvalueProto(FklVM *exe, uint32_t val_count);
 
 static FKL_ALWAYS_INLINE FklVarRefDef *fklVMvalueProtoVarRefs(
         const FklVMvalueProto *v) {

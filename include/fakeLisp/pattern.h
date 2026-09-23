@@ -36,24 +36,36 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueSlot, {
     FklPmatchExpandType expand;
 });
 
+FKL_API
 FklVMvalue *fklCreatePattern(FklVM *exe, FklVMvalue *, FklValueHashSet **);
+
+FKL_API
 FklVMvalue *fklAstToPattern(FklVM *exe, FklVMvalue *, FklValueHashSet **);
+
+FKL_API
 int fklPatternMatch(const FklVMvalue *pattern,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht);
+
+FKL_API
 int fklPatternMatch1(const FklVMvalue *head,
         const FklVMvalue *pat,
         const FklVMvalue *exp,
         FklPmatchHashMap *ht);
 
+FKL_API
 FKL_NODISCARD
 int fklPatternCoverState(const FklVMvalue *p0, const FklVMvalue *p1);
 
+FKL_API
 FklVMvalue *fklVMvalueHeaderWildcard(void);
 #define FKL_VM_HEADER_WILDCARD (fklVMvalueHeaderWildcard())
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueSlot(FklVM *, FklVMvalue *s, FklPmatchExpandType expand);
+
+FKL_API
 int fklIsVMvalueSlot(const FklVMvalue *s);
 
 static FKL_ALWAYS_INLINE FklVMvalueSlot *FKL_VM_SLOT(const FklVMvalue *V) {

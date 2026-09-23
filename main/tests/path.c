@@ -170,7 +170,9 @@ int main() {
     fklPrin1VMvalue(v, stdout, vm);
     putchar('\n');
 
-    verify(vm, v, 2, "./foo", "../foo");
+    dir1 = fklAbspath("./foo");
+    dir2 = fklAbspath("../foo");
+    verify(vm, v, 2, dir1, dir2);
     fklZfree(dir1);
     fklZfree(dir2);
     dir1 = NULL;
@@ -328,8 +330,17 @@ int main() {
         putchar('\n');
 
         check_true(vec->size == 2, "path string -> vec count");
-        check_str("fkl-no-a", FKL_VM_SYM(vec->base[0])->str, "path entry 0");
-        check_str("fkl-no-b", FKL_VM_SYM(vec->base[1])->str, "path entry 1");
+        dir1 = fklAbspath("./fkl-no-a");
+        dir2 = fklAbspath("./fkl-no-b");
+
+        check_str(dir1, FKL_VM_SYM(vec->base[0])->str, "path entry 0");
+        check_str(dir2, FKL_VM_SYM(vec->base[1])->str, "path entry 1");
+
+        fklZfree(dir1);
+        fklZfree(dir2);
+
+        dir1 = NULL;
+        dir2 = NULL;
     }
 
     // fklDupDir

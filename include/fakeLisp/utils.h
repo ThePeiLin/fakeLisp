@@ -62,8 +62,12 @@ char *fklDupDir(const char *);
 char **fklSplit(char *str, const char *divider, size_t *);
 char *fklStrTok(char *str, const char *divstr, char **context);
 char *fklTrim(char *str);
+
 char *fklRealpath(const char *);
+char* fklAbspath(const char*);
+
 char *fklRelpath(const char *start, const char *path);
+
 
 int fklIsI64AddOverflow(int64_t a, int64_t b);
 int fklIsI64MulOverflow(int64_t a, int64_t b);

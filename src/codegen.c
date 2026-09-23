@@ -3331,13 +3331,30 @@ importing_private_module:
     return name;
 }
 
+static inline size_t
+prepare_module_path(FklStrBuf *buf, const char *cwd, const char *name) {
+#ifdef FKL_USING_WIN32
+    fklStrBufPrintf(buf, "%s%c", cwd, FKL_PATH_SEPARATOR);
+    for (const char *c = name; *c; ++c) {
+        if (*c == '/') {
+            fklStrBufPutc(buf, FKL_PATH_SEPARATOR);
+        } else {
+            fklStrBufPutc(buf, *c);
+        }
+    }
+
+#else
+    fklStrBufPrintf(buf, "%s%c%s", cwd, FKL_PATH_SEPARATOR, name);
+#endif
+    return buf->index;
+}
+
 static FKL_ALWAYS_INLINE FklFileType get_mod_file_type(const char *cwd,
         const char *name,
         FklStrBuf *buf) {
     size_t base_idx = 0;
     fklStrBufClear(buf);
-    fklStrBufPrintf(buf, "%s%c%s", cwd, FKL_PATH_SEPARATOR, name);
-    base_idx = buf->index;
+    base_idx = prepare_module_path(buf, cwd, name);
 
     fklStrBufPrintf(buf, "%c%s", FKL_PATH_SEPARATOR, FKL_PACKAGE_MAIN_FILE);
 

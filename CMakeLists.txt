@@ -179,6 +179,12 @@ target_compile_definitions(test-path PRIVATE
 	TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
 target_define_relative_file(test-path)
 
+add_executable(test-abspath "main/tests/abspath.c")
+target_link_libraries(test-abspath grammer_lib ${LINK_TARGET})
+target_compile_definitions(test-abspath PRIVATE
+	TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
+target_define_relative_file(test-abspath)
+
 # print some struct size
 add_executable(psssize "main/psssize.c")
 target_link_libraries(psssize grammer_lib ${LINK_TARGET})
@@ -520,6 +526,9 @@ add_test(NAME test-no-lalr
 
 add_test(NAME test-path
 	COMMAND $<TARGET_FILE:test-path>)
+
+add_test(NAME test-abspath
+	COMMAND $<TARGET_FILE:test-abspath>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json

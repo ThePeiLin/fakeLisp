@@ -2412,7 +2412,7 @@ FklVMvalue *fklVMpathStrToVec(FklVM *vm, const char *path) {
     for (size_t i = 0; i < str_view.size; ++i) {
         const FklStrView *view = &str_view.base[i];
         FklVMvalue *s = fklVMaddSymbolCharBuf(vm, view->str, view->len);
-        char *rp = fklRealpath(FKL_VM_SYM(s)->str);
+        char *rp = fklAbspath(FKL_VM_SYM(s)->str);
         if (rp != NULL) {
             FKL_VM_VEC(v)->base[i] = fklVMaddSymbolCstr(vm, rp);
             fklZfree(rp);

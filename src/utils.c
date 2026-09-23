@@ -63,8 +63,10 @@ static inline int unsetenv(const char *name) { return _putenv_s(name, ""); }
 
 char *fklSysgetcwd(void) {
     char path_buf[FKL_PATH_MAX];
-    getcwd(path_buf, sizeof(path_buf));
-    return fklZstrdup(path_buf);
+    const char *r = getcwd(path_buf, sizeof(path_buf));
+    if (r == NULL)
+        return NULL;
+    return fklZstrdup(r);
 }
 
 int fklChdir(const char *dir) { return chdir(dir); }
@@ -995,3 +997,277 @@ int fklSysSetEnv(const char *name, const char *value, int overwrite) {
 }
 
 int fklSysUnsetEnv(const char *name) { return unsetenv(name); }
+
+// ---------------------------------------------------------------------------
+// abspath / normpath
+//
+// Mirrors CPython's os.path.abspath / os.path.normpath:
+//
+//     abspath(p) = normpath(p)                 if p is absolute
+//                = normpath(join(getcwd(), p)) otherwise
+//
+// It is purely lexical: symbolic links are not resolved and the filesystem is
+// only touched to read the current working directory. On Windows the native
+// GetFullPathName() (via _fullpath(), see fklRealpath()) is used instead,
+// matching CPython's ntpath.abspath; the lexical code is the fallback and is
+// what non-Windows platforms use.
+// ---------------------------------------------------------------------------
+
+static FKL_ALWAYS_INLINE int is_path_sep(char c) {
+#ifdef _WIN32
+    return c == '/' || c == FKL_PATH_SEPARATOR;
+#else
+    return c == FKL_PATH_SEPARATOR;
+#endif
+}
+
+static int is_abs_path(const char *path) {
+    if (path == NULL || path[0] == '\0')
+        return 0;
+    if (is_path_sep(path[0]))
+        return 1;
+#ifdef _WIN32
+    // drive-letter path, e.g. "C:\\dir" or "C:dir"
+    if (((path[0] >= 'a' && path[0] <= 'z')
+                || (path[0] >= 'A' && path[0] <= 'Z'))
+            && path[1] == ':')
+        return 1;
+#endif
+    return 0;
+}
+
+// Split the leading drive/root prefix, mirroring CPython's _Py_skiproot.
+static void skip_root(const char *path, size_t *drvsize, size_t *rootsize) {
+    FKL_ASSERT(drvsize != NULL);
+    FKL_ASSERT(rootsize != NULL);
+
+#ifndef _WIN32
+    *drvsize = 0;
+    if (!is_path_sep(path[0]))
+        // relative path, e.g. "foo"
+        *rootsize = 0;
+    else if (!is_path_sep(path[1]) || is_path_sep(path[2]))
+        // absolute path, e.g. "/foo", "///foo", "////foo"
+        *rootsize = 1;
+    else
+        // exactly two leading slashes, e.g. "//foo"
+        *rootsize = 2;
+#else
+    if (is_path_sep(path[0])) {
+        if (is_path_sep(path[1])) {
+            // device drives, e.g. \\.\device or \\?\device
+            // UNC drives, e.g. \\server\share or \\?\UNC\server\share
+            size_t idx;
+            if (path[2] == '?' && is_path_sep(path[3])
+                    && (path[4] == 'U' || path[4] == 'u')
+                    && (path[5] == 'N' || path[5] == 'n')
+                    && (path[6] == 'C' || path[6] == 'c')
+                    && is_path_sep(path[7]))
+                idx = 8;
+            else
+                idx = 2;
+            while (!is_path_sep(path[idx]) && path[idx] != '\0')
+                idx++;
+            if (path[idx] == '\0') {
+                *drvsize = idx;
+                *rootsize = 0;
+            } else {
+                idx++;
+                while (!is_path_sep(path[idx]) && path[idx] != '\0')
+                    idx++;
+                *drvsize = idx;
+                if (path[idx] == '\0')
+                    *rootsize = 0;
+                else
+                    *rootsize = 1;
+            }
+        } else {
+            // relative path with root, e.g. "\Windows"
+            *drvsize = 0;
+            *rootsize = 1;
+        }
+    } else if (path[0] != '\0' && path[1] == ':') {
+        *drvsize = 2;
+        if (is_path_sep(path[2]))
+            // absolute drive-letter path, e.g. X:\Windows
+            *rootsize = 1;
+        else
+            // relative path with drive, e.g. X:Windows
+            *rootsize = 0;
+    } else {
+        // relative path, e.g. Windows
+        *drvsize = 0;
+        *rootsize = 0;
+    }
+#endif
+}
+
+// Lexically normalize `path`, mirroring CPython's _Py_normpath_and_size:
+// collapse repeated separators, drop "." components and resolve ".."
+// textually (a leading ".." of a relative path is preserved).
+// Returns a newly allocated string (fklZmalloc) or NULL if `path` is NULL.
+static char *normpath(const char *path) {
+    if (path == NULL)
+        return NULL;
+
+    size_t size = strlen(path);
+    char *buf = (char *)fklZmalloc(size + 2);
+    FKL_ASSERT(buf != NULL);
+    memcpy(buf, path, size + 1);
+
+    if (size == 0) {
+        buf[0] = '.';
+        buf[1] = '\0';
+        return buf;
+    }
+
+    char *pEnd = &buf[size];
+    char *p1 = buf;    // sequentially scanned address in the path
+    char *p2 = buf;    // destination of a scanned character to be ljusted
+    char *minP2 = buf; // the beginning of the destination range
+    char lastC = '\0'; // the last ljusted character, p2[-1] in most cases
+
+#define IS_END(x) ((x) == pEnd)
+#define IS_SEP(x) (is_path_sep(*(x)))
+#define SEP_OR_END(x) (IS_SEP(x) || IS_END(x))
+
+    size_t drvsize = 0;
+    size_t rootsize = 0;
+    skip_root(buf, &drvsize, &rootsize);
+    if (drvsize || rootsize) {
+        // skip past root and update minP2
+        p1 = &buf[drvsize + rootsize];
+#ifdef _WIN32
+        for (p2 = buf; p2 < p1; ++p2)
+            if (*p2 == '/')
+                *p2 = FKL_PATH_SEPARATOR;
+#else
+        p2 = p1;
+#endif
+        minP2 = p2 - 1;
+        lastC = *minP2;
+#ifdef _WIN32
+        if (lastC != FKL_PATH_SEPARATOR)
+            minP2++;
+#endif
+    }
+
+    if (p1[0] == '.' && SEP_OR_END(&p1[1])) {
+        // skip leading ".\"
+        lastC = *++p1;
+#ifdef _WIN32
+        if (lastC == '/')
+            lastC = FKL_PATH_SEPARATOR;
+#endif
+        while (IS_SEP(p1))
+            p1++;
+    }
+
+    for (; !IS_END(p1); ++p1) {
+        char c = *p1;
+#ifdef _WIN32
+        if (c == '/')
+            c = FKL_PATH_SEPARATOR;
+#endif
+        if (lastC == FKL_PATH_SEPARATOR) {
+            if (c == '.') {
+                int sep_at_1 = SEP_OR_END(&p1[1]);
+                int sep_at_2 = !sep_at_1 && SEP_OR_END(&p1[2]);
+                if (sep_at_2 && p1[1] == '.') {
+                    char *p3 = p2;
+                    while (p3 != minP2 && *--p3 == FKL_PATH_SEPARATOR) {
+                    }
+                    while (p3 != minP2 && *(p3 - 1) != FKL_PATH_SEPARATOR)
+                        --p3;
+                    if (p2 == minP2
+                            || (p3[0] == '.' && p3[1] == '.'
+                                    && IS_SEP(&p3[2]))) {
+                        // previous segment is also "../", append instead.
+                        // a relative path does not absorb ".." at minP2.
+                        *p2++ = '.';
+                        *p2++ = '.';
+                        lastC = '.';
+                    } else if (p3[0] == FKL_PATH_SEPARATOR) {
+                        // absolute path, so absorb segment
+                        p2 = p3 + 1;
+                    } else {
+                        p2 = p3;
+                    }
+                    p1 += 1;
+                } else if (sep_at_1) {
+                    // "." component, skip it
+                } else {
+                    *p2++ = lastC = c;
+                }
+            } else if (c == FKL_PATH_SEPARATOR) {
+                // repeated separator, skip it
+            } else {
+                *p2++ = lastC = c;
+            }
+        } else {
+            *p2++ = lastC = c;
+        }
+    }
+    *p2 = '\0';
+    if (p2 != minP2) {
+        while (--p2 != minP2 && *p2 == FKL_PATH_SEPARATOR)
+            *p2 = '\0';
+    } else {
+        --p2;
+    }
+
+    if (p2 < buf) {
+        // the whole path collapsed, normalize to "."
+        buf[0] = '.';
+        buf[1] = '\0';
+    }
+
+#undef SEP_OR_END
+#undef IS_SEP
+#undef IS_END
+
+    return buf;
+}
+
+// Return an absolute, lexically normalized copy of `path`.
+// On Windows this uses the native GetFullPathName() through fklRealpath(),
+// which on that platform is backed by _fullpath() and therefore is already a
+// purely lexical abspath (it does not resolve reparse points). The lexical
+// implementation below is the fallback there and the only path elsewhere.
+// The result is allocated with fklZmalloc and must be released with fklZfree.
+// Returns NULL if `path` is NULL.
+char *fklAbspath(const char *path) {
+    if (path == NULL)
+        return NULL;
+
+#ifdef _WIN32
+    // fklRealpath() -> _fullpath() -> GetFullPathNameW(): resolves "." / "..",
+    // drive-relative paths and normalizes separators without touching symlinks.
+    {
+        char *r = fklRealpath(path);
+        if (r != NULL)
+            return r;
+    }
+#endif
+
+    if (is_abs_path(path))
+        return normpath(path);
+
+    char *cwd = fklSysgetcwd();
+    if (cwd == NULL)
+        return NULL;
+
+    size_t cwd_len = strlen(cwd);
+    size_t path_len = strlen(path);
+    char *joined = (char *)fklZmalloc(cwd_len + 1 + path_len + 1);
+    FKL_ASSERT(joined != NULL);
+
+    memcpy(joined, cwd, cwd_len);
+    joined[cwd_len] = FKL_PATH_SEPARATOR;
+    memcpy(joined + cwd_len + 1, path, path_len + 1);
+    fklZfree(cwd);
+
+    char *r = normpath(joined);
+    fklZfree(joined);
+    return r;
+}

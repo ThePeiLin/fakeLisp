@@ -253,6 +253,7 @@ add_library(${VMPARSE}
 	"vmparse.c")
 set_target_properties(${VMPARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_define_relative_file(${VMPARSE})
+target_compile_definitions(${VMPARSE} PRIVATE FKL_BUILDING_DLL=1)
 
 if(ASAN)
 	set_target_properties(${VMPARSE} PROPERTIES
@@ -280,10 +281,6 @@ target_compile_definitions(${LIBFKL_TARGET_NAME}
 	PRIVATE
 		FKL_BUILDING_DLL=1)
 target_define_relative_file(${LIBFKL_TARGET_NAME})
-
-if(MSVC)
-	set_target_properties(${LIBFKL_TARGET_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
 
 #fakeLisp, fakeLispc, fakeLispp
 add_executable(${INTERPRETER_TARGET_NAME} ${INTERPRETER_SOURCE})

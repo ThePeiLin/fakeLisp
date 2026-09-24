@@ -1005,8 +1005,6 @@ FKL_API void fklDestroyVMgc(FklVMgc *);
 FKL_API void fklDestroyAllVMs(FklVM *cur);
 FKL_API void fklDeleteCallChain(FklVM *);
 
-FKL_API FklGCstate fklVMgcStateGet(FklVMgc *);
-
 FKL_API
 void fklDBG_printVMstack(FklVM *,
         uint32_t c,

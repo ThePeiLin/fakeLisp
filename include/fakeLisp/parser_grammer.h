@@ -100,15 +100,18 @@ static inline void fklUninitParserGrammerParseArg(
     fklUninitStrBuf(&arg->error_msg);
 }
 
+FKL_API
 int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
         const char *buf,
         size_t len);
 
+FKL_API
 void fklPrintParserGrammerParseError(int err,
         const FklParserGrammerParseArg *arg,
         FklCodeBuilder *cb);
 
 // impl by LLM
+FKL_API
 void fklGraFoldConcatChains(FklGraSymVector *v);
 
 static inline int fklParseProductionRuleWithString(

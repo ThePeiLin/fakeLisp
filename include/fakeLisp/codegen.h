@@ -144,9 +144,11 @@ typedef struct {
     FklVMvalueWeakHashEq *weak_refs;
 } FklResolveRefArgs;
 
+FKL_API
 FKL_NODISCARD
 FklVMvalueProto *fklCreateVMvalueProto2(FklVM *exe, FklVMvalueCgEnv *env);
 
+FKL_API
 FKL_NODISCARD
 FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
         FklVMvalueCgEnv *env,
@@ -157,11 +159,15 @@ FklVMvalueProto *fklCreateVMvalueProto3(FklVM *exe,
             ENV,                                                               \
             &(const FklResolveRefArgs){ __VA_ARGS__ }))
 
+FKL_API
 void fklResolveRef(FklVMvalueCgEnv *env,
         uint32_t scope,
         const FklResolveRefArgs *args);
 
+FKL_API
 void fklSetImportedSymbolUsed(const FklVMvalueCgEnv *env, const FklSymDef *def);
+
+FKL_API
 const uint8_t *fklGetImportedSymbolUsed(const FklVMvalueCgEnv *env,
         uint32_t from,
         uint32_t idx);
@@ -561,17 +567,19 @@ typedef struct FklCgAct {
 #define FKL_QUEUE_ELM_TYPE_NAME CgExp
 #include "cont/queue.h"
 
-void fklInitProdActionList(FklCgCtx *ctx);
+FKL_API void fklInitProdActionList(FklCgCtx *ctx);
 
+FKL_API
 void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
 
-void fklRegisterCgCtx(FklCgCtx *ctx);
-void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
+FKL_API void fklRegisterCgCtx(FklCgCtx *ctx);
 
-FklVMvalue *fklInitDefaultLibPath(FklVM *vm);
+FKL_API void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
 
-void fklUnregisterCgCtx(FklCgCtx *ctx);
-void fklUninitCgCtx(FklCgCtx *ctx);
+FKL_API FklVMvalue *fklInitDefaultLibPath(FklVM *vm);
+
+FKL_API void fklUnregisterCgCtx(FklCgCtx *ctx);
+FKL_API void fklUninitCgCtx(FklCgCtx *ctx);
 
 typedef struct {
     FklVMvalueCgLibs *libraries;
@@ -598,13 +606,16 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueCustomActCtx, {
     FklVMvalue *dollars[FKL_FLEX_ARRAY_MEMBER];
 });
 
+FKL_API
 FklVMvalueVec *fklCreateCgNamesVec(FklVM *vm,
         const FklCgExportSidIdxHashMap *map);
 
+FKL_API
 FklCgExportIdx *fklCgExportAdd(FklCgExportSidIdxHashMap *exports,
         FklVMvalue *s,
         uint8_t not_owned);
 
+FKL_API
 FklVMvalue *fklSearchLibPath(FklVM *vm,
         const char *cwd,
         FklVMvalueVec *paths,
@@ -612,6 +623,7 @@ FklVMvalue *fklSearchLibPath(FklVM *vm,
         FklFileType *ft,
         FklCgLibPathType *pt);
 
+FKL_API
 FklVMvalue *fklSearchLibPath1(FklVM *vm,
         const char *cwd,
         FklVMvalueVec *paths,
@@ -619,21 +631,24 @@ FklVMvalue *fklSearchLibPath1(FklVM *vm,
         FklCgLibPathType pt,
         FklFileType *ft);
 
-FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s);
-int fklIsVMvalueCgLib(const FklVMvalue *v);
+FKL_API FklVMvalueCgLib *fklCreateVMvalueCgLib(FklVM *vm, FklVMvalue *rp_s);
+FKL_API int fklIsVMvalueCgLib(const FklVMvalue *v);
+
 static FKL_ALWAYS_INLINE FklVMvalueCgLib *fklVMvalueCgLib(const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueCgLib(v));
     return FKL_TYPE_CAST(FklVMvalueCgLib *, v);
 }
 
-int fklIsVMvalueCgLibs(const FklVMvalue *v);
-FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
+FKL_API int fklIsVMvalueCgLibs(const FklVMvalue *v);
+FKL_API FklVMvalueCgLibs *fklCreateVMvalueCgLibs(FklVM *vm);
+
 static FKL_ALWAYS_INLINE FklVMvalueCgLibs *fklVMvalueCgLibs(
         const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueCgLibs(v));
     return (FklVMvalueCgLibs *)v;
 }
 
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsBind(const FklCgCtx *c,
         FklVMvalueCgLibs *libs,
         const char *rp_s,
@@ -644,30 +659,37 @@ FklVMvalueCgLib *fklVMvalueCgLibsBind(const FklCgCtx *c,
 /// 但是从环境变量中指定的路径查找的模块的名字就没法反推出来，
 /// 因而我们让用户指定一个 name ，
 /// 在 type 为 FKL_CG_LIB_PATH_ENV 时覆盖 lib 对象的成员 name
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsBind1(FklVMvalueCgLibs *libs,
         FklVMvalue *rp_s,
         FklCgLibPathType type,
         FklVMvalue *name);
 
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsFind(const FklVMvalueCgLibs *, FklVMvalue *rp);
 
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsAdd(FklCgCtx *c,
         FklVMvalueCgLibs *,
         const char *rp,
         FklCgLibPathType type);
+
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsAdd1(FklVM *vm,
         FklVMvalueCgLibs *libs,
         FklVMvalue *rp_s,
         FklCgLibPathType type);
 
+FKL_API
 FklVMvalueCgLib *fklVMvalueCgLibsAdd2(FklVMvalueCgLibs *libs,
         FklVMvalue *rp_s,
         FklCgLibPathType type,
         FklVMvalueCgLib *l);
 
+FKL_API
 void fklVMvalueCgLibsRemove(FklCgCtx *c, FklVMvalueCgLibs *, const char *rp);
 
-const char *fklCgLibRp(const FklVMvalueCgLib *c);
+FKL_API const char *fklCgLibRp(const FklVMvalueCgLib *c);
 
 static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
         const FklVMvalue *rp_v) {
@@ -675,16 +697,23 @@ static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
     return fklStrStartWith(rp, ctx->main_file_real_path_dir);
 }
 
+FKL_API
 FklVMvalue *fklCgRealpathToModuleName(const FklCgCtx *ctx, const char *rp);
 
-FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
+FKL_API FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
+
+FKL_API
 FklVMvalueCgEnv *fklVMvalueCgEnvWeakMapGet(const FklVMvalueCgEnvWeakMap *,
         const FklVMvalueProto *p);
+
+FKL_API
 void fklVMvalueCgEnvWeakMapInsert(FklVMvalueCgEnvWeakMap *,
         const FklVMvalueProto *,
         const FklVMvalueCgEnv *env);
 
-int fklIsVMvalueCgInfo(const FklVMvalue *v);
+FKL_API int fklIsVMvalueCgInfo(const FklVMvalue *v);
+
+FKL_API
 FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         FklVMvalueCgInfo *prev,
         const char *filename,
@@ -696,7 +725,9 @@ static FKL_ALWAYS_INLINE FklVMvalueCgInfo *fklVMvalueCgInfo(
     return FKL_TYPE_CAST(FklVMvalueCgInfo *, v);
 }
 
-int fklIsVMvalueCgReExport(const FklVMvalue *v);
+FKL_API int fklIsVMvalueCgReExport(const FklVMvalue *v);
+
+FKL_API
 FklVMvalueCgReExport *fklCreateVMvalueCgReExport(FklVM *vm,
         FklVMvalueCgLib *lib,
         FklCgLibPathType pt,
@@ -709,22 +740,30 @@ static FKL_ALWAYS_INLINE FklVMvalueCgReExport *fklVMvalueCgReExport(
     return FKL_TYPE_CAST(FklVMvalueCgReExport *, v);
 }
 
+FKL_API
 FklVMvalue *fklCgAppendReExport(FklVM *vm,
         FklVMvalueCgInfo *info,
         const FklVMvalueCgReExport *re_export);
 
+FKL_API
 FklVMvalue *fklGenExpressionCode(FklCgCtx *ctx,
         FklVMvalue *exp,
         FklVMvalueCgEnv *env,
         FklVMvalueCgInfo *info);
+
+FKL_API
 FklVMvalue *fklGenExpressionCodeWithAction(FklCgCtx *ctx, FklCgAct *);
+
+FKL_API
 FklVMvalue *fklGenExpressionCodeWithFp(FklCgCtx *ctx,
         FILE *,
         FklVMvalueCgInfo *info,
         FklVMvalueCgEnv *env);
 
+FKL_API
 FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *, size_t, FklCgAct *const *);
 
+FKL_API
 FklCgAct *fklMakeImportAct(FklCgCtx *,
         FklVMvalue *name,
         FklFileType,
@@ -732,6 +771,8 @@ FklCgAct *fklMakeImportAct(FklCgCtx *,
         FklCgLibPathType pt,
         FklVMvalueCgInfo *info,
         FklCgAct *);
+
+FKL_API
 FklCgAct *fklMakeCollectAct(FklCgCtx *, FklVMvalueCgInfo *info, FklCgAct *prev);
 
 typedef struct {
@@ -766,66 +807,87 @@ typedef struct {
 /// @param[inout] to     The extra args
 /// @return < 0   falied
 /// @return == 0  succed
+FKL_API
 FKL_NODISCARD
 int fklCgImport(FklVM *vm, const FklVMvalueCgLib *from, FklCgImportArgs *to);
 
+FKL_API
 FklSymDef *
 fklUseSymbolDef(FklVMvalueCgEnv *env, uint32_t scope, FklVMvalue *id);
 
+FKL_API
 FklSymDefHashMapElm *
 fklFindSymbolDef1(const FklVMvalueCgEnv *env, uint32_t scope, FklVMvalue *id);
 
+FKL_API
 FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
         uint32_t scope,
         const FklVMvalueCgEnv *env);
 
+FKL_API
 FklCgEnvScope *fklCgEnvScopeGet(const FklVMvalueCgEnv *env, uint32_t scope_id);
 
+FKL_API
 void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
         FklCodeBuilder *cb);
 
+FKL_API
 void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb);
 
+FKL_API
 FklSymDefHashMapElm *fklAddCgBuiltinRefBySid(FklVMvalue *id,
         FklVMvalueCgEnv *env);
+
+FKL_API
 uint32_t fklAddCgRefBySidRetIndex(FklVMvalue *id,
         FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint64_t line,
         uint32_t assign);
+
+FKL_API
 FklSymDefHashMapElm *fklAddCgRefBySid(FklVMvalue *id,
         FklVMvalueCgEnv *env,
         FklVMvalue *fid,
         uint64_t line,
         uint32_t assign);
+
+FKL_API
 FklSymDef *fklGetCgRefBySid(FklVMvalue *id, FklVMvalueCgEnv *env);
 
+FKL_API
 FklSymDef *
 fklAddCgDefBySid(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env);
 
+FKL_API
 void fklAddCgPreDefBySid(FklVMvalue *id,
         uint32_t scope,
         uint8_t isConst,
         FklVMvalueCgEnv *env);
 
+FKL_API
 uint8_t *
 fklGetCgPreDefBySid(FklVMvalue *id, uint32_t scope, FklVMvalueCgEnv *env);
+
+FKL_API
 void fklAddCgRefToPreDef(FklVMvalue *id,
         uint32_t scope,
         uint32_t prototypeId,
         uint32_t idx,
         FklVMvalueCgEnv *env);
+FKL_API
 void fklResolveCgPreDef(FklVMvalue *, uint32_t scope, FklVMvalueCgEnv *env);
-void fklClearCgPreDef(FklVMvalueCgEnv *env);
+FKL_API void fklClearCgPreDef(FklVMvalueCgEnv *env);
 
+FKL_API
 int fklIsSymbolDefined(FklVMvalue *sid,
         uint32_t scope,
         const FklVMvalueCgEnv *);
 
-int fklIsRplDefined(FklVMvalue *sid, FklVMvalueCgEnv *);
+FKL_API int fklIsRplDefined(FklVMvalue *sid, FklVMvalueCgEnv *);
 
-int fklIsVMvalueCgEnv(const FklVMvalue *);
+FKL_API int fklIsVMvalueCgEnv(const FklVMvalue *);
 
 typedef struct {
     FklVMvalueCgEnv *prev_env;
@@ -836,21 +898,27 @@ typedef struct {
     uint64_t line;
 } FklCgEnvCreateArgs;
 
+FKL_API
 FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
         const FklCgEnvCreateArgs *args);
+
+FKL_API
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,
         FklVMvalue *rp,
         FklCgLibPathType pt,
         FklVMvalueCgLib *lib);
 
+FKL_API
 void fklInitCgScriptLib(const FklCgCtx *ctx,
         FklVMvalueCgLib *lib,
         FklVMvalue *mod_name,
         const FklVMvalueCgInfo *codegen,
         const FklVMvalueProc *proc);
 
+FKL_API
 FklCgDllLibInitExportCb fklGetCgInitExportFunc(uv_lib_t *dll);
 
+FKL_API
 void fklInitCgDllLib(const FklCgCtx *ctx,
         FklVMvalue *name,
         FklVMvalueCgLib *lib,
@@ -858,32 +926,46 @@ void fklInitCgDllLib(const FklCgCtx *ctx,
         uv_lib_t dll,
         FklCgDllLibInitExportCb init);
 
+FKL_API
 FklVMvalueCgMacro *fklCreateVMvalueCgMacro(const FklCgCtx *c,
         FklVMvalue *pattern,
         FklVMvalue *proc);
-int fklIsVMvalueCgMacro(const FklVMvalue *v);
-FklVMvalueCgMacro *fklVMvalueCgMacro(const FklVMvalue *r);
 
-FklVMvalueCgMacroHashMap *fklCreateVMvalueCgMacroHashMap(FklVM *vm);
+FKL_API int fklIsVMvalueCgMacro(const FklVMvalue *v);
+FKL_API FklVMvalueCgMacro *fklVMvalueCgMacro(const FklVMvalue *r);
+
+FKL_API FklVMvalueCgMacroHashMap *fklCreateVMvalueCgMacroHashMap(FklVM *vm);
+
+FKL_API
 FklValueHashMapElm *fklCgMacroHashMapGet(const FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
+
+FKL_API
 FklValueHashMapElm *fklCgMacroHashMapRef1(FklVMvalueCgMacroHashMap *,
         const FklVMvalue *s);
-void fklCgMacroHashMapDel(FklVMvalueCgMacroHashMap *map, FklVMvalue *s);
+FKL_API void fklCgMacroHashMapDel(FklVMvalueCgMacroHashMap *map, FklVMvalue *s);
 
+FKL_API
 FklVMvalueCgRpl *fklCreateVMvalueCgRpl(const FklCgCtx *c, FklVMvalue *value);
-int fklIsVMvalueCgRpl(const FklVMvalue *v);
-FklVMvalueCgRpl *fklVMvalueCgRpl(const FklVMvalue *r);
 
-FklVMvalueCgRplHashMap *fklCreateVMvalueCgRplHashMap(FklVM *vm);
+FKL_API int fklIsVMvalueCgRpl(const FklVMvalue *v);
+FKL_API FklVMvalueCgRpl *fklVMvalueCgRpl(const FklVMvalue *r);
+
+FKL_API FklVMvalueCgRplHashMap *fklCreateVMvalueCgRplHashMap(FklVM *vm);
+
+FKL_API
 FklVMvalueCgRpl *fklCgRplHashMapGet(const FklVMvalueCgRplHashMap *,
         const FklVMvalue *sym);
+
+FKL_API
 void fklCgRplHashMapSet(FklVMvalueCgRplHashMap *,
         const FklVMvalue *sym,
         FklVMvalueCgRpl *rep);
 
+FKL_API
 FklVMvalueCgRpl *fklCgRplHashMapDel(FklVMvalueCgRplHashMap *, FklVMvalue *sym);
 
+FKL_API
 FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *c,
         FklVMvalue *left,
         FklVMvalue *action_type,
@@ -891,34 +973,44 @@ FklVMvalueCgRmacroProd *fklCreateVMvalueCgRmacroProd(FklVM *c,
         int add_extra,
         size_t len);
 
-int fklIsVMvalueCgRmacroProd(const FklVMvalue *v);
-FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r);
+FKL_API int fklIsVMvalueCgRmacroProd(const FklVMvalue *v);
+FKL_API FklVMvalueCgRmacroProd *fklVMvalueCgRmacroProd(const FklVMvalue *r);
 
-FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *c, uint64_t len);
-int fklIsVMvalueCgRmacro(const FklVMvalue *v);
-FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r);
+FKL_API FklVMvalueCgRmacro *fklCreateVMvalueCgRmacro(FklVM *c, uint64_t len);
+FKL_API int fklIsVMvalueCgRmacro(const FklVMvalue *v);
+FKL_API FklVMvalueCgRmacro *fklVMvalueCgRmacro(const FklVMvalue *r);
 
+FKL_API
 FKL_NODISCARD
 int fklExecuteCgRmacro(FklCgCtx *ctx,
         FklVMvalueCgInfo *info,
         FklVMvalue *name,
         FklVMvalueCgRmacro *r);
-const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op);
 
+FKL_API const char *fklGetCgRmacroOpName(FklCgRmacroOpcode op);
+
+FKL_API
 FklVMvalueCgRmacroHashMap *fklCreateVMvalueCgRmacroHashMap(FklVM *vm);
 
+FKL_API
 FklValueHashMapElm *fklCgRmacroHashMapGet(const FklVMvalueCgRmacroHashMap *,
         const FklVMvalue *s);
+
+FKL_API
 FklValueHashMapElm *fklCgRmacroHashMapRef1(FklVMvalueCgRmacroHashMap *,
         const FklVMvalue *s);
+
+FKL_API
 FklVMvalueCgRmacro *fklCgRmacroHashMapDel(FklVMvalueCgRmacroHashMap *,
         const FklVMvalue *s);
 
-FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c);
-int fklIsVMvalueCgGrammer(const FklVMvalue *v);
-FklVMvalueCgGrammer *fklVMvalueCgGrammer(const FklVMvalue *r);
+FKL_API FklVMvalueCgGrammer *fklCreateVMvalueCgGrammer(const FklCgCtx *c);
+FKL_API int fklIsVMvalueCgGrammer(const FklVMvalue *v);
+FKL_API FklVMvalueCgGrammer *fklVMvalueCgGrammer(const FklVMvalue *r);
 
-int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
+FKL_API int fklIsVMvalueCgMacroScope(const FklVMvalue *v);
+
+FKL_API
 FklVMvalueCgMacroScope *fklCreateVMvalueCgMacroScope(const FklCgCtx *c,
         FklVMvalueCgMacroScope *prev);
 
@@ -935,28 +1027,37 @@ static inline void fklPopCgPmatchStorage(FklCgCtx *ctx,
     ss->next = NULL;
 }
 
+FKL_API
 FklVMvalue *fklTryExpandCgMacroOnce(FklCgCtx *ctx,
         const FklPmatchRes *exp,
         const FklVMvalueCgInfo *,
         const FklVMvalueCgMacroScope *macros);
 
+FKL_API
 FklVMvalue *fklTryExpandCgMacro(FklCgCtx *ctx,
         const FklPmatchRes *exp,
         const FklVMvalueCgInfo *,
         const FklVMvalueCgMacroScope *macros);
 
+FKL_API
 int fklIsCgRmacroBuiltinActionValid(const FklCgCtx *ctx, const FklVMvalue *id);
 
+FKL_API
 FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx(FklVM *v, FklVMvalue *act);
+
+FKL_API
 FklVMvalueSimpleActCtx *fklCreateVMvalueSimpleActCtx1(const FklCgCtx *cg_ctx,
         FklVMvalue *action_ast);
 
+FKL_API
 FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
         FklVMvalueCgRmacroProd *prod);
 
+FKL_API
 FklVMvalueCustomActCtx *fklCreateVMvalueCustomActCtx(FklVM *vm,
         size_t actual_len);
 
+FKL_API
 int fklIsVMvalueCustomActCtx(const FklVMvalue *v);
 
 static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
@@ -965,12 +1066,14 @@ static FKL_ALWAYS_INLINE FklVMvalueCustomActCtx *fklVMvalueCustomActCtx(
     return (FklVMvalueCustomActCtx *)v;
 }
 
+FKL_API
 FklVMvalueCgRmacro *fklCgParseReaderMacroDefine(FklCgCtx *ctx,
         FklCgActVector *actions,
         FklVMvalue *rest,
         FklVMvalueCgInfo *info,
         FklVMvalueCgMacroScope *ms);
 
+FKL_API
 int fklIsVMvalueSimpleActCtx(const FklVMvalue *v);
 
 static FKL_ALWAYS_INLINE FklVMvalueSimpleActCtx *fklVMvalueSimpleActCtx(

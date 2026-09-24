@@ -265,7 +265,10 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 #define FKL_VM_VALUE_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMvalue, data)
 #define FKL_VM_UDATA_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMud, data)
 
+FKL_API
 void fklCallObj(FklVM *exe, FklVMvalue *);
+
+FKL_API
 void fklTailCallObj(FklVM *exe, FklVMvalue *);
 
 typedef struct {
@@ -279,7 +282,10 @@ typedef struct {
     FklVMvalue *v;
 } FklVMcallResult;
 
+FKL_API
 void fklCloseVMvalueVarRef(FklVMvalue *ref);
+
+FKL_API
 int fklIsClosedVMvalueVarRef(FklVMvalue *ref);
 
 #define FKL_VM_LIB_NONE (0)
@@ -401,7 +407,7 @@ typedef struct FklVM {
     struct FklVMinterruptHandleList *int_list;
 } FklVM;
 
-static inline uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
+static FKL_ALWAYS_INLINE uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
     return fklHash64Shift(FKL_TYPE_CAST(uintptr_t, key));
 }
 
@@ -497,7 +503,10 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
     FklVMudMetaTable mt;
 });
 
+FKL_API
 void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
+
+FKL_API
 void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
 
 #ifdef FKL_USING_WIN32
@@ -766,17 +775,18 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueObarray, {
     FklStrValueHashMap map;
 });
 
-void fklPopVMframe(FklVM *);
-void fklPopVMframe2(FklVM *, FklVMframe *const bottom_frame);
+FKL_API void fklPopVMframe(FklVM *);
+FKL_API void fklPopVMframe2(FklVM *, FklVMframe *const bottom_frame);
 
-int fklRunVM(FklVM *exe, FklVMframe *const exit_frame);
+FKL_API int fklRunVM(FklVM *exe, FklVMframe *const exit_frame);
 
 // same as fklRunVM, but in single thread
-int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame);
+FKL_API int fklRunVM2(FklVM *exe, FklVMframe *const exit_frame);
 
 typedef int (*FklRunVMcb)(FklVM *exe, FklVMframe *const exit_frame);
 typedef void (*FklVMcallbackValueCreator)(FklVM *exe, void *arg);
 
+FKL_API
 FklVMcallResult fklVMcall(FklVM *exe,
         FklVMrecoverArgs *re,
         FklVMvalue *proc,
@@ -784,8 +794,10 @@ FklVMcallResult fklVMcall(FklVM *exe,
         FklVMvalue *values[]);
 
 // 类似fklVMcall，但是被调用函数和参数已经入栈
+FKL_API
 FklVMcallResult fklVMcall0(FklRunVMcb, FklVM *exe, FklVMrecoverArgs *re);
 
+FKL_API
 FklVMcallResult fklVMcall2(FklRunVMcb,
         FklVM *exe,
         FklVMrecoverArgs *re,
@@ -793,6 +805,7 @@ FklVMcallResult fklVMcall2(FklRunVMcb,
         size_t count,
         FklVMvalue *values[]);
 
+FKL_API
 FklVMcallResult fklVMcall3(FklRunVMcb,
         FklVM *exe,
         FklVMrecoverArgs *re,
@@ -800,39 +813,51 @@ FklVMcallResult fklVMcall3(FklRunVMcb,
         FklVMcallbackValueCreator creator,
         void *args);
 
-void fklVMsetRecover(FklVM *exe, FklVMrecoverArgs *args);
-void fklVMrecover(FklVM *exe, const FklVMrecoverArgs *args);
+FKL_API void fklVMsetRecover(FklVM *exe, FklVMrecoverArgs *args);
+FKL_API void fklVMrecover(FklVM *exe, const FklVMrecoverArgs *args);
 
-int fklRunVMidleLoop(FklVM *volatile);
+FKL_API int fklRunVMidleLoop(FklVM *volatile);
+
+FKL_API
 void fklVMatExit(FklVM *vm,
         FklVMatExitFunc func,
         FklVMatExitMarkFunc mark,
         void (*finalizer)(void *),
         void *arg);
-void fklVMidleLoop(FklVMgc *gc);
 
+FKL_API void fklVMidleLoop(FklVMgc *gc);
+
+FKL_API
 FklVMinterruptResult fklVMinterrupt(FklVM *, FklVMvalue *v, FklVMvalue **pv);
+
+FKL_API
 void fklDestroyVMinterruptHandlerList(struct FklVMinterruptHandleList *l);
+
+FKL_API
 void fklVMpushInterruptHandler(FklVMgc *,
         FklVMinterruptHandler,
         FklVMextraMarkFunc,
         void (*finalizer)(FklVMextraMarkArgs *),
         FklVMextraMarkArgs *);
+
+FKL_API
 void fklVMpushInterruptHandlerLocal(FklVM *,
         FklVMinterruptHandler,
         FklVMextraMarkFunc,
         void (*finalizer)(FklVMextraMarkArgs *),
         FklVMextraMarkArgs *);
 
+FKL_API
 void fklVMregisterExtraMarkFunc(FklVMgc *,
         FklVMextraMarkArgs *,
         FklVMextraMarkFunc,
         void (*finalizer)(FklVMextraMarkArgs *));
 
-void fklVMunregisterExtraMarkFunc(FklVMgc *, FklVMextraMarkArgs *);
+FKL_API void fklVMunregisterExtraMarkFunc(FklVMgc *, FklVMextraMarkArgs *);
 
-void fklVMclearExtraMarkFunc(FklVMgc *gc);
+FKL_API void fklVMclearExtraMarkFunc(FklVMgc *gc);
 
+FKL_API
 void fklVMexecuteInstruction(FklVM *exe,
         FklOpcode op,
         const FklIns *ins,
@@ -840,7 +865,7 @@ void fklVMexecuteInstruction(FklVM *exe,
 
 // check and gc in single thread
 
-void fklVMgcCheck(FklVM *exe, int forced);
+FKL_API void fklVMgcCheck(FklVM *exe, int forced);
 
 static FKL_ALWAYS_INLINE void fklVMgcStateSet(FklVMgc *gc, FklGCstate state) {
     atomic_store(&gc->running, state);
@@ -867,29 +892,32 @@ static FKL_ALWAYS_INLINE void fklVMgcCheckPoint(FklVM *exe, int forced) {
     uv_mutex_lock(&exe->lock);
 }
 
-void fklVMthreadStart(FklVM *, FklVMqueue *q);
+FKL_API void fklVMthreadStart(FklVM *, FklVMqueue *q);
 
+FKL_API
 FklVM *fklCreateVMwithByteCode(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc);
 
+FKL_API
 FklVM *fklCreateVMwithByteCode2(FklVMvalue *,
         FklVMgc *gc,
         FklVMvalueProto *proto,
         uint64_t spc);
 
-FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
+FKL_API FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc);
 
 FklVM *fklCreateThreadVM(FklVMvalue *,
         uint32_t arg_num,
         FklVMvalue *const *args,
         FklVM *prev,
         FklVM *next);
-void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc);
 
-void fklVMstackShrink(FklVM *);
-int fklCreateCreateThread(FklVM *);
+FKL_API void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc);
+
+FKL_API void fklVMstackShrink(FklVM *);
+FKL_API int fklCreateCreateThread(FklVM *);
 
 static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
     uint32_t l = (llast / FKL_VM_STACK_INC_NUM) - 1;
@@ -905,83 +933,99 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
         return 0;
 }
 
-FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
+FKL_API FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
-void fklInitVMgc(FklVMgc *);
-FklVMgc *fklCreateVMgc(void);
-FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
+FKL_API void fklInitVMgc(FklVMgc *);
+FKL_API FklVMgc *fklCreateVMgc(void);
+FKL_API FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
 
+FKL_API
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
+
+FKL_API
 FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *,
         uint32_t llast,
         uint32_t *pllast);
 
-FklVMvalue *fklVMaddSymbol(FklVM *, const FklString *str);
-FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
-FklVMvalue *fklVMaddSymbolCharBuf(FklVM *, const char *str, size_t);
-FklVMvalue *fklVMaddSymbolValue(FklVM *, FklVMvalue *s);
+FKL_API FklVMvalue *fklVMaddSymbol(FklVM *, const FklString *str);
+FKL_API FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
+FKL_API FklVMvalue *fklVMaddSymbolCharBuf(FklVM *, const char *str, size_t);
+FKL_API FklVMvalue *fklVMaddSymbolValue(FklVM *, FklVMvalue *s);
 
-FklVMvalue *fklVMaddKeyword(FklVM *, const FklString *str);
-FklVMvalue *fklVMaddKeywordCstr(FklVM *, const char *str);
-FklVMvalue *fklVMaddKeywordCharBuf(FklVM *, const char *str, size_t);
+FKL_API FklVMvalue *fklVMaddKeyword(FklVM *, const FklString *str);
+FKL_API FklVMvalue *fklVMaddKeywordCstr(FklVM *, const char *str);
+FKL_API FklVMvalue *fklVMaddKeywordCharBuf(FklVM *, const char *str, size_t);
 
-int fklVMhasSymbol(FklVM *v, const FklString *str);
-int fklVMhasSymbol1(FklVM *v, const char *str);
-int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
+FKL_API int fklVMhasSymbol(FklVM *v, const FklString *str);
+FKL_API int fklVMhasSymbol1(FklVM *v, const char *str);
+FKL_API int fklVMhasSymbol2(FklVM *v, const char *str, size_t);
 
-void fklInitValueTable(FklValueTable *t);
-void fklUninitValueTable(FklValueTable *t);
-FklValueId fklValueTableAdd(FklValueTable *t, const FklVMvalue *v);
+FKL_API void fklInitValueTable(FklValueTable *t);
+FKL_API void fklUninitValueTable(FklValueTable *t);
+FKL_API FklValueId fklValueTableAdd(FklValueTable *t, const FklVMvalue *v);
+
+FKL_API
 FklValueId fklValueTableGet(const FklValueTable *t, const FklVMvalue *v);
-void fklValueTableClear(FklValueTable *t);
+
+FKL_API void fklValueTableClear(FklValueTable *t);
+
+FKL_API
 void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v);
 
+FKL_API
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
-void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
-void fklVMgcMarkAllRootToGray(FklVM *curVM);
-void fklVMgcUpdateWeakRefs(FklVMgc *gc);
-int fklVMgcPropagate(FklVMgc *gc);
-void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw);
-void fklVMgcSweep(FklVMgc *gc, FklVMvalue *);
-void fklVMgcUpdateThreshold(FklVMgc *);
 
-void fklVMgcMarkCodeObject(FklVMgc *, const FklByteCodelnt *bc);
+FKL_API void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
+FKL_API void fklVMgcMarkAllRootToGray(FklVM *curVM);
+FKL_API void fklVMgcUpdateWeakRefs(FklVMgc *gc);
+FKL_API int fklVMgcPropagate(FklVMgc *gc);
+FKL_API void fklVMgcCollect(FklVMgc *gc, FklVMvalue **pw);
+FKL_API void fklVMgcSweep(FklVMgc *gc, FklVMvalue *);
+FKL_API void fklVMgcUpdateThreshold(FklVMgc *);
+
+FKL_API void fklVMgcMarkCodeObject(FklVMgc *, const FklByteCodelnt *bc);
 
 typedef void (*FklVMgrammerProdMarker)(FklVMgc *gc, void *ctx);
 #define FKL_VM_GRAMMER_CTX_MARKER_NONE ((FklVMgrammerProdMarker)UINTPTR_MAX)
 
+FKL_API
 void fklVMgcMarkGrammerProd(FklVMgc *gc,
         const FklGrammerProduction *prod,
         FklVMgrammerProdMarker ctx_atomic);
 
+FKL_API
 void fklVMgcMarkGrammer(FklVMgc *,
         const FklGrammer *g,
         FklVMgrammerProdMarker ctx_atomic);
 
-void fklUninitVMgc(FklVMgc *);
-void fklDestroyVMgc(FklVMgc *);
+FKL_API void fklUninitVMgc(FklVMgc *);
+FKL_API void fklDestroyVMgc(FklVMgc *);
 
-void fklDestroyAllVMs(FklVM *cur);
-void fklDeleteCallChain(FklVM *);
+FKL_API void fklDestroyAllVMs(FklVM *cur);
+FKL_API void fklDeleteCallChain(FklVM *);
 
-FklGCstate fklVMgcStateGet(FklVMgc *);
+FKL_API FklGCstate fklVMgcStateGet(FklVMgc *);
 
+FKL_API
 void fklDBG_printVMstack(FklVM *,
         uint32_t c,
         FklCodeBuilder *,
         int,
         FklVM *exe);
+
+FKL_API
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *, FklVM *exe);
 
-FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *, char mode);
+FKL_API FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *, char mode);
 
-void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVM *vm);
-void fklPrin1VMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
+FKL_API void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVM *vm);
+FKL_API void fklPrin1VMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
 
-void fklPrincVMvalue(FklVMvalue *, FILE *, FklVM *vm);
-void fklPrincVMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
+FKL_API void fklPrincVMvalue(FklVMvalue *, FILE *, FklVM *vm);
+FKL_API void fklPrincVMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
 
+FKL_API
 FklBuiltinErrorType fklVMformat(FklVM *,
         FklCodeBuilder *buf,
         const char *fmt,
@@ -989,6 +1033,7 @@ FklBuiltinErrorType fklVMformat(FklVM *,
         size_t value_count,
         FklVMvalue *const values[]);
 
+FKL_API
 FklBuiltinErrorType fklVMformat2(FklVM *,
         FklCodeBuilder *buf,
         const FklString *fmt,
@@ -996,6 +1041,7 @@ FklBuiltinErrorType fklVMformat2(FklVM *,
         size_t value_count,
         FklVMvalue *const values[]);
 
+FKL_API
 FklBuiltinErrorType fklVMformat3(FklVM *,
         FklCodeBuilder *result,
         size_t fmt_len,
@@ -1004,43 +1050,58 @@ FklBuiltinErrorType fklVMformat3(FklVM *,
         size_t value_count,
         FklVMvalue *const values[]);
 
+FKL_API
 FklVMvalue *fklVMformatToString(FklVM *exe,
         const char *fmt,
         size_t len,
         FklVMvalue *const base[]);
 
-FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
+FKL_API FklVMvalue *fklProcessVMnumAddk(FklVM *, FklVMvalue *, int8_t);
 
+FKL_API
 int fklProcessVMnumAdd(FklVMvalue *cur,
         int64_t *pr64,
         double *pf64,
         FklBigInt *bi);
+
+FKL_API
 int fklProcessVMnumMul(FklVMvalue *cur,
         int64_t *pr64,
         double *pf64,
         FklBigInt *bi);
+
+FKL_API
 int fklProcessVMintMul(FklVMvalue *cur, int64_t *pr64, FklBigInt *bi);
 
-FklVMvalue *fklProcessVMnumNeg(FklVM *exe, FklVMvalue *prev);
-FklVMvalue *fklProcessVMnumRec(FklVM *exe, FklVMvalue *prev);
+FKL_API FklVMvalue *fklProcessVMnumNeg(FklVM *exe, FklVMvalue *prev);
+FKL_API FklVMvalue *fklProcessVMnumRec(FklVM *exe, FklVMvalue *prev);
 
+FKL_API
 FklVMvalue *fklProcessVMnumMod(FklVM *, FklVMvalue *fir, FklVMvalue *sec);
 
+FKL_API
 FklVMvalue *
 fklProcessVMnumAddResult(FklVM *, int64_t r64, double rd, FklBigInt *bi);
+
+FKL_API
 FklVMvalue *
 fklProcessVMnumMulResult(FklVM *, int64_t r64, double rd, FklBigInt *bi);
+
+FKL_API
 FklVMvalue *fklProcessVMnumSubResult(FklVM *,
         FklVMvalue *,
         int64_t r64,
         double rd,
         FklBigInt *bi);
+
+FKL_API
 FklVMvalue *fklProcessVMnumDivResult(FklVM *,
         FklVMvalue *,
         int64_t r64,
         double rd,
         FklBigInt *bi);
 
+FKL_API
 FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
         FklVMvalue *prev,
         int64_t r64,
@@ -1113,64 +1174,85 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)
 
-int fklIsList(const FklVMvalue *p);
-int fklIsList2(const FklVMvalue *p, size_t *len);
-uint64_t fklVMintToHashv(const FklVMvalue *p);
-double fklVMgetDouble(const FklVMvalue *p);
+FKL_API int fklIsList(const FklVMvalue *p);
+FKL_API int fklIsList2(const FklVMvalue *p, size_t *len);
+FKL_API uint64_t fklVMintToHashv(const FklVMvalue *p);
+FKL_API double fklVMgetDouble(const FklVMvalue *p);
 
-int fklHasCircleRef(const FklVMvalue *first_value);
+FKL_API int fklHasCircleRef(const FklVMvalue *first_value);
+
+FKL_API
 int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
         FklVMvalueLnt *lnt,
         uint64_t line);
 
+FKL_API
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
 
-void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
-void fklPrintIntruptInfo(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+FKL_API void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+FKL_API void fklPrintIntruptInfo(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+
+FKL_API
 void fklPrintFrame(const FklVMframe *cur, FklVM *exe, FklCodeBuilder *fp);
-void fklPrintBacktrace(FklVM *, FklCodeBuilder *fp);
 
-void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
+FKL_API void fklPrintBacktrace(FklVM *, FklCodeBuilder *fp);
 
-FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *);
+FKL_API void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
+FKL_API FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *);
+
+FKL_API
 void fklInitClosedVMvalueVarRef(FklVMvalueVarRef *ref, FklVMvalue *v);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx);
+
+FKL_API
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 
-void fklDestroyVMframe(FklVMframe *, FklVM *exe);
-FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe);
+FKL_API void fklDestroyVMframe(FklVMframe *, FklVM *exe);
+FKL_API FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe);
 
-const char *fklGetVMhashTablePrefix(const FklVMvalueHash *);
+FKL_API const char *fklGetVMhashTablePrefix(const FklVMvalueHash *);
+
+FKL_API
 int fklVMhashTableDel(FklVMvalueHash *ht,
         FklVMvalue *key,
         FklVMvalue **pv,
         FklVMvalue **pk);
+
+FKL_API
 FklValueHashMapElm *
 fklVMhashTableSet(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
+
+FKL_API
 FklValueHashMapElm *
 fklVMhashTableRef1(FklVMvalueHash *ht, FklVMvalue *key, FklVMvalue *v);
+
+FKL_API
 FklValueHashMapElm *fklVMhashTableGet(const FklVMvalueHash *, FklVMvalue *key);
 
-void fklAtomicVMhashTable(const FklVMvalue *pht, FklVMgc *gc);
-void fklAtomicVMuserdata(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMpair(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMproc(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMvec(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMbox(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMcproc(const FklVMvalue *, FklVMgc *);
-void fklAtomicVMtype(const FklVMvalue *ud, FklVMgc *gc);
+FKL_API void fklAtomicVMhashTable(const FklVMvalue *pht, FklVMgc *gc);
+FKL_API void fklAtomicVMuserdata(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMpair(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMproc(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMvec(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMbox(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMcproc(const FklVMvalue *, FklVMgc *);
+FKL_API void fklAtomicVMtype(const FklVMvalue *ud, FklVMgc *gc);
 
-FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *v);
-FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *);
-FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **);
-FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *);
+FKL_API FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *v);
+FKL_API FklVMvalue *fklCopyVMlist(FklVM *vm, const FklVMvalue *);
+FKL_API FklVMvalue **fklCopyVMlist1(FklVM *vm, FklVMvalue **);
+FKL_API FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *);
+
+FKL_API
 FklVMvalue *fklAppendVMvalue(FklVM *vm,
         const FklVMvalue *v,
         uint32_t argc,
         FklVMvalue *const *base);
 
+FKL_API
 FklVMvalue *fklAppendVMvalue1(FklVM *vm,
         FklVMvalue *v,
         uint32_t argc,
@@ -1178,32 +1260,40 @@ FklVMvalue *fklAppendVMvalue1(FklVM *vm,
 
 // value creator
 
+FKL_API
 FklVMvalue *fklCreateVMvaluePair(FklVM *, FklVMvalue *car, FklVMvalue *cdr);
-FklVMvalue *fklCreateVMvaluePair1(FklVM *, FklVMvalue *car);
-FklVMvalue *fklCreateVMvaluePairNil(FklVM *);
 
-FklVMvalue *fklCreateVMvalueStr(FklVM *, const FklString *str);
-FklVMvalue *fklCreateVMvalueStr2(FklVM *, size_t size, const char *str);
+FKL_API FklVMvalue *fklCreateVMvaluePair1(FklVM *, FklVMvalue *car);
+FKL_API FklVMvalue *fklCreateVMvaluePairNil(FklVM *);
+
+FKL_API FklVMvalue *fklCreateVMvalueStr(FklVM *, const FklString *str);
+FKL_API FklVMvalue *fklCreateVMvalueStr2(FklVM *, size_t size, const char *str);
+
 static inline FklVMvalue *fklCreateVMvalueStr1(FklVM *exe, const char *str) {
     return fklCreateVMvalueStr2(exe, strlen(str), str);
 }
 
-FklVMvalue *fklCreateVMvalueSym(FklVM *, const FklString *str);
+FKL_API FklVMvalue *fklCreateVMvalueSym(FklVM *, const FklString *str);
+FKL_API
 FklVMvalue *fklCreateVMvalueSym2(FklVM *, size_t size, const char *str);
+
 // TODO: rename it from FromCstr to Cstr
 static inline FklVMvalue *fklCreateVMvalueSymFromCstr(FklVM *exe,
         const char *str) {
     return fklCreateVMvalueSym2(exe, strlen(str), str);
 }
 
+FKL_API
 FklVMvalue *fklCreateVMvalueKeyword(FklVM *, size_t size, const char *str);
 
-FklVMvalue *fklCreateVMvalueBytes(FklVM *, const FklBytes *bytes);
+FKL_API FklVMvalue *fklCreateVMvalueBytes(FklVM *, const FklBytes *bytes);
+
+FKL_API
 FklVMvalue *fklCreateVMvalueBytes2(FklVM *, size_t size, const uint8_t *);
 
-FklVMvalue *fklCreateVMvalueVec(FklVM *, size_t);
-FklVMvalue *fklCreateVMvalueVec2(FklVM *, size_t, FklVMvalue *const *);
-FklVMvalue *fklCreateVMvalueVecExt(FklVM *, size_t, ...);
+FKL_API FklVMvalue *fklCreateVMvalueVec(FklVM *, size_t);
+FKL_API FklVMvalue *fklCreateVMvalueVec2(FklVM *, size_t, FklVMvalue *const *);
+FKL_API FklVMvalue *fklCreateVMvalueVecExt(FklVM *, size_t, ...);
 
 #define FKL_VM_F64_STATIC_INIT(F64)                                            \
     ((FklVMvalueF64){                                                          \
@@ -1214,29 +1304,34 @@ FklVMvalue *fklCreateVMvalueVecExt(FklVM *, size_t, ...);
         .f64 = (F64),                                                          \
     })
 
-FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
+FKL_API FklVMvalue *fklCreateVMvalueF64(FklVM *, double f64);
 
+FKL_API
 uint32_t fklVMfetchVarRef(FklVM *exe, FklVMvalueProc *proc, FklVMframe *f);
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueProc(FklVM *, FklVMvalue *codeObj, FklVMvalueProto *pt);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueProc2(FklVM *,
         const FklIns *spc,
         uint64_t cpc,
         FklVMvalue *codeObj,
         FklVMvalueProto *pt);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueProc3(FklVM *,
         FklVMframe *f,
         size_t,
         FklVMvalueProto *child_proto);
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueDll(FklVM *vm, FklVMvalue *realpath, FklVMvalue **error_msg);
 
-int fklIsVMvalueDll(const FklVMvalue *v);
-void *fklGetAddress(const char *funcname, uv_lib_t *dll);
+FKL_API int fklIsVMvalueDll(const FklVMvalue *v);
+FKL_API void *fklGetAddress(const char *funcname, uv_lib_t *dll);
 
 #define FKL_VM_CPROC_STATIC_INIT(NAME, FUNC)                                   \
     ((FklVMvalueCproc){                                                        \
@@ -1249,24 +1344,26 @@ void *fklGetAddress(const char *funcname, uv_lib_t *dll);
         .dll = NULL,                                                           \
     })
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueCproc(FklVM *, FklVMcFunc, FklVMvalue *dll, const char *name);
 
+FKL_API
 void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build);
 
-void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
-FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
-int fklIsVMvalueFp(const FklVMvalue *v);
+FKL_API void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
+FKL_API FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
+FKL_API int fklIsVMvalueFp(const FklVMvalue *v);
 
-FklVMvalue *fklCreateVMvalueHash(FklVM *, FklHashTableEqType);
+FKL_API FklVMvalue *fklCreateVMvalueHash(FklVM *, FklHashTableEqType);
 
-FklVMvalue *fklCreateVMvalueHashEq(FklVM *);
+FKL_API FklVMvalue *fklCreateVMvalueHashEq(FklVM *);
 
-FklVMvalue *fklCreateVMvalueHashEqv(FklVM *);
+FKL_API FklVMvalue *fklCreateVMvalueHashEqv(FklVM *);
 
-FklVMvalue *fklCreateVMvalueHashEqual(FklVM *);
+FKL_API FklVMvalue *fklCreateVMvalueHashEqual(FklVM *);
 
-int fklIsVMvalueWeakHashEq(const FklVMvalue *v);
+FKL_API int fklIsVMvalueWeakHashEq(const FklVMvalue *v);
 
 static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *fklVMvalueWeakHashEq(
         const FklVMvalue *v) {
@@ -1274,82 +1371,111 @@ static FKL_ALWAYS_INLINE FklVMvalueWeakHashEq *fklVMvalueWeakHashEq(
     return FKL_TYPE_CAST(FklVMvalueWeakHashEq *, v);
 }
 
-FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *exe);
+FKL_API FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq(FklVM *exe);
+
+FKL_API
 FklVMvalueWeakHashEq *fklCreateVMvalueWeakHashEq2(FklVM *exe,
         FklWeakMapMode mode);
+
+FKL_API
 FklVMvalue **fklVMvalueWeakHashEqGet(FklVMvalueWeakHashEq *h, FklVMvalue *k);
 
+FKL_API
 FklValueEqHashMapElm *fklVMvalueWeakHashEqInsert(FklVMvalueWeakHashEq *h,
         FklVMvalue *k);
 
-FklVMvalue *fklCreateVMvalueChanl(FklVM *, uint32_t);
-int fklIsVMvalueChanl(const FklVMvalue *v);
+FKL_API FklVMvalue *fklCreateVMvalueChanl(FklVM *, uint32_t);
+FKL_API int fklIsVMvalueChanl(const FklVMvalue *v);
 
-FklVMvalue *fklCreateVMvalueBox(FklVM *, FklVMvalue *);
+FKL_API FklVMvalue *fklCreateVMvalueBox(FklVM *, FklVMvalue *);
 
-FklVMvalue *fklCreateVMvalueBoxNil(FklVM *);
+FKL_API FklVMvalue *fklCreateVMvalueBoxNil(FklVM *);
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueError(FklVM *, FklVMvalue *type, FklVMvalue *message);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueError2(FklVM *exe,
         FklVMvalue *type,
         const char *fmt,
         size_t count,
         FklVMvalue *values[]);
 
-int fklIsVMvalueError(const FklVMvalue *v);
+FKL_API int fklIsVMvalueError(const FklVMvalue *v);
 
-FklVMvalue *fklCreateVMvalueBigInt(FklVM *, size_t num);
+FKL_API FklVMvalue *fklCreateVMvalueBigInt(FklVM *, size_t num);
 
-FklVMvalue *fklCreateVMvalueBigInt2(FklVM *, const FklBigInt *);
+FKL_API FklVMvalue *fklCreateVMvalueBigInt2(FklVM *, const FklBigInt *);
+
+FKL_API
 FklVMvalue *fklCreateVMvalueBigInt3(FklVM *, const FklBigInt *, size_t size);
+
+FKL_API
 FklVMvalue *
 fklVMbigIntAdd(FklVM *, const FklVMvalueBigInt *a, const FklVMvalueBigInt *b);
-FklVMvalue *fklVMbigIntAddI(FklVM *, const FklVMvalueBigInt *, int64_t);
+
+FKL_API FklVMvalue *fklVMbigIntAddI(FklVM *, const FklVMvalueBigInt *, int64_t);
+
+FKL_API
 FklVMvalue *
 fklVMbigIntSub(FklVM *, const FklVMvalueBigInt *a, const FklVMvalueBigInt *b);
-FklVMvalue *fklVMbigIntSubI(FklVM *, const FklVMvalueBigInt *, int64_t);
 
+FKL_API FklVMvalue *fklVMbigIntSubI(FklVM *, const FklVMvalueBigInt *, int64_t);
+
+FKL_API
 FklVMvalue *
 fklCreateVMvalueBigIntWithString(FklVM *exe, const FklString *str, int base);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueBigIntWithDecString(FklVM *exe,
         const FklString *str);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueBigIntWithOctString(FklVM *exe,
         const FklString *str);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueBigIntWithHexString(FklVM *exe,
         const FklString *str);
 
-FklVMvalue *fklCreateVMvalueBigIntWithI64(FklVM *, int64_t);
+FKL_API FklVMvalue *fklCreateVMvalueBigIntWithI64(FklVM *, int64_t);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueBigIntWithU64(FklVM *, uint64_t);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueBigIntWithF64(FklVM *, double);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueUd(FklVM *, const FklVMvalueType *t);
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueUd2(FklVM *, const FklVMvalueType *t, size_t extra_size);
 
+FKL_API
 FklVMvalue *
 fklCreateVMvalueUdSized(FklVM *, const FklVMvalueType *t, size_t actual_size);
 
+FKL_API
 FklVMvalue *fklCreateVMvalueCodeObj1(FklVM *);
+
+FKL_API
 FklVMvalue *fklCreateVMvalueCodeObjExt(FklVM *exe,
         FklIns ins,
         FklVMvalue *fid,
         size_t line,
         uint32_t scope);
 
-int fklIsVMvalueCodeObj(const FklVMvalue *v);
+FKL_API int fklIsVMvalueCodeObj(const FklVMvalue *v);
 
-FklVMvalue *fklVMvalueEof(void);
+FKL_API FklVMvalue *fklVMvalueEof(void);
+
 #define FKL_VM_EOF (fklVMvalueEof())
 
-FklVMvalue *fklVMvalueUndefined(void);
+FKL_API FklVMvalue *fklVMvalueUndefined(void);
+
 #define FKL_VM_UNDEFINED (fklVMvalueUndefined())
 
 // value getters
@@ -1513,14 +1639,16 @@ static FKL_ALWAYS_INLINE FklByteCodelnt *FKL_VM_CO(const FklVMvalue *V) {
 
 // vmparser
 
+FKL_API
 void fklVMvaluePushState0ToStack(FklParseStateVector *stateStack);
 
+FKL_API
 void *
 fklVMvalueTerminalCreate(const char *s, size_t len, size_t line, void *ctx);
 
-void fklAddToGC(FklVMvalue *, FklVM *);
-FklVMvalue *fklCreateTrueValue(void);
-FklVMvalue *fklCreateNilValue(void);
+FKL_API void fklAddToGC(FklVMvalue *, FklVM *);
+FKL_API FklVMvalue *fklCreateTrueValue(void);
+FKL_API FklVMvalue *fklCreateNilValue(void);
 
 // return the callee if I is -1
 #define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
@@ -1544,7 +1672,7 @@ static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
         }
 }
 
-void fklVMstackReserve(FklVM *exe, uint32_t s);
+FKL_API void fklVMstackReserve(FklVM *exe, uint32_t s);
 
 static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (s->tp >= s->last)
@@ -1565,15 +1693,16 @@ static FKL_ALWAYS_INLINE FklVMvalue **fklGetStackSlot(FklVM *exe, uint32_t i) {
     return &exe->base[exe->tp - i];
 }
 
-int fklVMvalueEqual(const FklVMvalue *, const FklVMvalue *);
-int fklVMvalueCmp(FklVMvalue *, FklVMvalue *, int *);
+FKL_API int fklVMvalueEqual(const FklVMvalue *, const FklVMvalue *);
+FKL_API int fklVMvalueCmp(FklVMvalue *, FklVMvalue *, int *);
 
+FKL_API
 FklVMfpRW fklGetVMfpRwFromCstr(const char *mode);
 
-int fklVMfpRewind(FklVMvalueFp *vfp, FklStrBuf *, size_t j);
-int fklVMfpEof(FklVMvalueFp *);
-int fklVMfpFileno(FklVMvalueFp *);
-int fklVMfpClose(FklVMvalueFp *);
+FKL_API int fklVMfpRewind(FklVMvalueFp *vfp, FklStrBuf *, size_t j);
+FKL_API int fklVMfpEof(FklVMvalueFp *);
+FKL_API int fklVMfpFileno(FklVMvalueFp *);
+FKL_API int fklVMfpClose(FklVMvalueFp *);
 
 typedef FklVMvalue **(*FklCgDllLibInitExportCb)(FklVM *vm, uint32_t *num);
 
@@ -1585,6 +1714,7 @@ typedef void (*FklDllInitFunc)(FklVMvalueDll *dll, FklVM *exe);
 typedef void (*FklDllUninitFunc)(void);
 typedef const FklDllStateDesc *(*FklDllStateDescGet)(void);
 
+FKL_API
 FklDllUninitFunc fklVMdllGetUninitCb(FklVMvalueDll *dll);
 
 #define FKL_CHECK_IMPORT_DLL_INIT_FUNC()                                       \
@@ -1603,18 +1733,20 @@ FklDllUninitFunc fklVMdllGetUninitCb(FklVMvalueDll *dll);
             _Generic(&_fklDllStateDescGet, FklDllStateDescGet: 1, default: 0), \
             "invalid dll desc get func")
 
-uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);
-uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch);
-uint64_t fklVMchanlMessageNum(FklVMvalueChanl *ch);
-int fklVMchanlFull(FklVMvalueChanl *ch);
-int fklVMchanlEmpty(FklVMvalueChanl *ch);
+FKL_API uint64_t fklVMchanlRecvqLen(FklVMvalueChanl *ch);
+FKL_API uint64_t fklVMchanlSendqLen(FklVMvalueChanl *ch);
+FKL_API uint64_t fklVMchanlMessageNum(FklVMvalueChanl *ch);
+FKL_API int fklVMchanlFull(FklVMvalueChanl *ch);
+FKL_API int fklVMchanlEmpty(FklVMvalueChanl *ch);
 
-void fklVMsleep(FklVM *, uint64_t ms);
+FKL_API void fklVMsleep(FklVM *, uint64_t ms);
 
-void fklVMread(FklVM *, FILE *fp, FklStrBuf *buf, uint64_t len, int d);
+FKL_API void fklVMread(FklVM *, FILE *fp, FklStrBuf *buf, uint64_t len, int d);
 
-void fklVMacquireWq(FklVMgc *);
-void fklVMreleaseWq(FklVMgc *);
+FKL_API void fklVMacquireWq(FklVMgc *);
+FKL_API void fklVMreleaseWq(FklVMgc *);
+
+FKL_API
 void fklQueueWorkInIdleThread(FklVM *vm,
         void (*cb)(FklVM *, void *),
         void *arg);
@@ -1633,8 +1765,8 @@ static FKL_ALWAYS_INLINE void fklVMyield(FklVM *exe) {
     uv_mutex_lock(&exe->lock);
 }
 
-void fklUnlockThread(FklVM *);
-void fklLockThread(FklVM *);
+FKL_API void fklUnlockThread(FklVM *);
+FKL_API void fklLockThread(FklVM *);
 
 #define FKL_VM_LOCK_BLOCK(exe, flag)                                           \
     for (uint8_t flag = (fklLockThread(exe), 0); flag < 1;                     \
@@ -1644,43 +1776,48 @@ void fklLockThread(FklVM *);
     for (uint8_t flag = (fklUnlockThread(exe), 0); flag < 1;                   \
             fklLockThread(exe), ++flag)
 
-void fklSetThreadReadyToExit(FklVM *);
-void fklVMstopTheWorld(FklVMgc *);
-void fklVMcontinueTheWorld(FklVMgc *);
+FKL_API void fklSetThreadReadyToExit(FklVM *);
+FKL_API void fklVMstopTheWorld(FklVMgc *);
+FKL_API void fklVMcontinueTheWorld(FklVMgc *);
 
-void fklChanlSend(FklVMvalueChanl *, FklVMvalue *msg, FklVM *);
-void fklChanlRecv(FklVMvalueChanl *, uint32_t, FklVM *);
-int fklChanlRecvOk(FklVMvalueChanl *, FklVMvalue **);
+FKL_API void fklChanlSend(FklVMvalueChanl *, FklVMvalue *msg, FklVM *);
+FKL_API void fklChanlRecv(FklVMvalueChanl *, uint32_t, FklVM *);
+FKL_API int fklChanlRecvOk(FklVMvalueChanl *, FklVMvalue **);
 
-int fklWriteVMvalue(const FklVMvalue *v, FklCodeBuilder *fp);
-int fklVMvalueLength(const FklVMvalue *v, size_t *len);
+FKL_API int fklWriteVMvalue(const FklVMvalue *v, FklCodeBuilder *fp);
+FKL_API int fklVMvalueLength(const FklVMvalue *v, size_t *len);
 
-int fklIsCallable(FklVMvalue *);
+FKL_API int fklIsCallable(FklVMvalue *);
 
-void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv);
+FKL_API void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv);
 
-int fklIsVMnumberLt0(const FklVMvalue *);
+FKL_API int fklIsVMnumberLt0(const FklVMvalue *);
 
+FKL_API
 void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval);
 
-size_t fklVMlistLength(const FklVMvalue *);
+FKL_API size_t fklVMlistLength(const FklVMvalue *);
 
-void fklPushVMraiseErrorFrame(FklVM *exe, FklVMvalue *err);
+FKL_API void fklPushVMraiseErrorFrame(FklVM *exe, FklVMvalue *err);
 
-void fklPushVMframe(FklVMframe *, FklVM *exe);
+FKL_API void fklPushVMframe(FklVMframe *, FklVM *exe);
 
+FKL_API
 FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
         const FklVMframeContextMethodTable *t);
+
+FKL_API
 FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t);
 
-void fklVMcompoundFrameReturn(FklVM *exe);
-void fklDestroyVMframes(FklVMframe *h);
+FKL_API void fklVMcompoundFrameReturn(FklVM *exe);
+FKL_API void fklDestroyVMframes(FklVMframe *h);
 
-void fklLockVMlib(FklVMvalueLib *lib);
-void fklUnlockVMlib(FklVMvalueLib *lib);
+FKL_API void fklLockVMlib(FklVMvalueLib *lib);
+FKL_API void fklUnlockVMlib(FklVMvalueLib *lib);
 
-int fklIsVMvalueLib(const FklVMvalue *);
+FKL_API int fklIsVMvalueLib(const FklVMvalue *);
 
+FKL_API
 FklVMvalueLib *fklCreateVMvalueLib(FklVM *vm, //
         FklVMvalue *name,
         const FklVMvalueVec *names);
@@ -1695,9 +1832,11 @@ static FklVMvalue *const *fklVMvalueLibNames(const FklVMvalueLib *l) {
     return &l->values[l->count];
 }
 
+FKL_API
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklVMgc *);
 
+FKL_API
 uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
 
 noreturn static FKL_ALWAYS_INLINE void
@@ -2115,13 +2254,16 @@ fklVMintegerInRangeU(FklVMvalue *v, uint64_t from, uint64_t to) {
 #define FKL_VM_TYPE_ATTR alignas(8) static const
 #endif
 
+FKL_API
 FklVMvalueType *fklCreateVMvalueType(FklVM *,
         FklVMvalue *dll,
         const void *token,
         const FklVMudMetaTable *mt);
 
+FKL_API
 FklVMvalue *fklVMpathVecToString(FklVM *vm, FklVMvalue *path_vec);
 
+FKL_API
 FklVMvalue *fklVMpathStrToVec(FklVM *vm, const char *p);
 
 #ifdef __cplusplus

@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+FKL_API
 void fklPrintObarray(FklVM *vm,
         const FklVMvalueObarray *array,
         FklCodeBuilder *fp);
@@ -19,6 +20,7 @@ typedef struct {
     int indents;
 } FklDisArgs;
 
+FKL_API
 void fklDisassembleProc(FklVM *vm,
         const FklVMvalueProc *proc,
         FklCodeBuilder *fp,
@@ -27,6 +29,7 @@ void fklDisassembleProc(FklVM *vm,
 #define FKL_DIS_PROC(VM, PROC, BUILD, ...)                                     \
     fklDisassembleProc((VM), (PROC), (BUILD), &(FklDisArgs){ __VA_ARGS__ })
 
+FKL_API
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklVMvalueProto *proto,

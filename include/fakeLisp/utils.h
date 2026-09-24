@@ -103,8 +103,7 @@ FKL_API const char *fklSysGetEnv(const char *name);
 FKL_API int fklSysSetEnv(const char *name, const char *value, int overwrite);
 FKL_API int fklSysUnsetEnv(const char *name);
 
-FKL_ALWAYS_INLINE
-static int fklComputeDigitsCount(uint64_t len) {
+static FKL_ALWAYS_INLINE int fklComputeDigitsCount(uint64_t len) {
     if (len == 0)
         return 1;
     int sum = 0;

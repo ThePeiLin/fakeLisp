@@ -28,34 +28,48 @@ typedef int (*FklRecomputeInsImmFunc)(void *ctx,
         FklOpcodeMode *pmode,
         FklInsArg *ins_arg);
 
+FKL_API
 void fklRecomputeInsImm(FklByteCodelnt *bcl,
         void *ctx,
         FklRecomputeInsImmPredicate p,
         FklRecomputeInsImmFunc func);
 
+FKL_API
 void fklInitByteCodeBuffer(FklByteCodeBuffer *buf, size_t capacity);
+
+FKL_API
 FklByteCodeBuffer *fklCreateByteCodeBuffer(size_t capacity);
 
+FKL_API
 void fklSetByteCodeBuffer(FklByteCodeBuffer *buf, const FklByteCodelnt *);
+
+FKL_API
 void fklSetByteCodelntWithBuf(FklByteCodelnt *, const FklByteCodeBuffer *buf);
 
+FKL_API
 uint32_t fklByteCodeBufferScanAndSetBasicBlock(FklByteCodeBuffer *buf);
 
+FKL_API
 FklByteCodelnt *fklCreateByteCodelntFromBuf(const FklByteCodeBuffer *);
 
+FKL_API
 void fklByteCodeBufferPush(FklByteCodeBuffer *buf,
         const FklIns *ins,
         uint32_t line,
         uint32_t scope,
         struct FklVMvalue *fid);
 
+FKL_API
 void fklInitByteCodeBufferWith(FklByteCodeBuffer *buf, const FklByteCodelnt *);
+
+FKL_API
 FklByteCodeBuffer *fklCreateByteCodeBufferWith(const FklByteCodelnt *);
 
-void fklUninitByteCodeBuffer(FklByteCodeBuffer *buf);
-void fklDestroyByteCodeBuffer(FklByteCodeBuffer *buf);
+FKL_API void fklUninitByteCodeBuffer(FklByteCodeBuffer *buf);
 
-void fklPeepholeOptimize(FklByteCodelnt *bcl);
+FKL_API void fklDestroyByteCodeBuffer(FklByteCodeBuffer *buf);
+
+FKL_API void fklPeepholeOptimize(FklByteCodelnt *bcl);
 
 #ifdef __cplusplus
 }

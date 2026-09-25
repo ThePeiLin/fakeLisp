@@ -2,8 +2,7 @@
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code_builder.h>
-#include <fakeLisp/code_lw.h>
-#include <fakeLisp/codegen.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/dis.h>
 #include <fakeLisp/grammer.h>

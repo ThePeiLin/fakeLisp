@@ -1,9 +1,7 @@
-#include "fakeLisp/zmalloc.h"
 #include <fakeLisp/base.h>
 #include <fakeLisp/bytecode.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/code_builder.h>
-#include <fakeLisp/code_lw.h>
-#include <fakeLisp/codegen.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/pattern.h>
 #include <fakeLisp/string_table.h>
@@ -11,6 +9,7 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/value_table.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/zmalloc.h>
 
 #include <fakeLisp/ins_helper.h>
 

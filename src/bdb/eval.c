@@ -1,7 +1,7 @@
 #include "bdb.h"
 
 #include <fakeLisp/builtin.h>
-#include <fakeLisp/codegen.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/str_buf.h>
 #include <fakeLisp/vm.h>

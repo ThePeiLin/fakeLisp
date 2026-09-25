@@ -2,7 +2,7 @@
 
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
-#include <fakeLisp/codegen.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/str_buf.h>
 #include <fakeLisp/symbol.h>

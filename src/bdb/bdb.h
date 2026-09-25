@@ -1,7 +1,7 @@
 #ifndef FKL_BDB_BDB_H
 #define FKL_BDB_BDB_H
 
-#include <fakeLisp/codegen.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/vm.h>
 
 #ifdef __cplusplus

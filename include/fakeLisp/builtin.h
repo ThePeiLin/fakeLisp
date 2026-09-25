@@ -1,7 +1,7 @@
 #ifndef FKL_BUILTIN_H
 #define FKL_BUILTIN_H
 
-#include "codegen.h"
+#include "code.h"
 #include "vm_fwd.h"
 
 #ifdef __cplusplus

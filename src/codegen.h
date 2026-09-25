@@ -1,7 +1,7 @@
 #ifndef FKL_SRC_CODEGEN_H
 #define FKL_SRC_CODEGEN_H
 
-#include <fakeLisp/codegen.h>
+#include <fakeLisp/code.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/vm.h>
 #include <stdint.h>
@@ -99,11 +99,8 @@ typedef struct ListElm {
     uint64_t line;
 } ListElm;
 
-static inline FklVMvalue *create_list(ListElm *a,
-        size_t num,
-        size_t line,
-        FklVM *vm,
-        FklVMvalueLnt *ln) {
+static inline FklVMvalue *
+create_list(ListElm *a, size_t num, size_t line, FklVM *vm, FklVMvalueLnt *ln) {
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **cur = &r;
     for (size_t i = 0; i < num; i++) {

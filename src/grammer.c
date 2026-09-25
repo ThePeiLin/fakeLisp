@@ -11,7 +11,7 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <fakeLisp/cb_helper.h>
+#include <fakeLisp/sb_helper.h>
 
 #include <ctype.h>
 #include <inttypes.h>

@@ -12,12 +12,46 @@
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 
-#include "codegen.h"
-
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#define CURLINE(V) fklCgGetCurline(info, V)
+
+static FKL_ALWAYS_INLINE int is_pair_list(const FklVMvalue *v) {
+    for (; FKL_IS_PAIR(v); v = FKL_VM_CDR(v)) {
+        if (!FKL_IS_PAIR(FKL_VM_CAR(v)))
+            return 0;
+    }
+    return 1;
+}
+
+static inline FklVMvalue *codegen_create_hash(FklVMparseCtx *c,
+        FklHashTableEqType eq_type,
+        FklVMvalue *list,
+        size_t line) {
+    FklVMvalue *r = NULL;
+    switch (eq_type) {
+    case FKL_HASH_EQ:
+        r = fklCreateVMvalueHashEq(c->exe);
+        break;
+    case FKL_HASH_EQV:
+        r = fklCreateVMvalueHashEqv(c->exe);
+        break;
+    case FKL_HASH_EQUAL:
+        r = fklCreateVMvalueHashEqual(c->exe);
+        break;
+    }
+    fklPutLineNumber(c->ln, r, line);
+    for (; FKL_IS_PAIR(list); list = FKL_VM_CDR(list)) {
+        FklVMvalue *p = FKL_VM_CAR(list);
+        FklVMvalue *car = FKL_VM_CAR(p);
+        FklVMvalue *cdr = FKL_VM_CDR(p);
+        fklVMhashTableSet(FKL_VM_HASH(r), car, cdr);
+    }
+    return r;
+}
 
 static FklVMframe *init_macro_expand_frame(FklVM *exe,
         FklCgCtx *ctx,
@@ -1283,7 +1317,7 @@ FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *c,
 
     fklCgEnvScopeVectorInit(&r->scopes, 8);
     fklCgEnvSlotVectorInit(&r->slots, 8);
-    enter_new_scope(0, r);
+    fklCgEnterNewScope(r, 0);
     r->proto_id = FKL_TOP_ENV_PROTO_ID;
     r->prev = prev_env;
     r->is_debugging = prev_env ? prev_env->is_debugging : 0;
@@ -1450,7 +1484,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         r->dir = fklDupDir(rp);
         r->filename = fklRelpath(ctx->main_file_real_path_dir, rp);
         r->realpath = rp;
-        r->fid = add_symbol_cstr(ctx, r->filename);
+        r->fid = fklCgAddSymbolCstr(ctx, r->filename);
     } else {
         r->dir = fklSysgetcwd();
         r->filename = NULL;
@@ -1586,7 +1620,7 @@ static void *custom_action(FklProdActionArgs *c,
 
     FklVMvalue *line_node = fklMakeVMintU(cg_ctx->vm, line);
 
-    put_line_number(pctx->ln, nodes_vector, line);
+    fklPutLineNumber(pctx->ln, nodes_vector, line);
     for (size_t i = 0; i < num; ++i) {
         fklPmatchHashMapAdd2(&ht,
                 action_ctx->dollars[i],
@@ -1658,7 +1692,7 @@ FklVMvalueCustomActCtx *fklCreateCgRmacroCustomAction(FklCgCtx *cg_ctx,
     fklInitStrBuf(&buf);
     for (size_t i = 0; i < actual_len; ++i) {
         fklStrBufPrintf(&buf, "$%zu", i);
-        v->dollars[i] = add_symbol_char_buf(cg_ctx, buf.buf, buf.index);
+        v->dollars[i] = fklCgAddSymbolCharBuf(cg_ctx, buf.buf, buf.index);
         fklStrBufClear(&buf);
     }
     fklUninitStrBuf(&buf);
@@ -1724,7 +1758,7 @@ static void *simple_action_cons(FklProdActionArgs *c,
     FklVMparseCtx *ct = ctx;
     FklVMvalue *retval =
             fklCreateVMvaluePair(ct->exe, nodes[car].ast, nodes[cdr].ast);
-    put_line_number(ct->ln, retval, line);
+    fklPutLineNumber(ct->ln, retval, line);
     return retval;
 }
 
@@ -1753,12 +1787,12 @@ static void *simple_action_head(FklProdActionArgs *c,
 
         const FklAnalysisSymbol *s = &nodes[idx];
         *pr = fklCreateVMvaluePair1(ct->exe, s->ast);
-        put_line_number(ct->ln, *pr, s->line);
+        fklPutLineNumber(ct->ln, *pr, s->line);
         pr = &FKL_VM_CDR(*pr);
     }
 
     r = fklCreateVMvaluePair(ct->exe, head, r);
-    put_line_number(ct->ln, r, line);
+    fklPutLineNumber(ct->ln, r, line);
     return r;
 }
 
@@ -1798,11 +1832,11 @@ static void *simple_action_list(FklProdActionArgs *c,
 
         const FklAnalysisSymbol *s = &nodes[idx];
         *pr = fklCreateVMvaluePair1(ct->exe, s->ast);
-        put_line_number(ct->ln, *pr, s->line);
+        fklPutLineNumber(ct->ln, *pr, s->line);
         pr = &FKL_VM_CDR(*pr);
     }
 
-    put_line_number(ct->ln, r, line);
+    fklPutLineNumber(ct->ln, r, line);
     return r;
 }
 
@@ -1829,7 +1863,7 @@ static inline void *simple_action_box(FklProdActionArgs *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     FklVMvalue *box = fklCreateVMvalueBox(c->exe, nodes[nth].ast);
-    put_line_number(c->ln, box, line);
+    fklPutLineNumber(c->ln, box, line);
     return box;
 }
 
@@ -2171,7 +2205,7 @@ static inline void init_simple_prod_action_list(FklCgCtx *ctx) {
     FklVMvalue **const simple_prod_action_id = ctx->simple_prod_action_id;
     for (size_t i = 0; i < FKL_CODEGEN_SIMPLE_PROD_ACTION_NUM; i++)
         simple_prod_action_id[i] =
-                add_symbol_cstr(ctx, CgProdCreatorActions[i].name);
+                fklCgAddSymbolCstr(ctx, CgProdCreatorActions[i].name);
 }
 
 static void *replace_action(FklProdActionArgs *action_ctx,
@@ -2249,7 +2283,7 @@ static inline void *builtin_prod_action_pair(FklProdActionArgs *action_ctx,
     FklVMvalue *car = nodes[0].ast;
     FklVMvalue *cdr = nodes[2].ast;
     FklVMvalue *pair = fklCreateVMvaluePair(c->exe, car, cdr);
-    put_line_number(c->ln, pair, line);
+    fklPutLineNumber(c->ln, pair, line);
     return pair;
 }
 
@@ -2262,13 +2296,13 @@ static inline void *builtin_prod_action_cons(FklProdActionArgs *action_ctx,
     if (num == 1) {
         FklVMvalue *car = nodes[0].ast;
         FklVMvalue *pair = fklCreateVMvaluePair1(c->exe, car);
-        put_line_number(c->ln, pair, line);
+        fklPutLineNumber(c->ln, pair, line);
         return pair;
     } else if (num == 2) {
         FklVMvalue *car = nodes[0].ast;
         FklVMvalue *cdr = nodes[1].ast;
         FklVMvalue *pair = fklCreateVMvaluePair(c->exe, car, cdr);
-        put_line_number(c->ln, pair, line);
+        fklPutLineNumber(c->ln, pair, line);
         return pair;
     } else
         return NULL;
@@ -2283,7 +2317,7 @@ static inline void *builtin_prod_action_box(FklProdActionArgs *action_ctx,
         return NULL;
     FklVMparseCtx *c = ctx;
     FklVMvalue *box = fklCreateVMvalueBox(c->exe, nodes[1].ast);
-    put_line_number(c->ln, box, line);
+    fklPutLineNumber(c->ln, box, line);
     return box;
 }
 
@@ -2311,11 +2345,11 @@ static inline FklVMvalue *add_header(FklVMparseCtx *c,
         size_t line) {
     FklVMvalue *head = fklVMaddSymbolCstr(c->exe, header_str);
     FklVMvalue *s_exp = nodes[1].ast;
-    ListElm s_exps[] = {
+    FklCgListElm s_exps[] = {
         { .v = head, .line = nodes[0].line },
         { .v = s_exp, .line = nodes[1].line },
     };
-    return create_list(s_exps, 2, (uint32_t)line, c->exe, c->ln);
+    return fklCgCreateList(s_exps, 2, (uint32_t)line, c->exe, c->ln);
 }
 
 static inline void *builtin_prod_action_quote(FklProdActionArgs *action_ctx,
@@ -2449,7 +2483,7 @@ static inline void init_builtin_prod_action_list(FklCgCtx *ctx) {
     FklVMvalue **const builtin_prod_action_id = ctx->builtin_prod_action_id;
     for (size_t i = 0; i < FKL_CODEGEN_BUILTIN_PROD_ACTION_NUM; i++)
         builtin_prod_action_id[i] =
-                add_symbol_cstr(ctx, BuiltinProdActions[i].name);
+                fklCgAddSymbolCstr(ctx, BuiltinProdActions[i].name);
 }
 
 void fklInitProdActionList(FklCgCtx *ctx) {
@@ -3981,7 +4015,7 @@ static const FklCgActCtxMt RmacroStackContextMethodTable = {
 
 static inline FklCgActCtx *createRmacroActionContext(
         FklVMvalueCustomActCtx *ctx) {
-    FklCgActCtx *r = createCgActCtx(&RmacroStackContextMethodTable);
+    FklCgActCtx *r = fklCreateCgActCtx(&RmacroStackContextMethodTable);
 
     init_reader_macro_context(FKL_TYPE_CAST(struct RmacroCtx *, r->d), ctx);
 
@@ -4053,7 +4087,7 @@ static inline FklVMvalue *parse_rmacro_def_delim(FklCgCtx *ctx,
     cur_pair = FKL_VM_CDR(cur_pair);
 
     if (cur_pair == FKL_VM_NIL) {
-        errors->error = make_syntax_error(vm, old);
+        errors->error = fklMakeSyntaxError(vm, old);
         errors->fid = info->fid;
         errors->line = CURLINE(old);
         return FKL_VM_NIL;
@@ -4061,7 +4095,7 @@ static inline FklVMvalue *parse_rmacro_def_delim(FklCgCtx *ctx,
 
     FklVMvalue *cur = FKL_VM_CAR(cur_pair);
     if (!FKL_IS_STR(cur)) {
-        errors->error = make_syntax_error(vm, cur);
+        errors->error = fklMakeSyntaxError(vm, cur);
         errors->fid = info->fid;
         errors->line = CURLINE(cur_pair);
         return FKL_VM_NIL;
@@ -4139,7 +4173,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
     cur_pair = FKL_VM_CDR(cur_pair);
 
     if (cur_pair == FKL_VM_NIL) {
-        errors->error = make_syntax_error(vm, old);
+        errors->error = fklMakeSyntaxError(vm, old);
         errors->fid = info->fid;
         errors->line = CURLINE(old);
         return FKL_VM_NIL;
@@ -4156,7 +4190,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
                 const char *msg = get_val_to_gra_sym_err_msg(err);
-                errors->error = make_grammer_create_error2(vm, msg, cur);
+                errors->error = fklMakeGrammerCreateError2(vm, msg, cur);
                 errors->fid = info->fid;
                 errors->line = CURLINE(cur_pair);
                 return FKL_VM_NIL;
@@ -4187,7 +4221,7 @@ static inline FklVMvalue *parse_rmacro_def_ignore(FklCgCtx *ctx,
             if (!is_regex_str_valid(FKL_VM_STR(next))) {
                 const char *msg = get_val_to_gra_sym_err_msg(
                         VAL_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED);
-                errors->error = make_grammer_create_error2(vm, msg, next);
+                errors->error = fklMakeGrammerCreateError2(vm, msg, next);
                 errors->fid = info->fid;
                 errors->line = CURLINE(next_p);
                 return FKL_VM_NIL;
@@ -4336,7 +4370,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             if (!is_regex_str_valid(FKL_VM_STR(next))) {
                 const char *msg = get_val_to_gra_sym_err_msg(
                         VAL_TO_GRAMMER_SYM_ERR_REGEX_COMPILE_FAILED);
-                errors->error = make_grammer_create_error2(vm, msg, next);
+                errors->error = fklMakeGrammerCreateError2(vm, msg, next);
                 errors->fid = info->fid;
                 errors->line = CURLINE(next_p);
                 return FKL_VM_NIL;
@@ -4371,7 +4405,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             ValToGrammerSymErr err = vec_to_builtin_terminal(ctx, cur, &s, g);
             if (err != VAL_TO_GRAMMER_SYM_ERR_DUMMY && errors->error == NULL) {
                 const char *msg = get_val_to_gra_sym_err_msg(err);
-                errors->error = make_grammer_create_error2(vm, msg, cur);
+                errors->error = fklMakeGrammerCreateError2(vm, msg, cur);
                 errors->fid = info->fid;
                 errors->line = CURLINE(cur_pair);
                 return FKL_VM_NIL;
@@ -4416,7 +4450,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
             if (bt == NULL) {
                 const char *msg = get_val_to_gra_sym_err_msg(
                         VAL_TO_GRAMMER_SYM_ERR_UNRESOLVED_BUILTIN);
-                errors->error = make_grammer_create_error2(vm, msg, cur);
+                errors->error = fklMakeGrammerCreateError2(vm, msg, cur);
                 errors->fid = info->fid;
                 errors->line = CURLINE(cur_pair);
                 return FKL_VM_NIL;
@@ -4555,14 +4589,14 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
 
     case ACTION_TYPE_CUSTOM: {
         FklVMvalueCgEnv *macro_env = NULL;
-        FklVMvalueCgInfo *macro_info = macro_compile_prepare(ctx,
+        FklVMvalueCgInfo *macro_info = fklMacroCompilePrepare(ctx,
                 info,
                 ms,
                 NULL,
                 &macro_env,
                 CURLINE(action_ast));
 
-        CgExpQueue *queue = cgExpQueueCreate();
+        FklCgExpQueue *queue = fklCgExpQueueCreate();
 
         FklVMvalueCustomActCtx *act_ctx = NULL;
 
@@ -4576,15 +4610,20 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
         fklAddCgDefBySid(ctx->dollar_s, 1, macro_env);
         fklAddCgDefBySid(ctx->line_s, 1, macro_env);
 
-        cgExpQueuePush2(queue,
+        fklCgExpQueuePush2(queue,
                 (FklPmatchRes){
                     .value = action_ast,
                     .container = action_ast,
                 });
 
-        FklCgAct *new_act = make_cg_act(_reader_macro_bc_process,
-                createRmacroActionContext(act_ctx),
-                createMustHasRetvalQueueNextExpression(queue),
+        FklCgNextExp *next_exp =
+                fklMakeCgQueueNextExp(queue, FKL_ALL_MUST_HAS_RETVAL);
+
+        FklCgActCtx *cg_act_ctx = createRmacroActionContext(act_ctx);
+
+        FklCgAct *new_act = fklMakeCgAct(_reader_macro_bc_process,
+                cg_act_ctx,
+                next_exp,
                 1,
                 macro_env->macros,
                 macro_env,
@@ -4608,14 +4647,14 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
 
 syntax_error:
     if (errors->error == NULL) {
-        errors->error = make_syntax_error(vm, error_place);
+        errors->error = fklMakeSyntaxError(vm, error_place);
     }
     errors->fid = info->fid;
     errors->line = CURLINE(error_cont);
     return FKL_VM_NIL;
 
 invalid_action_ast_error:
-    errors->error = make_grammer_create_error2(vm,
+    errors->error = fklMakeGrammerCreateError2(vm,
             get_val_to_gra_sym_err_msg(
                     VAL_TO_GRAMMER_SYM_ERR_INVALID_ACTION_AST),
             action_ast);
@@ -4707,7 +4746,7 @@ static inline FklVMvalue *parse_rmacro_def_prod(FklCgCtx *ctx,
             gsyms);
 
 syntax_error:
-    errors->error = make_syntax_error(vm, error_place);
+    errors->error = fklMakeSyntaxError(vm, error_place);
     errors->fid = info->fid;
     errors->line = CURLINE(error_cont);
     return FKL_VM_NIL;
@@ -5414,4 +5453,77 @@ FklVMvalue *fklInitDefaultLibPath(FklVM *vm) {
     }
 
     return fklVMpathStrToVec(vm, env_path);
+}
+
+FklCgAct *fklMakeCgAct(FklCgActCb f,
+        FklCgActCtx *context,
+        FklCgNextExp *nextExpression,
+        uint32_t scope,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklVMvalueCgEnv *env,
+        uint64_t curline,
+        FklCgAct *prev,
+        FklVMvalueCgInfo *info) {
+    FklCgAct *r = (FklCgAct *)fklZmalloc(sizeof(FklCgAct));
+    FKL_ASSERT(r);
+    r->scope = scope;
+    r->macros = macro_scope;
+    r->cb = f;
+    r->ctx = context;
+    r->exps = nextExpression;
+    r->env = env;
+    r->curline = curline;
+    r->info = info;
+    r->prev = prev;
+    fklValueVectorInit(&r->bcl_vector, 0);
+    return r;
+}
+
+FklCgNextExp *fklMakeCgNextExp(const FklNextExpressionMethodTable *t,
+        void *context,
+        FklCgNextExpType type) {
+    FklCgNextExp *r = (FklCgNextExp *)fklZmalloc(sizeof(FklCgNextExp));
+    FKL_ASSERT(r);
+    r->t = t;
+    r->context = context;
+    r->next_type = type;
+    return r;
+}
+
+static int _default_codegen_get_next_expression(FklCgCtx *ctx,
+        void *context,
+        FklPmatchRes *out) {
+    FklPmatchRes *head =
+            fklCgExpQueuePop(FKL_TYPE_CAST(FklCgExpQueue *, context));
+    if (head == NULL)
+        return 0;
+    *out = *head;
+    return 1;
+}
+
+static void _default_codegen_next_expression_finalizer(void *context) {
+    FklCgExpQueue *q = FKL_TYPE_CAST(FklCgExpQueue *, context);
+    fklCgExpQueueDestroy(q);
+}
+
+static void _default_codegen_next_expression_atomic(FklVMgc *gc, void *ctx) {
+    FklCgExpQueue *q = FKL_TYPE_CAST(FklCgExpQueue *, ctx);
+    for (const FklCgExpQueueNode *c = q->head; c; c = c->next) {
+        fklVMgcToGray(c->data.value, gc);
+        fklVMgcToGray(c->data.container, gc);
+    }
+}
+
+static const FklNextExpressionMethodTable
+        _default_codegen_next_expression_method_table = {
+            .get_next_exp = _default_codegen_get_next_expression,
+            .finalize = _default_codegen_next_expression_finalizer,
+            .atomic = _default_codegen_next_expression_atomic,
+        };
+
+FklCgNextExp *fklMakeCgQueueNextExp(FklCgExpQueue *queue,
+        FklCgNextExpType type) {
+    return fklMakeCgNextExp(&_default_codegen_next_expression_method_table,
+            queue,
+            type);
 }

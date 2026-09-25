@@ -537,10 +537,16 @@ typedef struct {
     void (*atomic)(FklVMgc *, void *);
 } FklNextExpressionMethodTable;
 
+typedef enum {
+    FKL_DO_NOT_NEED_RETVAL = 0,
+    FKL_ALL_MUST_HAS_RETVAL,
+    FKL_FIRST_MUST_HAS_RETVAL,
+} FklCgNextExpType;
+
 typedef struct {
     const FklNextExpressionMethodTable *t;
     void *context;
-    uint8_t must_has_retval;
+    FklCgNextExpType next_type;
 } FklCgNextExp;
 
 typedef struct FklCgAct {
@@ -568,7 +574,36 @@ typedef struct FklCgAct {
 #define FKL_QUEUE_ELM_TYPE_NAME CgExp
 #include "cont/queue.h"
 
+FKL_API
+FklCgNextExp *fklMakeCgNextExp(const FklNextExpressionMethodTable *t,
+        void *context,
+        FklCgNextExpType type);
+
+FKL_API
+FklCgNextExp *fklMakeCgQueueNextExp(FklCgExpQueue *queue,
+        FklCgNextExpType type);
+
 FKL_API void fklInitProdActionList(FklCgCtx *ctx);
+
+static FKL_ALWAYS_INLINE FklCgActCtx *fklCreateCgActCtx(
+        const FklCgActCtxMt *t) {
+    FklCgActCtx *r = NULL;
+    r = (FklCgActCtx *)fklZcalloc(1, sizeof(FklCgActCtx) + t->size);
+    FKL_ASSERT(r);
+    r->t = t;
+    return r;
+}
+
+FKL_API
+FklCgAct *fklMakeCgAct(FklCgActCb f,
+        FklCgActCtx *context,
+        FklCgNextExp *nextExpression,
+        uint32_t scope,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklVMvalueCgEnv *env,
+        uint64_t curline,
+        FklCgAct *prev,
+        FklVMvalueCgInfo *info);
 
 FKL_API
 void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
@@ -701,6 +736,26 @@ static FKL_ALWAYS_INLINE int fklIsInternalModule(const FklCgCtx *ctx,
 FKL_API
 FklVMvalue *fklCgRealpathToModuleName(const FklCgCtx *ctx, const char *rp);
 
+static FKL_ALWAYS_INLINE FklVMvalue *fklCgAddSymbolCstr(FklCgCtx *c,
+        const char *s) {
+    return fklVMaddSymbolCstr(c->vm, s);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklCgAddKeywordCstr(FklCgCtx *c,
+        const char *s) {
+    return fklVMaddKeywordCstr(c->vm, s);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *
+fklCgAddSymbolCharBuf(FklCgCtx *c, const char *s, size_t l) {
+    return fklVMaddSymbolCharBuf(c->vm, s, l);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue *fklCgAddSymbol(FklCgCtx *c,
+        const FklString *s) {
+    return fklVMaddSymbol(c->vm, s);
+}
+
 FKL_API FklVMvalueCgEnvWeakMap *fklCreateVMvalueCgEnvWeakMap(FklVM *vm);
 
 FKL_API
@@ -724,6 +779,15 @@ static FKL_ALWAYS_INLINE FklVMvalueCgInfo *fklVMvalueCgInfo(
         const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueCgInfo(v));
     return FKL_TYPE_CAST(FklVMvalueCgInfo *, v);
+}
+
+static FKL_ALWAYS_INLINE uint64_t fklCgGetCurline(const FklVMvalueCgInfo *info,
+        const FklVMvalue *v) {
+    uint64_t *r = fklVMvalueLntGet(info->lnt, v);
+    if (r != NULL)
+        return *r;
+
+    return info->curline;
 }
 
 FKL_API int fklIsVMvalueCgReExport(const FklVMvalue *v);
@@ -1081,6 +1145,107 @@ static FKL_ALWAYS_INLINE FklVMvalueSimpleActCtx *fklVMvalueSimpleActCtx(
         const FklVMvalue *v) {
     FKL_ASSERT(fklIsVMvalueSimpleActCtx(v));
     return (FklVMvalueSimpleActCtx *)v;
+}
+
+static inline uint32_t fklCgEnterNewScope(FklVMvalueCgEnv *env, uint32_t p) {
+    FklCgEnvScopeVector *scopes = &env->scopes;
+    FklCgEnvScope *scope = fklCgEnvScopeVectorPushBack(scopes, NULL);
+    uint32_t r = (uint32_t)env->scopes.size;
+    scope->p = p;
+    fklSymDefHashMapInit(&scope->defs);
+    scope->start = 0;
+    scope->end = 0;
+    if (p != 0) {
+        scope->start = scopes->base[p - 1].start + scopes->base[p - 1].end;
+    }
+    scope->empty = scope->start;
+    return r;
+}
+
+static FKL_ALWAYS_INLINE void
+fklPutLineNumber(FklVMvalueLnt *ln, FklVMvalue *v, uint64_t line) {
+    if (ln)
+        fklVMvalueLntPut(ln, v, line);
+}
+
+typedef struct FklCgListElm {
+    FklVMvalue *v;
+    uint64_t line;
+} FklCgListElm;
+
+static inline FklVMvalue *fklCgCreateList(FklCgListElm *a,
+        size_t num,
+        size_t line,
+        FklVM *vm,
+        FklVMvalueLnt *ln) {
+    FklVMvalue *r = FKL_VM_NIL;
+    FklVMvalue **cur = &r;
+    for (size_t i = 0; i < num; i++) {
+        (*cur) = fklCreateVMvaluePair1(vm, a[i].v);
+        fklPutLineNumber(ln, *cur, a[i].line);
+        cur = &FKL_VM_CDR(*cur);
+    }
+    return r;
+}
+
+static inline FklVMvalue *fklMakeSyntaxError(FklVM *exe, FklVMvalue *place) {
+    return FKL_MAKE_VM_ERR(FKL_ERR_SYNTAXERROR,
+            exe,
+            "Invalid syntax %S",
+            place);
+}
+
+static inline FklVMvalue *
+fklMakeGrammerCreateError2(FklVM *exe, const char *s, FklVMvalue *place) {
+    if (place == NULL) {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s",
+                fklCreateVMvalueStr1(exe, s));
+    } else {
+        return FKL_MAKE_VM_ERR(FKL_ERR_GRAMMER_CREATE_FAILED,
+                exe,
+                "%s %S",
+                fklCreateVMvalueStr1(exe, s),
+                place);
+    }
+}
+
+static inline FklVMvalueCgInfo *fklMacroCompilePrepare(FklCgCtx *ctx,
+        FklVMvalueCgInfo *info,
+        FklVMvalueCgMacroScope *macro_scope,
+        FklValueHashSet *symbol_set,
+        FklVMvalueCgEnv **penv,
+        uint64_t line) {
+    FklVMvalueCgInfo *macro_info = fklCreateVMvalueCgInfo(ctx,
+            info,
+            NULL,
+            &(FklCgInfoArgs){
+                .is_macro = 1,
+                .macro_scope = macro_scope,
+            });
+
+    FklVMvalueCgEnv *macro_main_env = fklCreateVMvalueCgEnv(ctx, //
+            &(const FklCgEnvCreateArgs){
+                .prev_env = macro_info->global_env,
+                .prev_ms = macro_scope,
+                .parent_scope = 1,
+                .filename = info->fid,
+                .name = FKL_VM_NIL,
+                .line = line,
+            });
+
+    *penv = macro_main_env;
+    if (symbol_set == NULL)
+        return macro_info;
+
+    for (FklValueHashSetNode *list = symbol_set->first; list;
+            list = list->next) {
+        FklVMvalue *id = FKL_TYPE_CAST(FklVMvalue *, list->k);
+        fklAddCgDefBySid(id, 1, macro_main_env);
+    }
+
+    return macro_info;
 }
 
 // ===

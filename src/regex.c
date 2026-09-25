@@ -773,16 +773,16 @@ size_t fklRegexLexMatchp(const FklRegexCode *re,
 static inline void
 build_objs(const FklRegexObj *obj, uint32_t objs_num, FklStrBuilder *build) {
     for (const FklRegexObj *end = &obj[objs_num]; obj < end; obj++) {
-        CB_LINE_START("{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
+        SB_LINE_START("{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
                 regex_obj_enum_type_name[obj->type],
                 obj->trueoffset,
                 obj->falseoffset);
         if (obj->type == FKL_REGEX_CHAR)
-            CB_LINE_END(".ch=%d,},", obj->ch);
+            SB_LINE_END(".ch=%d,},", obj->ch);
         else if (obj->type == FKL_REGEX_CHAR_CLASS)
-            CB_LINE_END(".ccl=%u,},", obj->ccl);
+            SB_LINE_END(".ccl=%u,},", obj->ccl);
         else
-            CB_LINE_END("},");
+            SB_LINE_END("},");
     }
 }
 
@@ -795,23 +795,23 @@ static const char *char_class_enum_name[] = {
 static inline void
 build_patrns(const uint8_t *pat, uint32_t len, FklStrBuilder *build) {
     for (const uint8_t *end = &pat[len]; pat < end;) {
-        CB_LINE_START("%-26s,", char_class_enum_name[*pat]);
+        SB_LINE_START("%-26s,", char_class_enum_name[*pat]);
         switch (*(pat++)) {
         case FKL_REGEX_CHAR_CLASS_END:
             break;
         case FKL_REGEX_CHAR_CLASS_RANGE:
-            CB_LINE("%u,", *(pat++));
-            CB_LINE("%u,", *(pat++));
+            SB_LINE("%u,", *(pat++));
+            SB_LINE("%u,", *(pat++));
             break;
         case FKL_REGEX_CHAR_CLASS_CHAR: {
             uint32_t num = *(pat++);
-            CB_LINE("%u,", num);
+            SB_LINE("%u,", num);
             for (uint8_t i = 0; i < num; i++)
-                CB_LINE("%u,", pat[i]);
+                SB_LINE("%u,", pat[i]);
             pat += num;
         } break;
         }
-        CB_LINE_END("");
+        SB_LINE_END("");
     }
 }
 
@@ -827,44 +827,44 @@ void fklRegexBuildAsC(const FklRegexCode *re,
         objs_num++;
     uint32_t objs_size = objs_num * sizeof(FklRegexObj);
     uint32_t strln = totalsize - objs_size;
-    CB_LINE("struct{");
+    SB_LINE("struct{");
 
-    CB_INDENT(flag) {
+    SB_INDENT(flag) {
 
-        CB_LINE("tuint32_t totalsize;");
-        CB_LINE("tuint32_t pstsize;");
+        SB_LINE("tuint32_t totalsize;");
+        SB_LINE("tuint32_t pstsize;");
         if (strln) {
-            CB_LINE("tFklRegexObj objs[%u];", objs_num);
-            CB_LINE("tuint8_t patrns[%u];", strln);
+            SB_LINE("tFklRegexObj objs[%u];", objs_num);
+            SB_LINE("tuint8_t patrns[%u];", strln);
         } else {
-            CB_LINE("FklRegexObj objs[%u];", objs_num);
+            SB_LINE("FklRegexObj objs[%u];", objs_num);
         }
     }
 
-    CB_LINE_START("} %s", prefix ? prefix : "regex_");
+    SB_LINE_START("} %s", prefix ? prefix : "regex_");
     {
         for (uint32_t i = 0; i < pattern_len; ++i)
-            CB_LINE("%X", (uint8_t)pattern[i]);
+            SB_LINE("%X", (uint8_t)pattern[i]);
     }
-    CB_LINE_END("={");
+    SB_LINE_END("={");
 
-    CB_INDENT(flag) {
-        CB_LINE(".totalsize=%u,", totalsize);
-        CB_LINE(".pstsize=%u,", re->pstsize);
-        CB_LINE(".objs={");
+    SB_INDENT(flag) {
+        SB_LINE(".totalsize=%u,", totalsize);
+        SB_LINE(".pstsize=%u,", re->pstsize);
+        SB_LINE(".objs={");
 
-        CB_INDENT(flag) { build_objs(objs, objs_num, build); }
+        SB_INDENT(flag) { build_objs(objs, objs_num, build); }
 
-        CB_LINE("},");
+        SB_LINE("},");
 
         if (strln) {
             const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
-            CB_LINE(".patrns={");
+            SB_LINE(".patrns={");
             build_patrns(patrns, strln, build);
-            CB_LINE("},");
+            SB_LINE("},");
         }
     }
-    CB_LINE("};");
+    SB_LINE("};");
 }
 
 void fklRegexBuildAsCwithNum(const FklRegexCode *re,
@@ -878,35 +878,35 @@ void fklRegexBuildAsCwithNum(const FklRegexCode *re,
         objs_num++;
     uint32_t objs_size = objs_num * sizeof(FklRegexObj);
     uint32_t strln = totalsize - objs_size;
-    CB_LINE("struct{");
-    CB_INDENT(flag) {
-        CB_LINE("uint32_t totalsize;");
-        CB_LINE("uint32_t pstsize;");
+    SB_LINE("struct{");
+    SB_INDENT(flag) {
+        SB_LINE("uint32_t totalsize;");
+        SB_LINE("uint32_t pstsize;");
         if (strln) {
-            CB_LINE("FklRegexObj objs[%u];", objs_num);
-            CB_LINE("uint8_t patrns[%u];", strln);
+            SB_LINE("FklRegexObj objs[%u];", objs_num);
+            SB_LINE("uint8_t patrns[%u];", strln);
         } else {
-            CB_LINE("FklRegexObj objs[%u];", objs_num);
+            SB_LINE("FklRegexObj objs[%u];", objs_num);
         }
     }
 
-    CB_LINE("} %s%" PRIX64 "={", prefix ? prefix : "regex_", num);
+    SB_LINE("} %s%" PRIX64 "={", prefix ? prefix : "regex_", num);
 
-    CB_INDENT(flag) {
-        CB_LINE(".totalsize=%u,", totalsize);
-        CB_LINE(".pstsize=%u,", re->pstsize);
-        CB_LINE(".objs={");
-        CB_INDENT(flag) { build_objs(objs, objs_num, build); }
-        CB_LINE("},");
+    SB_INDENT(flag) {
+        SB_LINE(".totalsize=%u,", totalsize);
+        SB_LINE(".pstsize=%u,", re->pstsize);
+        SB_LINE(".objs={");
+        SB_INDENT(flag) { build_objs(objs, objs_num, build); }
+        SB_LINE("},");
 
         if (strln) {
             const uint8_t *patrns = &((const uint8_t *)re->data)[objs_size];
-            CB_LINE(".patrns={");
+            SB_LINE(".patrns={");
             build_patrns(patrns, strln, build);
-            CB_LINE("},");
+            SB_LINE("},");
         }
     }
-    CB_LINE("};");
+    SB_LINE("};");
 }
 
 const FklRegexCode *fklAddRegexStr(FklRegexTable *t, const FklString *str) {

@@ -18,11 +18,11 @@ struct S {
 };
 
 static inline void build_str_in_hex(const char *s, FklStrBuilder *build) {
-    CB_FMT("\"");
+    SB_FMT("\"");
     for (; *s; ++s) {
-        CB_FMT("\\x%x", *s);
+        SB_FMT("\\x%x", *s);
     }
-    CB_FMT("\"");
+    SB_FMT("\"");
 }
 
 static inline void build_xx(struct S const cur[],
@@ -31,35 +31,35 @@ static inline void build_xx(struct S const cur[],
         int last_backslash) {
     struct S const *const end = &cur[count];
     for (; cur < end - 1; ++cur) {
-        CB_LINE_START("XX(%s, ", cur->var_name);
+        SB_LINE_START("XX(%s, ", cur->var_name);
         build_str_in_hex(cur->sym_name, build);
-        CB_FMT(", ");
+        SB_FMT(", ");
         if (cur->desc)
             build_str_in_hex(cur->desc, build);
         else
-            CB_FMT("\"\"");
-        CB_LINE_END(") \\");
+            SB_FMT("\"\"");
+        SB_LINE_END(") \\");
     }
 
-    CB_LINE_START("XX(%s, ", cur->var_name);
+    SB_LINE_START("XX(%s, ", cur->var_name);
     build_str_in_hex(cur->sym_name, build);
-    CB_FMT(", ");
+    SB_FMT(", ");
     if (cur->desc)
         build_str_in_hex(cur->desc, build);
     else
-        CB_FMT("\"\"");
+        SB_FMT("\"\"");
     if (last_backslash)
-        CB_LINE_END(") \\");
+        SB_LINE_END(") \\");
     else
-        CB_LINE_END(")");
+        SB_LINE_END(")");
 }
 
 static inline void build_map_macro(const char *name,
         struct S const symbols[],
         size_t count,
         FklStrBuilder *build) {
-    CB_LINE("#define %s(XX) \\", name);
-    CB_INDENT(flag) { build_xx(symbols, count, build, 0); }
+    SB_LINE("#define %s(XX) \\", name);
+    SB_INDENT(flag) { build_xx(symbols, count, build, 0); }
 }
 
 #define BUILD_MAP_MACRO(NAME, SYMBOLS, BUILD)                                  \
@@ -539,8 +539,8 @@ static struct S const fuv_symbols[] = {
 };
 
 static inline void build_all_symbols(FklStrBuilder *build) {
-    CB_LINE("#define %s(XX) \\", "FUV_SYMBOLS_MAP");
-    CB_INDENT(flag) {
+    SB_LINE("#define %s(XX) \\", "FUV_SYMBOLS_MAP");
+    SB_INDENT(flag) {
         build_xx(fuv_symbols, COUNT(fuv_symbols), build, 1);
         build_xx(fuv_errors, COUNT(fuv_errors), build, 1);
         build_xx(loop_configures, COUNT(loop_configures), build, 1);
@@ -606,52 +606,52 @@ int main(int argc, char *argv[]) {
     FklStrBuilder *build = &builder;
 
     BUILD_MAP_MACRO(FUV_UV_LOOP_MODE_MAP, loop_run_modes, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_LOOP_CONF_MAP, loop_configures, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_UDP_MAP, udp_flags, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_PRIORITY_MAP, priorities, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_FS_O_MAP, fs_o_flags, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_FS_EVENT_MAP, fs_events, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_DIRENT_TYPE_MAP, dirent_types, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_POLL_EVENT_MAP, poll_events, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_PROCESS_MAP, process_flags, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_ERROR_MAP, fuv_errors, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_UV_ERRNO_MAP, uv_errno, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_AI_FLAGS_MAP, ai_flags, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_SIGNAL_MAP, signals, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_AF_MAP, address_families, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_SOCKET_TYPES_MAP, socket_types, build);
-    CB_LINE("");
+    SB_LINE("");
 
     BUILD_MAP_MACRO(FUV_NI_FLAGS_MAP, ni_flags, build);
-    CB_LINE("");
+    SB_LINE("");
 
     build_all_symbols(build);
 exit:

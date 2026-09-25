@@ -437,7 +437,7 @@ static inline void build_string_in_hex(const FklString *stri,
     size_t size = stri->size;
     const char *str = stri->str;
     for (size_t i = 0; i < size; i++)
-        CB_FMT("\\x%02X", str[i]);
+        SB_FMT("\\x%02X", str[i]);
 }
 
 static inline int ignore_match(const FklGrammer *g,
@@ -1178,14 +1178,14 @@ int fklAddExtraProdToGrammer(FklGrammer *g) {
 static inline void print_as_regex(const FklString *str, FklStrBuilder *build) {
     const char *cur = str->str;
     const char *const end = cur + str->size;
-    CB_FMT("/");
+    SB_FMT("/");
     for (; cur < end; ++cur) {
         if (*cur == '/')
-            CB_FMT("\\/");
+            SB_FMT("\\/");
         else
-            CB_FMT("%c", *cur);
+            SB_FMT("%c", *cur);
     }
-    CB_FMT("/");
+    SB_FMT("/");
 }
 
 static inline void print_prod_sym(FklVM *vm,
@@ -1194,16 +1194,16 @@ static inline void print_prod_sym(FklVM *vm,
         FklStrBuilder *build) {
     switch (u->type) {
     case FKL_TERM_BUILTIN:
-        CB_FMT("%s", u->b.t->name);
+        SB_FMT("%s", u->b.t->name);
         if (u->b.len) {
-            CB_FMT("[");
+            SB_FMT("[");
             size_t i = 0;
             for (; i < u->b.len - 1; ++i) {
                 fklPrintSymbolLiteral2(u->b.args[i], build);
-                CB_FMT(", ");
+                SB_FMT(", ");
             }
             fklPrintSymbolLiteral2(u->b.args[i], build);
-            CB_FMT("]");
+            SB_FMT("]");
         }
         break;
     case FKL_TERM_REGEX:
@@ -1219,7 +1219,7 @@ static inline void print_prod_sym(FklVM *vm,
     case FKL_TERM_COMP:
         for (size_t i = 0; i < u->comp.len; i++) {
             if (i)
-                CB_FMT("..");
+                SB_FMT("..");
             print_prod_sym(vm, &u->comp.parts[i], rt, build);
         }
         break;
@@ -1228,7 +1228,7 @@ static inline void print_prod_sym(FklVM *vm,
         fklPrin1VMvalue2(u->nt, build, vm);
         break;
     case FKL_TERM_IGNORE:
-        CB_FMT("?e");
+        SB_FMT("?e");
         break;
     case FKL_TERM_NONE:
     case FKL_TERM_EOF:
@@ -2811,7 +2811,7 @@ static inline void ignore_print_c_match_cond(uint64_t number,
         const FklGrammerIgnore *ig,
         const FklGrammer *g,
         FklStrBuilder *build) {
-    CB_FMT("match_ignore_%" PRIu64
+    SB_FMT("match_ignore_%" PRIu64
            "(start,*in+otherMatchLen,*restLen-otherMatchLen,&matchLen,&is_waiting_for_more,ctx)",
             number);
     return;
@@ -3434,181 +3434,181 @@ void fklPrintAnalysisTableForGraphEasy2(const FklGrammer *g,
 static inline void build_get_max_non_term_length_prototype_to_c_file(
         FklStrBuilder *build) {
 
-    CB_LINE("static inline size_t");
-    CB_LINE("get_max_non_term_length(const FklGrammer*");
+    SB_LINE("static inline size_t");
+    SB_LINE("get_max_non_term_length(const FklGrammer*");
 
-    CB_INDENT(flag) {
-        CB_LINE(",FklGrammerMatchCtx*");
-        CB_LINE(",const char*");
-        CB_LINE(",const char*");
-        CB_LINE(",size_t);");
+    SB_INDENT(flag) {
+        SB_LINE(",FklGrammerMatchCtx*");
+        SB_LINE(",const char*");
+        SB_LINE(",const char*");
+        SB_LINE(",size_t);");
     }
 }
 
 static inline void build_match_ignore_prototype_to_c_file(
         FklStrBuilder *build) {
-    CB_LINE("static inline size_t match_ignore(FklGrammerMatchCtx*,const char*,size_t,int* );");
+    SB_LINE("static inline size_t match_ignore(FklGrammerMatchCtx*,const char*,size_t,int* );");
 }
 
 static inline void build_match_ignore_to_c_file(const FklGrammer *g,
         FklStrBuilder *build) {
-    CB_LINE("static inline size_t match_ignore(FklGrammerMatchCtx* ctx,const char *start, size_t rest_len, int* p_is_waiting_for_more) {\n");
+    SB_LINE("static inline size_t match_ignore(FklGrammerMatchCtx* ctx,const char *start, size_t rest_len, int* p_is_waiting_for_more) {\n");
 
-    CB_INDENT(flag) {
+    SB_INDENT(flag) {
         const FklGrammerIgnore *ig = g->ignores;
         if (ig) {
-            CB_LINE("ssize_t matchLen=0;");
-            CB_LINE("size_t otherMatchLen=0;");
-            CB_LINE("const char** in=&start;");
-            CB_LINE("size_t* restLen=&rest_len;");
-            CB_LINE("int is_waiting_for_more=0;");
-            CB_LINE("(void)is_waiting_for_more;");
-            CB_LINE("(void)restLen;");
+            SB_LINE("ssize_t matchLen=0;");
+            SB_LINE("size_t otherMatchLen=0;");
+            SB_LINE("const char** in=&start;");
+            SB_LINE("size_t* restLen=&rest_len;");
+            SB_LINE("int is_waiting_for_more=0;");
+            SB_LINE("(void)is_waiting_for_more;");
+            SB_LINE("(void)restLen;");
 
-            CB_LINE("for(;rest_len>otherMatchLen;){");
-            CB_INDENT(flag) {
-                CB_LINE_START("if(");
+            SB_LINE("for(;rest_len>otherMatchLen;){");
+            SB_INDENT(flag) {
+                SB_LINE_START("if(");
                 uint64_t number = 0;
                 ignore_print_c_match_cond(number, ig, g, build);
-                CB_INDENT(flag) {
+                SB_INDENT(flag) {
                     ++number;
                     for (ig = ig->next; ig; ig = ig->next, ++number) {
-                        CB_LINE_END("");
-                        CB_LINE_START("||");
+                        SB_LINE_END("");
+                        SB_LINE_START("||");
                         ignore_print_c_match_cond(number, ig, g, build);
                     }
                 }
-                CB_LINE_END(")");
-                CB_LINE("{");
-                CB_INDENT(flag) { CB_LINE("otherMatchLen+=matchLen;"); }
-                CB_LINE("}");
+                SB_LINE_END(")");
+                SB_LINE("{");
+                SB_INDENT(flag) { SB_LINE("otherMatchLen+=matchLen;"); }
+                SB_LINE("}");
 
-                CB_LINE("else");
-                CB_INDENT(flag) { CB_LINE("break;"); }
+                SB_LINE("else");
+                SB_INDENT(flag) { SB_LINE("break;"); }
             }
-            CB_LINE("}");
+            SB_LINE("}");
 
-            CB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
-            CB_LINE("return otherMatchLen;");
+            SB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
+            SB_LINE("return otherMatchLen;");
         } else {
-            CB_LINE("return 0;");
+            SB_LINE("return 0;");
         }
     }
 
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 static inline void build_get_max_non_term_length_to_c_file(const FklGrammer *g,
         FklStrBuilder *build) {
-    CB_LINE("static inline size_t");
-    CB_LINE("get_max_non_term_length(const FklGrammer* g");
-    CB_INDENT(flag) {
-        CB_LINE(",FklGrammerMatchCtx* ctx");
-        CB_LINE(",const char* start");
-        CB_LINE(",const char* cur");
-        CB_LINE(",size_t rLen) {");
+    SB_LINE("static inline size_t");
+    SB_LINE("get_max_non_term_length(const FklGrammer* g");
+    SB_INDENT(flag) {
+        SB_LINE(",FklGrammerMatchCtx* ctx");
+        SB_LINE(",const char* start");
+        SB_LINE(",const char* cur");
+        SB_LINE(",size_t rLen) {");
     }
-    CB_INDENT(flag) {
-        CB_LINE("if(rLen) {");
-        CB_INDENT(flag) {
-            CB_LINE("if(start==ctx->start&&cur==ctx->cur) return ctx->maxNonterminalLen;");
-            CB_LINE("ctx->start=start;");
-            CB_LINE("ctx->cur=cur;");
-            CB_LINE("size_t len=0;");
-            CB_LINE("ssize_t matchLen=0;");
-            CB_LINE("size_t otherMatchLen=0;");
-            CB_LINE("size_t* restLen=&rLen;");
-            CB_LINE("const char** in=&cur;");
-            CB_LINE("int is_waiting_for_more=0;");
-            CB_LINE("(void)is_waiting_for_more;");
-            CB_LINE("(void)otherMatchLen;");
-            CB_LINE("(void)restLen;");
-            CB_LINE("(void)in;");
-            CB_LINE("while(rLen) {");
-            CB_INDENT(flag) {
-                CB_LINE_START("if(");
+    SB_INDENT(flag) {
+        SB_LINE("if(rLen) {");
+        SB_INDENT(flag) {
+            SB_LINE("if(start==ctx->start&&cur==ctx->cur) return ctx->maxNonterminalLen;");
+            SB_LINE("ctx->start=start;");
+            SB_LINE("ctx->cur=cur;");
+            SB_LINE("size_t len=0;");
+            SB_LINE("ssize_t matchLen=0;");
+            SB_LINE("size_t otherMatchLen=0;");
+            SB_LINE("size_t* restLen=&rLen;");
+            SB_LINE("const char** in=&cur;");
+            SB_LINE("int is_waiting_for_more=0;");
+            SB_LINE("(void)is_waiting_for_more;");
+            SB_LINE("(void)otherMatchLen;");
+            SB_LINE("(void)restLen;");
+            SB_LINE("(void)in;");
+            SB_LINE("while(rLen) {");
+            SB_INDENT(flag) {
+                SB_LINE_START("if(");
                 if (g->ignores) {
                     const FklGrammerIgnore *igns = g->ignores;
                     uint64_t number = 0;
                     ignore_print_c_match_cond(number, igns, g, build);
                     igns = igns->next;
                     for (++number; igns; igns = igns->next, ++number) {
-                        CB_LINE_END("");
-                        CB_LINE_START("||");
+                        SB_LINE_END("");
+                        SB_LINE_START("||");
                         ignore_print_c_match_cond(number, igns, g, build);
                     }
                 }
                 if (g->ignores && g->sorted_delimiters_num) {
-                    CB_LINE_END("");
-                    CB_LINE_START("||");
+                    SB_LINE_END("");
+                    SB_LINE_START("||");
                 }
                 if (g->sorted_delimiters_num) {
                     size_t num = g->sorted_delimiters_num;
                     const FklString **terminals = g->sorted_delimiters;
                     const FklString *cur = terminals[0];
-                    CB_LINE("(matchLen=fklCharBufMatch(\"");
+                    SB_LINE("(matchLen=fklCharBufMatch(\"");
                     build_string_in_hex(cur, build);
-                    CB_LINE("\",%" PRIu64
+                    SB_LINE("\",%" PRIu64
                             ",*in+otherMatchLen,*restLen-otherMatchLen))>=0",
                             cur->size);
                     for (size_t i = 1; i < num; i++) {
-                        CB_LINE_END("");
-                        CB_LINE_START("||");
+                        SB_LINE_END("");
+                        SB_LINE_START("||");
                         const FklString *cur = terminals[i];
-                        CB_LINE("(matchLen=fklCharBufMatch(\"");
+                        SB_LINE("(matchLen=fklCharBufMatch(\"");
                         build_string_in_hex(cur, build);
-                        CB_LINE("\",%" PRIu64
+                        SB_LINE("\",%" PRIu64
                                 ",*in+otherMatchLen,*restLen-otherMatchLen))>=0",
                                 cur->size);
                     }
                 }
-                CB_LINE_END(") break;");
-                CB_LINE("len++;");
-                CB_LINE("rLen--;");
-                CB_LINE("cur++;");
+                SB_LINE_END(") break;");
+                SB_LINE("len++;");
+                SB_LINE("rLen--;");
+                SB_LINE("cur++;");
             }
-            CB_LINE("}");
-            CB_LINE("ctx->maxNonterminalLen=len;");
-            CB_LINE("return len;");
+            SB_LINE("}");
+            SB_LINE("ctx->maxNonterminalLen=len;");
+            SB_LINE("return len;");
         }
-        CB_LINE("}");
-        CB_LINE("return 0;");
+        SB_LINE("}");
+        SB_LINE("return 0;");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 static inline void build_match_char_buf_end_with_terminal_prototype_to_c_file(
         FklStrBuilder *build) {
-    CB_LINE("static inline size_t");
-    CB_LINE("match_char_buf_end_with_terminal(const char*,");
-    CB_INDENT(flag) {
-        CB_LINE("size_t,");
-        CB_LINE("const char*,");
-        CB_LINE("size_t,");
-        CB_LINE("FklGrammerMatchCtx* ctx,");
-        CB_LINE("const char* start);");
+    SB_LINE("static inline size_t");
+    SB_LINE("match_char_buf_end_with_terminal(const char*,");
+    SB_INDENT(flag) {
+        SB_LINE("size_t,");
+        SB_LINE("const char*,");
+        SB_LINE("size_t,");
+        SB_LINE("FklGrammerMatchCtx* ctx,");
+        SB_LINE("const char* start);");
     }
 }
 
 static inline void build_match_char_buf_end_with_terminal_to_c_file(
         FklStrBuilder *build) {
-    CB_LINE("static inline size_t");
-    CB_LINE("match_char_buf_end_with_terminal(const char* pattern");
-    CB_INDENT(flag) {
-        CB_LINE(",size_t pattern_size");
-        CB_LINE(",const char* cstr");
-        CB_LINE(",size_t restLen");
-        CB_LINE(",FklGrammerMatchCtx* ctx");
-        CB_LINE(",const char* start)");
+    SB_LINE("static inline size_t");
+    SB_LINE("match_char_buf_end_with_terminal(const char* pattern");
+    SB_INDENT(flag) {
+        SB_LINE(",size_t pattern_size");
+        SB_LINE(",const char* cstr");
+        SB_LINE(",size_t restLen");
+        SB_LINE(",FklGrammerMatchCtx* ctx");
+        SB_LINE(",const char* start)");
     }
 
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("size_t maxNonterminalLen=get_max_non_term_length(NULL,ctx,start,cstr,restLen);");
-        CB_LINE("ssize_t matchLen=fklCharBufMatch(pattern,pattern_size,cstr,restLen);");
-        CB_LINE("return matchLen>=0 && maxNonterminalLen==(size_t)matchLen;");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("size_t maxNonterminalLen=get_max_non_term_length(NULL,ctx,start,cstr,restLen);");
+        SB_LINE("ssize_t matchLen=fklCharBufMatch(pattern,pattern_size,cstr,restLen);");
+        SB_LINE("return matchLen>=0 && maxNonterminalLen==(size_t)matchLen;");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 // composite-terminal unordered set
@@ -3644,7 +3644,7 @@ static inline void build_builtin_term_match_cond(
     FKL_ASSERT(t->key != NULL);
     FKL_ASSERT(t->max_args >= 0);
 
-    CB_FMT("%s(NULL,start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,ctx,&is_waiting_for_more",
+    SB_FMT("%s(NULL,start,*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,ctx,&is_waiting_for_more",
             t->key);
 
     int last_args_idx = -1;
@@ -3653,20 +3653,20 @@ static inline void build_builtin_term_match_cond(
             last_args_idx = i;
         }
 
-        CB_INDENT(flags) {
+        SB_INDENT(flags) {
             if (last_args_idx == -1) {
-                CB_FMT(",NULL,0");
+                SB_FMT(",NULL,0");
             } else {
                 const FklString *cur = b->args[last_args_idx];
-                CB_FMT(",\"");
+                SB_FMT(",\"");
                 build_string_in_hex(cur, build);
-                CB_FMT("\"");
-                CB_FMT(",%" PRIu64 "", cur->size);
+                SB_FMT("\"");
+                SB_FMT(",%" PRIu64 "", cur->size);
             }
         }
     }
 
-    CB_FMT(")");
+    SB_FMT(")");
 }
 
 static inline void build_state_action_match_to_c_file(const FklGrammer *g,
@@ -3675,39 +3675,39 @@ static inline void build_state_action_match_to_c_file(const FklGrammer *g,
         FklStrBuilder *build) {
     switch (ac->match.t) {
     case FKL_TERM_KEYWORD:
-        CB_FMT("(matchLen=match_char_buf_end_with_terminal(\"");
+        SB_FMT("(matchLen=match_char_buf_end_with_terminal(\"");
         build_string_in_hex(ac->match.str, build);
-        CB_FMT("\",%" PRIu64
+        SB_FMT("\",%" PRIu64
                ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,ctx,start))",
                 ac->match.str->size);
         break;
     case FKL_TERM_STRING:
-        CB_FMT("(matchLen=fklCharBufMatch(\"");
+        SB_FMT("(matchLen=fklCharBufMatch(\"");
         build_string_in_hex(ac->match.str, build);
-        CB_FMT("\",%" PRIu64
+        SB_FMT("\",%" PRIu64
                ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len))>=0",
                 ac->match.str->size);
         break;
     case FKL_TERM_REGEX: {
         uint64_t num = 0;
         fklGetStringWithRegex(&g->regexes, ac->match.re, &num);
-        CB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
-        CB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
-        CB_FMT(",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
+        SB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
+        SB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
+        SB_FMT(",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
     } break;
     case FKL_TERM_BUILTIN:
         build_builtin_term_match_cond(&ac->match.func, g, build);
         break;
     case FKL_TERM_EOF:
-        CB_FMT("(matchLen=1)");
+        SB_FMT("(matchLen=1)");
         break;
     case FKL_TERM_IGNORE:
-        CB_FMT("(!is_waiting_for_more&&(matchLen=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more)))");
+        SB_FMT("(!is_waiting_for_more&&(matchLen=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more)))");
         break;
     case FKL_TERM_COMP: {
         uint64_t id = get_composite_entry(comps, &ac->match.comp);
         FKL_ASSERT(id > 0);
-        CB_FMT("(matchLen=match_composite_%" PRIu64
+        SB_FMT("(matchLen=match_composite_%" PRIu64
                "(start,*in+otherMatchLen+skip_ignore_len,*restLen-"
                "otherMatchLen-skip_ignore_len,ctx,&is_waiting_for_more,NULL,0))>=0",
                 id);
@@ -3725,49 +3725,49 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
         const char *ast_destroyer_name,
         const GraCompHashMap *comps,
         FklStrBuilder *build) {
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("int is_waiting_for_more = 0;");
-        CB_LINE("(void)is_waiting_for_more;");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("int is_waiting_for_more = 0;");
+        SB_LINE("(void)is_waiting_for_more;");
         switch (ac->action) {
         case FKL_ANALYSIS_SHIFT:
             if (ac->match.t != FKL_TERM_COMP) {
-                CB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
+                SB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
                         "});",
                         ac->state - states);
-                CB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbols,NULL)");
-                CB_INDENT(flag) {
-                    CB_LINE(",*in+skip_ignore_len");
-                    CB_LINE(",matchLen");
-                    CB_LINE(",ctx->line");
-                    CB_LINE(",skip_ignore_len>0");
-                    CB_LINE(",ctx->ctx);");
+                SB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbols,NULL)");
+                SB_INDENT(flag) {
+                    SB_LINE(",*in+skip_ignore_len");
+                    SB_LINE(",matchLen");
+                    SB_LINE(",ctx->line");
+                    SB_LINE(",skip_ignore_len>0");
+                    SB_LINE(",ctx->ctx);");
                 }
             } else {
                 for (size_t i = 0; i < ac->match.comp.len; ++i) {
-                    CB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
+                    SB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_%" PRIu64
                             "});",
                             ac->state - states);
                 }
 
                 uint64_t id = get_composite_entry(comps, &ac->match.comp);
-                CB_LINE("match_composite_%" PRIu64 "(start", id);
-                CB_INDENT(flag) {
-                    CB_LINE(",*in+skip_ignore_len");
-                    CB_LINE(",matchLen");
-                    CB_LINE(",ctx");
-                    CB_LINE(",&is_waiting_for_more");
-                    CB_LINE(",symbols");
-                    CB_LINE(",skip_ignore_len>0);");
+                SB_LINE("match_composite_%" PRIu64 "(start", id);
+                SB_INDENT(flag) {
+                    SB_LINE(",*in+skip_ignore_len");
+                    SB_LINE(",matchLen");
+                    SB_LINE(",ctx");
+                    SB_LINE(",&is_waiting_for_more");
+                    SB_LINE(",symbols");
+                    SB_LINE(",skip_ignore_len>0);");
                 }
             }
 
-            CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
-            CB_LINE("*in+=matchLen+skip_ignore_len;");
-            CB_LINE("*restLen-=matchLen+skip_ignore_len;");
+            SB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen+skip_ignore_len,'\\n');");
+            SB_LINE("*in+=matchLen+skip_ignore_len;");
+            SB_LINE("*restLen-=matchLen+skip_ignore_len;");
             break;
         case FKL_ANALYSIS_ACCEPT:
-            CB_LINE("*accept=1;");
+            SB_LINE("*accept=1;");
             break;
         case FKL_ANALYSIS_REDUCE: {
 
@@ -3775,76 +3775,76 @@ static inline void build_state_action_to_c_file(FklValueTable *t,
                     fklComputeProdActualLen(ac->prod->len, ac->prod->syms);
 
             if (actual_len) {
-                CB_LINE("size_t line=fklGetFirstNthLine(symbols,%" PRIu64
+                SB_LINE("size_t line=fklGetFirstNthLine(symbols,%" PRIu64
                         ",ctx->line);",
                         actual_len);
             } else {
-                CB_LINE("size_t line=ctx->line;");
+                SB_LINE("size_t line=ctx->line;");
             }
 
-            CB_LINE("stateStack->size-=%" PRIu64 ";", actual_len);
-            CB_LINE("symbols->size-=%" PRIu64 ";", actual_len);
-            CB_LINE("FklAnalysisSymbol* base=&symbols->base[symbols->size];");
+            SB_LINE("stateStack->size-=%" PRIu64 ";", actual_len);
+            SB_LINE("symbols->size-=%" PRIu64 ";", actual_len);
+            SB_LINE("FklAnalysisSymbol* base=&symbols->base[symbols->size];");
 
-            CB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
-            CB_LINE("FklParseState nextState={.func=NULL};");
-            CB_LINE("func(NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu32
+            SB_LINE("FklStateFuncPtr func=fklParseStateVectorBackNonNull(stateStack)->func;");
+            SB_LINE("FklParseState nextState={.func=NULL};");
+            SB_LINE("func(NULL,NULL,0,%s,FKL_MAKE_VM_FIX(%" PRIu32
                     "),&nextState,NULL,NULL,NULL,NULL,NULL,NULL);",
                     actual_len ? "base[0].start_with_ignore" : "0",
                     fklValueTableAdd(t, ac->prod->left));
-            CB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
-            CB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
+            SB_LINE("if(nextState.func == NULL) return FKL_PARSE_REDUCE_FAILED;");
+            SB_LINE("fklParseStateVectorPushBack(stateStack,&nextState);");
 
-            CB_LINE("void* ast=prod_action_%s(NULL,ctx->ctx,base,%" PRIu64
+            SB_LINE("void* ast=prod_action_%s(NULL,ctx->ctx,base,%" PRIu64
                     ",line);\n",
                     ac->prod->print_name,
                     actual_len);
 
             if (actual_len) {
-                CB_LINE("for(size_t i=0;i<%" PRIu64 ";i++) %s(base[i].ast);",
+                SB_LINE("for(size_t i=0;i<%" PRIu64 ";i++) %s(base[i].ast);",
                         actual_len,
                         ast_destroyer_name);
             }
-            CB_LINE("if(!ast) {");
-            CB_INDENT(flag) {
-                CB_LINE("*output_line=line;");
-                CB_LINE("return FKL_PARSE_REDUCE_FAILED;");
+            SB_LINE("if(!ast) {");
+            SB_INDENT(flag) {
+                SB_LINE("*output_line=line;");
+                SB_LINE("return FKL_PARSE_REDUCE_FAILED;");
             }
-            CB_LINE("}");
+            SB_LINE("}");
 
-            CB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbols,NULL),FKL_MAKE_VM_FIX(%" PRIu32
+            SB_LINE("fklInitNontermAnalysisSymbol(fklAnalysisSymbolVectorPushBack(symbols,NULL),FKL_MAKE_VM_FIX(%" PRIu32
                     "),ast,%s,line);",
                     fklValueTableAdd(t, ac->prod->left),
                     actual_len ? "base[0].start_with_ignore" : "0");
         } break;
         case FKL_ANALYSIS_IGNORE:
-            CB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen,'\\n');");
-            CB_LINE("*in+=matchLen;");
-            CB_LINE("*restLen-=matchLen;");
-            CB_LINE("goto action_match_start;");
+            SB_LINE("ctx->line+=fklCountCharInBuf(*in,matchLen,'\\n');");
+            SB_LINE("*in+=matchLen;");
+            SB_LINE("*restLen-=matchLen;");
+            SB_LINE("goto action_match_start;");
             break;
         }
-        CB_LINE("return 0;");
+        SB_LINE("return 0;");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 static inline void build_state_prototype_to_c_file(
         const FklAnalysisState *states,
         size_t idx,
         FklStrBuilder *build) {
-    CB_LINE_START("static int state_%" PRIu64 "(FklParseStateVector*", idx);
-    CB_LINE(",FklAnalysisSymbolVector*");
-    CB_LINE(",int");
-    CB_LINE(",uint8_t");
-    CB_LINE(",struct FklVMvalue*");
-    CB_LINE(",FklParseState* pfunc");
-    CB_LINE(",const char*");
-    CB_LINE(",const char**");
-    CB_LINE(",size_t*");
-    CB_LINE(",FklGrammerMatchCtx*");
-    CB_LINE(",int*");
-    CB_LINE_END(",size_t*);");
+    SB_LINE_START("static int state_%" PRIu64 "(FklParseStateVector*", idx);
+    SB_LINE(",FklAnalysisSymbolVector*");
+    SB_LINE(",int");
+    SB_LINE(",uint8_t");
+    SB_LINE(",struct FklVMvalue*");
+    SB_LINE(",FklParseState* pfunc");
+    SB_LINE(",const char*");
+    SB_LINE(",const char**");
+    SB_LINE(",size_t*");
+    SB_LINE(",FklGrammerMatchCtx*");
+    SB_LINE(",int*");
+    SB_LINE_END(",size_t*);");
 }
 
 static inline void build_state_to_c_file(FklValueTable *t,
@@ -3855,125 +3855,125 @@ static inline void build_state_to_c_file(FklValueTable *t,
         const char *ast_destroyer_name,
         FklStrBuilder *build) {
     const FklAnalysisState *state = &states[idx];
-    CB_LINE("static int state_%" PRIu64 "(FklParseStateVector* stateStack",
+    SB_LINE("static int state_%" PRIu64 "(FklParseStateVector* stateStack",
             idx);
-    CB_INDENT(flag) {
-        CB_LINE(",FklAnalysisSymbolVector* symbols");
-        CB_LINE(",int is_action");
-        CB_LINE(",uint8_t start_with_ignore");
-        CB_LINE(",struct FklVMvalue* left");
-        CB_LINE(",FklParseState* pfunc");
-        CB_LINE(",const char* start");
-        CB_LINE(",const char** in");
-        CB_LINE(",size_t* restLen");
-        CB_LINE(",FklGrammerMatchCtx* ctx");
-        CB_LINE(",int* accept");
-        CB_LINE(",size_t* output_line) {");
+    SB_INDENT(flag) {
+        SB_LINE(",FklAnalysisSymbolVector* symbols");
+        SB_LINE(",int is_action");
+        SB_LINE(",uint8_t start_with_ignore");
+        SB_LINE(",struct FklVMvalue* left");
+        SB_LINE(",FklParseState* pfunc");
+        SB_LINE(",const char* start");
+        SB_LINE(",const char** in");
+        SB_LINE(",size_t* restLen");
+        SB_LINE(",FklGrammerMatchCtx* ctx");
+        SB_LINE(",int* accept");
+        SB_LINE(",size_t* output_line) {");
     }
 
-    CB_INDENT(flag) {
-        CB_LINE("if(is_action){");
-        CB_INDENT(flag) {
-            CB_LINE("int is_waiting_for_more=0;");
-            CB_LINE("(void)is_waiting_for_more;");
+    SB_INDENT(flag) {
+        SB_LINE("if(is_action){");
+        SB_INDENT(flag) {
+            SB_LINE("int is_waiting_for_more=0;");
+            SB_LINE("(void)is_waiting_for_more;");
             for (const FklAnalysisStateAction *ac = state->state.action; ac;
                     ac = ac->next)
                 if (ac->action == FKL_ANALYSIS_IGNORE) {
-                    CB_FMT("action_match_start:;\n");
+                    SB_FMT("action_match_start:;\n");
                     break;
                 }
-            CB_LINE("int has_tried_match_ignore;");
-            CB_LINE("ssize_t matchLen=0;");
-            CB_LINE("ssize_t ignore_len=-1;");
-            CB_LINE("size_t skip_ignore_len;");
-            CB_LINE("size_t otherMatchLen=0;");
-            CB_LINE("(void)ignore_len;");
-            CB_LINE("(void)has_tried_match_ignore;");
-            CB_LINE("(void)skip_ignore_len;");
-            CB_LINE("");
+            SB_LINE("int has_tried_match_ignore;");
+            SB_LINE("ssize_t matchLen=0;");
+            SB_LINE("ssize_t ignore_len=-1;");
+            SB_LINE("size_t skip_ignore_len;");
+            SB_LINE("size_t otherMatchLen=0;");
+            SB_LINE("(void)ignore_len;");
+            SB_LINE("(void)has_tried_match_ignore;");
+            SB_LINE("(void)skip_ignore_len;");
+            SB_LINE("");
             const FklAnalysisStateAction *ac = state->state.action;
             if (ac) {
                 uint32_t allow_ignore_label_count = 0;
                 for (; ac; ac = ac->next) {
-                    CB_LINE("skip_ignore_len=0;");
-                    CB_LINE("has_tried_match_ignore=0;");
+                    SB_LINE("skip_ignore_len=0;");
+                    SB_LINE("has_tried_match_ignore=0;");
                     uint32_t cur_allow_ignore_label_num = 0;
                     if (ac->match.allow_ignore
                             && ac->action != FKL_ANALYSIS_IGNORE) {
                         cur_allow_ignore_label_num = allow_ignore_label_count++;
-                        CB_FMT("allow_ignore_label%u:\n",
+                        SB_FMT("allow_ignore_label%u:\n",
                                 cur_allow_ignore_label_num);
                     }
-                    CB_LINE_START("if(");
+                    SB_LINE_START("if(");
                     build_state_action_match_to_c_file(g, ac, comps, build);
-                    CB_LINE_END(")");
+                    SB_LINE_END(")");
                     build_state_action_to_c_file(t,
                             ac,
                             states,
                             ast_destroyer_name,
                             comps,
                             build);
-                    CB_LINE("else if(is_waiting_for_more)");
-                    CB_INDENT(flags) {
-                        CB_LINE("goto return_is_waiting_for_more;");
+                    SB_LINE("else if(is_waiting_for_more)");
+                    SB_INDENT(flags) {
+                        SB_LINE("goto return_is_waiting_for_more;");
                     }
                     if (ac->match.allow_ignore
                             && ac->action != FKL_ANALYSIS_IGNORE) {
-                        CB_LINE("else if(!has_tried_match_ignore && ((ignore_len==-1 ");
-                        CB_INDENT(flag) {
-                            CB_LINE("&& (ignore_len=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more))>0)");
-                            CB_LINE_START("|| ignore_len>0)");
+                        SB_LINE("else if(!has_tried_match_ignore && ((ignore_len==-1 ");
+                        SB_INDENT(flag) {
+                            SB_LINE("&& (ignore_len=match_ignore(ctx,*in+otherMatchLen,*restLen-otherMatchLen,&is_waiting_for_more))>0)");
+                            SB_LINE_START("|| ignore_len>0)");
                         }
-                        CB_LINE_END(") {");
-                        CB_INDENT(flag) {
-                            CB_LINE("has_tried_match_ignore=1;");
-                            CB_LINE("skip_ignore_len=(size_t)ignore_len;");
-                            CB_LINE("goto allow_ignore_label%u;",
+                        SB_LINE_END(") {");
+                        SB_INDENT(flag) {
+                            SB_LINE("has_tried_match_ignore=1;");
+                            SB_LINE("skip_ignore_len=(size_t)ignore_len;");
+                            SB_LINE("goto allow_ignore_label%u;",
                                     cur_allow_ignore_label_num);
                         }
-                        CB_LINE("}");
-                        CB_LINE("");
+                        SB_LINE("}");
+                        SB_LINE("");
                     }
                 }
-                CB_FMT("return_is_waiting_for_more:\n");
-                CB_LINE("return (is_waiting_for_more||(*restLen && *restLen==skip_ignore_len))?FKL_PARSE_WAITING_FOR_MORE:FKL_PARSE_TERMINAL_MATCH_FAILED;");
+                SB_FMT("return_is_waiting_for_more:\n");
+                SB_LINE("return (is_waiting_for_more||(*restLen && *restLen==skip_ignore_len))?FKL_PARSE_WAITING_FOR_MORE:FKL_PARSE_TERMINAL_MATCH_FAILED;");
             } else
-                CB_LINE("return FKL_PARSE_TERMINAL_MATCH_FAILED;");
-            CB_LINE("(void)otherMatchLen;");
+                SB_LINE("return FKL_PARSE_TERMINAL_MATCH_FAILED;");
+            SB_LINE("(void)otherMatchLen;");
         }
-        CB_LINE("}else{");
-        CB_INDENT(flag) {
+        SB_LINE("}else{");
+        SB_INDENT(flag) {
             const FklAnalysisStateGoto *gt = state->state.gt;
             if (gt) {
-                CB_LINE("if(0){}");
+                SB_LINE("if(0){}");
                 for (; gt; gt = gt->next) {
                     if (!gt->allow_ignore) {
-                        CB_LINE("else if(!start_with_ignore&&left==FKL_MAKE_VM_FIX(%" PRIu32
+                        SB_LINE("else if(!start_with_ignore&&left==FKL_MAKE_VM_FIX(%" PRIu32
                                 ")/* %s */){",
                                 fklValueTableAdd(t, gt->nt),
                                 FKL_VM_SYM(gt->nt)->str);
                     } else {
-                        CB_LINE("else if(left==FKL_MAKE_VM_FIX(%" PRIu32
+                        SB_LINE("else if(left==FKL_MAKE_VM_FIX(%" PRIu32
                                 ")/* %s */){",
                                 fklValueTableAdd(t, gt->nt),
                                 FKL_VM_SYM(gt->nt)->str);
                     }
-                    CB_INDENT(flag) {
-                        CB_LINE("pfunc->func=state_%" PRIu64 ";",
+                    SB_INDENT(flag) {
+                        SB_LINE("pfunc->func=state_%" PRIu64 ";",
                                 gt->state - states);
-                        CB_LINE("return 0;");
+                        SB_LINE("return 0;");
                     }
-                    CB_LINE("}");
+                    SB_LINE("}");
                 }
-                CB_LINE("else return FKL_PARSE_REDUCE_FAILED;");
+                SB_LINE("else return FKL_PARSE_REDUCE_FAILED;");
             } else
-                CB_LINE("return FKL_PARSE_REDUCE_FAILED;");
+                SB_LINE("return FKL_PARSE_REDUCE_FAILED;");
         }
-        CB_LINE("}");
-        CB_LINE("return 0;");
+        SB_LINE("}");
+        SB_LINE("return 0;");
     }
-    CB_LINE("}");
-    CB_LINE("");
+    SB_LINE("}");
+    SB_LINE("");
 }
 
 // builtin match method unordered set
@@ -4035,12 +4035,12 @@ static inline int build_builtin_term_args(const FklStringVector *lines,
             return -1;
         }
 
-        CB_LINE_START(",const char* ");
+        SB_LINE_START(",const char* ");
         fklStrBuilderWrite(build, name_len, name_pos);
-        CB_LINE_END("");
-        CB_LINE_START(",size_t ");
+        SB_LINE_END("");
+        SB_LINE_START(",size_t ");
         fklStrBuilderWrite(build, name_len, name_pos);
-        CB_LINE_END("_size");
+        SB_LINE_END("_size");
     }
 
     return 0;
@@ -4050,33 +4050,33 @@ FKL_NODISCARD
 static inline int build_builtin_term_lines(const FklStrView *name,
         const FklStringVector *lines,
         FklStrBuilder *build) {
-    CB_LINE_START("static int ");
+    SB_LINE_START("static int ");
     fklStrBuilderWrite(build, name->len, name->str);
-    CB_LINE_END("(const FklGrammer* g");
+    SB_LINE_END("(const FklGrammer* g");
 
-    CB_INDENT(flags) {
-        CB_LINE(",const char* cstrStart");
-        CB_LINE(",const char* cstr");
-        CB_LINE(",size_t restLen");
-        CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",FklGrammerMatchCtx* ctx");
-        CB_LINE(",int* is_waiting_for_more");
+    SB_INDENT(flags) {
+        SB_LINE(",const char* cstrStart");
+        SB_LINE(",const char* cstr");
+        SB_LINE(",size_t restLen");
+        SB_LINE(",ssize_t* pmatchLen");
+        SB_LINE(",FklGrammerMatchCtx* ctx");
+        SB_LINE(",int* is_waiting_for_more");
         int r = build_builtin_term_args(lines, build);
-        CB_LINE(")");
+        SB_LINE(")");
         if (r < 0) {
             return -1;
         }
     }
 
-    CB_LINE("{");
-    CB_INDENT(flags) { CB_LINE("FKL_ASSERT(g == NULL);"); }
+    SB_LINE("{");
+    SB_INDENT(flags) { SB_LINE("FKL_ASSERT(g == NULL);"); }
 
     for (size_t i = 0; i < lines->size; ++i) {
         const FklString *cur = lines->base[i];
         fklStrBuilderWrite(build, cur->size, cur->str);
     }
 
-    CB_LINE("}");
+    SB_LINE("}");
 
     return 0;
 }
@@ -4117,7 +4117,7 @@ static inline int build_all_builtin_match_func(const FklGrammer *g,
             *err = key;
             break;
         }
-        CB_LINE("");
+        SB_LINE("");
     }
 
     graBtmHashSetUninit(&builtin_match_method_table_set);
@@ -4131,41 +4131,41 @@ static void build_composite(const FklGrammer *g,
         FklStrBuilder *build) {
     const FklGrammerSym *parts = c->parts;
     size_t len = c->len;
-    CB_LINE("static ssize_t match_composite_%" PRIu64 "(const char* start", id);
-    CB_INDENT(flag) {
-        CB_LINE(",const char* cstr");
-        CB_LINE(",size_t rest_len");
-        CB_LINE(",FklGrammerMatchCtx* ctx");
-        CB_LINE(",int* p_is_waiting_for_more");
-        CB_LINE(",FklAnalysisSymbolVector *symbols");
-        CB_LINE(",uint8_t start_with_ignore)");
+    SB_LINE("static ssize_t match_composite_%" PRIu64 "(const char* start", id);
+    SB_INDENT(flag) {
+        SB_LINE(",const char* cstr");
+        SB_LINE(",size_t rest_len");
+        SB_LINE(",FklGrammerMatchCtx* ctx");
+        SB_LINE(",int* p_is_waiting_for_more");
+        SB_LINE(",FklAnalysisSymbolVector *symbols");
+        SB_LINE(",uint8_t start_with_ignore)");
     }
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("size_t total=0;");
-        CB_LINE("const char** in=&cstr;");
-        CB_LINE("size_t* restLen=&rest_len;");
-        CB_LINE("size_t otherMatchLen=0;");
-        CB_LINE("ssize_t matchLen=0;");
-        CB_LINE("int is_waiting_for_more=0;");
-        CB_LINE("size_t const skip_ignore_len = 0;");
-        CB_LINE("size_t line = ctx->line;");
-        CB_LINE("(void)skip_ignore_len;");
-        CB_LINE("(void)line;");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("size_t total=0;");
+        SB_LINE("const char** in=&cstr;");
+        SB_LINE("size_t* restLen=&rest_len;");
+        SB_LINE("size_t otherMatchLen=0;");
+        SB_LINE("ssize_t matchLen=0;");
+        SB_LINE("int is_waiting_for_more=0;");
+        SB_LINE("size_t const skip_ignore_len = 0;");
+        SB_LINE("size_t line = ctx->line;");
+        SB_LINE("(void)skip_ignore_len;");
+        SB_LINE("(void)line;");
         for (size_t k = 0; k < len; k++) {
             const FklGrammerSym *p = &parts[k];
             switch (p->type) {
             case FKL_TERM_STRING:
-                CB_LINE_START("if((matchLen=fklCharBufMatch(\"");
+                SB_LINE_START("if((matchLen=fklCharBufMatch(\"");
                 build_string_in_hex(p->str, build);
-                CB_LINE_END("\",%" PRIu64 ",*in+otherMatchLen,*restLen-"
+                SB_LINE_END("\",%" PRIu64 ",*in+otherMatchLen,*restLen-"
                             "otherMatchLen))<0) goto fail;",
                         p->str->size);
                 break;
             case FKL_TERM_REGEX: {
                 uint64_t renum = 0;
                 fklGetStringWithRegex(&g->regexes, p->re, &renum);
-                CB_LINE("if(!regex_lex_match_for_parser_in_c((const "
+                SB_LINE("if(!regex_lex_match_for_parser_in_c((const "
                         "FklRegexCode*)&" PRINT_C_REGEX_PREFIX "%" PRIX64
                         ",*in+otherMatchLen,*restLen-"
                         "otherMatchLen,&matchLen,"
@@ -4173,53 +4173,53 @@ static void build_composite(const FklGrammer *g,
                         renum);
             } break;
             case FKL_TERM_BUILTIN: {
-                CB_LINE_START("if(!");
+                SB_LINE_START("if(!");
                 build_builtin_term_match_cond(&p->b, g, build);
-                CB_LINE_END(") goto fail;");
+                SB_LINE_END(") goto fail;");
             } break;
             default:
                 FKL_UNREACHABLE();
                 break;
             }
 
-            CB_LINE("if(symbols == NULL)");
-            CB_LINE("{");
-            CB_INDENT(flags) { CB_LINE("total+=matchLen;"); }
-            CB_LINE("} else {");
+            SB_LINE("if(symbols == NULL)");
+            SB_LINE("{");
+            SB_INDENT(flags) { SB_LINE("total+=matchLen;"); }
+            SB_LINE("} else {");
 
-            CB_INDENT(flags) {
-                CB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbols,NULL)");
-                CB_INDENT(flag) {
-                    CB_LINE(",cstr+otherMatchLen");
-                    CB_LINE(",matchLen");
-                    CB_LINE(",line");
+            SB_INDENT(flags) {
+                SB_LINE("init_term_analyzing_symbol(fklAnalysisSymbolVectorPushBack(symbols,NULL)");
+                SB_INDENT(flag) {
+                    SB_LINE(",cstr+otherMatchLen");
+                    SB_LINE(",matchLen");
+                    SB_LINE(",line");
                     if (k > 0) {
-                        CB_LINE(",0");
+                        SB_LINE(",0");
                     } else {
-                        CB_LINE(",start_with_ignore");
+                        SB_LINE(",start_with_ignore");
                     }
-                    CB_LINE(",ctx->ctx);");
-                    CB_LINE("line += fklCountCharInBuf(cstr+otherMatchLen, matchLen, '\\n');");
+                    SB_LINE(",ctx->ctx);");
+                    SB_LINE("line += fklCountCharInBuf(cstr+otherMatchLen, matchLen, '\\n');");
                 }
             }
 
-            CB_LINE("}");
+            SB_LINE("}");
 
-            CB_LINE("otherMatchLen+=matchLen;");
+            SB_LINE("otherMatchLen+=matchLen;");
         }
-        CB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
-        CB_LINE("return (ssize_t)total;");
+        SB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
+        SB_LINE("return (ssize_t)total;");
         fklStrBuilderUnindent(build);
-        CB_LINE("fail:");
+        SB_LINE("fail:");
         fklStrBuilderIndent(build);
-        CB_LINE("if(symbols != NULL)");
-        CB_INDENT(flag) { CB_LINE("FKL_UNREACHABLE();"); }
+        SB_LINE("if(symbols != NULL)");
+        SB_INDENT(flag) { SB_LINE("FKL_UNREACHABLE();"); }
 
-        CB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
-        CB_LINE("return -1;");
+        SB_LINE("*p_is_waiting_for_more|=is_waiting_for_more;");
+        SB_LINE("return -1;");
     }
-    CB_LINE("}");
-    CB_LINE("");
+    SB_LINE("}");
+    SB_LINE("");
 }
 
 static void build_all_composites(const FklGrammer *g,
@@ -4244,59 +4244,59 @@ static void build_all_composites(const FklGrammer *g,
 static inline void build_all_regex(const FklRegexTable *rt,
         FklStrBuilder *build) {
     for (const FklStrRegexHashMapNode *l = rt->str_re.first; l; l = l->next) {
-        CB_LINE("static const ");
+        SB_LINE("static const ");
         fklRegexBuildAsCwithNum(l->v.re, PRINT_C_REGEX_PREFIX, l->v.num, build);
-        CB_LINE("");
+        SB_LINE("");
     }
 }
 
 static inline void build_regex_lex_match_for_parser_in_c_to_c_file(
         FklStrBuilder *build) {
-    CB_LINE("static inline int");
-    CB_LINE("regex_lex_match_for_parser_in_c(const FklRegexCode* re,");
-    CB_INDENT(flag) {
-        CB_LINE("const char* cstr,");
-        CB_LINE("size_t restLen,");
-        CB_LINE("ssize_t* matchLen,");
-        CB_LINE("int* is_waiting_for_more)");
+    SB_LINE("static inline int");
+    SB_LINE("regex_lex_match_for_parser_in_c(const FklRegexCode* re,");
+    SB_INDENT(flag) {
+        SB_LINE("const char* cstr,");
+        SB_LINE("size_t restLen,");
+        SB_LINE("ssize_t* matchLen,");
+        SB_LINE("int* is_waiting_for_more)");
     }
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("int last_is_true=0;");
-        CB_LINE("size_t len=fklRegexLexMatchp(re,cstr,restLen,&last_is_true);");
-        CB_LINE("if(len>restLen) {");
-        CB_INDENT(flag) {
-            CB_LINE("*is_waiting_for_more|=last_is_true;");
-            CB_LINE("return 0;");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("int last_is_true=0;");
+        SB_LINE("size_t len=fklRegexLexMatchp(re,cstr,restLen,&last_is_true);");
+        SB_LINE("if(len>restLen) {");
+        SB_INDENT(flag) {
+            SB_LINE("*is_waiting_for_more|=last_is_true;");
+            SB_LINE("return 0;");
         }
-        CB_LINE("}");
-        CB_LINE("*matchLen=len;");
-        CB_LINE("return 1;");
+        SB_LINE("}");
+        SB_LINE("*matchLen=len;");
+        SB_LINE("return 1;");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 static inline void build_init_term_analyzing_symbol_src(FklStrBuilder *build,
         const char *name) {
-    CB_LINE("static inline void");
-    CB_LINE("init_term_analyzing_symbol(FklAnalysisSymbol* sym,");
-    CB_INDENT(flag) {
-        CB_LINE("const char* s,");
-        CB_LINE("size_t len,");
-        CB_LINE("size_t line,");
-        CB_LINE("uint8_t start_with_ignore,");
-        CB_LINE("void* ctx)");
+    SB_LINE("static inline void");
+    SB_LINE("init_term_analyzing_symbol(FklAnalysisSymbol* sym,");
+    SB_INDENT(flag) {
+        SB_LINE("const char* s,");
+        SB_LINE("size_t len,");
+        SB_LINE("size_t line,");
+        SB_LINE("uint8_t start_with_ignore,");
+        SB_LINE("void* ctx)");
     }
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("void* ast=%s(s,len,line,ctx);", name);
-        CB_LINE("sym->nt=NULL;");
-        CB_LINE("sym->ast=ast;");
-        CB_LINE("sym->start_with_ignore=start_with_ignore;");
-        CB_LINE("sym->line=line;");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("void* ast=%s(s,len,line,ctx);", name);
+        SB_LINE("sym->nt=NULL;");
+        SB_LINE("sym->ast=ast;");
+        SB_LINE("sym->start_with_ignore=start_with_ignore;");
+        SB_LINE("sym->line=line;");
     }
-    CB_LINE("}");
-    CB_LINE("");
+    SB_LINE("}");
+    SB_LINE("");
 }
 
 static inline void build_ignore_sym_match_to_c_file(
@@ -4305,18 +4305,18 @@ static inline void build_ignore_sym_match_to_c_file(
         FklStrBuilder *build) {
     switch (sym->term_type) {
     case FKL_TERM_STRING:
-        CB_FMT("(matchLen=fklCharBufMatch(\"");
+        SB_FMT("(matchLen=fklCharBufMatch(\"");
         build_string_in_hex(sym->str, build);
-        CB_FMT("\",%" PRIu64
+        SB_FMT("\",%" PRIu64
                ",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len))>=0",
                 sym->str->size);
         break;
     case FKL_TERM_REGEX: {
         uint64_t num = 0;
         fklGetStringWithRegex(&g->regexes, sym->re, &num);
-        CB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
-        CB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
-        CB_FMT(",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
+        SB_FMT("regex_lex_match_for_parser_in_c((const FklRegexCode*)&");
+        SB_FMT(PRINT_C_REGEX_PREFIX "%" PRIX64, num);
+        SB_FMT(",*in+otherMatchLen+skip_ignore_len,*restLen-otherMatchLen-skip_ignore_len,&matchLen,&is_waiting_for_more)");
     } break;
     case FKL_TERM_BUILTIN:
         build_builtin_term_match_cond(&sym->b, g, build);
@@ -4337,54 +4337,54 @@ static inline void build_ignore(uint64_t number,
         const FklGrammerIgnore *ig,
         const FklGrammer *g,
         FklStrBuilder *build) {
-    CB_LINE("static inline int match_ignore_%" PRIu64 "(const char* start",
+    SB_LINE("static inline int match_ignore_%" PRIu64 "(const char* start",
             number);
-    CB_INDENT(flag) {
-        CB_LINE(",const char* cstr");
-        CB_LINE(",size_t restLen_");
-        CB_LINE(",ssize_t* pmatchLen");
-        CB_LINE(",int* pis_waiting_for_more");
-        CB_LINE(",FklGrammerMatchCtx* ctx)");
+    SB_INDENT(flag) {
+        SB_LINE(",const char* cstr");
+        SB_LINE(",size_t restLen_");
+        SB_LINE(",ssize_t* pmatchLen");
+        SB_LINE(",int* pis_waiting_for_more");
+        SB_LINE(",FklGrammerMatchCtx* ctx)");
     }
-    CB_LINE("{");
-    CB_INDENT(flag) {
-        CB_LINE("int is_waiting_for_more=0;");
-        CB_LINE("if(restLen_) {");
+    SB_LINE("{");
+    SB_INDENT(flag) {
+        SB_LINE("int is_waiting_for_more=0;");
+        SB_LINE("if(restLen_) {");
         if (ig->len == 0) {
-            CB_LINE("*pmatchLen=0;");
-            CB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
-            CB_LINE("return 1;");
+            SB_LINE("*pmatchLen=0;");
+            SB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
+            SB_LINE("return 1;");
         }
 
-        CB_INDENT(flag) {
-            CB_LINE("size_t otherMatchLen=0;");
-            CB_LINE("const char** in=&cstr;");
-            CB_LINE("ssize_t matchLen=0;");
-            CB_LINE("size_t skip_ignore_len=0;");
-            CB_LINE("size_t* restLen=&restLen_;");
+        SB_INDENT(flag) {
+            SB_LINE("size_t otherMatchLen=0;");
+            SB_LINE("const char** in=&cstr;");
+            SB_LINE("ssize_t matchLen=0;");
+            SB_LINE("size_t skip_ignore_len=0;");
+            SB_LINE("size_t* restLen=&restLen_;");
             for (size_t i = 0; i < ig->len; ++i) {
-                CB_LINE_START("if(");
+                SB_LINE_START("if(");
                 build_ignore_sym_match_to_c_file(&ig->ig[i], g, build);
-                CB_LINE_END(") {");
-                CB_INDENT(flag) { CB_LINE("otherMatchLen+=matchLen;"); }
-                CB_LINE("} else {");
-                CB_INDENT(flag) {
-                    CB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
-                    CB_LINE("return 0;");
+                SB_LINE_END(") {");
+                SB_INDENT(flag) { SB_LINE("otherMatchLen+=matchLen;"); }
+                SB_LINE("} else {");
+                SB_INDENT(flag) {
+                    SB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
+                    SB_LINE("return 0;");
                 }
-                CB_LINE("}");
-                CB_LINE("");
+                SB_LINE("}");
+                SB_LINE("");
             }
 
-            CB_LINE("*pmatchLen=otherMatchLen;");
-            CB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
-            CB_LINE("return 1;");
+            SB_LINE("*pmatchLen=otherMatchLen;");
+            SB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
+            SB_LINE("return 1;");
         }
-        CB_LINE("}");
-        CB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
-        CB_LINE("return 0;");
+        SB_LINE("}");
+        SB_LINE("*pis_waiting_for_more=is_waiting_for_more;");
+        SB_LINE("return 0;");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 }
 
 static inline void build_all_ignores(const FklGrammer *g,
@@ -4392,7 +4392,7 @@ static inline void build_all_ignores(const FklGrammer *g,
     uint64_t number = 0;
     for (const FklGrammerIgnore *ig = g->ignores; ig; ig = ig->next, ++number) {
         build_ignore(number, ig, g, build);
-        CB_LINE("");
+        SB_LINE("");
     }
 }
 
@@ -4408,10 +4408,10 @@ int fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
 
     FklStrBuilder *const build = &builder;
 
-    CB_LINE("// Do not edit!");
-    CB_LINE("");
-    CB_LINE("#include <fakeLisp/grammer.h>");
-    CB_LINE("#include <fakeLisp/utils.h>");
+    SB_LINE("// Do not edit!");
+    SB_LINE("");
+    SB_LINE("#include <fakeLisp/grammer.h>");
+    SB_LINE("#include <fakeLisp/utils.h>");
 
 #define BUFFER_SIZE (512)
     char buffer[BUFFER_SIZE];
@@ -4419,31 +4419,31 @@ int fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     while ((size = fread(buffer, 1, BUFFER_SIZE, action_src_fp)))
         fwrite(buffer, size, 1, fp);
 #undef BUFFER_SIZE
-    CB_LINE("");
+    SB_LINE("");
 
-    CB_LINE("");
-    CB_LINE("");
+    SB_LINE("");
+    SB_LINE("");
     build_init_term_analyzing_symbol_src(build, ast_creator_name);
 
     build_match_ignore_prototype_to_c_file(build);
 
-    CB_LINE("");
+    SB_LINE("");
 
     if (g->sorted_delimiters
             || g->sorted_delimiters_num != g->terminals.count) {
         build_get_max_non_term_length_prototype_to_c_file(build);
-        CB_LINE("");
+        SB_LINE("");
     }
 
     if (g->regexes.num) {
         build_all_regex(&g->regexes, build);
         build_regex_lex_match_for_parser_in_c_to_c_file(build);
-        CB_LINE("");
+        SB_LINE("");
     }
 
     if (g->sorted_delimiters_num != g->terminals.count) {
         build_match_char_buf_end_with_terminal_prototype_to_c_file(build);
-        CB_LINE("");
+        SB_LINE("");
     }
 
     FklStrView err = { 0 };
@@ -4462,12 +4462,12 @@ int fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     if (g->sorted_delimiters
             || g->sorted_delimiters_num != g->terminals.count) {
         build_get_max_non_term_length_to_c_file(g, build);
-        CB_LINE("");
+        SB_LINE("");
     }
 
     if (g->sorted_delimiters_num != g->terminals.count) {
         build_match_char_buf_end_with_terminal_to_c_file(build);
-        CB_LINE("");
+        SB_LINE("");
     }
 
     build_match_ignore_to_c_file(g, build);
@@ -4476,11 +4476,11 @@ int fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     graCompHashMapInit(&comps);
 
     build_all_composites(g, &comps, build);
-    CB_LINE("");
+    SB_LINE("");
 
     for (size_t i = 0; i < stateNum; i++)
         build_state_prototype_to_c_file(states, i, build);
-    CB_LINE("");
+    SB_LINE("");
 
     FklValueTable t;
     fklInitValueTable(&t);
@@ -4496,13 +4496,13 @@ int fklPrintAnalysisTableAsCfunc(const FklGrammer *g,
     fklUninitValueTable(&t);
     graCompHashMapUninit(&comps);
 
-    CB_LINE("void %s(FklParseStateVector* "
+    SB_LINE("void %s(FklParseStateVector* "
             "stateStack){",
             state_0_push_func_name);
-    CB_INDENT(flag) {
-        CB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_0});");
+    SB_INDENT(flag) {
+        SB_LINE("fklParseStateVectorPushBack2(stateStack,(FklParseState){.func=state_0});");
     }
-    CB_LINE("}");
+    SB_LINE("}");
 
     return 0;
 }
@@ -4578,21 +4578,21 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
         FklStrBuilder *build) {
     const FklGrammerIgnore *ig = g->ignores;
     for (; ig; ig = ig->next) {
-        CB_LINE_START("");
+        SB_LINE_START("");
         for (size_t i = 0; i < ig->len; i++) {
             const FklGrammerIgnoreSym *u = &ig->ig[i];
             switch (u->term_type) {
             case FKL_TERM_BUILTIN: {
-                CB_FMT("%s", u->b.t->name);
+                SB_FMT("%s", u->b.t->name);
                 if (u->b.len) {
-                    CB_FMT("[");
+                    SB_FMT("[");
                     size_t i = 0;
                     for (; i < u->b.len - 1; ++i) {
                         fklPrintStringLiteral2(u->b.args[i], build);
-                        CB_FMT(" , ");
+                        SB_FMT(" , ");
                     }
                     fklPrintSymbolLiteral2(u->b.args[i], build);
-                    CB_FMT("]");
+                    SB_FMT("]");
                 }
             } break;
 
@@ -4606,9 +4606,9 @@ void fklPrintGrammerIgnores(const FklGrammer *g,
                 FKL_UNREACHABLE();
                 break;
             }
-            CB_FMT(" ");
+            SB_FMT(" ");
         }
-        CB_LINE_END("");
+        SB_LINE_END("");
     }
 }
 
@@ -4619,26 +4619,26 @@ void fklPrintGrammerProduction(FklVM *vm,
     if (!is_Sq_nt(prod->left)) {
         fklPrin1VMvalue2(prod->left, build, vm);
     } else {
-        CB_FMT("S'");
+        SB_FMT("S'");
     }
-    CB_FMT(" -> ");
+    SB_FMT(" -> ");
     size_t len = prod->len;
     const FklGrammerSym *syms = prod->syms;
     for (size_t i = 0; i < len;) {
-        CB_FMT(" ");
+        SB_FMT(" ");
         print_prod_sym(vm, &syms[i], rt, build);
         if (syms[i].type == FKL_TERM_COMP) {
             i += 1 + syms[i].comp.len;
             if (i < len && syms[i].type == FKL_TERM_IGNORE)
                 i++;
             else if (i < len)
-                CB_FMT(" .. ");
+                SB_FMT(" .. ");
             continue;
         }
 
         ++i;
         if (i < len && syms[i].type != FKL_TERM_IGNORE) {
-            CB_FMT(" .. ");
+            SB_FMT(" .. ");
         } else {
             ++i;
         }

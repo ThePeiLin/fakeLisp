@@ -107,21 +107,21 @@ static inline void print_lib_name(FklVM *vm,
         const FklVMvalueLib *l,
         uint64_t id,
         FklStrBuilder *build) {
-    CB_FMT("lib ");
+    SB_FMT("lib ");
     fklPrin1VMvalue2(l->name, build, vm);
-    CB_LINE(" (%" PRIu64 "):", id);
+    SB_LINE(" (%" PRIu64 "):", id);
 }
 
 static inline void
 print_export_symbols(FklVM *vm, const FklVMvalueLib *l, FklStrBuilder *build) {
-    CB_LINE("export symbols %" PRIu32 ":", l->count);
-    CB_INDENT(flag) {
+    SB_LINE("export symbols %" PRIu32 ":", l->count);
+    SB_INDENT(flag) {
         int digits_count = fklComputeDigitsCount(l->count);
         FklVMvalue *const *names = fklVMvalueLibNames(l);
         for (size_t i = 0; i < l->count; ++i) {
-            CB_LINE_START("%-*zu:\t", digits_count, i + 1);
+            SB_LINE_START("%-*zu:\t", digits_count, i + 1);
             fklPrin1VMvalue2(names[i], build, vm);
-            CB_LINE_END("");
+            SB_LINE_END("");
         }
     }
 }
@@ -133,13 +133,13 @@ static inline void print_lib_table(FklVM *vm,
     for (const FklValueIdHashMapNode *cur = fklLibTableFirst(lib_table); cur;
             cur = cur->next) {
         const FklVMvalueLib *l = fklVMvalueLib(cur->k);
-        CB_LINE("");
+        SB_LINE("");
         uint64_t id = cur->v;
         print_lib_name(vm, l, id, build);
         print_export_symbols(vm, l, build);
 
         if (l->proc == NULL) {
-            CB_LINE("<external>");
+            SB_LINE("<external>");
             continue;
         }
 
@@ -152,12 +152,12 @@ static inline void print_lib_table(FklVM *vm,
                 do_gather_statistics(FKL_VM_CO(FKL_VM_PROC(l->proc)->bcl),
                         opcode_count);
         } else if (FKL_IS_SYM(l->proc)) {
-            CB_LINE("%s", FKL_VM_SYM(l->proc)->str);
+            SB_LINE("%s", FKL_VM_SYM(l->proc)->str);
         } else {
             FKL_UNREACHABLE();
         }
 
-        CB_LINE("");
+        SB_LINE("");
     }
 }
 
@@ -223,28 +223,28 @@ int main(int argc, char **argv) {
             fklInitStrBuilderFp(&builder, stdout, NULL);
             FklStrBuilder *const build = &builder;
 
-            CB_LINE("realpath: %s", rp);
-            CB_LINE("file: %s", filename);
-            CB_LINE("dir: %s", dir);
+            SB_LINE("realpath: %s", rp);
+            SB_LINE("file: %s", filename);
+            SB_LINE("dir: %s", dir);
             fklZfree(dir);
             fklZfree(rp);
 
-            CB_LINE("");
+            SB_LINE("");
 
-            CB_LINE("main func:");
+            SB_LINE("main func:");
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
 
-            CB_LINE("");
+            SB_LINE("");
 
             print_lib_table(vm, &lib_table, opcode_count, build);
 
-            CB_LINE("\nobarray:");
+            SB_LINE("\nobarray:");
 
             fklPrintObarray(vm, gc->obarray, build);
 
-            CB_LINE("\nkeywords:");
+            SB_LINE("\nkeywords:");
             fklPrintObarray(vm, gc->keywords, build);
 
             fklUninitLibTable(&lib_table);
@@ -304,13 +304,13 @@ int main(int argc, char **argv) {
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
 
-            CB_LINE("dir: %s", dir);
+            SB_LINE("dir: %s", dir);
             print_lib_name(vm, lib, 0, build);
             print_export_symbols(vm, lib, build);
             FKL_DIS_PROC(vm, proc, build, .lib_table = &lib_table);
             if (stats->count > 0)
                 do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
-            CB_LINE("");
+            SB_LINE("");
             if (cg_lib->macros) {
                 print_compiler_macros(vm,
                         cg_lib->macros,
@@ -327,15 +327,15 @@ int main(int argc, char **argv) {
             if (cg_lib->replacements->ht.buckets)
                 print_replacements(vm, cg_lib->replacements, build);
             if (!cg_lib->macros && !cg_lib->rmacros)
-                CB_LINE("");
-            CB_LINE("");
+                SB_LINE("");
+            SB_LINE("");
 
             print_lib_table(vm, &lib_table, opcode_count, build);
 
-            CB_LINE("\nobarray:");
+            SB_LINE("\nobarray:");
             fklPrintObarray(vm, gc->obarray, build);
 
-            CB_LINE("\nkeywords:");
+            SB_LINE("\nkeywords:");
             fklPrintObarray(vm, gc->keywords, build);
 
         precompile_exit:
@@ -364,15 +364,15 @@ static inline void print_compiler_macro(FklVM *vm,
         FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
-    CB_LINE_START("pattern:\t");
+    SB_LINE_START("pattern:\t");
     fklPrin1VMvalue2(cur->pattern, build, vm);
-    CB_LINE_END("");
+    SB_LINE_END("");
 
     const FklVMvalueProc *proc = FKL_VM_PROC(cur->proc);
     FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
     if (stats->count > 0)
         do_gather_statistics(FKL_VM_CO(proc->bcl), opcode_count);
-    CB_LINE("");
+    SB_LINE("");
 }
 
 static void print_compiler_macros_list(FklVM *vm,
@@ -382,7 +382,7 @@ static void print_compiler_macros_list(FklVM *vm,
         const FklLibTable *lib_table) {
     if (macros_list == FKL_VM_NIL)
         return;
-    CB_LINE("\ncompiler macros:");
+    SB_LINE("\ncompiler macros:");
     for (const FklVMvalue *cur_pair = macros_list; FKL_IS_PAIR(cur_pair);
             cur_pair = FKL_VM_CDR(cur_pair)) {
         print_compiler_macro(vm,
@@ -399,7 +399,7 @@ static void print_reader_macro_action(FklVM *vm,
         const FklLibTable *lib_table) {
     FKL_ASSERT(act != NULL);
     if (fklIsVMvalueCustomActCtx(act)) {
-        CB_LINE_END("custom");
+        SB_LINE_END("custom");
         FklVMvalueCustomActCtx *ctx = fklVMvalueCustomActCtx(act);
         const FklVMvalueProc *proc = FKL_VM_PROC(ctx->proc);
         FKL_DIS_PROC(vm, proc, build, .indents = 1, .lib_table = lib_table);
@@ -407,7 +407,7 @@ static void print_reader_macro_action(FklVM *vm,
         fklPrin1VMvalue2(fklVMvalueSimpleActCtx(act)->vec, build, vm);
     } else {
         fklPrin1VMvalue2(act, build, vm);
-        CB_LINE_END("");
+        SB_LINE_END("");
     }
 }
 
@@ -422,7 +422,7 @@ static void print_prod_sym(FklVM *vm,
         break;
 
     case FKL_TERM_IGNORE:
-        CB_FMT("?e");
+        SB_FMT("?e");
         break;
     case FKL_TERM_BUILTIN:
     case FKL_TERM_STRING:
@@ -431,12 +431,12 @@ static void print_prod_sym(FklVM *vm,
         break;
 
     case FKL_TERM_KEYWORD:
-        CB_FMT(":keyword ");
+        SB_FMT(":keyword ");
         fklPrin1VMvalue2(sym->v, build, vm);
         break;
 
     case FKL_TERM_REGEX:
-        CB_FMT(":regex ");
+        SB_FMT(":regex ");
         fklPrin1VMvalue2(sym->v, build, vm);
         break;
 
@@ -444,7 +444,7 @@ static void print_prod_sym(FklVM *vm,
         size_t len = (size_t)FKL_GET_FIX(sym->v);
         for (size_t i = 0; i < len; i++) {
             if (i)
-                CB_FMT("..");
+                SB_FMT("..");
             FKL_ASSERT(&sym[i + 1] < end);
             print_prod_sym(vm, &sym[i + 1], end, build);
         }
@@ -466,14 +466,14 @@ static void print_reader_macro_prod_syms(FklVM *vm,
             if (i < len && prod->syms[i].type == FKL_TERM_IGNORE)
                 i++;
             else if (i < len)
-                CB_FMT(" .. ");
+                SB_FMT(" .. ");
             continue;
         }
 
         ++i;
         if (!is_ignore && i < prod->len
                 && prod->syms[i].type != FKL_TERM_IGNORE) {
-            CB_FMT(" .. ");
+            SB_FMT(" .. ");
         } else {
             ++i;
         }
@@ -489,11 +489,11 @@ static void print_reader_macros(FklVM *vm,
 
     if (ht->ht.count == 0)
         return;
-    CB_LINE("\nreader macros:");
+    SB_LINE("\nreader macros:");
     for (const FklValueHashMapNode *l = ht->ht.first; l; l = l->next) {
-        CB_LINE_START("group name: ");
+        SB_LINE_START("group name: ");
         fklPrin1VMvalue2(l->k, build, vm);
-        CB_LINE_END("");
+        SB_LINE_END("");
 
         FklVMvalueCgRmacro *rmacro = fklVMvalueCgRmacro(l->v);
 
@@ -505,41 +505,41 @@ static void print_reader_macros(FklVM *vm,
                 FKL_UNREACHABLE();
 
             case FKL_CG_RMACRO_ADD_DELIM:
-                CB_LINE_START(":delim ");
+                SB_LINE_START(":delim ");
                 fklPrin1VMvalue2(cmd->args, build, vm);
-                CB_LINE_END("");
+                SB_LINE_END("");
                 break;
             case FKL_CG_RMACRO_ADD_IGNORE: {
-                CB_LINE_START(":ignore ");
+                SB_LINE_START(":ignore ");
                 prod = fklVMvalueCgRmacroProd(cmd->args);
                 print_reader_macro_prod_syms(vm, prod, build, 1);
-                CB_LINE_END("");
+                SB_LINE_END("");
             } break;
 
             case FKL_CG_RMACRO_ADD_PROD:
                 prod = fklVMvalueCgRmacroProd(cmd->args);
-                CB_LINE_START("");
+                SB_LINE_START("");
                 if (prod->left == FKL_VM_NIL) {
-                    CB_FMT(":s-exp");
+                    SB_FMT(":s-exp");
                 } else {
                     fklPrin1VMvalue2(prod->left, build, vm);
                 }
 
                 if (prod->add_extra) {
-                    CB_FMT(" :s-exp");
+                    SB_FMT(" :s-exp");
                 }
-                CB_FMT(" -> ");
+                SB_FMT(" -> ");
 
                 print_reader_macro_prod_syms(vm, prod, build, 1);
-                CB_FMT(" => ");
+                SB_FMT(" => ");
                 fklPrincVMvalue2(prod->action_type, build, vm);
-                CB_FMT(" ");
+                SB_FMT(" ");
                 print_reader_macro_action(vm, prod->action, build, lib_table);
                 break;
             }
         }
 
-        CB_LINE("");
+        SB_LINE("");
     }
 }
 
@@ -548,14 +548,14 @@ static void print_replacements(FklVM *vm,
         FklStrBuilder *build) {
     if (replacements->ht.count == 0)
         return;
-    CB_LINE("\nreplacements:");
+    SB_LINE("\nreplacements:");
     for (const FklValueHashMapNode *cur = replacements->ht.first; cur;
             cur = cur->next) {
-        CB_LINE_START("");
+        SB_LINE_START("");
         fklPrin1VMvalue2(cur->k, build, vm);
-        CB_FMT(" => ");
+        SB_FMT(" => ");
         FklVMvalue *v = fklVMvalueCgRpl(cur->v)->value;
         fklPrin1VMvalue2(v, build, vm);
-        CB_LINE_END("");
+        SB_LINE_END("");
     }
 }

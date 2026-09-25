@@ -25,13 +25,13 @@ static inline int print_single_ins(FklVM *vm,
     FklOpcodeMode mode = fklGetOpcodeMode(op);
 
     for (int i = 0; i < indents; ++i) {
-        CB_FMT("%s", indent_str);
+        SB_FMT("%s", indent_str);
     }
 
-    CB_FMT("%-*" PRIu64 ":", digits_count, i);
-    CB_LINE_START("%s", fklGetOpcodeName(op));
+    SB_FMT("%-*" PRIu64 ":", digits_count, i);
+    SB_LINE_START("%s", fklGetOpcodeName(op));
 
-    CB_FMT(" ");
+    SB_FMT(" ");
 
     FklInsArg ins_arg = { 0 };
     int len = fklGetInsOpArg(ins, &ins_arg);
@@ -41,12 +41,12 @@ static inline int print_single_ins(FklVM *vm,
         goto end;
     switch (op) {
     case FKL_OP_PUSH_CONST: {
-        CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
+        SB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrin1VMvalue2(konsts[ins_arg.ux], build, vm);
     } break;
 
     case FKL_OP_PUSH_CHAR: {
-        CB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
+        SB_FMT("%" PRIu64 "\t#\t", ins_arg.ux);
         fklPrin1VMvalue2(FKL_MAKE_VM_CHR(ins_arg.ux), build, vm);
     } break;
 
@@ -57,15 +57,15 @@ static inline int print_single_ins(FklVM *vm,
     case FKL_OP_BYTES:
     case FKL_OP_BOX:
     case FKL_OP_HASH:
-        CB_FMT("::%s", fklGetSubOpcodeName(op, (int8_t)ins_arg.ix));
+        SB_FMT("::%s", fklGetSubOpcodeName(op, (int8_t)ins_arg.ix));
         break;
     case FKL_OP_LOAD_LIB:
-        CB_FMT("%" PRIu64, ins_arg.ux);
+        SB_FMT("%" PRIu64, ins_arg.ux);
         if (lib_table != NULL) {
             FklVMvalueLib *const *libs = fklVMvalueProtoUsedLibs(pt);
             const FklVMvalueLib *l = libs[ins_arg.ux];
             uint64_t id = fklLibTableGet(lib_table, l);
-            CB_FMT("\t#\t lib %" PRIu64 "", id);
+            SB_FMT("\t#\t lib %" PRIu64 "", id);
         }
         break;
 
@@ -76,33 +76,33 @@ static inline int print_single_ins(FklVM *vm,
         case FKL_OP_MODE_IsC:
         case FKL_OP_MODE_IsBB:
         case FKL_OP_MODE_IsCCB:
-            CB_FMT("%" PRId64, ins_arg.ix);
+            SB_FMT("%" PRId64, ins_arg.ix);
             break;
         case FKL_OP_MODE_IuB:
         case FKL_OP_MODE_IuC:
         case FKL_OP_MODE_IuBB:
         case FKL_OP_MODE_IuCCB:
-            CB_FMT("%" PRIu64, ins_arg.ux);
+            SB_FMT("%" PRIu64, ins_arg.ux);
             break;
         case FKL_OP_MODE_IsAuB:
-            CB_FMT("%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
+            SB_FMT("%" PRId64 "\t%" PRIu64, ins_arg.ix, ins_arg.uy);
             break;
         case FKL_OP_MODE_IuAuB:
         case FKL_OP_MODE_IuCuC:
         case FKL_OP_MODE_IuCAuBB:
-            CB_FMT("%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
+            SB_FMT("%" PRIu64 "\t%" PRIu64, ins_arg.ux, ins_arg.uy);
             break;
         case FKL_OP_MODE_I:
             break;
 
         case FKL_OP_MODE_IxAxB:
-            CB_FMT("%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
+            SB_FMT("%#" PRIx64 "\t%#" PRIx64, ins_arg.ux, ins_arg.uy);
             break;
         }
         break;
     }
 end:
-    CB_LINE_END("");
+    SB_LINE_END("");
     return len;
 }
 
@@ -153,7 +153,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
                         lib_table);
             }
 
-            CB_INDENT(flag) {
+            SB_INDENT(flag) {
                 disassemble_byte_code_lnt(vm,
                         digits_count,
                         bcl,
@@ -188,7 +188,7 @@ void fklDisassembleByteCodelnt(FklVM *vm,
                                    : "    ";
     const FklLibTable *lib_table = args ? args->lib_table : NULL;
     uint64_t i = 0;
-    CB_INDENT(flag) {
+    SB_INDENT(flag) {
         disassemble_byte_code_lnt(vm,
                 digits_count,
                 bcl,
@@ -217,7 +217,7 @@ void fklDisassembleProc(FklVM *vm,
     const FklLibTable *lib_table = args ? args->lib_table : NULL;
     int digits_count = fklComputeDigitsCount(bcl->bc.len);
     uint64_t i = 0;
-    CB_INDENT(flag) {
+    SB_INDENT(flag) {
         disassemble_byte_code_lnt(vm,
                 digits_count,
                 bcl,
@@ -238,15 +238,15 @@ void fklPrintObarray(FklVM *vm,
 
     int digits_count = fklComputeDigitsCount(a->map.count);
 
-    CB_LINE("count:\t%" PRIu32 "", a->map.count);
+    SB_LINE("count:\t%" PRIu32 "", a->map.count);
 
     size_t i = 0;
     for (const FklStrValueHashMapNode *cur = a->map.first; cur;
             cur = cur->next) {
 
-        CB_LINE_START("%-*zu:\t", digits_count, i + 1);
+        SB_LINE_START("%-*zu:\t", digits_count, i + 1);
         fklPrin1VMvalue2(cur->v, build, vm);
-        CB_LINE_END("");
+        SB_LINE_END("");
 
         ++i;
     }

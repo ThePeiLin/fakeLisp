@@ -5,13 +5,13 @@
 extern "C" {
 #endif
 
-#define CB_LINE(...) fklStrBuilderLine(build, __VA_ARGS__)
-#define CB_FMT(...) fklStrBuilderFmt(build, __VA_ARGS__)
+#define SB_LINE(...) fklStrBuilderLine(build, __VA_ARGS__)
+#define SB_FMT(...) fklStrBuilderFmt(build, __VA_ARGS__)
 
-#define CB_LINE_START(...) fklStrBuilderLineStart(build, __VA_ARGS__)
-#define CB_LINE_END(...) fklStrBuilderLineEnd(build, __VA_ARGS__)
+#define SB_LINE_START(...) fklStrBuilderLineStart(build, __VA_ARGS__)
+#define SB_LINE_END(...) fklStrBuilderLineEnd(build, __VA_ARGS__)
 
-#define CB_INDENT(flag)                                                        \
+#define SB_INDENT(flag)                                                        \
     for (uint8_t flag = (fklStrBuilderIndent(build), 0); flag < 1;             \
             fklStrBuilderUnindent(build), ++flag)
 

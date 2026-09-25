@@ -1,7 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bytecode.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/dis.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/value_table.h>
@@ -17,7 +17,7 @@ static inline int print_single_ins(FklVM *vm,
         const FklIns *ins,
         uint64_t i,
         const FklVMvalueProto *pt,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         int indents,
         const char *indent_str,
         const FklLibTable *lib_table) {
@@ -114,7 +114,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
         const FklIns *end,
         const FklVMvalueProto *pt,
         uint64_t i,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         int indents,
         const char *indent_str,
         const FklLibTable *lib_table) {
@@ -179,7 +179,7 @@ static inline void disassemble_byte_code_lnt(FklVM *vm,
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklVMvalueProto *pt,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const FklDisArgs *args) {
     int digits_count = fklComputeDigitsCount(bcl->bc.len);
     int indents = args ? args->indents : 0;
@@ -205,7 +205,7 @@ void fklDisassembleByteCodelnt(FklVM *vm,
 
 void fklDisassembleProc(FklVM *vm,
         const FklVMvalueProc *p,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const FklDisArgs *args) {
     const FklVMvalue *co = p->bcl;
     const FklByteCodelnt *bcl = FKL_VM_CO(co);
@@ -234,7 +234,7 @@ void fklDisassembleProc(FklVM *vm,
 
 void fklPrintObarray(FklVM *vm,
         const FklVMvalueObarray *a,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
 
     int digits_count = fklComputeDigitsCount(a->map.count);
 

@@ -1,5 +1,5 @@
 #include <fakeLisp/base.h>
-#include <fakeLisp/code_builder.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -53,22 +53,22 @@ static FklVMudFinalizeResult strbuf_finalize(FklVMvalue *p, FklVMgc *gc) {
 }
 
 static void
-strbuf_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+strbuf_prin1(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) {
     FklStrBuf *bufa = &as_strbuf(ud)->buf;
-    fklCodeBuilderPuts(build, "#<strbuf ");
+    fklStrBuilderPuts(build, "#<strbuf ");
     fklPrintBufLiteralExt(bufa->index, bufa->buf, "\"", "\"", '"', build);
-    fklCodeBuilderPutc(build, '>');
+    fklStrBuilderPutc(build, '>');
 }
 
 static void
-strbuf_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+strbuf_princ(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) {
     FklStrBuf *bufa = &as_strbuf(ud)->buf;
-    fklCodeBuilderWrite(build, bufa->index, bufa->buf);
+    fklStrBuilderWrite(build, bufa->index, bufa->buf);
 }
 
-static void strbuf_write(const FklVMvalue *ud, FklCodeBuilder *build) {
+static void strbuf_write(const FklVMvalue *ud, FklStrBuilder *build) {
     FklStrBuf *buf = &as_strbuf(ud)->buf;
-    fklCodeBuilderWrite(build, buf->index, buf->buf);
+    fklStrBuilderWrite(build, buf->index, buf->buf);
 }
 
 static FklVMvalue *strbuf_append(FklVM *v,
@@ -410,8 +410,8 @@ static int export_strbuf_fmt(FKL_CPROC_ARGL) {
     uint64_t len = 0;
     FklBuiltinErrorType err_type;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &as_strbuf(buf_obj)->buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &as_strbuf(buf_obj)->buf, NULL);
     if (FKL_IS_STR(fmt_obj)) {
         err_type = fklVMformat2(exe,
                 &builder,

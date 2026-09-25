@@ -1,9 +1,9 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/optimizer.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/string_table.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
@@ -189,8 +189,8 @@ static FKL_ALWAYS_INLINE LibPlaceholder *as_lib_placeholder(
 }
 
 static void
-lib_placeholder_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
-    fklCodeBuilderFmt(buf,
+lib_placeholder_print(const FklVMvalue *ud, FklStrBuilder *buf, FklVM *exe) {
+    fklStrBuilderFmt(buf,
             "#<lib-placeholder: %" PRIu_LIBIDX ">",
             as_lib_placeholder(ud)->idx);
 }
@@ -803,17 +803,17 @@ static void traverse_re_export_chain(FklVMvalue *re_exports,
 #define dbg_print_loaded_deps(...) EMPTY_SENT()
 
 #else
-static FklCodeBuilder g_dbg_code_builder;
-static FklCodeBuilder *const g_build = &g_dbg_code_builder;
-#define DBG_INIT() fklInitCodeBuilderFp(&g_dbg_code_builder, stdout, NULL)
-#define DBG_LINE(...) fklCodeBuilderLine(g_build, __VA_ARGS__)
-#define DBG_FMT(...) fklCodeBuilderFmt(g_build, __VA_ARGS__)
-#define DBG_LINE_START(...) fklCodeBuilderLineStart(g_build, __VA_ARGS__)
-#define DBG_LINE_END(...) fklCodeBuilderLineEnd(g_build, __VA_ARGS__)
-#define DBG_PUTS(S) fklCodeBuilderPuts(g_build, (S))
+static FklStrBuilder g_dbg_code_builder;
+static FklStrBuilder *const g_build = &g_dbg_code_builder;
+#define DBG_INIT() fklInitStrBuilderFp(&g_dbg_code_builder, stdout, NULL)
+#define DBG_LINE(...) fklStrBuilderLine(g_build, __VA_ARGS__)
+#define DBG_FMT(...) fklStrBuilderFmt(g_build, __VA_ARGS__)
+#define DBG_LINE_START(...) fklStrBuilderLineStart(g_build, __VA_ARGS__)
+#define DBG_LINE_END(...) fklStrBuilderLineEnd(g_build, __VA_ARGS__)
+#define DBG_PUTS(S) fklStrBuilderPuts(g_build, (S))
 
-#define DBG_INDENT(S) fklCodeBuilderIndent(g_build)
-#define DBG_UNINDENT(S) fklCodeBuilderUnindent(g_build)
+#define DBG_INDENT(S) fklStrBuilderIndent(g_build)
+#define DBG_UNINDENT(S) fklStrBuilderUnindent(g_build)
 
 #define DBG_PRIN1(V) fklPrin1VMvalue2((V), g_build, NULL)
 

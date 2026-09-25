@@ -73,7 +73,7 @@ FklSymDefHashMapElm *fklGetCgDefByIdInScope(FklVMvalue *id,
 
 void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
-        FklCodeBuilder *cb) {
+        FklStrBuilder *cb) {
     FklCgErrorState *error_state = ctx->error_state;
     size_t line = error_state->line;
     FklVMvalue *fid = error_state->fid;
@@ -83,17 +83,17 @@ void fklPrintCgError(FklCgCtx *ctx,
     memset(error_state, 0, sizeof(*error_state));
 
     if (fid) {
-        fklCodeBuilderFmt(cb,
+        fklStrBuilderFmt(cb,
                 "at line %" PRIu64 " of file %s\n",
                 line,
                 FKL_VM_SYM(fid)->str);
     } else if (info->filename) {
-        fklCodeBuilderFmt(cb,
+        fklStrBuilderFmt(cb,
                 "at line %" PRIu64 " of file %s\n",
                 line,
                 info->filename);
     } else {
-        fklCodeBuilderFmt(cb, "at line %" PRIu64 "\n", line);
+        fklStrBuilderFmt(cb, "at line %" PRIu64 "\n", line);
     }
 }
 
@@ -619,18 +619,18 @@ static inline void update_parent_env_proto(const FklVMvalueCgEnv *env,
     child_proc_protos->base[env->proto_id] = FKL_VM_VAL(proto);
 }
 
-void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb) {
+void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklStrBuilder *cb) {
     const FklUnboundVector *urefs = &env->uref;
     for (size_t i = urefs->size; i > 0; i--) {
         FklUnbound *ref = &urefs->base[i - 1];
-        fklCodeBuilderPuts(cb, "warning: Symbol ");
+        fklStrBuilderPuts(cb, "warning: Symbol ");
         fklPrintSymbolLiteral2(FKL_VM_SYM(ref->sid), cb);
-        fklCodeBuilderFmt(cb, " is undefined at line %" PRIu64, ref->line);
+        fklStrBuilderFmt(cb, " is undefined at line %" PRIu64, ref->line);
         if (ref->fid) {
-            fklCodeBuilderPuts(cb, " of ");
+            fklStrBuilderPuts(cb, " of ");
             fklPrintString2(FKL_VM_SYM(ref->fid), cb);
         }
-        fklCodeBuilderPutc(cb, '\n');
+        fklStrBuilderPutc(cb, '\n');
     }
 }
 
@@ -1009,8 +1009,8 @@ static void macro_expand_frame_atomic(void *data, FklVMgc *gc) {
 }
 
 static void
-macro_expand_frame_backtrace(void *data, FklCodeBuilder *build, FklVM *vm) {
-    fklCodeBuilderPuts(build, "<macroexpand>");
+macro_expand_frame_backtrace(void *data, FklStrBuilder *build, FklVM *vm) {
+    fklStrBuilderPuts(build, "<macroexpand>");
 }
 
 static const FklVMframeContextMethodTable MacroExpandMethodTable = {
@@ -3580,8 +3580,8 @@ static inline FklVMvalue *make_dup_prod_rule_error(FklVM *vm,
 
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
     fklPrintGrammerProduction(vm, prod, &g->regexes, &builder);
 
     FklVMvalue *str_v = fklCreateVMvalueStr2(vm, buf.index, buf.buf);
@@ -4826,7 +4826,7 @@ static void cg_lib_atomic(const FklVMvalue *ud, FklVMgc *gc) {
 }
 
 static void
-cg_lib_print(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+cg_lib_print(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) {
     const FklVMvalueCgLib *lib = fklVMvalueCgLib(ud);
     FKL_ASSERT(FKL_IS_SYM(lib->rp));
 

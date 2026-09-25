@@ -31,7 +31,7 @@ FKL_API int fklIsNumberCharBuf(const char *, size_t);
 FKL_API int fklPower(int, int);
 
 FKL_API void fklPrintCharLiteral(int, FILE *);
-FKL_API void fklPrintCharLiteral2(int, FklCodeBuilder *);
+FKL_API void fklPrintCharLiteral2(int, FklStrBuilder *);
 
 FKL_API double fklStringToDouble(const FklString *);
 FKL_API size_t fklWriteDoubleToBuf(char *buf, size_t max, double f64);

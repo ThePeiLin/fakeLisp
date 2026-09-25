@@ -1,7 +1,7 @@
 #ifndef FKL_STR_BUF_H
 #define FKL_STR_BUF_H
 
-#include "code_builder.h"
+#include "str_builder.h"
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -43,7 +43,7 @@ FKL_API
 int fklStrBufCmp(const FklStrBuf *a, const FklStrBuf *b);
 
 FKL_API
-void fklInitCodeBuilderStrBuf(FklCodeBuilder *b,
+void fklInitStrBuilderStrBuf(FklStrBuilder *b,
         FklStrBuf *buf,
         const char *indent_str);
 

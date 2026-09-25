@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
+#include <fakeLisp/str_builder.h>
+
 #include <fakeLisp/cb_helper.h>
-#include <fakeLisp/code_builder.h>
 
 #include <argtable3.h>
 #include <uv.h>
@@ -16,7 +17,7 @@ struct S {
     const char *desc;
 };
 
-static inline void build_str_in_hex(const char *s, FklCodeBuilder *build) {
+static inline void build_str_in_hex(const char *s, FklStrBuilder *build) {
     CB_FMT("\"");
     for (; *s; ++s) {
         CB_FMT("\\x%x", *s);
@@ -26,7 +27,7 @@ static inline void build_str_in_hex(const char *s, FklCodeBuilder *build) {
 
 static inline void build_xx(struct S const cur[],
         size_t count,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         int last_backslash) {
     struct S const *const end = &cur[count];
     for (; cur < end - 1; ++cur) {
@@ -56,7 +57,7 @@ static inline void build_xx(struct S const cur[],
 static inline void build_map_macro(const char *name,
         struct S const symbols[],
         size_t count,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     CB_LINE("#define %s(XX) \\", name);
     CB_INDENT(flag) { build_xx(symbols, count, build, 0); }
 }
@@ -537,7 +538,7 @@ static struct S const fuv_symbols[] = {
     // clang-format on
 };
 
-static inline void build_all_symbols(FklCodeBuilder *build) {
+static inline void build_all_symbols(FklStrBuilder *build) {
     CB_LINE("#define %s(XX) \\", "FUV_SYMBOLS_MAP");
     CB_INDENT(flag) {
         build_xx(fuv_symbols, COUNT(fuv_symbols), build, 1);
@@ -576,7 +577,7 @@ int main(int argc, char *argv[]) {
 
     FILE *output_file = NULL;
     int nerrors = arg_parse(argc, argv, argtable);
-    FklCodeBuilder builder = { 0 };
+    FklStrBuilder builder = { 0 };
 
     if (help->count > 0) {
         printf("Usage: %s", progname);
@@ -600,9 +601,9 @@ int main(int argc, char *argv[]) {
         goto exit;
     }
 
-    fklInitCodeBuilderFp(&builder, output_file, NULL);
+    fklInitStrBuilderFp(&builder, output_file, NULL);
 
-    FklCodeBuilder *build = &builder;
+    FklStrBuilder *build = &builder;
 
     BUILD_MAP_MACRO(FUV_UV_LOOP_MODE_MAP, loop_run_modes, build);
     CB_LINE("");

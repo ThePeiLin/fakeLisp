@@ -206,7 +206,7 @@ typedef struct FklCprocFrameContext {
     } c[3];
 } FklCprocFrameContext;
 
-typedef void (*FklBacktraceCb)(void *data, FklCodeBuilder *build, FklVM *);
+typedef void (*FklBacktraceCb)(void *data, FklStrBuilder *build, FklVM *);
 
 typedef struct {
     int (*step)(void *data, FklVM *);
@@ -468,7 +468,7 @@ typedef FklVMvalue *(*FklVMudAppendCb)(FklVM *vm,
         uint32_t argc,
         FklVMvalue *const *base);
 
-typedef void (*FklVMudPrintCb)(const FklVMvalue *, FklCodeBuilder *, FklVM *);
+typedef void (*FklVMudPrintCb)(const FklVMvalue *, FklStrBuilder *, FklVM *);
 typedef int (*FklVMudEqualCb)(const FklVMvalue *, const FklVMvalue *);
 
 typedef enum {
@@ -488,7 +488,7 @@ typedef struct FklVMudMetaTable {
     FklVMudEqualCb equal;
     void (*call)(FklVMvalue *, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
-    void (*write)(const FklVMvalue *, FklCodeBuilder *);
+    void (*write)(const FklVMvalue *, FklStrBuilder *);
     FklVMudAtomicCb atomic;
     size_t (*length)(const FklVMvalue *);
     void (*update_weak_ref)(const FklVMvalue *ud, FklVMgc *gc);
@@ -507,7 +507,7 @@ FKL_API
 void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
 
 FKL_API
-void fklVMtypePrint(const FklVMvalue *, FklCodeBuilder *, FklVM *);
+void fklVMtypePrint(const FklVMvalue *, FklStrBuilder *, FklVM *);
 
 #ifdef FKL_USING_WIN32
 #define FKL_VM_TYPE_TYPE_ATTR alignas(8)
@@ -671,7 +671,7 @@ typedef struct FklVMgc {
 
     FklVMvalue **builtin_refs;
 
-    FklCodeBuilder err_out;
+    FklStrBuilder err_out;
     uv_mutex_t print_backtrace_lock;
 
     FklVMvalue *seek_set;
@@ -1006,26 +1006,22 @@ FKL_API void fklDestroyAllVMs(FklVM *cur);
 FKL_API void fklDeleteCallChain(FklVM *);
 
 FKL_API
-void fklDBG_printVMstack(FklVM *,
-        uint32_t c,
-        FklCodeBuilder *,
-        int,
-        FklVM *exe);
+void fklDBG_printVMstack(FklVM *, uint32_t c, FklStrBuilder *, int, FklVM *exe);
 
 FKL_API
-void fklDBG_printLinkBacktrace(FklVMframe *t, FklCodeBuilder *, FklVM *exe);
+void fklDBG_printLinkBacktrace(FklVMframe *t, FklStrBuilder *, FklVM *exe);
 
 FKL_API FklVMvalue *fklVMstringify(FklVMvalue *, FklVM *, char mode);
 
 FKL_API void fklPrin1VMvalue(FklVMvalue *, FILE *, FklVM *vm);
-FKL_API void fklPrin1VMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
+FKL_API void fklPrin1VMvalue2(FklVMvalue *, FklStrBuilder *, FklVM *vm);
 
 FKL_API void fklPrincVMvalue(FklVMvalue *, FILE *, FklVM *vm);
-FKL_API void fklPrincVMvalue2(FklVMvalue *, FklCodeBuilder *, FklVM *vm);
+FKL_API void fklPrincVMvalue2(FklVMvalue *, FklStrBuilder *, FklVM *vm);
 
 FKL_API
 FklBuiltinErrorType fklVMformat(FklVM *,
-        FklCodeBuilder *buf,
+        FklStrBuilder *buf,
         const char *fmt,
         uint64_t *plen,
         size_t value_count,
@@ -1033,7 +1029,7 @@ FklBuiltinErrorType fklVMformat(FklVM *,
 
 FKL_API
 FklBuiltinErrorType fklVMformat2(FklVM *,
-        FklCodeBuilder *buf,
+        FklStrBuilder *buf,
         const FklString *fmt,
         uint64_t *plen,
         size_t value_count,
@@ -1041,7 +1037,7 @@ FklBuiltinErrorType fklVMformat2(FklVM *,
 
 FKL_API
 FklBuiltinErrorType fklVMformat3(FklVM *,
-        FklCodeBuilder *result,
+        FklStrBuilder *result,
         size_t fmt_len,
         const char *fmt,
         uint64_t *plen,
@@ -1187,13 +1183,13 @@ int fklIsSerializableToByteCodeFile(const FklVMvalue *first_value,
 FKL_API
 noreturn void fklRaiseVMerror(FklVMvalue *err, FklVM *);
 
-FKL_API void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
-FKL_API void fklPrintIntruptInfo(FklVMvalue *, FklVM *, FklCodeBuilder *fp);
+FKL_API void fklPrintErrBacktrace(FklVMvalue *, FklVM *, FklStrBuilder *fp);
+FKL_API void fklPrintIntruptInfo(FklVMvalue *, FklVM *, FklStrBuilder *fp);
 
 FKL_API
-void fklPrintFrame(const FklVMframe *cur, FklVM *exe, FklCodeBuilder *fp);
+void fklPrintFrame(const FklVMframe *cur, FklVM *exe, FklStrBuilder *fp);
 
-FKL_API void fklPrintBacktrace(FklVM *, FklCodeBuilder *fp);
+FKL_API void fklPrintBacktrace(FklVM *, FklStrBuilder *fp);
 
 FKL_API void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
@@ -1347,7 +1343,7 @@ FklVMvalue *
 fklCreateVMvalueCproc(FklVM *, FklVMcFunc, FklVMvalue *dll, const char *name);
 
 FKL_API
-void fklPrintCprocBacktrace(const char *name, FklCodeBuilder *build);
+void fklPrintCprocBacktrace(const char *name, FklStrBuilder *build);
 
 FKL_API void fklInitVMvalueFp(FklVMvalueFp *vfp, FILE *fp, FklVMfpRW rw);
 FKL_API FklVMvalue *fklCreateVMvalueFp(FklVM *, FILE *, FklVMfpRW);
@@ -1782,7 +1778,7 @@ FKL_API void fklChanlSend(FklVMvalueChanl *, FklVMvalue *msg, FklVM *);
 FKL_API void fklChanlRecv(FklVMvalueChanl *, uint32_t, FklVM *);
 FKL_API int fklChanlRecvOk(FklVMvalueChanl *, FklVMvalue **);
 
-FKL_API int fklWriteVMvalue(const FklVMvalue *v, FklCodeBuilder *fp);
+FKL_API int fklWriteVMvalue(const FklVMvalue *v, FklStrBuilder *fp);
 FKL_API int fklVMvalueLength(const FklVMvalue *v, size_t *len);
 
 FKL_API int fklIsCallable(FklVMvalue *);
@@ -1944,10 +1940,8 @@ static FKL_ALWAYS_INLINE int FKL_IS_NIL(const void *P) {
 }
 
 #define FKL_VM_USER_DATA_DEFAULT_PRINT(NAME, DATA_TYPE_NAME)                   \
-    static void NAME(const FklVMvalue *ud,                                     \
-            FklCodeBuilder *build,                                             \
-            FklVM *exe) {                                                      \
-        fklCodeBuilderFmt(build, "#<%s %p>", DATA_TYPE_NAME, ud);              \
+    static void NAME(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) { \
+        fklStrBuilderFmt(build, "#<%s %p>", DATA_TYPE_NAME, ud);               \
     }
 
 // inlines
@@ -2038,7 +2032,7 @@ FKL_VM_BIGINT_CALL_2R(fklIsVMbigIntAddkInFixIntRange,
         int8_t,
         fklIsBigIntAddkInFixIntRange);
 FKL_VM_BIGINT_CALL_1R(fklCreateBigIntWithVMbigInt, FklBigInt *, fklCopyBigInt);
-FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FklCodeBuilder *, fklPrintBigInt2);
+FKL_VM_BIGINT_CALL_2(fklPrintVMbigInt, FklStrBuilder *, fklPrintBigInt2);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntEqual, int, fklBigIntEqual);
 FKL_VM_CALL_WITH_2_BIR(fklVMbigIntCmp, int, fklBigIntCmp);
 FKL_VM_BIGINT_CALL_2R(fklVMbigIntCmpI, int, int64_t, fklBigIntCmpI);

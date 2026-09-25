@@ -2,12 +2,12 @@
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/readline.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
@@ -31,7 +31,7 @@ static void init_frame_to_repl_frame(FklVM *exe,
         FklCgCtx *cg_ctx,
         FklVMvalueCgInfo *codegen,
         FklVMvalueCgEnv *main_env,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const char *eval_expression,
         int8_t interactive);
 
@@ -222,8 +222,8 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
     if (fixup_result != 0) {
         FklStrBuf buf = { 0 };
         fklInitStrBuf(&buf);
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+        FklStrBuilder builder = { 0 };
+        fklInitStrBuilderStrBuf(&builder, &buf, NULL);
         if (missing_import.size == 1) {
             fklVMformat(&gc->gcvm,
                     &builder,
@@ -635,8 +635,8 @@ static int run_repl(const char *eval_expression, int8_t interactive) {
     FklCgCtx ctx = { 0 };
     fklInitCgCtx(&ctx, NULL, vm);
 
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, stderr, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, stderr, NULL);
 
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
             NULL,
@@ -695,7 +695,7 @@ typedef struct {
     FklParseStateVector states;
     FklAnalysisSymbolVector symbols;
 
-    FklCodeBuilder *build;
+    FklStrBuilder *build;
 } ReplCtx;
 
 typedef struct {
@@ -1053,7 +1053,7 @@ static int repl_frame_step(void *data, FklVM *exe) {
     case WAITING: {
         c->state = READING;
         if (exe->tp - c->sp != 0) {
-            fklCodeBuilderPuts(c->build, RETVAL_PREFIX);
+            fklStrBuilderPuts(c->build, RETVAL_PREFIX);
             fklDBG_printVMstack(exe, exe->tp - c->sp, c->build, 0, exe);
         }
         exe->tp = c->sp;
@@ -1115,8 +1115,8 @@ static int repl_frame_step(void *data, FklVM *exe) {
 }
 
 static void
-repl_frame_print_backtrace(void *data, FklCodeBuilder *fp, FklVM *vm) {
-    fklCodeBuilderPuts(fp, "<repl>");
+repl_frame_print_backtrace(void *data, FklStrBuilder *fp, FklVM *vm) {
+    fklStrBuilderPuts(fp, "<repl>");
 }
 
 static void repl_frame_atomic(void *data, FklVMgc *gc) {
@@ -1151,8 +1151,8 @@ static const FklVMframeContextMethodTable ReplContextMethodTable = {
 };
 
 static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, stderr, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, stderr, NULL);
     fklPrintErrBacktrace(errValue, exe, &builder);
     FklVMframe *main_frame = exe->top_frame;
     if (main_frame->prev) {
@@ -1279,7 +1279,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         FklCgCtx *cg_ctx,
         FklVMvalueCgInfo *codegen,
         FklVMvalueCgEnv *main_env,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const char *eval_expression,
         int8_t interactive) {
     FklVMgc *gc = exe->gc;

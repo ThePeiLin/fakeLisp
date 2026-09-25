@@ -812,23 +812,23 @@ error_happened:
 
 void fklPrintParserGrammerParseError(int err,
         const FklParserGrammerParseArg *arg,
-        FklCodeBuilder *fp) {
+        FklStrBuilder *fp) {
     switch (err) {
     case ERR_UNEXPECTED_TOKEN:
     case ERR_UNRESOLVED_ACTION_NAME:
     case ERR_UNRESOLVED_BUILTIN_TERMINAL:
     case ERR_INVALID_LEFT_PART:
     case ERR_BUILTIN_TERMINAL_INIT_FAILED:
-        fklCodeBuilderFmt(fp, "%s at %zu\n", arg->error_msg.buf, arg->errline);
+        fklStrBuilderFmt(fp, "%s at %zu\n", arg->error_msg.buf, arg->errline);
         break;
     case ERR_UNEXPECTED_EOF:
-        fklCodeBuilderFmt(fp, "unexcpet eof at %zu\n", arg->line);
+        fklStrBuilderFmt(fp, "unexcpet eof at %zu\n", arg->line);
         break;
     case ERR_ADDING_PRODUCTION:
-        fklCodeBuilderFmt(fp, "failed to add production at %zu\n", arg->line);
+        fklStrBuilderFmt(fp, "failed to add production at %zu\n", arg->line);
         break;
     case ERR_ADDING_IGNORE:
-        fklCodeBuilderFmt(fp, "failed to add ignore at %zu\n", arg->line);
+        fklStrBuilderFmt(fp, "failed to add ignore at %zu\n", arg->line);
         break;
     default:
         FKL_UNREACHABLE();

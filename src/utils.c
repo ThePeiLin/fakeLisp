@@ -315,27 +315,27 @@ unsigned int fklGetByteNumOfUtf8(const uint8_t *byte, size_t max) {
 }
 
 void fklPrintCharLiteral(int chr, FILE *out) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, out, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, out, NULL);
     fklPrintCharLiteral2(chr, &builder);
 }
 
-void fklPrintCharLiteral2(int chr, FklCodeBuilder *build) {
-    fklCodeBuilderPuts(build, "#\\");
+void fklPrintCharLiteral2(int chr, FklStrBuilder *build) {
+    fklStrBuilderPuts(build, "#\\");
     if (chr == ' ')
-        fklCodeBuilderPuts(build, "\\s");
+        fklStrBuilderPuts(build, "\\s");
     else if (chr == '\0')
-        fklCodeBuilderPuts(build, "\\0");
-    else if (fklCodeBuilderPutEscSeq(build, chr))
+        fklStrBuilderPuts(build, "\\0");
+    else if (fklStrBuilderPutEscSeq(build, chr))
         ;
     else if (isgraph(chr)) {
         if (chr == '\\')
-            fklCodeBuilderPuts(build, "\\");
+            fklStrBuilderPuts(build, "\\");
         else
-            fklCodeBuilderFmt(build, "%c", chr);
+            fklStrBuilderFmt(build, "%c", chr);
     } else {
         uint8_t j = (uint8_t)chr;
-        fklCodeBuilderFmt(build, "\\x%02X", j);
+        fklStrBuilderFmt(build, "\\x%02X", j);
     }
 }
 

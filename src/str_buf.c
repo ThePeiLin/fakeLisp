@@ -171,15 +171,15 @@ static size_t strbuf_cb_write(void *ctx, size_t len, const void *s) {
     return len;
 }
 
-static const FklCodeBuilderMethodTable strbuf_cb_method_table = {
+static const FklStrBuilderMethodTable strbuf_cb_method_table = {
     .cb_printf = strbuf_cb_printf,
     .cb_puts = strbuf_cb_puts,
     .cb_putc = strbuf_cb_putc,
     .cb_write = strbuf_cb_write,
 };
 
-void fklInitCodeBuilderStrBuf(FklCodeBuilder *b,
+void fklInitStrBuilderStrBuf(FklStrBuilder *b,
         FklStrBuf *fp,
         const char *indent_str) {
-    fklInitCodeBuilder(b, fp, &strbuf_cb_method_table, indent_str);
+    fklInitStrBuilder(b, fp, &strbuf_cb_method_table, indent_str);
 }

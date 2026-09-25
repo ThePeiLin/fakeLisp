@@ -2,9 +2,9 @@
 #define FKL_BASE_H
 
 #include "bigint.h"
-#include "code_builder.h"
 #include "common.h"
 #include "str_buf.h"
+#include "str_builder.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -102,17 +102,17 @@ void fklPrintBufLiteralExt(size_t len,
         const char *begin_str,
         const char *end_str,
         char se,
-        FklCodeBuilder *build);
+        FklStrBuilder *build);
 
-static inline void fklPrintString2(const FklString *str, FklCodeBuilder *b) {
-    fklCodeBuilderPuts(b, str->str);
+static inline void fklPrintString2(const FklString *str, FklStrBuilder *b) {
+    fklStrBuilderPuts(b, str->str);
 }
 
 static inline void fklPrintStrLiteralExt(const char *str,
         const char *begin_str,
         const char *end_str,
         char se,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     fklPrintBufLiteralExt(strlen(str), str, begin_str, end_str, se, build);
 }
 
@@ -120,32 +120,30 @@ static inline void fklPrintStringLiteralExt(const FklString *fstr,
         const char *begin_str,
         const char *end_str,
         char se,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     fklPrintBufLiteralExt(fstr->size, fstr->str, begin_str, end_str, se, build);
 }
 
 static inline void fklPrintSymbolLiteral2(const FklString *fstr,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     fklPrintBufLiteralExt(fstr->size, fstr->str, "|", "|", '|', build);
 }
 
 static inline void fklPrintKeywordLiteral2(const FklString *fstr,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     fklPrintBufLiteralExt(fstr->size, fstr->str, ":|", "|", '|', build);
 }
 
 static inline void fklPrintStringLiteral2(const FklString *fstr,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     fklPrintBufLiteralExt(fstr->size, fstr->str, "\"", "\"", '"', build);
 }
 
-static inline void fklPrintStrLiteral2(const char *fstr,
-        FklCodeBuilder *build) {
+static inline void fklPrintStrLiteral2(const char *fstr, FklStrBuilder *build) {
     fklPrintStrLiteralExt(fstr, "\"", "\"", '"', build);
 }
 
-static inline void fklPrintSymLiteral2(const char *fstr,
-        FklCodeBuilder *build) {
+static inline void fklPrintSymLiteral2(const char *fstr, FklStrBuilder *build) {
     fklPrintStrLiteralExt(fstr, "|", "|", '|', build);
 }
 
@@ -166,7 +164,7 @@ FKL_API int fklBytesEqual(const FklBytes *fir, const FklBytes *sec);
 FKL_API void fklPrintBytesLiteral(const FklBytes *str, FILE *fp);
 
 FKL_API
-void fklPrintBytesLiteral2(const FklBytes *bytes, FklCodeBuilder *build);
+void fklPrintBytesLiteral2(const FklBytes *bytes, FklStrBuilder *build);
 
 FKL_API void fklWriteBytes(const FklBytes *b, FILE *fp);
 FKL_API FklBytes *fklLoadBytes(FILE *fp);
@@ -243,7 +241,7 @@ static FKL_ALWAYS_INLINE uintptr_t fklPtrHash(const void *key) {
 }
 
 FKL_API
-void fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp, const char *indent_str);
+void fklInitStrBuilderFp(FklStrBuilder *b, FILE *fp, const char *indent_str);
 
 #ifdef __cplusplus
 }

@@ -108,7 +108,7 @@ int fklParseProductionRuleWithCharBuf(FklParserGrammerParseArg *arg,
 FKL_API
 void fklPrintParserGrammerParseError(int err,
         const FklParserGrammerParseArg *arg,
-        FklCodeBuilder *cb);
+        FklStrBuilder *cb);
 
 // impl by LLM
 FKL_API

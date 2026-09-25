@@ -14,9 +14,9 @@
 #include <string.h>
 
 static void bdb_step_break_userdata_print(const FklVMvalue *ud,
-        FklCodeBuilder *buf,
+        FklStrBuilder *buf,
         FklVM *exe) {
-    fklCodeBuilderPuts(buf, "#<break>");
+    fklStrBuilderPuts(buf, "#<break>");
 }
 
 FKL_VM_TYPE_ATTR FklVMvalueType BdbStepBreakType =
@@ -688,8 +688,8 @@ FklVMvalue *bdbGetCurBacktrace(DebugCtx *ctx, FklVM *host_vm) {
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
 
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
 
     FklVMvalue *retval = FKL_VM_NIL;
     FklVMvalue **ppcdr = &retval;
@@ -725,8 +725,8 @@ FklVMvalue *bdbErrInfo(DebugCtx *dctx, FklVM *host_vm) {
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
 
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
 
     fklPrintIntruptInfo(bdbUnwrap(dctx->error), dctx->reached_thread, &builder);
 
@@ -828,7 +828,7 @@ void bdbRestartDebugging(DebugCtx *ctx) {
     bdbSetReachedThread(ctx, main_thread);
 }
 
-void bdbStringify(DebugCtx *ctx, BdbWrapper const v, FklCodeBuilder *build) {
+void bdbStringify(DebugCtx *ctx, BdbWrapper const v, FklStrBuilder *build) {
     fklPrin1VMvalue2(bdbUnwrap(v), build, &ctx->gc.gcvm);
 }
 
@@ -883,8 +883,8 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     case FKL_OP_PUSH_CONST: {
         FklStrBuf buf = { 0 };
         fklInitStrBuf(&buf);
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+        FklStrBuilder builder = { 0 };
+        fklInitStrBuilderStrBuf(&builder, &buf, NULL);
         fklPrin1VMvalue2(konsts[arg.ux], &builder, &dctx->gc.gcvm);
         imm1 = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
         fklUninitStrBuf(&buf);
@@ -1187,8 +1187,8 @@ FklVMvalue *bdbCreateBpVec(FklVM *exe, DebugCtx *dctx, const BdbBp *bp) {
     if (bdbHas(bp->cond_exp)) {
         FklStrBuf buf = { 0 };
         fklInitStrBuf(&buf);
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+        FklStrBuilder builder = { 0 };
+        fklInitStrBuilderStrBuf(&builder, &buf, NULL);
         fklPrin1VMvalue2(bdbUnwrap(bp->cond_exp), &builder, &dctx->gc.gcvm);
         exp_str = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
         fklUninitStrBuf(&buf);

@@ -14,7 +14,7 @@ static inline FklVMvalueSlot *as_slot(const FklVMvalue *v) {
 }
 
 static void _slot_userdata_as_print(const FklVMvalue *ud,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         FklVM *exe) {
     FklVMvalueSlot *s = as_slot(ud);
     fklVMformat(exe, build, "#<slot %S>", NULL, 1, (FklVMvalue *[]){ s->s });
@@ -35,8 +35,8 @@ FklVMvalueType SlotType = FKL_VM_TYPE_STATIC_INIT(SlotType,
         });
 
 static void
-header_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
-    fklCodeBuilderPuts(buf, "#<header>");
+header_userdata_print(const FklVMvalue *ud, FklStrBuilder *buf, FklVM *exe) {
+    fklStrBuilderPuts(buf, "#<header>");
 }
 
 FKL_VM_TYPE_ATTR FklVMvalueType HeaderType = FKL_VM_TYPE_STATIC_INIT(HeaderType,

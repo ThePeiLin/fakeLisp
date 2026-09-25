@@ -222,8 +222,8 @@ static int fs_fwrite(FKL_CPROC_ARGL) {
     FILE *fp = FKL_VM_FP(f)->fp;
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **const arg_end = arg_base + argc;
-    FklCodeBuilder b = { 0 };
-    fklInitCodeBuilderFp(&b, fp, NULL);
+    FklStrBuilder b = { 0 };
+    fklInitStrBuilderFp(&b, fp, NULL);
     for (++arg_base; arg_base < arg_end; ++arg_base) {
         r = *arg_base;
         if (fklWriteVMvalue(r, &b)) {
@@ -272,8 +272,8 @@ static int fs_fprintf(FKL_CPROC_ARGL) {
 
     uint64_t len = 0;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 2);
-    FklCodeBuilder b = { 0 };
-    fklInitCodeBuilderFp(&b, FKL_VM_FP(fp)->fp, NULL);
+    FklStrBuilder b = { 0 };
+    fklInitStrBuilderFp(&b, FKL_VM_FP(fp)->fp, NULL);
     FklBuiltinErrorType err_type =
             fklVMformat2(exe, &b, FKL_VM_STR(fmt_obj), &len, argc - 2, start);
     if (err_type)

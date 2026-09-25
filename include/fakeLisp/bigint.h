@@ -1,7 +1,7 @@
 #ifndef FKL_BIGINT_H
 #define FKL_BIGINT_H
 
-#include "code_builder.h"
+#include "str_builder.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -167,7 +167,7 @@ FKL_API size_t fklBigIntToStr(const FklBigInt *a,
         FklBigIntFmtFlags flags);
 
 FKL_API void fklPrintBigInt(const FklBigInt *a, FILE *fp);
-FKL_API void fklPrintBigInt2(const FklBigInt *a, FklCodeBuilder *fp);
+FKL_API void fklPrintBigInt2(const FklBigInt *a, FklStrBuilder *fp);
 
 FKL_API char *
 fklBigIntToCstr(const FklBigInt *a, uint8_t radix, FklBigIntFmtFlags flags);

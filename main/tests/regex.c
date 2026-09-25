@@ -1,6 +1,6 @@
-#include "fakeLisp/code_builder.h"
 #include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/utils.h>
 #include <string.h>
 
@@ -73,9 +73,9 @@ int main() {
         fklRegexPrint(re, stdout);
         size_t pos = 0;
 
-        FklCodeBuilder builder;
-        fklInitCodeBuilderFp(&builder, stdout, NULL);
-        fklCodeBuilderLine(&builder, "str: %s", str);
+        FklStrBuilder builder;
+        fklInitStrBuilderFp(&builder, stdout, NULL);
+        fklStrBuilderLine(&builder, "str: %s", str);
         fklRegexBuildAsC(re, NULL, pattern, pattern_len, &builder);
 
         size_t str_len = strlen(str);

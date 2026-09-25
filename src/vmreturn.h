@@ -33,9 +33,9 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         do_finalize_compound_frame(VM, popFrame(VM));
         return;
     return_value_err: {
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderFp(&builder, stderr, NULL);
-        fklCodeBuilderFmt(&builder,
+        FklStrBuilder builder = { 0 };
+        fklInitStrBuilderFp(&builder, stderr, NULL);
+        fklStrBuilderFmt(&builder,
                 "[%s: %d] %s: the return value count should be 1, but is %u\n",
                 __FILE__,
                 __LINE__,
@@ -64,9 +64,9 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     } break;
     default: {
-        FklCodeBuilder builder = { 0 };
-        fklInitCodeBuilderFp(&builder, stderr, NULL);
-        fklCodeBuilderFmt(&builder,
+        FklStrBuilder builder = { 0 };
+        fklInitStrBuilderFp(&builder, stderr, NULL);
+        fklStrBuilderFmt(&builder,
                 "[%s: %d] %s: unreachable!\n",
                 __FILE__,
                 __LINE__,

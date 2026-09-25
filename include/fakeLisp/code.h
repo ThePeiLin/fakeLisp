@@ -831,10 +831,10 @@ FklCgEnvScope *fklCgEnvScopeGet(const FklVMvalueCgEnv *env, uint32_t scope_id);
 FKL_API
 void fklPrintCgError(FklCgCtx *ctx,
         const FklVMvalueCgInfo *info,
-        FklCodeBuilder *cb);
+        FklStrBuilder *cb);
 
 FKL_API
-void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklCodeBuilder *cb);
+void fklPrintUndefinedRef(const FklVMvalueCgEnv *env, FklStrBuilder *cb);
 
 FKL_API
 FklSymDefHashMapElm *fklAddCgBuiltinRefBySid(FklVMvalue *id,

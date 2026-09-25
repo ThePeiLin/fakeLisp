@@ -815,8 +815,8 @@ obj_to_string(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
         FklStrBuf buf;
         fklInitStrBuf(&buf);
 
-        FklCodeBuilder b = { 0 };
-        fklInitCodeBuilderStrBuf(&b, &buf, NULL);
+        FklStrBuilder b = { 0 };
+        fklInitStrBuilderStrBuf(&b, &buf, NULL);
 
         fklPrincVMvalue2(obj, &b, exe);
 
@@ -1565,7 +1565,7 @@ static int read_frame_step(void *d, FklVM *exe) {
 }
 
 static void
-read_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVM *vm) {
+read_frame_print_backtrace(void *d, FklStrBuilder *build, FklVM *vm) {
     fklPrintCprocBacktrace(((ReadCtx *)d)->name, build);
 }
 
@@ -2446,7 +2446,7 @@ static inline void init_custom_parse_ctx(void *data,
 }
 
 static inline void
-custom_parse_frame_print_backtrace(void *d, FklCodeBuilder *build, FklVM *vm) {
+custom_parse_frame_print_backtrace(void *d, FklStrBuilder *build, FklVM *vm) {
     fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, build);
 }
 
@@ -2769,8 +2769,8 @@ static int builtin_printf(FKL_CPROC_ARGL) {
 
     uint64_t len = 0;
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, stdout, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, stdout, NULL);
     FklBuiltinErrorType err_type = fklVMformat2(exe,
             &builder,
             FKL_VM_STR(fmt_obj),
@@ -2791,8 +2791,8 @@ static int builtin_format(FKL_CPROC_ARGL) {
     FklStrBuf buf;
     fklInitStrBuf(&buf);
     FklVMvalue **start = &FKL_CPROC_GET_ARG(exe, ctx, 1);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
 
     FklBuiltinErrorType err_type = fklVMformat2(exe,
             &builder,
@@ -3266,7 +3266,7 @@ typedef struct {
 FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(EhFrameContext);
 
 static void error_handler_frame_print_backtrace(void *data,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         FklVM *vm) {
     EhFrameContext *c = (EhFrameContext *)data;
     FklVMvalueCproc *cproc = FKL_VM_CPROC(c->proc);
@@ -4082,8 +4082,8 @@ obj_to_bytes(FklVM *exe, FklCprocFrameContext *ctx, FklVMvalue *obj) {
         FklStrBuf buf;
         fklInitStrBuf(&buf);
 
-        FklCodeBuilder b = { 0 };
-        fklInitCodeBuilderStrBuf(&b, &buf, NULL);
+        FklStrBuilder b = { 0 };
+        fklInitStrBuilderStrBuf(&b, &buf, NULL);
 
         fklWriteVMvalue(obj, &b);
 

@@ -1398,13 +1398,13 @@ fklCreateVMvalueBytes2(FklVM *exe, size_t size, const uint8_t *ptr) {
 }
 
 static void
-_error_userdata_princ(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+_error_userdata_princ(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) {
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklPrintString2(FKL_VM_STR(err->message), build);
 }
 
 static void
-_error_userdata_prin1(const FklVMvalue *ud, FklCodeBuilder *build, FklVM *exe) {
+_error_userdata_prin1(const FklVMvalue *ud, FklStrBuilder *build, FklVM *exe) {
     FklVMvalueError *err = FKL_VM_ERR(ud);
     fklVMformat(exe,
             build,
@@ -2000,8 +2000,8 @@ FklVMvalue *fklCreateVMvalueUdSized(FklVM *exe,
 #undef NEW_OBJ
 
 static void
-_eof_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
-    fklCodeBuilderPuts(buf, "#<eof>");
+_eof_userdata_print(const FklVMvalue *ud, FklStrBuilder *buf, FklVM *exe) {
+    fklStrBuilderPuts(buf, "#<eof>");
 }
 
 FKL_VM_TYPE_ATTR
@@ -2027,9 +2027,9 @@ FklVMvalue *fklVMvalueEof(void) {
 }
 
 static void _undefined_userdata_print(const FklVMvalue *ud,
-        FklCodeBuilder *buf,
+        FklStrBuilder *buf,
         FklVM *exe) {
-    fklCodeBuilderPuts(buf, "#<undefined>");
+    fklStrBuilderPuts(buf, "#<undefined>");
 }
 
 FKL_VM_TYPE_ATTR
@@ -2112,17 +2112,17 @@ static inline size_t ud_length(const FklVMvalue *a) {
     return FKL_VM_UD(a)->tp_->mt.length(a);
 }
 
-static inline void write_vm_ud(const FklVMvalue *a, FklCodeBuilder *b) {
+static inline void write_vm_ud(const FklVMvalue *a, FklStrBuilder *b) {
     FKL_VM_UD(a)->tp_->mt.write(a, b);
 }
 
-int fklWriteVMvalue(const FklVMvalue *r, FklCodeBuilder *b) {
+int fklWriteVMvalue(const FklVMvalue *r, FklStrBuilder *b) {
     if (FKL_IS_STR(r)) {
         FklString *str = FKL_VM_STR(r);
-        fklCodeBuilderWrite(b, str->size, str->str);
+        fklStrBuilderWrite(b, str->size, str->str);
     } else if (FKL_IS_BYTES(r)) {
         FklBytes *bvec = FKL_VM_BYTES(r);
-        fklCodeBuilderWrite(b, bvec->size, bvec->ptr);
+        fklStrBuilderWrite(b, bvec->size, bvec->ptr);
     } else if (FKL_IS_USERDATA(r) && is_writable_ud(FKL_VM_UD(r))) {
         write_vm_ud(r, b);
     } else
@@ -2158,7 +2158,7 @@ fklVMvalueTerminalCreate(const char *s, size_t len, size_t line, void *c) {
 }
 
 static void
-_lib_userdata_print(const FklVMvalue *ud, FklCodeBuilder *buf, FklVM *exe) {
+_lib_userdata_print(const FklVMvalue *ud, FklStrBuilder *buf, FklVM *exe) {
     FklBuiltinErrorType r = fklVMformat(exe,
             buf,
             "#<lib %S>",
@@ -2371,9 +2371,9 @@ void fklAtomicVMtype(const FklVMvalue *ud, FklVMgc *gc) {
     fklVMgcToGray(FKL_VM_TYPE(ud)->dll, gc);
 }
 
-void fklVMtypePrint(const FklVMvalue *v, FklCodeBuilder *b, FklVM *exe) {
+void fklVMtypePrint(const FklVMvalue *v, FklStrBuilder *b, FklVM *exe) {
     const FklVMvalueType *t = FKL_VM_TYPE(v);
-    fklCodeBuilderFmt(b, "#<type %s>", t->mt.name);
+    fklStrBuilderFmt(b, "#<type %s>", t->mt.name);
 }
 
 void fklVMtypeCall(FklVMvalue *v, FklVM *vm) { FKL_TODO(); }

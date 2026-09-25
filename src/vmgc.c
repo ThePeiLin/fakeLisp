@@ -462,7 +462,7 @@ void fklInitVMgc(FklVMgc *gc) {
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
     fklInitGlobalVMclosureForGC(gc);
-    fklInitCodeBuilderFp(&gc->err_out, stderr, NULL);
+    fklInitStrBuilderFp(&gc->err_out, stderr, NULL);
 }
 
 FklVMgc *fklCreateVMgc(void) {

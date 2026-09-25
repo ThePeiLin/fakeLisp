@@ -1,9 +1,9 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/bytecode.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/str_buf.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -170,32 +170,32 @@ FklString *fklCreateEmptyString() {
 }
 
 void fklPrintStringLiteral(const FklString *str, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintStringLiteral2(str, &builder);
 }
 
 void fklPrintSymbolLiteral(const FklString *str, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintSymbolLiteral2(str, &builder);
 }
 
 void fklPrintString(const FklString *str, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintString2(str, &builder);
 }
 
 void fklPrintSymLiteral(const char *str, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintSymLiteral2(str, &builder);
 }
 
 void fklPrintStrLiteral(const char *str, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintStrLiteral2(str, &builder);
 }
 
@@ -204,33 +204,33 @@ void fklPrintBufLiteralExt(size_t size,
         const char *begin_str,
         const char *end_str,
         char se,
-        FklCodeBuilder *b) {
-    fklCodeBuilderPuts(b, begin_str);
+        FklStrBuilder *b) {
+    fklStrBuilderPuts(b, begin_str);
     for (size_t i = 0; i < size;) {
         unsigned int l =
                 fklGetByteNumOfUtf8((const uint8_t *)&str[i], size - i);
         if (l == 7) {
-            fklCodeBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
+            fklStrBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
             i++;
         } else if (l == 1) {
             if (str[i] == se) {
-                fklCodeBuilderPutc(b, '\\');
-                fklCodeBuilderPutc(b, se);
+                fklStrBuilderPutc(b, '\\');
+                fklStrBuilderPutc(b, se);
             } else if (str[i] == '\\')
-                fklCodeBuilderPuts(b, "\\\\");
+                fklStrBuilderPuts(b, "\\\\");
             else if (isgraph(str[i]))
-                fklCodeBuilderPutc(b, str[i]);
-            else if (fklCodeBuilderPutEscSeq(b, str[i]))
+                fklStrBuilderPutc(b, str[i]);
+            else if (fklStrBuilderPutEscSeq(b, str[i]))
                 ;
             else
-                fklCodeBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
+                fklStrBuilderFmt(b, "\\x%02X", (uint8_t)str[i]);
             i++;
         } else {
-            fklCodeBuilderWrite(b, l, &str[i]);
+            fklStrBuilderWrite(b, l, &str[i]);
             i += l;
         }
     }
-    fklCodeBuilderPuts(b, end_str);
+    fklStrBuilderPuts(b, end_str);
 }
 
 FklString *fklStringAppend(const FklString *a, const FklString *b) {
@@ -317,31 +317,31 @@ int fklBytesEqual(const FklBytes *fir, const FklBytes *sec) {
 }
 
 void fklPrintBytesLiteral(const FklBytes *bv, FILE *fp) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrintBytesLiteral2(bv, &builder);
 }
 
-void fklPrintBytesLiteral2(const FklBytes *bytes, FklCodeBuilder *b) {
+void fklPrintBytesLiteral2(const FklBytes *bytes, FklStrBuilder *b) {
 #define SE ('"')
-    fklCodeBuilderPuts(b, "#\"");
+    fklStrBuilderPuts(b, "#\"");
     const uint8_t *const end = bytes->ptr + bytes->size;
     for (const uint8_t *c = bytes->ptr; c < end; c++) {
         uint8_t ch = *c;
         if (ch == SE) {
-            fklCodeBuilderPutc(b, '\\');
-            fklCodeBuilderPutc(b, SE);
+            fklStrBuilderPutc(b, '\\');
+            fklStrBuilderPutc(b, SE);
         } else if (ch == '\\')
-            fklCodeBuilderPuts(b, "\\\\");
+            fklStrBuilderPuts(b, "\\\\");
         else if (isgraph(ch))
-            fklCodeBuilderPutc(b, ch);
-        else if (fklCodeBuilderPutEscSeq(b, ch))
+            fklStrBuilderPutc(b, ch);
+        else if (fklStrBuilderPutEscSeq(b, ch))
             ;
         else
-            fklCodeBuilderFmt(b, "\\x%02X", ch);
+            fklStrBuilderFmt(b, "\\x%02X", ch);
     }
 
-    fklCodeBuilderPutc(b, '"');
+    fklStrBuilderPutc(b, '"');
 #undef SE
 }
 
@@ -497,13 +497,13 @@ static size_t fp_cb_write(void *ctx, size_t len, const void *s) {
     return fwrite(s, 1, len, fp);
 }
 
-static const FklCodeBuilderMethodTable fp_cb_method_table = {
+static const FklStrBuilderMethodTable fp_cb_method_table = {
     .cb_printf = fp_cb_printf,
     .cb_puts = fp_cb_puts,
     .cb_putc = fp_cb_putc,
     .cb_write = fp_cb_write,
 };
 
-void fklInitCodeBuilderFp(FklCodeBuilder *b, FILE *fp, const char *indent_str) {
-    fklInitCodeBuilder(b, fp, &fp_cb_method_table, indent_str);
+void fklInitStrBuilderFp(FklStrBuilder *b, FILE *fp, const char *indent_str) {
+    fklInitStrBuilder(b, fp, &fp_cb_method_table, indent_str);
 }

@@ -5,15 +5,15 @@
 extern "C" {
 #endif
 
-#define CB_LINE(...) fklCodeBuilderLine(build, __VA_ARGS__)
-#define CB_FMT(...) fklCodeBuilderFmt(build, __VA_ARGS__)
+#define CB_LINE(...) fklStrBuilderLine(build, __VA_ARGS__)
+#define CB_FMT(...) fklStrBuilderFmt(build, __VA_ARGS__)
 
-#define CB_LINE_START(...) fklCodeBuilderLineStart(build, __VA_ARGS__)
-#define CB_LINE_END(...) fklCodeBuilderLineEnd(build, __VA_ARGS__)
+#define CB_LINE_START(...) fklStrBuilderLineStart(build, __VA_ARGS__)
+#define CB_LINE_END(...) fklStrBuilderLineEnd(build, __VA_ARGS__)
 
 #define CB_INDENT(flag)                                                        \
-    for (uint8_t flag = (fklCodeBuilderIndent(build), 0); flag < 1;            \
-            fklCodeBuilderUnindent(build), ++flag)
+    for (uint8_t flag = (fklStrBuilderIndent(build), 0); flag < 1;             \
+            fklStrBuilderUnindent(build), ++flag)
 
 #ifdef __cplusplus
 }

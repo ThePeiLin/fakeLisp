@@ -200,8 +200,8 @@ static inline FklVMvalue *get_backtrace_info(FklVM *host_vm,
     FklStrBuf buf = { 0 };
     fklInitStrBuf(&buf);
 
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
 
     for (const FklVMframe *cur = reached_thread->top_frame; cur;
             cur = cur->prev) {

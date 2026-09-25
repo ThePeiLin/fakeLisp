@@ -2,8 +2,8 @@
 #define FKL_REGEX_H
 
 #include "base.h"
-#include "code_builder.h"
 #include "common.h"
+#include "str_builder.h"
 
 #include <stdalign.h>
 #include <stddef.h>
@@ -117,13 +117,13 @@ void fklRegexBuildAsC(const FklRegexCode *,
         const char *prefix,
         const char *pattern,
         size_t pattern_len,
-        FklCodeBuilder *build);
+        FklStrBuilder *build);
 
 FKL_API
 void fklRegexBuildAsCwithNum(const FklRegexCode *,
         const char *prefix,
         uint64_t num,
-        FklCodeBuilder *build);
+        FklStrBuilder *build);
 
 FKL_API FklRegexTable *fklCreateRegexTable(void);
 FKL_API void fklInitRegexTable(FklRegexTable *);

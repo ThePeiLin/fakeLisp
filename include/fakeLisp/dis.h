@@ -1,7 +1,7 @@
 #ifndef FKL_DIS_H
 #define FKL_DIS_H
 
-#include "code_builder.h"
+#include "str_builder.h"
 #include "value_table.h"
 #include "vm.h"
 
@@ -12,7 +12,7 @@ extern "C" {
 FKL_API
 void fklPrintObarray(FklVM *vm,
         const FklVMvalueObarray *array,
-        FklCodeBuilder *fp);
+        FklStrBuilder *fp);
 
 typedef struct {
     const char *indent_str;
@@ -23,7 +23,7 @@ typedef struct {
 FKL_API
 void fklDisassembleProc(FklVM *vm,
         const FklVMvalueProc *proc,
-        FklCodeBuilder *fp,
+        FklStrBuilder *fp,
         const FklDisArgs *args);
 
 #define FKL_DIS_PROC(VM, PROC, BUILD, ...)                                     \
@@ -33,7 +33,7 @@ FKL_API
 void fklDisassembleByteCodelnt(FklVM *vm,
         const FklByteCodelnt *bcl,
         const FklVMvalueProto *proto,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const FklDisArgs *args);
 
 #define FKL_DIS_BCL(VM, BCL, PROTO, BUILD, ...)                                \

@@ -1,11 +1,11 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/code.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/dis.h>
 #include <fakeLisp/grammer.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/value_table.h>
@@ -29,13 +29,13 @@
 
 static void print_compiler_macros_list(FklVM *vm,
         FklVMvalue *macros_list,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table);
 
 static void print_compiler_macros(FklVM *vm,
         const FklVMvalueCgMacroHashMap *macros,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     for (const FklValueHashMapNode *cur = macros->ht.first; cur;
@@ -46,13 +46,13 @@ static void print_compiler_macros(FklVM *vm,
 
 static void print_reader_macros(FklVM *vm,
         const FklVMvalueCgRmacroHashMap *reader_macros,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table);
 
 static void print_replacements(FklVM *vm,
         const FklVMvalueCgRplHashMap *replacements,
-        FklCodeBuilder *build);
+        FklStrBuilder *build);
 
 struct arg_lit *help;
 struct arg_lit *stats;
@@ -106,14 +106,14 @@ static inline void print_statistics(const char *filename,
 static inline void print_lib_name(FklVM *vm,
         const FklVMvalueLib *l,
         uint64_t id,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     CB_FMT("lib ");
     fklPrin1VMvalue2(l->name, build, vm);
     CB_LINE(" (%" PRIu64 "):", id);
 }
 
 static inline void
-print_export_symbols(FklVM *vm, const FklVMvalueLib *l, FklCodeBuilder *build) {
+print_export_symbols(FklVM *vm, const FklVMvalueLib *l, FklStrBuilder *build) {
     CB_LINE("export symbols %" PRIu32 ":", l->count);
     CB_INDENT(flag) {
         int digits_count = fklComputeDigitsCount(l->count);
@@ -129,7 +129,7 @@ print_export_symbols(FklVM *vm, const FklVMvalueLib *l, FklCodeBuilder *build) {
 static inline void print_lib_table(FklVM *vm,
         const FklLibTable *lib_table,
         uint64_t *opcode_count,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     for (const FklValueIdHashMapNode *cur = fklLibTableFirst(lib_table); cur;
             cur = cur->next) {
         const FklVMvalueLib *l = fklVMvalueLib(cur->k);
@@ -219,9 +219,9 @@ int main(int argc, char **argv) {
             FKL_ASSERT(proc != NULL);
             fclose(fp);
 
-            FklCodeBuilder builder = { 0 };
-            fklInitCodeBuilderFp(&builder, stdout, NULL);
-            FklCodeBuilder *const build = &builder;
+            FklStrBuilder builder = { 0 };
+            fklInitStrBuilderFp(&builder, stdout, NULL);
+            FklStrBuilder *const build = &builder;
 
             CB_LINE("realpath: %s", rp);
             CB_LINE("file: %s", filename);
@@ -297,9 +297,9 @@ int main(int argc, char **argv) {
                 goto precompile_exit;
             }
 
-            FklCodeBuilder builder = { 0 };
-            fklInitCodeBuilderFp(&builder, stdout, NULL);
-            FklCodeBuilder *const build = &builder;
+            FklStrBuilder builder = { 0 };
+            fklInitStrBuilderFp(&builder, stdout, NULL);
+            FklStrBuilder *const build = &builder;
 
             const FklVMvalueLib *lib = cg_lib->lib;
             const FklVMvalueProc *proc = FKL_VM_PROC(lib->proc);
@@ -361,7 +361,7 @@ exit:
 
 static inline void print_compiler_macro(FklVM *vm,
         const FklVMvalueCgMacro *cur,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     CB_LINE_START("pattern:\t");
@@ -377,7 +377,7 @@ static inline void print_compiler_macro(FklVM *vm,
 
 static void print_compiler_macros_list(FklVM *vm,
         FklVMvalue *macros_list,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     if (macros_list == FKL_VM_NIL)
@@ -395,7 +395,7 @@ static void print_compiler_macros_list(FklVM *vm,
 
 static void print_reader_macro_action(FklVM *vm,
         FklVMvalue *act,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         const FklLibTable *lib_table) {
     FKL_ASSERT(act != NULL);
     if (fklIsVMvalueCustomActCtx(act)) {
@@ -414,7 +414,7 @@ static void print_reader_macro_action(FklVM *vm,
 static void print_prod_sym(FklVM *vm,
         const FklCgRmacroGraSym *sym,
         const FklCgRmacroGraSym *end,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     switch (sym->type) {
     case FKL_TERM_NONE:
     case FKL_TERM_EOF:
@@ -455,7 +455,7 @@ static void print_prod_sym(FklVM *vm,
 
 static void print_reader_macro_prod_syms(FklVM *vm,
         const FklVMvalueCgRmacroProd *prod,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         int is_ignore) {
     size_t len = prod->len;
     for (size_t i = 0; i < len;) {
@@ -482,7 +482,7 @@ static void print_reader_macro_prod_syms(FklVM *vm,
 
 static void print_reader_macros(FklVM *vm,
         const FklVMvalueCgRmacroHashMap *ht,
-        FklCodeBuilder *build,
+        FklStrBuilder *build,
         uint64_t *opcode_count,
         const FklLibTable *lib_table) {
     FKL_ASSERT(ht);
@@ -545,7 +545,7 @@ static void print_reader_macros(FklVM *vm,
 
 static void print_replacements(FklVM *vm,
         const FklVMvalueCgRplHashMap *replacements,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     if (replacements->ht.count == 0)
         return;
     CB_LINE("\nreplacements:");

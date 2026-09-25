@@ -1,9 +1,9 @@
 #include <fakeLisp/bigint.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
@@ -77,20 +77,20 @@ double fklVMgetDouble(const FklVMvalue *p) {
 }
 
 static inline void
-print_back_trace(const FklVMframe *f, FklCodeBuilder *build, FklVM *vm) {
+print_back_trace(const FklVMframe *f, FklStrBuilder *build, FklVM *vm) {
     FklBacktraceCb backtrace = f->t->print_backtrace;
     if (backtrace != NULL) {
         backtrace((void *)f->data, build, vm);
     } else {
-        fklCodeBuilderPuts(build, "<callable-obj>");
+        fklStrBuilderPuts(build, "<callable-obj>");
     }
 }
 
-void fklPrintFrame(const FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
+void fklPrintFrame(const FklVMframe *f, FklVM *exe, FklStrBuilder *build) {
     if (f->type == FKL_FRAME_COMPOUND) {
         FklVMvalueProc *proc = FKL_VM_PROC(f->proc);
         if (proc->name != FKL_VM_NIL) {
-            fklCodeBuilderPuts(build, "proc: ");
+            fklStrBuilderPuts(build, "proc: ");
             fklPrintSymbolLiteral2(FKL_VM_SYM(proc->name), build);
         } else if (f->prev) {
             FklVMvalueProto *pt = FKL_VM_PROC(f->proc)->proto;
@@ -100,57 +100,57 @@ void fklPrintFrame(const FklVMframe *f, FklVM *exe, FklCodeBuilder *build) {
             }
 
             if (pt->name != FKL_VM_NIL) {
-                fklCodeBuilderPuts(build, "proc: ");
+                fklStrBuilderPuts(build, "proc: ");
                 fklPrintSymbolLiteral2(FKL_VM_SYM(pt->name), build);
             } else {
-                fklCodeBuilderPuts(build, "proc: <");
+                fklStrBuilderPuts(build, "proc: <");
                 if (pt->file != FKL_VM_NIL) {
                     fklPrintStringLiteral2(FKL_VM_SYM(pt->file), build);
                 } else {
-                    fklCodeBuilderPuts(build, "stdin");
+                    fklStrBuilderPuts(build, "stdin");
                 }
-                fklCodeBuilderFmt(build, ": %" PRIu64 ">", pt->line);
+                fklStrBuilderFmt(build, ": %" PRIu64 ">", pt->line);
             }
         } else {
-            fklCodeBuilderPuts(build, "<top>");
+            fklStrBuilderPuts(build, "<top>");
         }
         FklByteCodelnt *co = FKL_VM_CO(FKL_VM_PROC(f->proc)->bcl);
         uint64_t const pc_idx = f->pc - co->bc.code - 1;
         const FklLntItem *node = fklFindLntItem(pc_idx, co->ls, co->l);
         if (node->fid != FKL_VM_NIL) {
-            fklCodeBuilderFmt(build, " (%" PRIu32 ": ", node->line);
+            fklStrBuilderFmt(build, " (%" PRIu32 ": ", node->line);
             fklPrintString2(FKL_VM_SYM(node->fid), build);
-            fklCodeBuilderPuts(build, ")");
+            fklStrBuilderPuts(build, ")");
         } else {
-            fklCodeBuilderFmt(build, " (%" PRIu32 ")", node->line);
+            fklStrBuilderFmt(build, " (%" PRIu32 ")", node->line);
         }
     } else {
         print_back_trace(f, build, exe);
     }
 }
 
-void fklPrintBacktrace(FklVM *exe, FklCodeBuilder *build) {
+void fklPrintBacktrace(FklVM *exe, FklStrBuilder *build) {
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev) {
-        fklCodeBuilderPuts(build, "at ");
+        fklStrBuilderPuts(build, "at ");
         fklPrintFrame(cur, exe, build);
-        fklCodeBuilderPutc(build, '\n');
+        fklStrBuilderPutc(build, '\n');
     }
 }
 
-void fklPrintIntruptInfo(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build) {
+void fklPrintIntruptInfo(FklVMvalue *ev, FklVM *exe, FklStrBuilder *build) {
     if (fklIsVMvalueError(ev)) {
         FklVMvalueError *err = FKL_VM_ERR(ev);
         fklPrintSymbolLiteral2(FKL_VM_SYM(err->type), build);
-        fklCodeBuilderPuts(build, ": ");
+        fklStrBuilderPuts(build, ": ");
         fklPrincVMvalue2(err->message, build, exe);
     } else {
-        fklCodeBuilderPuts(build, "interrupt with value: ");
+        fklStrBuilderPuts(build, "interrupt with value: ");
         fklPrin1VMvalue2(ev, build, exe);
     }
 }
 
-void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
-    FklCodeBuilder *build = NULL;
+void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklStrBuilder *build_) {
+    FklStrBuilder *build = NULL;
     if (build_ == NULL) {
         uv_mutex_lock(&exe->gc->print_backtrace_lock);
         build = &exe->gc->err_out;
@@ -159,7 +159,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklCodeBuilder *build_) {
     }
 
     fklPrintIntruptInfo(ev, exe, build);
-    fklCodeBuilderPutc(build, '\n');
+    fklStrBuilderPutc(build, '\n');
     fklPrintBacktrace(exe, build);
 
     if (build_ == NULL) {
@@ -724,11 +724,11 @@ exit:
 }
 
 #define VMVALUE_PRINTER_ARGS                                                   \
-    const FklVMvalue *v, FklCodeBuilder *build, FklVM *exe
+    const FklVMvalue *v, FklStrBuilder *build, FklVM *exe
 static void vmvalue_f64_printer(VMVALUE_PRINTER_ARGS) {
     char buf[64] = { 0 };
     fklWriteDoubleToBuf(buf, 64, FKL_VM_F64(v));
-    fklCodeBuilderPuts(build, buf);
+    fklStrBuilderPuts(build, buf);
 }
 
 static void vmvalue_bigint_printer(VMVALUE_PRINTER_ARGS) {
@@ -754,9 +754,9 @@ static void vmvalue_userdata_princ(VMVALUE_PRINTER_ARGS) {
     if (princ) {
         princ(v, build, exe);
     } else if (t->name) {
-        fklCodeBuilderFmt(build, "#<%s %p>", t->name, ud);
+        fklStrBuilderFmt(build, "#<%s %p>", t->name, ud);
     } else {
-        fklCodeBuilderFmt(build, "#<userdata %p>", ud);
+        fklStrBuilderFmt(build, "#<userdata %p>", ud);
     }
 }
 
@@ -770,17 +770,17 @@ static void vmvalue_proc_printer(VMVALUE_PRINTER_ARGS) {
                 1,
                 (FklVMvalue *[]){ proc->name });
     } else
-        fklCodeBuilderFmt(build, "#<proc %p>", proc);
+        fklStrBuilderFmt(build, "#<proc %p>", proc);
 }
 
 static void vmvalue_cproc_printer(VMVALUE_PRINTER_ARGS) {
     FklVMvalueCproc *cproc = FKL_VM_CPROC(v);
     if (cproc->name) {
-        fklCodeBuilderPuts(build, "#<cproc ");
+        fklStrBuilderPuts(build, "#<cproc ");
         fklPrintSymLiteral2(cproc->name, build);
-        fklCodeBuilderPutc(build, '>');
+        fklStrBuilderPutc(build, '>');
     } else
-        fklCodeBuilderFmt(build, "#<cproc %p>", cproc);
+        fklStrBuilderFmt(build, "#<cproc %p>", cproc);
 }
 
 static void vmvalue_symbol_princ(VMVALUE_PRINTER_ARGS) {
@@ -864,15 +864,15 @@ static void vmvalue_obj_princ(VMVALUE_PRINTER_ARGS) {
 }
 
 static void vmvalue_nil_print(VMVALUE_PRINTER_ARGS) {
-    fklCodeBuilderPuts(build, "()");
+    fklStrBuilderPuts(build, "()");
 }
 
 static void vmvalue_fix_print(VMVALUE_PRINTER_ARGS) {
-    fklCodeBuilderFmt(build, "%" PRId64 "", FKL_GET_FIX(v));
+    fklStrBuilderFmt(build, "%" PRId64 "", FKL_GET_FIX(v));
 }
 
 static void vmvalue_chr_princ(VMVALUE_PRINTER_ARGS) {
-    fklCodeBuilderPutc(build, FKL_GET_CHR(v));
+    fklStrBuilderPutc(build, FKL_GET_CHR(v));
 }
 
 static FKL_ALWAYS_INLINE void
@@ -928,9 +928,9 @@ static void vmvalue_userdata_prin1(VMVALUE_PRINTER_ARGS) {
     if (prin1) {
         prin1(v, build, exe);
     } else if (t->name) {
-        fklCodeBuilderFmt(build, "#<%s %p>", t->name, ud);
+        fklStrBuilderFmt(build, "#<%s %p>", t->name, ud);
     } else {
-        fklCodeBuilderFmt(build, "#<userdata %p>", ud);
+        fklStrBuilderFmt(build, "#<userdata %p>", ud);
     }
 }
 
@@ -1026,28 +1026,28 @@ static inline void scan_cir_ref(const FklVMvalue *s,
     vmValueDegreeHashMapUninit(&degree_table);
 }
 
-#define PUTS(OUT, S) fklCodeBuilderPuts((OUT), (S))
-#define PUTC(OUT, C) fklCodeBuilderPutc((OUT), (C))
-#define PRINTF fklCodeBuilderFmt
+#define PUTS(OUT, S) fklStrBuilderPuts((OUT), (S))
+#define PUTC(OUT, C) fklStrBuilderPutc((OUT), (C))
+#define PRINTF fklStrBuilderFmt
 
-static inline int print_circle_head(FklCodeBuilder *result,
+static inline int print_circle_head(FklStrBuilder *result,
         const FklVMvalue *v,
         const VmCircleHeadHashMap *circle_head_set) {
     PrtSt *item = vmCircleHeadHashMapGet2(circle_head_set, v);
     if (item) {
         if (item->printed) {
-            fklCodeBuilderFmt(result, "#%u#", item->i);
+            fklStrBuilderFmt(result, "#%u#", item->i);
             return 1;
         } else {
             item->printed = 1;
-            fklCodeBuilderFmt(result, "#%u=", item->i);
+            fklStrBuilderFmt(result, "#%u=", item->i);
         }
     }
     return 0;
 }
 
 static inline const FklVMvalue *print_method(PrintCtx *ctx,
-        FklCodeBuilder *buf) {
+        FklStrBuilder *buf) {
 #define pair_ctx (FKL_TYPE_CAST(PrintPairCtx *, ctx))
 #define vec_ctx (FKL_TYPE_CAST(PrintVectorCtx *, ctx))
 #define hash_ctx (FKL_TYPE_CAST(PrintHashCtx *, ctx))
@@ -1182,7 +1182,7 @@ cont_call:
 }
 
 static inline void print_value(const FklVMvalue *v,
-        FklCodeBuilder *result,
+        FklStrBuilder *result,
         void (*p_atom)(VMVALUE_PRINTER_ARGS),
         FklVM *exe) {
     if (!FKL_IS_VEC(v) && !FKL_IS_PAIR(v) && !FKL_IS_BOX(v)
@@ -1204,7 +1204,7 @@ static inline void print_value(const FklVMvalue *v,
             PrtSt *item = vmCircleHeadHashMapGet2(&circle_head_set, v);
             if (item) {
                 if (item->printed) {
-                    fklCodeBuilderFmt(result, "#%u#", item->i);
+                    fklStrBuilderFmt(result, "#%u#", item->i);
                     goto get_next;
                 } else {
                     item->printed = 1;
@@ -1252,12 +1252,12 @@ static inline void print_value(const FklVMvalue *v,
 }
 
 void fklPrin1VMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrin1VMvalue2(v, &builder, exe);
 }
 
-void fklPrin1VMvalue2(FklVMvalue *v, FklCodeBuilder *build, FklVM *exe) {
+void fklPrin1VMvalue2(FklVMvalue *v, FklStrBuilder *build, FklVM *exe) {
     print_value(v, build, prin1VMatom, exe);
 }
 
@@ -1266,12 +1266,12 @@ void fklPrin1VMvalue2(FklVMvalue *v, FklCodeBuilder *build, FklVM *exe) {
 #undef PRINTF
 
 void fklPrincVMvalue(FklVMvalue *v, FILE *fp, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderFp(&builder, fp, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderFp(&builder, fp, NULL);
     fklPrincVMvalue2(v, &builder, exe);
 }
 
-void fklPrincVMvalue2(FklVMvalue *v, FklCodeBuilder *build, FklVM *exe) {
+void fklPrincVMvalue2(FklVMvalue *v, FklStrBuilder *build, FklVM *exe) {
     print_value(v, build, princVMatom, exe);
 }
 
@@ -1281,8 +1281,8 @@ FklVMvalue *fklVMstringify(FklVMvalue *value, FklVM *exe, char mode) {
     FKL_ASSERT(mode == '1' || mode == 'c');
     FklStrBuf result;
     fklInitStrBuf(&result);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &result, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &result, NULL);
     print_value(value, &builder, mode == '1' ? prin1VMatom : princVMatom, exe);
 
     FklVMvalue *retval = fklCreateVMvalueStr2(exe,
@@ -1661,8 +1661,8 @@ void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
 #define FLAGS_PRECISION (1u << 7u)
 
 static void format_out_char(void *arg, int c) {
-    FklCodeBuilder *build = arg;
-    fklCodeBuilderPutc(build, c);
+    FklStrBuilder *build = arg;
+    fklStrBuilderPutc(build, c);
 }
 
 static inline void
@@ -1749,15 +1749,15 @@ static inline uint64_t format_fix_int(int64_t integer_val,
 
 static inline void
 format_prin1_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, buf, NULL);
     print_value(v, &builder, prin1VMatom, exe);
 }
 
 static inline void
 format_princ_value(FklVMvalue *v, FklStrBuf *buf, FklVM *exe) {
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, buf, NULL);
     print_value(v, &builder, princVMatom, exe);
 }
 
@@ -2212,12 +2212,12 @@ exit:
 }
 
 static void format_out_str_buf(void *arg, const char *buf, size_t len) {
-    FklCodeBuilder *build = arg;
-    fklCodeBuilderWrite(build, len, buf);
+    FklStrBuilder *build = arg;
+    fklStrBuilderWrite(build, len, buf);
 }
 
 FklBuiltinErrorType fklVMformat(FklVM *exe,
-        FklCodeBuilder *result,
+        FklStrBuilder *result,
         const char *fmt_str,
         uint64_t *plen,
         size_t value_count,
@@ -2234,7 +2234,7 @@ FklBuiltinErrorType fklVMformat(FklVM *exe,
 }
 
 FklBuiltinErrorType fklVMformat2(FklVM *exe,
-        FklCodeBuilder *result,
+        FklStrBuilder *result,
         const FklString *fmt_str,
         uint64_t *plen,
         size_t value_count,
@@ -2251,7 +2251,7 @@ FklBuiltinErrorType fklVMformat2(FklVM *exe,
 }
 
 FklBuiltinErrorType fklVMformat3(FklVM *exe,
-        FklCodeBuilder *result,
+        FklStrBuilder *result,
         size_t fmt_len,
         const char *fmt,
         uint64_t *plen,
@@ -2274,8 +2274,8 @@ FklVMvalue *fklVMformatToString(FklVM *exe,
         FklVMvalue *const base[]) {
     FklStrBuf buf;
     fklInitStrBuf(&buf);
-    FklCodeBuilder builder = { 0 };
-    fklInitCodeBuilderStrBuf(&builder, &buf, NULL);
+    FklStrBuilder builder = { 0 };
+    fklInitStrBuilderStrBuf(&builder, &buf, NULL);
     fklVMformat(exe, &builder, fmt, NULL, len, base);
     FklVMvalue *s = fklCreateVMvalueStr2(exe, buf.index, buf.buf);
     fklUninitStrBuf(&buf);

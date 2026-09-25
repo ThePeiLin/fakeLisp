@@ -1,7 +1,7 @@
 #include <fakeLisp/base.h>
-#include <fakeLisp/code_builder.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/regex.h>
+#include <fakeLisp/str_builder.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
@@ -771,7 +771,7 @@ size_t fklRegexLexMatchp(const FklRegexCode *re,
 }
 
 static inline void
-build_objs(const FklRegexObj *obj, uint32_t objs_num, FklCodeBuilder *build) {
+build_objs(const FklRegexObj *obj, uint32_t objs_num, FklStrBuilder *build) {
     for (const FklRegexObj *end = &obj[objs_num]; obj < end; obj++) {
         CB_LINE_START("{.type=%-24s,.trueoffset=%u,.falseoffset=%u,",
                 regex_obj_enum_type_name[obj->type],
@@ -793,7 +793,7 @@ static const char *char_class_enum_name[] = {
 };
 
 static inline void
-build_patrns(const uint8_t *pat, uint32_t len, FklCodeBuilder *build) {
+build_patrns(const uint8_t *pat, uint32_t len, FklStrBuilder *build) {
     for (const uint8_t *end = &pat[len]; pat < end;) {
         CB_LINE_START("%-26s,", char_class_enum_name[*pat]);
         switch (*(pat++)) {
@@ -819,7 +819,7 @@ void fklRegexBuildAsC(const FklRegexCode *re,
         const char *prefix,
         const char *pattern,
         size_t pattern_len,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;
@@ -870,7 +870,7 @@ void fklRegexBuildAsC(const FklRegexCode *re,
 void fklRegexBuildAsCwithNum(const FklRegexCode *re,
         const char *prefix,
         uint64_t num,
-        FklCodeBuilder *build) {
+        FklStrBuilder *build) {
     uint32_t objs_num = 1;
     uint32_t totalsize = re->totalsize;
     const FklRegexObj *objs = re->data;

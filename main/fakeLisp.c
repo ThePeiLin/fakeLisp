@@ -41,6 +41,7 @@ static int exit_state = 0;
 
 static inline int
 compile_and_run(const char *filename, int argc, const char *const *argv) {
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         perror(filename);
@@ -49,9 +50,9 @@ compile_and_run(const char *filename, int argc, const char *const *argv) {
     FklCgCtx ctx;
     char *rp = fklRealpath(filename);
 
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(desc);
 
-    fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
+    fklInitCgCtx(&ctx, desc, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,
@@ -99,7 +100,8 @@ run_bytecode(const char *filename, int argc, const char *const *argv) {
     }
     char *rp = fklRealpath(filename);
 
-    FklVMgc *gc = fklCreateVMgc();
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    FklVMgc *gc = fklCreateVMgc(desc);
     FklVM *vm = &gc->gcvm;
 
     FklVMvalueProc *proc = fklLoadCodeFile(fp, vm, fklTruncDir(rp), NULL);
@@ -126,7 +128,8 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
         perror(filename);
         return FKL_EXIT_FAILURE;
     }
-    FklVMgc *gc = fklCreateVMgc();
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    FklVMgc *gc = fklCreateVMgc(desc);
 
     FklCgCtx ctx = { 0 };
     FklVMvalue *rp_v = NULL;
@@ -138,7 +141,7 @@ run_pre_compile(const char *filename, int argc, const char *const *argv) {
 
     const char *rp = FKL_VM_SYM(rp_v)->str;
 
-    fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
+    fklInitCgCtx(&ctx, desc, fklDupDir(rp), &gc->gcvm);
 
     FklVMvaluePcFixup *f = fklCreateVMvaluePcFixup(ctx.vm);
 
@@ -630,10 +633,11 @@ exit:
 }
 
 static int run_repl(const char *eval_expression, int8_t interactive) {
-    FklVMgc *gc = fklCreateVMgc();
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    FklVMgc *gc = fklCreateVMgc(desc);
     FklVM *vm = fklCreateVM(NULL, gc);
     FklCgCtx ctx = { 0 };
-    fklInitCgCtx(&ctx, NULL, vm);
+    fklInitCgCtx(&ctx, desc, NULL, vm);
 
     FklStrBuilder builder = { 0 };
     fklInitStrBuilderFp(&builder, stderr, NULL);
@@ -1282,7 +1286,6 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         FklStrBuilder *build,
         const char *eval_expression,
         int8_t interactive) {
-    FklVMgc *gc = exe->gc;
     FklVMframe *frame = fklCreateNewOtherObjVMframe(&ReplContextMethodTable);
     frame->errorCallBack = replErrorCallBack;
     exe->top_frame = frame;
@@ -1298,7 +1301,12 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     c->main_proc = FKL_VM_NIL;
 
     c->weak_var_refs = fklCreateVMvalueWeakHashEq(exe);
-    c->stdinVal = FKL_VM_VAR_REF(gc->builtin_refs[FKL_VM_STDIN_IDX])->v;
+    const FklBuiltinDesc *const desc = cg_ctx->builtins;
+
+    FklVMvalue *stdin_ref = desc->stdin_get(desc->ctx, exe);
+    FKL_ASSERT(stdin_ref != NULL);
+
+    c->stdinVal = FKL_VM_VAR_REF(stdin_ref)->v;
     c->info = codegen;
     c->main_env = main_env;
     c->state = READY;

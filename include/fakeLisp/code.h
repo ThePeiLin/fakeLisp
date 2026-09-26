@@ -398,6 +398,7 @@ typedef struct FklPmatchStorage {
 } FklPmatchStorage;
 
 typedef struct FklCgCtx {
+    const FklBuiltinDesc *builtins;
     struct FklCgActVector *action_vector;
     struct FklVMvalueCgEnv *main_env;
     struct FklVMvalueCgInfo *main_info;
@@ -538,9 +539,9 @@ typedef struct {
 } FklNextExpressionMethodTable;
 
 typedef enum {
-    FKL_DO_NOT_NEED_RETVAL = 0,
-    FKL_ALL_MUST_HAS_RETVAL,
-    FKL_FIRST_MUST_HAS_RETVAL,
+    FKL_CG_DO_NOT_NEED_RETVAL = 0,
+    FKL_CG_ALL_MUST_HAS_RETVAL,
+    FKL_CG_FIRST_MUST_HAS_RETVAL,
 } FklCgNextExpType;
 
 typedef struct {
@@ -606,11 +607,16 @@ FklCgAct *fklMakeCgAct(FklCgActCb f,
         FklVMvalueCgInfo *info);
 
 FKL_API
-void fklInitCgCtx(FklCgCtx *ctx, char *main_file_real_path_dir, FklVM *vm);
+void fklInitCgCtx(FklCgCtx *ctx,
+        const FklBuiltinDesc *builtins,
+        char *main_file_real_path_dir,
+        FklVM *vm);
 
 FKL_API void fklRegisterCgCtx(FklCgCtx *ctx);
 
-FKL_API void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm);
+FKL_API void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
+        const FklBuiltinDesc *builtins,
+        FklVM *vm);
 
 FKL_API FklVMvalue *fklInitDefaultLibPath(FklVM *vm);
 
@@ -966,6 +972,8 @@ typedef struct {
 FKL_API
 FklVMvalueCgEnv *fklCreateVMvalueCgEnv(const FklCgCtx *ctx,
         const FklCgEnvCreateArgs *args);
+
+void fklInitGlobCgEnv(FklVMvalueCgEnv *env, FklCgCtx *ctx, int is_precompile);
 
 FKL_API
 FklLibId *fklVMvalueCgEnvAddUsedLib(FklVMvalueCgEnv *env,

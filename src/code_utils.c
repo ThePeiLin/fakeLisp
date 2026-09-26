@@ -1,5 +1,4 @@
 #include <fakeLisp/base.h>
-#include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code.h>
 #include <fakeLisp/grammer.h>
@@ -1442,6 +1441,20 @@ FKL_VM_TYPE_ATTR FklVMvalueType InfoType = FKL_VM_TYPE_STATIC_INIT(InfoType,
             .finalize = info_finalizer,
         });
 
+void fklInitGlobCgEnv(FklVMvalueCgEnv *env, FklCgCtx *ctx, int is_precompile) {
+    const FklBuiltinDesc *builtins = ctx->builtins;
+    FklVM *vm = ctx->vm;
+    size_t count = builtins->count(builtins->ctx);
+    for (size_t i = 0; i < count; ++i) {
+        const char *name = builtins->name_get(builtins->ctx, i);
+        FklVMvalue *s = fklVMaddSymbolCstr(vm, name);
+        FklSymDefHashMapElm *ref = fklAddCgBuiltinRefBySid(s, env);
+        ref->v.isConst = 1;
+    }
+    if (is_precompile)
+        env->proto_id = FKL_PRE_COMPILE_TOP_ENV_PROTO_ID;
+}
+
 FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
         FklVMvalueCgInfo *prev,
         const char *filename,
@@ -1538,7 +1551,7 @@ FklVMvalueCgInfo *fklCreateVMvalueCgInfo(FklCgCtx *ctx,
                     .line = r->curline,
                 });
         r->global_env->is_debugging = is_debugging;
-        fklInitGlobCgEnv(r->global_env, ctx->vm, is_precompile);
+        fklInitGlobCgEnv(r->global_env, ctx, is_precompile);
     }
 
     FklVMvalueCgEnv *main_env = NULL;
@@ -4617,7 +4630,7 @@ static inline FklVMvalue *parse_rmacro_def_prod_rest(FklCgCtx *ctx,
                 });
 
         FklCgNextExp *next_exp =
-                fklMakeCgQueueNextExp(queue, FKL_ALL_MUST_HAS_RETVAL);
+                fklMakeCgQueueNextExp(queue, FKL_CG_ALL_MUST_HAS_RETVAL);
 
         FklCgActCtx *cg_act_ctx = createRmacroActionContext(act_ctx);
 

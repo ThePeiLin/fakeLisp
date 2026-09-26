@@ -25,6 +25,21 @@
 extern "C" {
 #endif
 
+typedef FklVMvalue *(*FklBuiltinInliner)(FklVM *exe,
+        FklVMvalue *codeobjects[],
+        FklVMvalue *filename,
+        size_t line,
+        uint32_t scope);
+
+typedef struct {
+    void *ctx;
+    size_t (*count)(void *ctx);
+    FklBuiltinInliner (*inliner_get)(void *ctx, size_t idx, size_t arg_count);
+    const char *(*name_get)(void *ctx, size_t idx);
+    FklVMvalue **(*refs)(void *ctx, FklVM *vm);
+    FklVMvalue *(*stdin_get)(void *ctx, FklVM *vm);
+} FklBuiltinDesc;
+
 struct FklCprocFrameContext;
 #define FKL_CPROC_ARGL                                                         \
     FklVM *exe, struct FklCprocFrameContext *ctx, uint32_t argc
@@ -669,6 +684,7 @@ typedef struct FklVMgc {
 
     FklVMextraMarkHashMap extra_marks;
 
+    size_t builtin_count;
     FklVMvalue **builtin_refs;
 
     FklStrBuilder err_out;
@@ -935,8 +951,8 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
 
 FKL_API FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
-FKL_API void fklInitVMgc(FklVMgc *);
-FKL_API FklVMgc *fklCreateVMgc(void);
+FKL_API void fklInitVMgc(FklVMgc *, const FklBuiltinDesc *builtins);
+FKL_API FklVMgc *fklCreateVMgc(const FklBuiltinDesc *builtins);
 FKL_API FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
 
 FKL_API

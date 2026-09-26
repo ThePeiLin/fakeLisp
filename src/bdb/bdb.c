@@ -164,7 +164,7 @@ static void dbg_codegen_ctx_extra_mark(FklVMgc *gc, FklVMextraMarkArgs *arg) {
     }
 
     base = gc->builtin_refs;
-    last = &base[FKL_BUILTIN_SYMBOL_NUM];
+    last = &base[gc->builtin_count];
     for (; base < last; base++)
         fklVMgcToGray(*base, gc);
 
@@ -426,7 +426,8 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
 
     FklVMgc *gc = &dctx->gc;
     FklCgCtx *ctx = &dctx->cg_ctx;
-    fklInitCgCtx(ctx, fklDupDir(rp), &gc->gcvm);
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    fklInitCgCtx(ctx, desc, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx->main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(ctx,
@@ -507,7 +508,7 @@ int bdbInitDbgCtx(DebugCtx *ctx,
     ctx->backtrace_list = NULL;
     fklValueHashSetInit(&ctx->file_sid_set);
     FklVMgc *gc = &ctx->gc;
-    fklInitVMgc(gc);
+    fklInitVMgc(gc, ctx->cg_ctx.builtins);
     if (init_debug_compile_and_init_vm(ctx, filename)) {
         fklUninitVMgc(gc);
         fklValueHashSetUninit(&ctx->file_sid_set);
@@ -543,7 +544,7 @@ int bdbInitDbgCtx(DebugCtx *ctx,
                 .prev_ms = NULL,
                 .parent_scope = 1,
             });
-    fklInitGlobCgEnv(ctx->glob_env, &ctx->gc.gcvm, 0);
+    fklInitGlobCgEnv(ctx->glob_env, &ctx->cg_ctx, 0);
 
     set_argv_with_list(&ctx->gc, argv);
     init_cmd_read_ctx(&ctx->read_ctx);

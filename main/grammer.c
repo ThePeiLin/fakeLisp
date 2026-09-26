@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     const char *state_0_push_name = argv[5];
     const char *builtin_terminal_name = argv[6];
 
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
     FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {

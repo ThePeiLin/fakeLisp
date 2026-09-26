@@ -9,7 +9,7 @@
 #include <string.h>
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
     FklGrammer *g = fklCreateBuiltinGrammer(vm);
     if (!g) {

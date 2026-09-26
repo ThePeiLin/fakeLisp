@@ -143,7 +143,7 @@ int main(int argc, const char *argv[]) {
     const char *state_0_push_name = "fklVMvaluePushState0ToStack";
     const char *builtin_term_name = BUILTIN_TERM_PATH;
 
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
     FklGrammer *g;
     if (!strcmp(grammer_select, "op")) {

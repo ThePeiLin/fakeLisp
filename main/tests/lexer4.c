@@ -33,7 +33,7 @@ static const char *expressions[] = {
 };
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
 
     fputs("parse with builtin parser\n", stderr);

@@ -152,7 +152,8 @@ static inline void insert_to_VM_chain(FklVM *cur, FklVM *prev, FklVM *next) {
 
 static inline FklVMvalue *
 fetch_main_env_ref(FklVM *exe, uint32_t i, uint32_t cidx, FklVarRefDef *refs) {
-    if (cidx < FKL_BUILTIN_SYMBOL_NUM)
+    FklVMgc *gc = exe->gc;
+    if (cidx < gc->builtin_count)
         return exe->gc->builtin_refs[cidx];
     if (FKL_IS_VAR_REF(refs[i].is_local)) {
         FklVMvalue *ref = refs[i].is_local;

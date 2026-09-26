@@ -95,7 +95,7 @@ static const char *file_type_str(FklFileType ft) {
 }
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
 
     FklVMvalue *cwd = NULL;

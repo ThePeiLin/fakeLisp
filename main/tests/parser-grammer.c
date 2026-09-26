@@ -39,7 +39,7 @@ static const char prod_rule[] = {
 //     "?? -> \"\\\"\";\n";
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
     FklGrammer *g = fklCreateEmptyGrammer(vm);
     FklParserGrammerParseArg args;

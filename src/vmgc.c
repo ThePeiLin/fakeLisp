@@ -1,4 +1,3 @@
-#include <fakeLisp/builtin.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 #include <uv.h>
@@ -155,7 +154,7 @@ static inline void gc_extra_mark(FklVMgc *gc) {
 void fklVMgcMarkAllRootToGray(FklVM *curVM) {
     FklVMgc *gc = curVM->gc;
     FklVMvalue **ref = curVM->gc->builtin_refs;
-    FklVMvalue **const end = &ref[FKL_BUILTIN_SYMBOL_NUM];
+    FklVMvalue **const end = &ref[curVM->gc->builtin_count];
     for (; ref < end; ref++)
         fklVMgcToGray(*ref, gc);
     gc_extra_mark(curVM->gc);
@@ -426,7 +425,7 @@ static inline void init_idle_work_queue(FklVMgc *gc) {
     gc->workq.tail = &gc->workq.head;
 }
 
-void fklInitVMgc(FklVMgc *gc) {
+void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_mutex_init(&gc->extra_mark_lock);
@@ -461,14 +460,20 @@ void fklInitVMgc(FklVMgc *gc) {
     gc->path_vec = fklCreateVMvalueVec(&gc->gcvm, 0);
 
     fklInitBuiltinErrorType(gc->builtinErrorTypeId, gc);
-    fklInitGlobalVMclosureForGC(gc);
     fklInitStrBuilderFp(&gc->err_out, stderr, NULL);
+
+    gc->builtin_count = 0;
+    gc->builtin_refs = 0;
+    if (builtins != NULL) {
+        gc->builtin_count = builtins->count(builtins->ctx);
+        gc->builtin_refs = builtins->refs(&gc->gcvm, builtins->ctx);
+    }
 }
 
-FklVMgc *fklCreateVMgc(void) {
+FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
     FklVMgc *gc = (FklVMgc *)fklZmalloc(sizeof(FklVMgc));
     FKL_ASSERT(gc);
-    fklInitVMgc(gc);
+    fklInitVMgc(gc, desc);
     return gc;
 }
 

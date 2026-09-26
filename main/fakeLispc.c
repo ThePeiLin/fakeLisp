@@ -31,10 +31,11 @@ static inline int pre_compile(const char *main_file_name,
     char *rp = fklRealpath(main_file_name);
     FklCgCtx ctx;
 
-    FklVMgc *gc = fklCreateVMgc();
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    FklVMgc *gc = fklCreateVMgc(desc);
     FklVM *vm = &gc->gcvm;
 
-    fklInitCgCtx(&ctx, fklDupDir(rp), vm);
+    fklInitCgCtx(&ctx, desc, fklDupDir(rp), vm);
 
     const char *main_dir = ctx.main_file_real_path_dir;
     fklChdir(main_dir);
@@ -122,9 +123,10 @@ static inline int compile(const char *filename,
     char *rp = fklRealpath(filename);
     FklCgCtx ctx;
 
-    FklVMgc *gc = fklCreateVMgc();
+    const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+    FklVMgc *gc = fklCreateVMgc(desc);
 
-    fklInitCgCtx(&ctx, fklDupDir(rp), &gc->gcvm);
+    fklInitCgCtx(&ctx, desc, fklDupDir(rp), &gc->gcvm);
 
     fklChdir(ctx.main_file_real_path_dir);
     FklVMvalueCgInfo *info = fklCreateVMvalueCgInfo(&ctx,

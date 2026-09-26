@@ -1,5 +1,4 @@
 #include <fakeLisp/base.h>
-#include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code.h>
 #include <fakeLisp/common.h>
@@ -51,17 +50,17 @@ static inline int is_symbol_list(const FklVMvalue *v) {
 
 static FKL_ALWAYS_INLINE FklCgNextExp *makeDefaultQueueNextExp(
         FklCgExpQueue *queue) {
-    return fklMakeCgQueueNextExp(queue, FKL_DO_NOT_NEED_RETVAL);
+    return fklMakeCgQueueNextExp(queue, FKL_CG_DO_NOT_NEED_RETVAL);
 }
 
 static FKL_ALWAYS_INLINE FklCgNextExp *makeMustHasRetQueuNextExp(
         FklCgExpQueue *queue) {
-    return fklMakeCgQueueNextExp(queue, FKL_ALL_MUST_HAS_RETVAL);
+    return fklMakeCgQueueNextExp(queue, FKL_CG_ALL_MUST_HAS_RETVAL);
 }
 
 static FKL_ALWAYS_INLINE FklCgNextExp *makeFirstHasRetQueueNextExp(
         FklCgExpQueue *queue) {
-    return fklMakeCgQueueNextExp(queue, FKL_FIRST_MUST_HAS_RETVAL);
+    return fklMakeCgQueueNextExp(queue, FKL_CG_FIRST_MUST_HAS_RETVAL);
 }
 
 static inline FklVMvalue *cdr(const FklVMvalue *node) {
@@ -607,11 +606,13 @@ static inline int is_get_var_ref_ins(const FklIns ins) {
     return OP(ins) == FKL_OP_GET_VAR_REF;
 }
 
-static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
+static inline FklBuiltinInliner is_inlinable_func_ref(FklCgCtx *ctx,
+        const FklByteCode *bc,
         FklVMvalueCgEnv *env,
         uint32_t argNum,
         FklVMvalueCgInfo *info) {
-    FklInsArg arg;
+    const FklBuiltinDesc *builtins = ctx->builtins;
+    FklInsArg arg = { 0 };
     const FklIns *ins = &bc->code[0];
     unsigned ins_len = (unsigned)fklGetInsOpArg(ins, &arg);
     if (is_get_var_ref_ins(*ins) && bc->len == ins_len) {
@@ -638,8 +639,9 @@ static inline FklBuiltinInlineFunc is_inlinable_func_ref(const FklByteCode *bc,
             if (!list)
                 break;
         }
-        if (ref && idx < FKL_BUILTIN_SYMBOL_NUM)
-            return fklGetBuiltinInlineFunc(idx, argNum);
+        if (ref) {
+            return builtins->inliner_get(builtins->ctx, idx, argNum);
+        }
     }
     return NULL;
 }
@@ -657,9 +659,10 @@ static FklVMvalue *_funcall_exp_bc_process(const FklCgActCbArgs *args) {
         FklVMvalue *func = bcl_vec->base[0];
         FklByteCode *funcBc = &FKL_VM_CO(func)->bc;
         uint32_t argNum = (uint32_t)(bcl_vec->size - 1);
-        FklBuiltinInlineFunc inlFunc = NULL;
+        FklBuiltinInliner inlFunc = NULL;
         if (argNum < 4
-                && (inlFunc = is_inlinable_func_ref(funcBc,
+                && (inlFunc = is_inlinable_func_ref(args->ctx,
+                            funcBc,
                             env,
                             argNum,
                             info))) {
@@ -849,7 +852,7 @@ static void codegen_funcall(const FklPmatchRes *rest,
         fklCgExpQueueDestroy(queue);
     } else {
         FklCgNextExp *next_exp =
-                fklMakeCgQueueNextExp(queue, FKL_ALL_MUST_HAS_RETVAL);
+                fklMakeCgQueueNextExp(queue, FKL_CG_ALL_MUST_HAS_RETVAL);
         MAKE_AND_PUSH_CG_ACT(_funcall_exp_bc_process,
                 createStackCtx(),
                 next_exp,
@@ -3893,7 +3896,7 @@ static void codegen_cond_compile(const CgCbArgs *args) {
         fklCgExpQueuePush(q, value);
         MAKE_AND_PUSH_CG_ACT(_default_bc_process,
                 createStackCtx(),
-                next_type != FKL_DO_NOT_NEED_RETVAL
+                next_type != FKL_CG_DO_NOT_NEED_RETVAL
                         ? makeMustHasRetQueuNextExp(q)
                         : makeDefaultQueueNextExp(q),
                 scope,
@@ -3927,7 +3930,7 @@ static void codegen_cond_compile(const CgCbArgs *args) {
             fklCgExpQueuePush(q, &res);
             MAKE_AND_PUSH_CG_ACT(_default_bc_process,
                     createStackCtx(),
-                    next_type != FKL_DO_NOT_NEED_RETVAL
+                    next_type != FKL_CG_DO_NOT_NEED_RETVAL
                             ? makeMustHasRetQueuNextExp(q)
                             : makeDefaultQueueNextExp(q),
                     scope,
@@ -3940,7 +3943,7 @@ static void codegen_cond_compile(const CgCbArgs *args) {
         }
     }
 
-    if (next_type != FKL_DO_NOT_NEED_RETVAL) {
+    if (next_type != FKL_CG_DO_NOT_NEED_RETVAL) {
         error_state->error = make_has_no_value_error(vm, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
@@ -6215,7 +6218,7 @@ static void codegen_export_none(const CgCbArgs *args) {
     FklCgNextExpType const next_type = args->next_type;
     const FklPmatchRes *orig = args->orig;
 
-    if (next_type != FKL_DO_NOT_NEED_RETVAL) {
+    if (next_type != FKL_CG_DO_NOT_NEED_RETVAL) {
         error_state->error = make_has_no_value_error(vm, orig->value);
         error_state->line = CURLINE(orig->container);
         return;
@@ -7037,7 +7040,7 @@ static void codegen_import_impl(const CgCbArgs *args,
     FklCgNextExpType const next_type = args->next_type;
     const FklPmatchRes *orig = args->orig;
 
-    if (next_type != FKL_DO_NOT_NEED_RETVAL) {
+    if (next_type != FKL_CG_DO_NOT_NEED_RETVAL) {
         errors->error = make_has_no_value_error(vm, orig->value);
         errors->line = CURLINE(orig->container);
         return;
@@ -7505,7 +7508,7 @@ static void codegen_defmacro_impl(const CgCbArgs *args,
     FklCgNextExpType const next_type = args->next_type;
     const FklPmatchRes *orig = args->orig;
 
-    if (next_type != FKL_DO_NOT_NEED_RETVAL) {
+    if (next_type != FKL_CG_DO_NOT_NEED_RETVAL) {
         errors->error = make_has_no_value_error(vm, orig->value);
         errors->line = CURLINE(orig->container);
         return;
@@ -7620,7 +7623,7 @@ static void codegen_def_reader_macros_impl(const CgCbArgs *args,
     FklCgNextExpType const next_type = args->next_type;
     const FklPmatchRes *orig = args->orig;
 
-    if (next_type != FKL_DO_NOT_NEED_RETVAL) {
+    if (next_type != FKL_CG_DO_NOT_NEED_RETVAL) {
         errors->error = make_has_no_value_error(vm, orig->value);
         errors->line = CURLINE(orig->container);
         return;
@@ -7712,14 +7715,14 @@ static void codegen_export_single(const CgCbArgs *args) {
         goto error;
 
     if (is_defmacro_exp(v.value, ctx, ht)) {
-        if (next_type != FKL_DO_NOT_NEED_RETVAL)
+        if (next_type != FKL_CG_DO_NOT_NEED_RETVAL)
             goto must_has_retval_error;
         CgCbArgs other_args = *args;
         other_args.orig = &v;
         codegen_defmacro_impl(&other_args, lib_info);
         return;
     } else if (is_def_reader_exp(v.value, ctx, ht)) {
-        if (next_type != FKL_DO_NOT_NEED_RETVAL)
+        if (next_type != FKL_CG_DO_NOT_NEED_RETVAL)
             goto must_has_retval_error;
         CgCbArgs other_args = *args;
         other_args.orig = &v;
@@ -7727,7 +7730,7 @@ static void codegen_export_single(const CgCbArgs *args) {
         return;
     } else if (is_import_exp(v.value, ctx)) {
         if (is_export_none_exp(v.value, ctx)
-                && (next_type != FKL_DO_NOT_NEED_RETVAL)) {
+                && (next_type != FKL_CG_DO_NOT_NEED_RETVAL)) {
         must_has_retval_error:
             errors->error = make_has_no_value_error(vm, orig.value);
             errors->line = CURLINE(orig.container);
@@ -8123,8 +8126,11 @@ void fklRegisterCgCtx(FklCgCtx *ctx) {
             NULL);
 }
 
-void fklInitCgCtxExceptPattern(FklCgCtx *ctx, FklVM *vm) {
+void fklInitCgCtxExceptPattern(FklCgCtx *ctx,
+        const FklBuiltinDesc *builtins,
+        FklVM *vm) {
     memset(ctx, 0, sizeof(FklCgCtx));
+    ctx->builtins = builtins;
     ctx->libraries = fklCreateVMvalueCgLibs(vm);
     ctx->macro_libraries = fklCreateVMvalueCgLibs(vm);
 
@@ -8183,8 +8189,11 @@ static inline void init_builtin_sub_patterns(FklCgCtx *ctx) {
     }
 }
 
-void fklInitCgCtx(FklCgCtx *ctx, char *main_dir, FklVM *vm) {
-    fklInitCgCtxExceptPattern(ctx, vm);
+void fklInitCgCtx(FklCgCtx *ctx,
+        const FklBuiltinDesc *builtins,
+        char *main_dir,
+        FklVM *vm) {
+    fklInitCgCtxExceptPattern(ctx, builtins, vm);
     ctx->cwd = fklSysgetcwd();
     ctx->main_file_real_path_dir = main_dir ? main_dir : fklZstrdup(ctx->cwd);
 
@@ -8369,13 +8378,13 @@ FklVMvalue *fklGenExpressionCodeExt(FklCgCtx *ctx,
                         break;
                     }
                     switch (next_exp_type) {
-                    case FKL_FIRST_MUST_HAS_RETVAL:
-                        next_exp_type = FKL_DO_NOT_NEED_RETVAL;
-                        expressions->next_type = FKL_DO_NOT_NEED_RETVAL;
+                    case FKL_CG_FIRST_MUST_HAS_RETVAL:
+                        next_exp_type = FKL_CG_DO_NOT_NEED_RETVAL;
+                        expressions->next_type = FKL_CG_DO_NOT_NEED_RETVAL;
                         break;
 
-                    case FKL_ALL_MUST_HAS_RETVAL:
-                    case FKL_DO_NOT_NEED_RETVAL:
+                    case FKL_CG_ALL_MUST_HAS_RETVAL:
+                    case FKL_CG_DO_NOT_NEED_RETVAL:
                         break;
                     }
                 } else if (FKL_IS_SYM(exp.value)) {

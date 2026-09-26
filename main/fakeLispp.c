@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
             char *rp = fklRealpath(filename);
             char *dir = fklDupDir(rp);
 
-            FklVMgc *gc = fklCreateVMgc();
+            FklVMgc *gc = fklCreateVMgc(NULL);
             FklVM *vm = &gc->gcvm;
 
             FklLibTable lib_table = { 0 };
@@ -257,12 +257,16 @@ int main(int argc, char **argv) {
                 goto exit;
             }
 
-            FklVMgc *gc = fklCreateVMgc();
+            const FklBuiltinDesc *const desc = fklDefaultBuiltinDesc();
+            FklVMgc *gc = fklCreateVMgc(desc);
             FklVM *vm = &gc->gcvm;
 
             FklCgCtx ctx = { 0 };
             char *rp = fklRealpath(filename);
-            fklInitCgCtx(&ctx, fklTruncDir(fklTruncDir(fklZstrdup(rp))), vm);
+            fklInitCgCtx(&ctx,
+                    desc,
+                    fklTruncDir(fklTruncDir(fklZstrdup(rp))),
+                    vm);
 
             FklLibTable lib_table = { 0 };
             fklInitLibTable(&lib_table);

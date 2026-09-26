@@ -2,7 +2,6 @@
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
-#include <fakeLisp/code.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/parser_grammer.h>
@@ -4934,10 +4933,16 @@ static FklVMvalue *inlfunc_hash_set(INL_FUNC_ARGS) {
 
 #undef INL_FUNC_ARGS
 
+#define FKL_BUILTIN_SYMBOL_NUM (206)
+
+#define FKL_VM_STDIN_IDX (0)
+#define FKL_VM_STDOUT_IDX (1)
+#define FKL_VM_STDERR_IDX (2)
+
 static const struct SymbolFuncStruct {
     const char *name;
     const FklVMvalue *v;
-    FklBuiltinInlineFunc inlfunc[4];
+    FklBuiltinInliner inlfunc[4];
 } builtInSymbolList[FKL_BUILTIN_SYMBOL_NUM + 1] = {
     // clang-format off
     {"stdin",           (const FklVMvalue*)&StdinUserDataValue,                                                        {NULL,         NULL,              NULL,               NULL               } },
@@ -5185,24 +5190,6 @@ static const struct SymbolFuncStruct {
     // clang-format on
 };
 
-FklBuiltinInlineFunc fklGetBuiltinInlineFunc(uint32_t idx, uint32_t argNum) {
-    if (idx >= FKL_BUILTIN_SYMBOL_NUM)
-        return NULL;
-    return builtInSymbolList[idx].inlfunc[argNum];
-}
-
-void fklInitGlobCgEnv(FklVMvalueCgEnv *curEnv, FklVM *vm, int is_precompile) {
-    for (const struct SymbolFuncStruct *list = builtInSymbolList;
-            list->name != NULL;
-            list++) {
-        FklVMvalue *s = fklVMaddSymbolCstr(vm, list->name);
-        FklSymDefHashMapElm *ref = fklAddCgBuiltinRefBySid(s, curEnv);
-        ref->v.isConst = 1;
-    }
-    if (is_precompile)
-        curEnv->proto_id = FKL_PRE_COMPILE_TOP_ENV_PROTO_ID;
-}
-
 static alignas(8)
         FklVMvalueVarRef builtin_symbol_var_refs[FKL_BUILTIN_SYMBOL_NUM] = {};
 
@@ -5226,6 +5213,40 @@ static inline FklVMvalue **init_builtin_refs(void) {
     return builtin_refs;
 }
 
-void fklInitGlobalVMclosureForGC(FklVMgc *gc) {
-    gc->builtin_refs = init_builtin_refs();
+static FklVMvalue **default_builtins_refs(void *ctx, FklVM *vm) {
+    return init_builtin_refs();
+}
+
+static size_t default_builtins_count(void *ctx) {
+    return FKL_BUILTIN_SYMBOL_NUM;
+}
+
+static const char *default_builtins_name_get(void *ctx, size_t idx) {
+    if (idx < FKL_BUILTIN_SYMBOL_NUM)
+        return builtInSymbolList[idx].name;
+    return NULL;
+}
+
+static FklBuiltinInliner
+default_builtins_inliner_get(void *ctx, size_t idx, size_t arg_count) {
+    if (idx < FKL_BUILTIN_SYMBOL_NUM && arg_count < 4)
+        return builtInSymbolList[idx].inlfunc[arg_count];
+    return NULL;
+}
+
+static FklVMvalue *default_builtins_stdin_get(void *ctx, FklVM *vm) {
+    return default_builtins_refs(ctx, vm)[FKL_VM_STDIN_IDX];
+}
+
+static const FklBuiltinDesc default_builtins_desc = {
+    .ctx = NULL,
+    .count = default_builtins_count,
+    .inliner_get = default_builtins_inliner_get,
+    .name_get = default_builtins_name_get,
+    .refs = default_builtins_refs,
+    .stdin_get = default_builtins_stdin_get,
+};
+
+const FklBuiltinDesc *fklDefaultBuiltinDesc(void) {
+    return &default_builtins_desc;
 }

@@ -26,7 +26,7 @@ static char example_grammer_rules[] = //
         "";
 
 int main() {
-    FklVMgc *gc = fklCreateVMgc();
+    FklVMgc *gc = fklCreateVMgc(NULL);
     FklVM *vm = &gc->gcvm;
 
     FklParserGrammerParseArg args;

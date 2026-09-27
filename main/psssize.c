@@ -1,5 +1,6 @@
 #include <fakeLisp/code.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/vmem.h>
 
 #include "../src/bdb/bdb.h"
 
@@ -16,5 +17,7 @@ int main() {
     printf("FKL_OPCODE_NUM = %u\n", FKL_OPCODE_NUM);
 
     printf("sizeof(DebugCtx) = %zu\n", sizeof(DebugCtx));
+    printf("fklVmemPageSize() = %zu\n", fklVmemPageSize());
+    printf("fklVmemGranularity() = %zu\n", fklVmemGranularity());
     return 0;
 }

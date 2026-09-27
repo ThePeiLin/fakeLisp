@@ -425,7 +425,7 @@ static inline void init_idle_work_queue(FklVMgc *gc) {
     gc->workq.tail = &gc->workq.head;
 }
 
-void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
+static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     memset(gc, 0, sizeof(FklVMgc));
     gc->threshold = FKL_VM_GC_THRESHOLD_SIZE;
     uv_mutex_init(&gc->extra_mark_lock);
@@ -628,7 +628,7 @@ void fklVMclearExtraMarkFunc(FklVMgc *gc) {
     uv_mutex_unlock(&gc->extra_mark_lock);
 }
 
-void fklUninitVMgc(FklVMgc *gc) {
+static void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
     gc->obarray = NULL;
     gc->keywords = NULL;

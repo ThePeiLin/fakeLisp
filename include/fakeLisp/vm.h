@@ -951,9 +951,13 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
 
 FKL_API FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
-FKL_API void fklInitVMgc(FklVMgc *, const FklBuiltinDesc *builtins);
+/// 我们使用 mmap 替代 malloc
 FKL_API FklVMgc *fklCreateVMgc(const FklBuiltinDesc *builtins);
 FKL_API FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
+
+FKL_API void *fklCreateVMgcAt(size_t offset, const FklBuiltinDesc *builtins);
+
+#define FKL_CREATE_VM_GC_AT(TYPE, MEMBER, DESC) ((TYPE*)fklCreateVMgcAt(offsetof(TYPE,MEMBER), DESC))
 
 FKL_API
 FklVMvalue **
@@ -1015,7 +1019,6 @@ void fklVMgcMarkGrammer(FklVMgc *,
         const FklGrammer *g,
         FklVMgrammerProdMarker ctx_atomic);
 
-FKL_API void fklUninitVMgc(FklVMgc *);
 FKL_API void fklDestroyVMgc(FklVMgc *);
 
 FKL_API void fklDestroyAllVMs(FklVM *cur);

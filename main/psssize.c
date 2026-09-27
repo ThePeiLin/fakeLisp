@@ -1,6 +1,8 @@
 #include <fakeLisp/code.h>
 #include <fakeLisp/vm.h>
 
+#include "../src/bdb/bdb.h"
+
 int main() {
     printf("sizeof(FklVM) = %zu\n", sizeof(FklVM));
     printf("sizeof(FklVMgc) = %zu\n", sizeof(FklVMgc));
@@ -12,5 +14,7 @@ int main() {
     printf("sizeof(FklVMvalueProc) = %zu\n", sizeof(FklVMvalueProc));
     printf("sizeof(FklVMframe) = %zu\n", sizeof(FklVMframe));
     printf("FKL_OPCODE_NUM = %u\n", FKL_OPCODE_NUM);
+
+    printf("sizeof(DebugCtx) = %zu\n", sizeof(DebugCtx));
     return 0;
 }

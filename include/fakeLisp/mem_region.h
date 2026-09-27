@@ -9,7 +9,7 @@ extern "C" {
 
 FKL_API void *fklMemRegionReserve(size_t size);
 
-/// current_commited + size
+/// current_committed + size
 FKL_API
 FKL_NODISCARD
 int fklMemRegionGrow(void *, size_t size);
@@ -29,7 +29,7 @@ int fklMemRegionRelease(void *);
 /// return total_size - header
 FKL_API size_t fklMemRegionSize(void *);
 
-/// return current_commited - header
+/// return current_committed - header
 FKL_API size_t fklMemRegionUsableSize(void *);
 
 #ifdef __cplusplus

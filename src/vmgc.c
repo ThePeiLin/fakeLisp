@@ -476,10 +476,13 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
 FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
     size_t total_size = sizeof(FklVMgc) + fklVmemPageSize();
     FklVMgc *gc = (FklVMgc *)fklMemRegionReserve(total_size);
-    FKL_ASSERT(gc);
+
+    if (gc == NULL)
+        abort();
+
     int r = fklMemRegionGrowTo(gc, sizeof(FklVMgc));
-    FKL_ASSERT(r == 0);
-    (void)r;
+    if (r != 0)
+        abort();
 
     fklInitVMgc(gc, desc);
     return gc;

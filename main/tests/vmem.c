@@ -85,7 +85,7 @@ int main(void) {
     }
 
     {
-        void *p = fklVmemReserve(1);
+        void *p = fklVmemReserve(page * 2);
         CHECK(p != NULL, "reserve(1) succeeds");
         CHECK((uintptr_t)p % gran == 0, "reserve base is granularity aligned");
         CHECK(fklVmemReserve(0) == NULL, "reserve(0) fails");
@@ -93,7 +93,8 @@ int main(void) {
 
         void *p2 = fklVmemReserve(1);
         CHECK(p2 != NULL && p2 != p, "second reserve is distinct");
-        fklVmemRelease(p2, 1);
+        int r = fklVmemRelease(p2, 1);
+        CHECK(r == 0, "release succeeds");
 
 #ifndef _WIN32
         CHECK(expect_fault(do_write_byte, p) == 1,
@@ -146,7 +147,9 @@ int main(void) {
         CHECK(fklVmemCommit(p, page) == 0, "re-commit after decommit");
         CHECK(is_zeroed(p, page), "re-committed page is zero again");
 
-        fklVmemRelease(p, 1);
+        r = fklVmemRelease(p, 1);
+        CHECK(r == 0, "release succeeds");
+
         CHECK(fklVmemCommit(p, page) == -1, "commit after release fails");
     }
 
@@ -155,7 +158,8 @@ int main(void) {
         CHECK(a != NULL, "alloc RW");
         memset(a, 0x5A, 2 * page);
         CHECK(is_filled(a, 2 * page, 0x5A), "alloc RW write/read");
-        fklVmemRelease(a, 2 * page);
+        int r = fklVmemRelease(a, 2 * page);
+        CHECK(r == 0, "release succeeds");
     }
 
     {
@@ -165,7 +169,8 @@ int main(void) {
 #if !defined(_WIN32) && !defined(__APPLE__)
         CHECK(expect_fault(do_write_byte, e) == 1, "write to R|X page faults");
 #endif
-        fklVmemRelease(e, page);
+        int r = fklVmemRelease(e, page);
+        CHECK(r == 0, "release succeeds");
     }
 
     {
@@ -177,7 +182,8 @@ int main(void) {
         ((volatile unsigned char *)big)[gran] = 7;
         CHECK(((volatile unsigned char *)big)[gran] == 7,
                 "big reservation page usable");
-        fklVmemRelease(big, big_size);
+        int r = fklVmemRelease(big, big_size);
+        CHECK(r == 0, "release succeeds");
     }
 
     printf("\n%d checks, %d failures\n", checks, failures);

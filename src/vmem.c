@@ -98,8 +98,12 @@ int fklVmemDecommit(void *p, size_t size) {
 
 int fklVmemProtect(void *p, size_t size, FklVmemProt fkl_prot) {
     int prot = 0;
+    if (vmem_check_args(p, size) != 0)
+        return -1;
+
     if (vmem_map_prot(fkl_prot, &prot) != 0)
         return -1;
+
     return mprotect(p, size, prot);
 }
 

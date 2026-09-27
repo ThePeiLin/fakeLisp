@@ -8,16 +8,18 @@
 
 typedef struct {
     uint64_t total;
-    uint64_t commited;
+    uint64_t committed;
     alignas(alignof(max_align_t)) uint8_t data[FKL_FLEX_ARRAY_MEMBER];
 } MemRegionHeader;
+
+static const size_t HEADER_SIZE = offsetof(MemRegionHeader, data);
 
 void *fklMemRegionReserve(size_t size) {
     size_t const page_size = fklVmemPageSize();
     // 总不能真有这么小的页吧
-    FKL_ASSERT(page_size > sizeof(MemRegionHeader));
+    FKL_ASSERT(page_size > HEADER_SIZE);
 
-    size_t total_size = size + sizeof(MemRegionHeader);
+    size_t total_size = size + HEADER_SIZE;
 
     total_size = fklVmemReserveSize(total_size);
     void *addr = fklVmemReserve(total_size);
@@ -35,7 +37,7 @@ void *fklMemRegionReserve(size_t size) {
     MemRegionHeader *header = (MemRegionHeader *)addr;
 
     header->total = total_size;
-    header->commited = page_size;
+    header->committed = page_size;
 
     return header->data;
 }
@@ -47,7 +49,10 @@ static FKL_ALWAYS_INLINE size_t page_round_up(size_t s) {
 int fklMemRegionGrow(void *data, size_t size) {
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
     size = page_round_up(size);
-    size_t new_size = header->commited + size;
+    if (size == 0)
+        return -1;
+
+    size_t new_size = header->committed + size;
     if (new_size > header->total)
         return -1;
 
@@ -55,36 +60,40 @@ int fklMemRegionGrow(void *data, size_t size) {
     if (r != 0)
         return -1;
 
-    header->commited = new_size;
+    header->committed = new_size;
     return 0;
 }
 
 int fklMemRegionGrowTo(void *data, size_t size) {
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
-    size = page_round_up(size);
+    size = page_round_up(size + HEADER_SIZE);
     if (header->total < size)
         return -1;
 
-    if (size < header->commited)
+    if (size < header->committed)
         return 0;
 
     int r = fklVmemCommit(header, size);
     if (r != 0)
         return -1;
 
-    header->commited = size;
+    header->committed = size;
     return 0;
 }
 
 int fklMemRegionShrinkTo(void *data, size_t size) {
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
-    size = page_round_up(size);
-    if (size > header->commited)
+    size = page_round_up(size + HEADER_SIZE);
+    if (size == header->committed)
+        return 0;
+
+    if (size > header->committed)
         return -1;
-    int r = fklVmemDecommit(header, size);
+
+    int r = fklVmemDecommit(((char *)header) + size, header->committed - size);
     if (r != 0)
         return -1;
-    header->commited = size;
+    header->committed = size;
     return 0;
 }
 
@@ -99,12 +108,10 @@ int fklMemRegionRelease(void *data) {
 
 size_t fklMemRegionSize(void *data) {
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
-    size_t header_size = offsetof(MemRegionHeader, data);
-    return header->total - header_size;
+    return header->total - HEADER_SIZE;
 }
 
 size_t fklMemRegionUsableSize(void *data) {
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
-    size_t header_size = offsetof(MemRegionHeader, data);
-    return header->commited - header_size;
+    return header->committed - HEADER_SIZE;
 }

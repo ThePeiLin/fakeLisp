@@ -142,12 +142,11 @@ typedef struct {
     FklParseStateVector states;
 } BdbCmdReadCtx;
 
-FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
+typedef struct {
     FklVMvalue *backtrace_list;
     FklValueHashSet file_sid_set;
     BdbCmdReadCtx read_ctx;
 
-    int8_t inited;
     int8_t exit;
     int8_t running;
     int8_t done;
@@ -183,7 +182,6 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
 
     // 下面的成员由 `DbgCtx` 的GC标记
     // 所以下面的对象引用成员不使用 `BdbWrapper`
-    FklVMgc gc;
     BdbBpTable bt;
     FklCgCtx cg_ctx;
     FklVMvalueCgEnv *glob_env;
@@ -196,11 +194,13 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, {
     FklValueVector code_objs;
 
     BdbWrapper error;
-});
+
+    FklVMgc gc;
+} DebugCtx;
+
+FKL_VM_DEF_UD_STRUCT(FklVMvalueDebugCtx, { DebugCtx *v; });
 
 FKL_VM_DEF_UD_STRUCT(FklVMvalueBpWrapper, { BdbBp *bp; });
-
-typedef FklVMvalueDebugCtx DebugCtx;
 
 typedef enum {
     BDB_PUT_BP_AT_END_OF_FILE = 1,
@@ -216,12 +216,11 @@ typedef struct {
 } BdbIntArg;
 
 void bdbInitStaticTypes(void);
-int bdbInitDbgCtx(DebugCtx *,
-        FklVM *exe,
-        const char *filename,
-        FklVMvalue *argv);
+DebugCtx *bdbMakeDbgCtx(FklVM *exe, const char *filename, FklVMvalue *argv);
+
 void bdbExitDbgCtx(DebugCtx *);
-void bdbUninitDbgCtx(DebugCtx *);
+
+void bdbDestroyDbgCtx(DebugCtx *);
 
 void bdbInitBpTable(BdbBpTable *);
 void bdbUninitBpTable(BdbBpTable *);

@@ -5,19 +5,6 @@
 
 #define DEFAULT_PAGE_SIZE (4096)
 
-static inline size_t vmem_round_up(size_t s, size_t ps) {
-    FKL_ASSERT(ps > 0);
-    if (s > (SIZE_MAX - (ps - 1)))
-        return 0;
-
-    if ((ps & (ps - 1)) == 0) {
-        size_t mask = ps - 1;
-        return (s + mask) & ~mask;
-    }
-
-    return ((s + (ps - 1)) / ps) * ps;
-}
-
 static inline int vmem_check_args(void *p, size_t size) {
     if (p == NULL || size == 0)
         return -1;
@@ -76,7 +63,7 @@ size_t fklVmemGranularity(void) { return fklVmemPageSize(); }
 void *fklVmemReserve(size_t size) {
     if (size == 0)
         return NULL;
-    size_t actual_size = vmem_round_up(size, fklVmemGranularity());
+    size_t actual_size = fklVmemReserveSize(size);
     if (actual_size == 0)
         return NULL;
     void *p = mmap(NULL,
@@ -92,7 +79,7 @@ void *fklVmemReserve(size_t size) {
 int fklVmemCommit(void *p, size_t size) {
     if (vmem_check_args(p, size) != 0)
         return -1;
-    size_t sz = vmem_round_up(size, fklVmemPageSize());
+    size_t sz = fklVmemRoundUp(size, fklVmemPageSize());
     if (sz == 0)
         return -1;
     return mprotect(p, sz, PROT_READ | PROT_WRITE);
@@ -101,7 +88,7 @@ int fklVmemCommit(void *p, size_t size) {
 int fklVmemDecommit(void *p, size_t size) {
     if (vmem_check_args(p, size) != 0)
         return -1;
-    size_t sz = vmem_round_up(size, fklVmemPageSize());
+    size_t sz = fklVmemRoundUp(size, fklVmemPageSize());
     if (sz == 0)
         return -1;
     if (madvise(p, sz, MADV_DONTNEED) != 0)
@@ -116,13 +103,13 @@ int fklVmemProtect(void *p, size_t size, FklVmemProt fkl_prot) {
     return mprotect(p, size, prot);
 }
 
-void fklVmemRelease(void *p, size_t size) {
+int fklVmemRelease(void *p, size_t size) {
     if (p == NULL)
-        return;
-    size_t actual_size = vmem_round_up(size, fklVmemGranularity());
+        return 0;
+    size_t actual_size = fklVmemReserveSize(size);
     if (actual_size == 0)
         actual_size = fklVmemGranularity();
-    munmap(p, actual_size);
+    return munmap(p, actual_size);
 }
 
 void *fklVmemAlloc(size_t size, FklVmemProt prot) {
@@ -130,14 +117,23 @@ void *fklVmemAlloc(size_t size, FklVmemProt prot) {
     if (p == NULL)
         return NULL;
     if (fklVmemCommit(p, size) != 0) {
-        fklVmemRelease(p, size);
-        return NULL;
+        goto error;
     }
-    if (prot != (FKL_VMEM_R | FKL_VMEM_W)) {
-        if (fklVmemProtect(p, size, prot) != 0) {
-            fklVmemRelease(p, size);
-            return NULL;
-        }
+
+    if (prot == (FKL_VMEM_R | FKL_VMEM_W)) {
+        return p;
     }
+
+    if (fklVmemProtect(p, size, prot) != 0) {
+        goto error;
+    }
+
     return p;
+
+    int r = 0;
+
+error:
+    r = fklVmemRelease(p, size);
+    (void)r;
+    return NULL;
 }

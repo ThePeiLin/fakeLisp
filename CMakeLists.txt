@@ -217,8 +217,11 @@ target_compile_definitions(test-lexer5 PRIVATE
 	ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
 	BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
 )
-
 target_define_relative_file(test-lexer5)
+
+add_executable(test-vmem "main/tests/vmem.c")
+target_link_libraries(test-vmem grammer_lib ${LINK_TARGET})
+target_define_relative_file(test-vmem)
 
 add_executable(test-parser-grammer "main/tests/parser-grammer.c")
 add_dependencies(test-parser-grammer lisp.g)
@@ -529,6 +532,9 @@ add_test(NAME test-path
 
 add_test(NAME test-abspath
 	COMMAND $<TARGET_FILE:test-abspath>)
+
+add_test(NAME test-vmem
+	COMMAND $<TARGET_FILE:test-vmem>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json

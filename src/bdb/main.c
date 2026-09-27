@@ -79,33 +79,39 @@ static inline int is_debug_ctx(const FklVMvalue *v) {
     return FKL_IS_USERDATA(v) && FKL_VM_UD(v)->tp_->token == &DebugCtxMt;
 }
 
-static inline DebugCtx *as_dbg_ctx(const FklVMvalue *v) {
+static inline FklVMvalueDebugCtx *as_dbg_ctx(const FklVMvalue *v) {
     FKL_ASSERT(is_debug_ctx(v));
-    return (DebugCtx *)v;
+    return (FklVMvalueDebugCtx *)v;
 }
 
 static void debug_ctx_atomic(const FklVMvalue *ud, FklVMgc *gc) {
-    DebugCtx *dctx = as_dbg_ctx(ud);
+    DebugCtx *dctx = as_dbg_ctx(ud)->v;
+    if (dctx == NULL)
+        return;
     atomic_cmd_read_ctx(&dctx->read_ctx, gc);
     fklVMgcToGray(dctx->backtrace_list, gc);
 }
 
 static FklVMudFinalizeResult debug_ctx_finalize(FklVMvalue *data, FklVMgc *gc) {
-    DebugCtx *ctx = as_dbg_ctx(data);
-    if (ctx->inited != 0 && ctx->exit == 0) {
+    DebugCtx *ctx = as_dbg_ctx(data)->v;
+    if (ctx == NULL)
+        return FKL_VM_UD_FINALIZE_NOW;
+
+    if (ctx->exit == 0) {
         fprintf(stderr,
                 "[%s: %d] debug ctx should be exit manually before it be finalized\n",
                 __REL_FILE__,
                 __LINE__);
         abort();
     }
-    bdbUninitDbgCtx(ctx);
+    bdbDestroyDbgCtx(ctx);
+    as_dbg_ctx(data)->v = NULL;
     return FKL_VM_UD_FINALIZE_NOW;
 }
 
 static FklVMudMetaTable DebugCtxMt = {
     .name = "debug-ctx",
-    .size = sizeof(DebugCtx),
+    .size = sizeof(FklVMvalueDebugCtx),
     .prin1 = debug_ctx_print,
     .princ = debug_ctx_print,
     .atomic = debug_ctx_atomic,
@@ -135,15 +141,15 @@ static int bdb_make_debug_ctx(FKL_CPROC_ARGL) {
     FKL_ASSERT(tp->token == &DebugCtxMt);
 
     FklVMvalue *ud = fklCreateVMvalueUd(exe, tp);
-    DebugCtx *dctx = as_dbg_ctx(ud);
+    FklVMvalueDebugCtx *dctx = as_dbg_ctx(ud);
 
-    int r = 0;
+    dctx->v = NULL;
     FKL_VM_UNLOCK_BLOCK(exe, flag) {
-        r = bdbInitDbgCtx(dctx, exe, valid_filename, argv_obj);
+        dctx->v = bdbMakeDbgCtx(exe, valid_filename, argv_obj);
     }
 
     fklZfree(valid_filename);
-    if (r) {
+    if (dctx->v == NULL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INVALID_VALUE, exe);
     }
     FKL_CPROC_RETURN(exe, ctx, ud);
@@ -161,7 +167,9 @@ static int bdb_debug_ctx_exit_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     FKL_CPROC_RETURN(exe, ctx, dctx->exit ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
@@ -170,7 +178,9 @@ static int bdb_debug_ctx_done_p(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     FKL_CPROC_RETURN(exe, ctx, dctx->done ? FKL_VM_TRUE : FKL_VM_NIL);
     return 0;
 }
@@ -179,7 +189,9 @@ static int bdb_debug_ctx_exit(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     bdbExitDbgCtx(dctx);
     FKL_CPROC_RETURN(exe, ctx, obj);
     return 0;
@@ -310,7 +322,9 @@ static int bdb_debug_ctx_readline(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(dbg_ctx_obj, is_debug_ctx, exe);
     FKL_CHECK_TYPE(prompt_obj, FKL_IS_STR, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dbg_ctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dbg_ctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     const char *prompt = FKL_VM_STR(prompt_obj)->str;
     FklVMvalue *cmd = debug_ctx_read_expression(exe, dctx, prompt);
     FKL_CPROC_RETURN(exe, ctx, cmd);
@@ -322,7 +336,8 @@ static int bdb_debug_ctx_get_curline(FKL_CPROC_ARGL) {
     FklVMvalue *debug_ctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(debug_ctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(debug_ctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(debug_ctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     BdbPos curline = { 0 };
     if (!bdbGetCurLine(dctx, &curline)) {
@@ -367,7 +382,9 @@ static int bdb_debug_ctx_continue(FKL_CPROC_ARGL) {
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     bdbClearDeletedBp(dctx);
     if (dctx->done) {
         debug_restart(dctx, exe);
@@ -414,7 +431,9 @@ static int bdb_debug_ctx_restart(FKL_CPROC_ARGL) {
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     if (debug_restart(dctx, exe))
         FKL_CPROC_RETURN(exe, ctx, FKL_VM_TRUE);
     else
@@ -429,7 +448,8 @@ static int bdb_debug_ctx_set_break(FKL_CPROC_ARGL) {
     FklVMvalue *is_temporary = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FklVMvalue *name_obj = FKL_CPROC_GET_ARG(exe, ctx, 2);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FklVMvalue *filename = NULL;
     uint64_t line = 0;
@@ -506,7 +526,8 @@ static int bdb_debug_ctx_list_break(FKL_CPROC_ARGL) {
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FklVMvalue *r = FKL_VM_NIL;
     FklVMvalue **pr = &r;
@@ -534,7 +555,8 @@ static int bdb_debug_ctx_delete_break(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(bp_num_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
     BdbBp *item = bdbDeleteBp(dctx, num);
@@ -555,7 +577,8 @@ static int bdb_debug_ctx_disable_break(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(bp_num_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
     BdbBp *item = bdbDisableBp(dctx, num);
@@ -576,7 +599,8 @@ static int bdb_debug_ctx_enable_break(FKL_CPROC_ARGL) {
     if (fklIsVMnumberLt0(bp_num_obj))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     uint64_t num = fklVMgetUint(bp_num_obj);
     BdbBp *item = bdbEnableBp(dctx, num);
@@ -593,7 +617,8 @@ static int bdb_debug_ctx_set_list_src(FKL_CPROC_ARGL) {
     FklVMvalue *line_num_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
     uint64_t line_num = FKL_GET_FIX(line_num_obj);
@@ -609,7 +634,8 @@ static int bdb_debug_ctx_list_src(FKL_CPROC_ARGL) {
     FklVMvalue *line_num_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     if (line_num_obj) {
         FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
@@ -665,7 +691,8 @@ static int bdb_debug_ctx_list_file_src(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(filename_obj, FKL_IS_STR, exe);
     FKL_CHECK_TYPE(line_num_obj, FKL_IS_FIX, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     const FklString *filename = FKL_VM_STR(filename_obj);
     const FklStringVector *item = bdbGetSource(dctx, filename);
@@ -714,7 +741,8 @@ static int bdb_debug_ctx_set_step_into(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     int8_t done = dctx->done;
     if (done)
@@ -732,7 +760,8 @@ static int bdb_debug_ctx_set_step_over(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     int8_t done = dctx->done;
     if (done)
@@ -750,7 +779,8 @@ static int bdb_debug_ctx_set_step_out(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     if (dctx->done)
         debug_restart(dctx, exe);
@@ -765,7 +795,8 @@ static int bdb_debug_ctx_set_until(FKL_CPROC_ARGL) {
     FklVMvalue *lineno_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     int8_t done = dctx->done;
     if (done)
@@ -793,7 +824,8 @@ static int bdb_debug_ctx_list_ins(FKL_CPROC_ARGL) {
     FklVMvalue *pc_num_obj = argc > 1 ? FKL_CPROC_GET_ARG(exe, ctx, 1) : NULL;
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     uint64_t cur_pc = 0;
     BdbWrapper proc = bdbUpdateCurProc(dctx, &cur_pc);
@@ -835,7 +867,8 @@ static int bdb_debug_ctx_set_list_ins(FKL_CPROC_ARGL) {
     FklVMvalue *pc_num_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FKL_CHECK_TYPE(pc_num_obj, fklIsVMint, exe);
 
@@ -854,7 +887,8 @@ static int bdb_debug_ctx_get_cur_ins(FKL_CPROC_ARGL) {
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
 
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     uint64_t cur_pc = 0;
     BdbWrapper proc = bdbUpdateCurProc(dctx, &cur_pc);
@@ -877,7 +911,8 @@ static int bdb_debug_ctx_set_step_ins(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     bdbSetStepIns(dctx,
             dctx->reached_thread,
@@ -892,7 +927,8 @@ static int bdb_debug_ctx_set_next_ins(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *dctx_obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     bdbSetStepIns(dctx,
             dctx->reached_thread,
@@ -909,7 +945,8 @@ static int bdb_debug_ctx_eval(FKL_CPROC_ARGL) {
     FklVMvalue *expression_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(dctx_obj, is_debug_ctx, exe);
     FKL_CHECK_TYPE(expression_obj, FKL_IS_STR, exe);
-    DebugCtx *dctx = as_dbg_ctx(dctx_obj);
+    DebugCtx *dctx = as_dbg_ctx(dctx_obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     if (dctx->done && dctx->reached_thread == NULL) {
         FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_THREADERROR,
@@ -976,7 +1013,8 @@ static int bdb_debug_ctx_backtrace(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FklVMvalue *l = bdbGetCurBacktrace(dctx, exe);
     if (l == NULL) {
@@ -994,7 +1032,8 @@ static int bdb_debug_ctx_error_info(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FklVMvalue *retval = bdbErrInfo(dctx, exe);
 
@@ -1006,7 +1045,9 @@ static int bdb_debug_ctx_eval_backtrace(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
+
     FklVMvalue *ret = dctx->backtrace_list;
     FKL_CPROC_RETURN(exe, ctx, ret);
     return 0;
@@ -1016,7 +1057,8 @@ static int bdb_debug_ctx_up(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     if (dctx->reached_thread
             && dctx->curframe_idx < dctx->reached_thread_frames.size) {
@@ -1031,7 +1073,8 @@ static int bdb_debug_ctx_down(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM(exe, argc, 1);
     FklVMvalue *obj = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     if (dctx->reached_thread && dctx->curframe_idx > 1) {
         dctx->curframe_idx--;
@@ -1047,7 +1090,8 @@ static int bdb_debug_ctx_list_thread(FKL_CPROC_ARGL) {
     FklVMvalue *prefix_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
     FKL_CHECK_TYPE(prefix_obj, FKL_IS_STR, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     FklVMvalue *l = bdbListThreads(dctx, exe);
     FKL_CPROC_RETURN(exe, ctx, l);
@@ -1060,7 +1104,8 @@ static int bdb_debug_ctx_switch_thread(FKL_CPROC_ARGL) {
     FklVMvalue *id_obj = FKL_CPROC_GET_ARG(exe, ctx, 1);
     FKL_CHECK_TYPE(obj, is_debug_ctx, exe);
     FKL_CHECK_TYPE(id_obj, FKL_IS_FIX, exe);
-    DebugCtx *dctx = as_dbg_ctx(obj);
+    DebugCtx *dctx = as_dbg_ctx(obj)->v;
+    FKL_ASSERT(dctx != NULL);
 
     int64_t id = FKL_GET_FIX(id_obj);
     if (id > 0 && id <= (int64_t)dctx->threads.size) {

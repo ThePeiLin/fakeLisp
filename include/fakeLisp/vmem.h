@@ -26,11 +26,26 @@ FKL_API size_t fklVmemGranularity(void);
 
 FKL_API void *fklVmemReserve(size_t size);
 
-FKL_API int fklVmemCommit(void *p, size_t size);
-FKL_API int fklVmemDecommit(void *p, size_t size);
+/// @return 0 if successful
+FKL_API
+FKL_NODISCARD
+int fklVmemCommit(void *p, size_t size);
 
-FKL_API int fklVmemProtect(void *p, size_t size, FklVmemProt prot);
-FKL_API void fklVmemRelease(void *p, size_t size);
+/// @return 0 if successful
+FKL_API
+FKL_NODISCARD
+int fklVmemDecommit(void *p, size_t size);
+
+/// @return 0 if successful
+FKL_API
+FKL_NODISCARD
+int fklVmemProtect(void *p, size_t size, FklVmemProt prot);
+
+/// @return 0 if successful
+FKL_API
+FKL_NODISCARD
+int fklVmemRelease(void *p, size_t size);
+
 FKL_API void *fklVmemAlloc(size_t size, FklVmemProt prot);
 
 static FKL_ALWAYS_INLINE size_t fklVmemRoundUp(size_t s, size_t page_size) {
@@ -44,6 +59,10 @@ static FKL_ALWAYS_INLINE size_t fklVmemRoundUp(size_t s, size_t page_size) {
     }
 
     return ((s + (page_size - 1)) / page_size) * page_size;
+}
+
+static FKL_ALWAYS_INLINE size_t fklVmemReserveSize(size_t size) {
+    return fklVmemRoundUp(size, fklVmemGranularity());
 }
 
 #ifdef __cplusplus

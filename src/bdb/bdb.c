@@ -447,7 +447,7 @@ static inline int init_debug_compile_and_init_vm(DebugCtx *dctx,
 
     if (bc == NULL) {
         fklUninitCgCtx(ctx);
-        fklUninitVMgc(gc);
+        fklDestroyVMgc(gc);
         return 1;
     }
 
@@ -501,10 +501,9 @@ static inline void get_all_code_objs(DebugCtx *ctx) {
     }
 }
 
-int bdbInitDbgCtx(DebugCtx *ctx,
-        FklVM *exe,
-        const char *filename,
-        FklVMvalue *argv) {
+DebugCtx *bdbMakeDbgCtx(FklVM *exe, const char *filename, FklVMvalue *argv) {
+    FKL_TODO();
+#if 0
     ctx->backtrace_list = NULL;
     fklValueHashSetInit(&ctx->file_sid_set);
     FklVMgc *gc = &ctx->gc;
@@ -554,7 +553,7 @@ int bdbInitDbgCtx(DebugCtx *ctx,
 
     ctx->error = BDB_NONE;
     ctx->inited = 1;
-    return 0;
+#endif
 }
 
 static inline void uninit_cmd_read_ctx(BdbCmdReadCtx *ctx) {
@@ -580,7 +579,9 @@ void bdbExitDbgCtx(DebugCtx *ctx) {
     ctx->exit = 1;
 }
 
-void bdbUninitDbgCtx(DebugCtx *ctx) {
+void bdbDestroyDbgCtx(DebugCtx *ctx) {
+    FKL_TODO();
+#if 0
     if (!ctx->inited)
         return;
     FklVMgc *gc = &ctx->gc;
@@ -606,6 +607,7 @@ void bdbUninitDbgCtx(DebugCtx *ctx) {
 
     ctx->error = BDB_NONE;
     ctx->inited = 0;
+#endif
 }
 
 static inline const FklLntItem *get_cur_frame_lnt(const FklVMframe *frame) {
@@ -827,10 +829,6 @@ void bdbRestartDebugging(DebugCtx *ctx) {
     gc->main_thread = main_thread;
     fklVMthreadStart(main_thread, &gc->q);
     bdbSetReachedThread(ctx, main_thread);
-}
-
-void bdbStringify(DebugCtx *ctx, BdbWrapper const v, FklStrBuilder *build) {
-    fklPrin1VMvalue2(bdbUnwrap(v), build, &ctx->gc.gcvm);
 }
 
 BdbWrapper bdbUpdateCurProc(DebugCtx *ctx, uint64_t *ppc) {

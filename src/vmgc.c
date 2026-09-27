@@ -1,5 +1,8 @@
+#include <fakeLisp/mem_region.h>
 #include <fakeLisp/vm.h>
+#include <fakeLisp/vmem.h>
 #include <fakeLisp/zmalloc.h>
+
 #include <uv.h>
 
 #include <string.h>
@@ -471,8 +474,13 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
 }
 
 FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
-    FklVMgc *gc = (FklVMgc *)fklZmalloc(sizeof(FklVMgc));
+    size_t total_size = sizeof(FklVMgc) + fklVmemPageSize();
+    FklVMgc *gc = (FklVMgc *)fklMemRegionReserve(total_size);
     FKL_ASSERT(gc);
+    int r = fklMemRegionGrowTo(gc, sizeof(FklVMgc));
+    FKL_ASSERT(r == 0);
+    (void)r;
+
     fklInitVMgc(gc, desc);
     return gc;
 }
@@ -658,7 +666,10 @@ static void fklUninitVMgc(FklVMgc *gc) {
 
 void fklDestroyVMgc(FklVMgc *gc) {
     fklUninitVMgc(gc);
-    fklZfree(gc);
+
+    int r = fklMemRegionRelease(gc);
+    FKL_ASSERT(r == 0);
+    (void)r;
 }
 
 void fklVMacquireWq(FklVMgc *gc) { uv_mutex_lock(&gc->workq_lock); }

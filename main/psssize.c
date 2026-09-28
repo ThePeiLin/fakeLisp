@@ -40,7 +40,7 @@ int main() {
         size_t total = fklMemRegionSize(vm);
         size_t usable = fklMemRegionUsableSize(vm);
         size_t offset = offsetof(FklVM, base);
-        printf("total = %zu, usable = %zu, offset = %zu, FklVMgc.last = %zu, total FklVMgc.last = %zu\n",
+        printf("total = %zu, usable = %zu, offset = %zu, FklVM.last = %zu, total FklVM.last = %zu\n",
                 total,
                 usable,
                 offset,
@@ -48,6 +48,7 @@ int main() {
                 fklComputeVMstackSize(offset, total));
     }
 
+    fklDestroyAllVMs(vm);
     fklDestroyVMgc(gc);
     return 0;
 }

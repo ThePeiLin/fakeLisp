@@ -31,24 +31,6 @@
 #include <unistd.h>
 #endif
 
-static inline void
-push_old_locv(FklVM *exe, uint32_t llast, FklVMvalue **locv) {
-    if (llast) {
-        FklVMlocvList *n = NULL;
-        if (exe->old_locv_count < 8)
-            n = &exe->old_locv_cache[exe->old_locv_count];
-        else {
-            n = (FklVMlocvList *)fklZmalloc(sizeof(FklVMlocvList));
-            FKL_ASSERT(n);
-        }
-        n->next = exe->old_locv_list;
-        n->llast = llast;
-        n->locv = locv;
-        exe->old_locv_list = n;
-        exe->old_locv_count++;
-    }
-}
-
 // call compound procedure
 static inline void call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
     FklVMframe *f = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
@@ -864,11 +846,9 @@ void fklVMgcCheck(FklVM *exe, int forced) {
     if (forced || atomic_load(&gc->alloced_size) > gc->threshold) {
         fklMoveThreadObjectsToGc(&gc->gcvm, gc);
         fklMoveThreadObjectsToGc(exe, gc);
-        fklVMgcMoveLocvCache(exe, gc);
         remove_thread_frame_cache(exe);
         for (FklVM *cur = exe->next; cur != exe; cur = cur->next) {
             fklMoveThreadObjectsToGc(cur, gc);
-            fklVMgcMoveLocvCache(cur, gc);
             remove_thread_frame_cache(cur);
         }
         fklVMgcMarkAllRootToGray(exe);
@@ -1107,11 +1087,9 @@ static inline void unlock_all_vm(FklThreadQueue *q) {
 static inline void move_all_thread_objects_to_gc(FklVMgc *gc) {
     FklVM *vm = gc->main_thread;
     fklMoveThreadObjectsToGc(vm, gc);
-    fklVMgcMoveLocvCache(vm, gc);
     remove_thread_frame_cache(vm);
     for (FklVM *cur = vm->next; cur != vm; cur = cur->next) {
         fklMoveThreadObjectsToGc(cur, gc);
-        fklVMgcMoveLocvCache(cur, gc);
         remove_thread_frame_cache(cur);
     }
 }
@@ -1574,7 +1552,6 @@ void fklDestroyAllVMs(FklVM *curVM) {
     for (FklVM *cur = curVM; cur;) {
         FklVM *t = cur;
         cur = cur->next;
-        fklVMgcMoveLocvCache(t, t->gc);
         if (t->obj_head)
             fklMoveThreadObjectsToGc(t, t->gc);
         remove_exited_thread_common(t);

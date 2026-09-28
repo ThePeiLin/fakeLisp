@@ -348,17 +348,7 @@ typedef struct {
     FklThreadQueue running_q;
 } FklVMqueue;
 
-FKL_DEPRECATED
-typedef struct FklVMlocvList {
-    struct FklVMlocvList *next;
-    uint32_t llast;
-    FklVMvalue **locv;
-} FklVMlocvList;
-
 typedef void (*FklVMinsFunc)(FklVM *exe, const FklIns *ins);
-
-#define FKL_VM_GC_LOCV_CACHE_NUM (8)
-#define FKL_VM_GC_LOCV_CACHE_LAST_IDX (FKL_VM_GC_LOCV_CACHE_NUM - 1)
 
 typedef void (*FklVMatExitFunc)(FklVM *, void *);
 typedef void (*FklVMatExitMarkFunc)(void *, FklVMgc *);
@@ -386,9 +376,6 @@ typedef struct FklVM {
 
     int8_t is_single_thread;
     atomic_schar notice_lock;
-    uint32_t old_locv_count;
-    FklVMlocvList old_locv_cache[FKL_VM_GC_LOCV_CACHE_NUM];
-    FklVMlocvList *old_locv_list;
 
     FklVMstate volatile state;
 
@@ -547,7 +534,6 @@ typedef enum {
     FKL_GC_DONE,
 } FklGCstate;
 
-#define FKL_VM_GC_LOCV_CACHE_LEVEL_NUM (5)
 #define FKL_VM_GC_THRESHOLD_SIZE (0x4000)
 
 #define FKL_BUILTIN_ERR_MAP                                                    \
@@ -646,16 +632,6 @@ typedef struct FklVMgc {
 
     FklVM *main_thread;
     int exit_code;
-
-    FKL_DEPRECATED
-    struct FklLocvCacheLevel {
-        uv_mutex_t lock;
-        uint32_t num;
-        struct FklLocvCache {
-            uint32_t llast;
-            FklVMvalue **locv;
-        } locv[FKL_VM_GC_LOCV_CACHE_NUM];
-    } locv_cache[FKL_VM_GC_LOCV_CACHE_LEVEL_NUM];
 
     struct FklVMvalueObarray *obarray;
 
@@ -943,20 +919,6 @@ FKL_API void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc);
 FKL_API void fklVMstackShrink(FklVM *);
 FKL_API int fklCreateCreateThread(FklVM *);
 
-static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
-    uint32_t l = (llast / FKL_VM_STACK_INC_NUM) - 1;
-    if (l >= 8)
-        return 4;
-    else if (l & 0x4)
-        return 3;
-    else if (l & 0x2)
-        return 2;
-    else if (l & 0x1)
-        return 1;
-    else
-        return 0;
-}
-
 FKL_API FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
 FKL_API size_t fklVMgcReservedSize(void);
@@ -977,17 +939,6 @@ FKL_API void *fklCreateVMgcAt(size_t offset, const FklBuiltinDesc *builtins);
 
 #define FKL_CREATE_VM_GC_AT(TYPE, MEMBER, DESC)                                \
     ((TYPE *)fklCreateVMgcAt(offsetof(TYPE, MEMBER), DESC))
-
-FKL_DEPRECATED
-FKL_API
-FklVMvalue **
-fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
-
-FKL_DEPRECATED
-FKL_API
-FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *,
-        uint32_t llast,
-        uint32_t *pllast);
 
 FKL_API FklVMvalue *fklVMaddSymbol(FklVM *, const FklString *str);
 FKL_API FklVMvalue *fklVMaddSymbolCstr(FklVM *, const char *str);
@@ -1014,11 +965,6 @@ FKL_API void fklValueTableClear(FklValueTable *t);
 FKL_API
 void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v);
 
-FKL_DEPRECATED
-FKL_API
-void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
-
-FKL_API void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc);
 FKL_API void fklVMgcMarkAllRootToGray(FklVM *curVM);
 FKL_API void fklVMgcUpdateWeakRefs(FklVMgc *gc);
 FKL_API int fklVMgcPropagate(FklVMgc *gc);

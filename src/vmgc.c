@@ -334,62 +334,6 @@ void fklVMgcSweep(FklVMgc *gc, FklVMvalue *head) {
     }
 }
 
-void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv) {
-    struct FklLocvCacheLevel *locv_cache_level = gc->locv_cache;
-    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
-
-    struct FklLocvCacheLevel *locv_cache = &locv_cache_level[idx];
-    uint32_t num = locv_cache->num;
-    struct FklLocvCache *locvs = locv_cache->locv;
-
-    uint8_t i = 0;
-    for (; i < num; i++) {
-        if (llast < locvs[i].llast)
-            break;
-    }
-
-    if (i < FKL_VM_GC_LOCV_CACHE_NUM) {
-        if (num == FKL_VM_GC_LOCV_CACHE_NUM) {
-            atomic_fetch_sub(&gc->alloced_size,
-                    fklZmallocSize(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv));
-            fklZfree(locvs[FKL_VM_GC_LOCV_CACHE_LAST_IDX].locv);
-            num--;
-        } else {
-            locv_cache->num++;
-        }
-        FKL_ASSERT(num < 256);
-        for (uint8_t j = (uint8_t)num; j > i; j--)
-            locvs[j] = locvs[j - 1];
-        locvs[i].llast = llast;
-        locvs[i].locv = locv;
-    } else {
-        atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(locv));
-        fklZfree(locv);
-    }
-}
-
-void fklVMgcMoveLocvCache(FklVM *vm, FklVMgc *gc) {
-    FklVMlocvList *cur = vm->old_locv_list;
-    uint32_t i = vm->old_locv_count;
-    for (; i > FKL_VM_GC_LOCV_CACHE_NUM; i--) {
-        fklVMgcAddLocvCache(gc, cur->llast, cur->locv);
-
-        FklVMlocvList *prev = cur;
-        cur = cur->next;
-        fklZfree(prev);
-    }
-
-    for (uint32_t j = 0; j < i; j++) {
-        FklVMlocvList *cur = &vm->old_locv_cache[j];
-
-        fklVMgcAddLocvCache(gc, cur->llast, cur->locv);
-        cur->llast = 0;
-        cur->locv = NULL;
-    }
-    vm->old_locv_list = NULL;
-    vm->old_locv_count = 0;
-}
-
 static inline void init_vm_queue(FklVMqueue *q) {
     uv_mutex_init(&q->pre_running_lock);
     fklThreadQueueInit(&q->pre_running_q);
@@ -401,14 +345,6 @@ static inline void uninit_vm_queue(FklVMqueue *q) {
     uv_mutex_destroy(&q->pre_running_lock);
     fklThreadQueueUninit(&q->pre_running_q);
     fklThreadQueueUninit(&q->running_q);
-}
-
-static inline void init_locv_cache(FklVMgc *gc) {
-    uv_mutex_init(&gc->locv_cache[0].lock);
-    uv_mutex_init(&gc->locv_cache[1].lock);
-    uv_mutex_init(&gc->locv_cache[2].lock);
-    uv_mutex_init(&gc->locv_cache[3].lock);
-    uv_mutex_init(&gc->locv_cache[4].lock);
 }
 
 void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv) {
@@ -439,7 +375,6 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
 
     init_idle_work_queue(gc);
     init_vm_queue(&gc->q);
-    init_locv_cache(gc);
 
     gc->gcvm.gc = gc;
     gc->gcvm.region = (void *)gc;
@@ -507,84 +442,6 @@ size_t fklVMgcAllocatedDec(FklVMgc *gc, size_t s) {
     return atomic_fetch_sub(&gc->alloced_size, s);
 }
 
-FklVMvalue **
-fklAllocLocalVarSpaceFromGC(FklVMgc *gc, uint32_t llast, uint32_t *pllast) {
-    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
-    FKL_ASSERT(idx < 256);
-    FklVMvalue **r = NULL;
-    uint8_t i = (uint8_t)idx;
-    for (; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
-        struct FklLocvCacheLevel *l = &gc->locv_cache[i];
-        uv_mutex_lock(&l->lock);
-        if (l->num) {
-            struct FklLocvCache *ll = l->locv;
-            for (uint8_t j = 0; j < FKL_VM_GC_LOCV_CACHE_NUM; j++) {
-                if (ll[j].llast >= llast) {
-                    *pllast = ll[j].llast;
-                    r = ll[j].locv;
-                    l->num--;
-                    for (uint8_t k = j; k < l->num; k++)
-                        ll[k] = ll[k + 1];
-                    ll[l->num].llast = 0;
-                    ll[l->num].locv = 0;
-                    break;
-                }
-            }
-        }
-        uv_mutex_unlock(&l->lock);
-    }
-    if (r != NULL)
-        return r;
-
-    *pllast = llast;
-    if (!llast)
-        r = NULL;
-    else {
-        r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
-        FKL_ASSERT(r);
-    }
-    atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
-    return r;
-}
-
-FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *gc,
-        uint32_t llast,
-        uint32_t *pllast) {
-    uint32_t idx = fklVMgcComputeLocvLevelIdx(llast);
-    FKL_ASSERT(idx < 256);
-    FklVMvalue **r = NULL;
-    uint8_t i = (uint8_t)idx;
-    for (; !r && i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
-        struct FklLocvCacheLevel *l = &gc->locv_cache[i];
-        if (l->num) {
-            struct FklLocvCache *ll = l->locv;
-            for (uint8_t j = 0; j < FKL_VM_GC_LOCV_CACHE_NUM; j++) {
-                if (ll[j].llast >= llast) {
-                    *pllast = ll[j].llast;
-                    r = ll[j].locv;
-                    l->num--;
-                    for (uint8_t k = j; k < l->num; k++)
-                        ll[k] = ll[k + 1];
-                    ll[l->num].llast = 0;
-                    ll[l->num].locv = 0;
-                    break;
-                }
-            }
-        }
-    }
-    if (!r) {
-        *pllast = llast;
-        if (!llast)
-            r = NULL;
-        else {
-            r = (FklVMvalue **)fklZmalloc(llast * sizeof(FklVMvalue *));
-            FKL_ASSERT(r);
-        }
-        atomic_fetch_add(&gc->alloced_size, fklZmallocSize(r));
-    }
-    return r;
-}
-
 void fklAddToGC(FklVMvalue *v, FklVM *vm) {
     if (FKL_IS_PTR(v)) {
         v->next_ = vm->obj_head;
@@ -592,23 +449,6 @@ void fklAddToGC(FklVMvalue *v, FklVM *vm) {
         if (!vm->obj_tail)
             vm->obj_tail = v;
         fklVMgcAllocatedInc(vm->gc, fklZmallocSize(v));
-    }
-}
-
-static inline void destroy_all_locv_cache(FklVMgc *gc) {
-    struct FklLocvCacheLevel *levels = gc->locv_cache;
-    for (uint8_t i = 0; i < FKL_VM_GC_LOCV_CACHE_LEVEL_NUM; i++) {
-        struct FklLocvCacheLevel *cur_level = &levels[i];
-        uv_mutex_destroy(&cur_level->lock);
-        struct FklLocvCache *cache = cur_level->locv;
-        for (uint8_t j = 0; j < FKL_VM_GC_LOCV_CACHE_NUM; j++) {
-            struct FklLocvCache *cur_cache = &cache[j];
-            if (cur_cache->locv) {
-                atomic_fetch_sub(&gc->alloced_size,
-                        fklZmallocSize(cur_cache->locv));
-                fklZfree(cur_cache->locv);
-            }
-        }
     }
 }
 
@@ -671,7 +511,6 @@ static void fklUninitVMgc(FklVMgc *gc) {
     fklVMextraMarkHashMapUninit(&gc->extra_marks);
 
     destroy_argv(gc);
-    destroy_all_locv_cache(gc);
     fklVMgcSweep(gc, gc->head);
     gc->head = NULL;
     uninit_vm_queue(&gc->q);

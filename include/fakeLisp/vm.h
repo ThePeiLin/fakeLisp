@@ -348,6 +348,7 @@ typedef struct {
     FklThreadQueue running_q;
 } FklVMqueue;
 
+FKL_DEPRECATED
 typedef struct FklVMlocvList {
     struct FklVMlocvList *next;
     uint32_t llast;
@@ -646,6 +647,7 @@ typedef struct FklVMgc {
     FklVM *main_thread;
     int exit_code;
 
+    FKL_DEPRECATED
     struct FklLocvCacheLevel {
         uv_mutex_t lock;
         uint32_t num;

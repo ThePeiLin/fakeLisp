@@ -227,6 +227,10 @@ add_executable(test-mem-region "main/tests/mem_region.c")
 target_link_libraries(test-mem-region grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-mem-region)
 
+add_executable(test-stack "main/tests/stack.c")
+target_link_libraries(test-stack grammer_lib ${LINK_TARGET})
+target_define_relative_file(test-stack)
+
 add_executable(test-parser-grammer "main/tests/parser-grammer.c")
 add_dependencies(test-parser-grammer lisp.g)
 target_link_libraries(test-parser-grammer grammer_lib ${LINK_TARGET})
@@ -542,6 +546,9 @@ add_test(NAME test-vmem
 
 add_test(NAME test-mem-region
 	COMMAND $<TARGET_FILE:test-mem-region>)
+
+add_test(NAME test-stack
+	COMMAND $<TARGET_FILE:test-stack>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json

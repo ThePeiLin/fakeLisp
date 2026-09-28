@@ -1437,7 +1437,6 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
     return r;
 
 #if 0 
-
     uint32_t old_last = exe->last;
     exe->last <<= 1;
     if (exe->last < s)
@@ -1456,7 +1455,19 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
 }
 
 void fklVMstackShrink(FklVM *exe) {
-    // do nothing
+    uint32_t used = exe->tp;
+
+    uint32_t want = used < FKL_VM_STACK_INC_NUM ? FKL_VM_STACK_INC_NUM : used;
+    want = fklNextPow2(want);
+    if (exe->last < (want * 2))
+        return;
+
+    size_t want_size = want * sizeof(FklVMvalue *);
+    size_t target = offsetof(FklVM, base) + want_size;
+    if (fklMemRegionShrinkTo(exe, target) != 0)
+        return;
+    size_t usable = fklMemRegionUsableSize(exe);
+    exe->last = fklComputeVMstackSize(offsetof(FklVM, base), usable);
     return;
 #if 0
     uint32_t old_last = exe->last;

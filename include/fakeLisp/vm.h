@@ -1703,9 +1703,15 @@ FKL_API
 FKL_NODISCARD
 int fklVMstackReserve(FklVM *exe, uint32_t s);
 
+/// TODO: 处理 stackReserve 失败的情况
 static FKL_ALWAYS_INLINE void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
-    if (FKL_UNLIKELY(s->tp >= s->last))
-        fklVMstackReserve(s, s->tp + 1);
+    if (FKL_UNLIKELY(s->tp >= s->last)) {
+        int r = fklVMstackReserve(s, s->tp + 1);
+        (void)r;
+        if (r != 0)
+            abort();
+    }
+
     s->base[s->tp++] = v;
 }
 

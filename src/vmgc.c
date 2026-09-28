@@ -162,6 +162,7 @@ void fklVMgcMarkAllRootToGray(FklVM *curVM) {
         fklVMgcToGray(*ref, gc);
     gc_extra_mark(curVM->gc);
     mark_interrupt_handler(curVM->gc, curVM->gc->int_list);
+    gc_mark_root_to_gray(&curVM->gc->gcvm);
     gc_mark_root_to_gray(curVM);
 
     for (FklVM *cur = curVM->next; cur != curVM; cur = cur->next)
@@ -440,6 +441,11 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     init_locv_cache(gc);
 
     gc->gcvm.gc = gc;
+    gc->gcvm.region = (void *)gc;
+
+    size_t usable = fklMemRegionUsableSize(gc);
+    gc->gcvm.last = fklComputeVMstackSize(offsetof(FklVMgc, gcvm.base), usable);
+
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;
     gc->obarray = fklCreateVMvalueObarray(&gc->gcvm);
@@ -473,10 +479,7 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     }
 }
 
-size_t fklVMgcReserveSize(void)
-{
-	return fklVmemPageSize();
-}
+size_t fklVMgcReserveSize(void) { return fklVmemPageSize(); }
 
 FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
     size_t total_size = sizeof(FklVMgc) + fklVMgcReserveSize();

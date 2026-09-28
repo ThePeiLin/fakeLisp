@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 static int failures = 0;
 static int checks = 0;
@@ -120,6 +121,59 @@ int main(void) {
                 "last matches usable region after shrink");
 
         CHECK(push_and_verify(vm, 1000), "stack still works after shrink");
+    }
+
+    /* --- gcvm: a VM embedded in the GC's own region --- */
+    {
+        FklVM *gv = &gc->gcvm;
+        size_t gv_off = offsetof(FklVMgc, gcvm.base);
+
+        CHECK(gv->region == gc, "gcvm region is the gc itself");
+        CHECK(gv->tp == 0 && gv->bp == 0, "gcvm starts empty");
+        CHECK(gv->last > 0, "gcvm has an initial operand stack");
+        CHECK(gv->last
+                      == fklComputeVMstackSize(gv_off,
+                              fklMemRegionUsableSize(gc)),
+                "gcvm capacity matches its region");
+
+        uint32_t cap0 = gv->last;
+        size_t max_cap = fklComputeVMstackSize(gv_off, fklMemRegionSize(gc));
+        CHECK(max_cap > cap0, "gcvm can grow inside the gc region");
+
+        uint32_t n = (uint32_t)(max_cap - 1 < 600 ? max_cap - 1 : 600);
+        CHECK(n > cap0, "gcvm growth target exceeds the initial capacity");
+        CHECK(push_and_verify(gv, n), "gcvm push/grow keeps values intact");
+        CHECK(gv->last >= n, "gcvm capacity reached the pushed count");
+        CHECK(gv->last
+                      == fklComputeVMstackSize(gv_off,
+                              fklMemRegionUsableSize(gc)),
+                "gcvm last matches its region after growth");
+
+        CHECK(fklVMstackReserve(gv, 1u << 20) == -1,
+                "gcvm reserve beyond the gc region fails");
+
+        while (gv->tp)
+            (void)FKL_VM_POP_TOP_VALUE(gv);
+        uint32_t grown = gv->last;
+        fklVMstackShrink(gv);
+        CHECK(gv->last < grown, "gcvm shrink reclaims after unwinding");
+        CHECK(gv->last
+                      == fklComputeVMstackSize(gv_off,
+                              fklMemRegionUsableSize(gc)),
+                "gcvm last matches its region after shrink");
+
+        /* the gcvm operand stack must be a GC root */
+        {
+            FklVMvalue *s = fklCreateVMvalueStr1(gv, "gcvm-survives-gc");
+            FKL_VM_PUSH_VALUE(gv, s);
+            fklVMgcCheck(gv, 1);
+            CHECK(gv->base[0] == s, "gcvm stack kept the value across GC");
+            CHECK(FKL_IS_STR(gv->base[0]), "rooted value is still a string");
+            CHECK(strcmp(FKL_VM_STR(gv->base[0])->str, "gcvm-survives-gc") == 0,
+                    "rooted value content is intact");
+            while (gv->tp)
+                (void)FKL_VM_POP_TOP_VALUE(gv);
+        }
     }
 
     fklDestroyAllVMs(vm);

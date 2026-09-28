@@ -376,6 +376,8 @@ typedef void (*FklVMatExitMarkFunc)(void *, FklVMgc *);
 #include "cont/hash.h"
 
 typedef struct FklVM {
+    void *region;
+
     uv_thread_t tid;
     uv_mutex_t lock;
     FklVMvalue *obj_head;

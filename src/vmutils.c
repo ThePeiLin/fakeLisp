@@ -2446,3 +2446,15 @@ done:
     fklUninitStrBuf(&result);
     return r;
 }
+
+size_t fklComputeVMstackSize(size_t offset, size_t available) {
+    if (offset > available)
+        return 0;
+    available -= offset;
+    return available / sizeof(FklVMvalue *);
+}
+
+void fklSetVMstackSize(FklVM *vm, size_t offset, size_t available) {
+    size_t s = fklComputeVMstackSize(offset, available);
+    vm->last = s;
+}

@@ -1,4 +1,5 @@
 #include <fakeLisp/code.h>
+#include <fakeLisp/mem_region.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/vmem.h>
 
@@ -19,5 +20,33 @@ int main() {
     printf("sizeof(DebugCtx) = %zu\n", sizeof(DebugCtx));
     printf("fklVmemPageSize() = %zu\n", fklVmemPageSize());
     printf("fklVmemGranularity() = %zu\n", fklVmemGranularity());
+
+    FklVMgc *gc = fklCreateVMgc(NULL);
+
+    {
+        size_t total = fklMemRegionSize(gc);
+        size_t usable = fklMemRegionUsableSize(gc);
+        size_t offset = offsetof(FklVMgc, gcvm.base);
+        printf("total = %zu, usable = %zu, offset = %zu, FklVMgc.gcvm.last = %zu\n",
+                total,
+                usable,
+                offset,
+                fklComputeVMstackSize(offset, usable));
+    }
+
+    FklVM *vm = fklCreateVM(NULL, gc);
+
+    {
+        size_t total = fklMemRegionSize(vm);
+        size_t usable = fklMemRegionUsableSize(vm);
+        size_t offset = offsetof(FklVM, base);
+        printf("total = %zu, usable = %zu, offset = %zu, FklVMgc.last = %zu\n",
+                total,
+                usable,
+                offset,
+                fklComputeVMstackSize(offset, usable));
+    }
+
+    fklDestroyVMgc(gc);
     return 0;
 }

@@ -473,8 +473,13 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     }
 }
 
+size_t fklVMgcReserveSize(void)
+{
+	return fklVmemPageSize();
+}
+
 FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
-    size_t total_size = sizeof(FklVMgc) + fklVmemPageSize();
+    size_t total_size = sizeof(FklVMgc) + fklVMgcReserveSize();
     FklVMgc *gc = (FklVMgc *)fklMemRegionReserve(total_size);
 
     if (gc == NULL)

@@ -182,6 +182,8 @@ FKL_DEPRECATED static inline int fklDeprecatedFunc(void) { return 0; }
 #define FKL_ESCAPE_CHARS "ABTNVFRS"
 #define FKL_ESCAPE_CHARS_TO "\a\b\t\n\v\f\r\x20"
 
+#define FKL_UNLIKELY(X) (X)
+
 #ifdef __cplusplus
 }
 #endif

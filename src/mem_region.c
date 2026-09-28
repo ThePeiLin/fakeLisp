@@ -14,6 +14,8 @@ typedef struct {
 
 static const size_t HEADER_SIZE = offsetof(MemRegionHeader, data);
 
+size_t fklMemRegionHeaderSize(void) { return HEADER_SIZE; }
+
 void *fklMemRegionReserve(size_t size) {
     size_t const page_size = fklVmemPageSize();
     // 总不能真有这么小的页吧
@@ -61,6 +63,11 @@ int fklMemRegionGrow(void *data, size_t size) {
         return -1;
 
     header->committed = new_size;
+    return 0;
+}
+
+int fklMemRegionCommitFirstPage(void *data) {
+    // do nothing
     return 0;
 }
 

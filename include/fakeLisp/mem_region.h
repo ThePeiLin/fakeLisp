@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+FKL_API size_t fklMemRegionHeaderSize(void);
 FKL_API void *fklMemRegionReserve(size_t size);
 
 /// current_committed + size

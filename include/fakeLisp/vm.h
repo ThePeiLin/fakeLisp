@@ -389,12 +389,6 @@ typedef struct FklVM {
 
     FklVMstate volatile state;
 
-    // op stack
-    uint32_t last;
-    uint32_t tp;
-    uint32_t bp;
-    FklVMvalue **base;
-
     FklVMframe inplace_frame;
     FklVMframe *top_frame;
 
@@ -420,6 +414,13 @@ typedef struct FklVM {
     } *atexit;
 
     struct FklVMinterruptHandleList *int_list;
+
+    // op stack
+    uint32_t last;
+    uint32_t tp;
+    uint32_t bp;
+
+    FklVMvalue *base[FKL_FLEX_ARRAY_MEMBER];
 } FklVM;
 
 static FKL_ALWAYS_INLINE uintptr_t fklVMvalueEqHashv(const FklVMvalue *key) {
@@ -910,6 +911,9 @@ static FKL_ALWAYS_INLINE void fklVMgcCheckPoint(FklVM *exe, int forced) {
 
 FKL_API void fklVMthreadStart(FklVM *, FklVMqueue *q);
 
+/// 预留个 1 MiB
+FKL_API size_t fklVMreservedSize(void);
+
 FKL_API
 FklVM *fklCreateVMwithByteCode(FklVMvalue *,
         FklVMgc *gc,
@@ -951,13 +955,21 @@ static inline uint32_t fklVMgcComputeLocvLevelIdx(uint32_t llast) {
 
 FKL_API FklVMvalueObarray *fklCreateVMvalueObarray(FklVM *);
 
+FKL_API size_t fklVMgcReservedSize(void);
+
 /// 我们使用 mmap 替代 malloc
+/// 且成员 gcvm 回预留一小段内存作为临时的操作数栈
 FKL_API FklVMgc *fklCreateVMgc(const FklBuiltinDesc *builtins);
 FKL_API FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
 
+FKL_API void fklSetVMstackSize(FklVM *vm, size_t offset, size_t available);
+
+FKL_API size_t fklComputeVMstackSize(size_t offset, size_t available);
+
 FKL_API void *fklCreateVMgcAt(size_t offset, const FklBuiltinDesc *builtins);
 
-#define FKL_CREATE_VM_GC_AT(TYPE, MEMBER, DESC) ((TYPE*)fklCreateVMgcAt(offsetof(TYPE,MEMBER), DESC))
+#define FKL_CREATE_VM_GC_AT(TYPE, MEMBER, DESC)                                \
+    ((TYPE *)fklCreateVMgcAt(offsetof(TYPE, MEMBER), DESC))
 
 FKL_API
 FklVMvalue **
@@ -993,6 +1005,7 @@ FKL_API void fklValueTableClear(FklValueTable *t);
 FKL_API
 void fklTraverseSerializableValue(FklValueTable *t, const FklVMvalue *v);
 
+FKL_DEPRECATED
 FKL_API
 void fklVMgcAddLocvCache(FklVMgc *gc, uint32_t llast, FklVMvalue **locv);
 
@@ -1685,7 +1698,10 @@ static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
         }
 }
 
-FKL_API void fklVMstackReserve(FklVM *exe, uint32_t s);
+// TODO: 让 FklVMgc::gcvm 也能够用仅有的一页
+FKL_API
+FKL_NODISCARD
+int fklVMstackReserve(FklVM *exe, uint32_t s);
 
 static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (s->tp >= s->last)

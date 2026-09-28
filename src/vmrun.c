@@ -1446,6 +1446,7 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
     exe->last = fklComputeVMstackSize(offset, usable);
     return r;
 
+// FKL_DEPRECATED
 #if 0 
     uint32_t old_last = exe->last;
     exe->last <<= 1;
@@ -1480,6 +1481,8 @@ void fklVMstackShrink(FklVM *exe) {
     size_t usable = fklMemRegionUsableSize(exe->region);
     exe->last = fklComputeVMstackSize(offset, usable);
     return;
+
+// FKL_DEPRECATED
 #if 0
     uint32_t old_last = exe->last;
     exe->last = fklNextPow2(exe->tp);

@@ -183,19 +183,16 @@ static inline void init_builtin_symbol_ref(FklVM *exe, FklVMvalue *proc_obj) {
 }
 
 static inline void vm_stack_init(FklVM *exe) {
-    // exe->last = FKL_VM_STACK_INC_NUM;
     exe->tp = 0;
     exe->bp = 0;
 
     size_t usable = fklMemRegionUsableSize(exe->region);
     exe->last = fklComputeVMstackSize(offsetof(FklVM, base), usable);
-    // exe->base = fklAllocLocalVarSpaceFromGC(exe->gc, exe->last, &exe->last);
-    // FKL_ASSERT(exe->base);
 }
 
 size_t fklVMreservedSize(void) { return 1 << 20; }
 
-static inline FklVM *vm_mem_region_alloc(void) {
+static inline FklVM *vm_mem_region_alloc(FklVMgc *gc) {
     size_t total_size = sizeof(FklVM) + fklVMreservedSize();
     FklVM *vm = fklMemRegionReserve(total_size);
     if (vm == NULL)
@@ -214,8 +211,12 @@ static inline FklVM *vm_mem_region_alloc(void) {
 
     if (r != 0)
         abort();
-    memset(vm, 0, fklMemRegionUsableSize(vm));
+
+    size_t usable_size = fklMemRegionUsableSize(vm);
+    memset(vm, 0, usable_size);
     vm->region = (void *)vm;
+
+    fklVMgcAllocatedInc(gc, usable_size);
     return vm;
 }
 
@@ -223,7 +224,7 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc) {
-    FklVM *exe = vm_mem_region_alloc();
+    FklVM *exe = vm_mem_region_alloc(gc);
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
@@ -253,7 +254,7 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         FklVMgc *gc,
         FklVMvalueProto *pt,
         uint64_t spc) {
-    FklVM *exe = vm_mem_region_alloc();
+    FklVM *exe = vm_mem_region_alloc(gc);
     FKL_ASSERT(fklIsVMvalueProto(FKL_TYPE_CAST(FklVMvalue *, pt)));
     exe->prev = exe;
     exe->next = exe;
@@ -1019,14 +1020,13 @@ static inline void destroy_vm_interrupt_handler(FklVM *vm) {
 }
 
 static inline void vm_stack_uninit(FklVM *s) {
-    // fklVMgcAddLocvCache(s->gc, s->last, s->base);
-    // s->base = NULL;
     s->last = 0;
     s->tp = 0;
     s->bp = 0;
 }
 
 static inline void remove_exited_thread_common(FklVM *cur) {
+    FklVMgc *gc = cur->gc;
     fklDeleteCallChain(cur);
     vm_stack_uninit(cur);
     destroy_vm_atexit(cur);
@@ -1042,7 +1042,9 @@ static inline void remove_exited_thread_common(FklVM *cur) {
         abort();
     }
 
-    int r = fklMemRegionRelease(cur);
+    size_t usable_size = fklMemRegionUsableSize(cur->region);
+    int r = fklMemRegionRelease(cur->region);
+
     if (r != 0) {
         fprintf(stderr,
                 "[%s: %d] how did you get here?\n",
@@ -1050,6 +1052,7 @@ static inline void remove_exited_thread_common(FklVM *cur) {
                 __LINE__);
         abort();
     }
+    fklVMgcAllocatedDec(gc, usable_size);
 }
 
 static inline void remove_exited_thread(FklVMgc *gc) {
@@ -1434,9 +1437,10 @@ FklVMvalue *fklCreateVMvalueProc3(FklVM *exe,
 int fklVMstackReserve(FklVM *exe, uint32_t s) {
     if (exe->last >= s)
         return 0;
-    size_t increacements = (s - exe->last) * sizeof(FklVMvalue *);
+    size_t increment = (s - exe->last) * sizeof(FklVMvalue *);
 
-    int r = fklMemRegionGrow(exe->region, increacements);
+    size_t old = fklMemRegionUsableSize(exe->region);
+    int r = fklMemRegionGrow(exe->region, increment);
     if (r != 0)
         return r;
 
@@ -1444,25 +1448,10 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
     size_t offset = ((char *)exe->base) - ((char *)exe->region);
 
     exe->last = fklComputeVMstackSize(offset, usable);
+
+    fklVMgcAllocatedInc(exe->gc, usable - old);
+
     return r;
-
-// FKL_DEPRECATED
-#if 0 
-    uint32_t old_last = exe->last;
-    exe->last <<= 1;
-    if (exe->last < s)
-        exe->last = s;
-
-    FklVMvalue **nbase = fklAllocLocalVarSpaceFromGC(exe->gc, //
-            exe->last,
-            &exe->last);
-
-    FklVMvalue **obase = exe->base;
-    memcpy(nbase, obase, exe->tp * sizeof(FklVMvalue *));
-    exe->base = nbase;
-    fklUpdateAllVarRef(exe, exe->top_frame);
-    push_old_locv(exe, old_last, obase);
-#endif
 }
 
 void fklVMstackShrink(FklVM *exe) {
@@ -1476,10 +1465,15 @@ void fklVMstackShrink(FklVM *exe) {
     size_t want_size = want * sizeof(FklVMvalue *);
     size_t offset = (char *)exe->base - (char *)exe->region;
     size_t target = offset + want_size;
+
+    size_t old = fklMemRegionUsableSize(exe->region);
+
     if (fklMemRegionShrinkTo(exe->region, target) != 0)
         return;
     size_t usable = fklMemRegionUsableSize(exe->region);
     exe->last = fklComputeVMstackSize(offset, usable);
+
+    fklVMgcAllocatedDec(exe->gc, old - usable);
     return;
 
 // FKL_DEPRECATED
@@ -1526,7 +1520,7 @@ void fklDBG_printVMstack(FklVM *stack,
 }
 
 FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
-    FklVM *exe = vm_mem_region_alloc();
+    FklVM *exe = vm_mem_region_alloc(gc);
     FKL_ASSERT(exe);
     exe->gc = gc;
     exe->prev = exe;
@@ -1550,7 +1544,7 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
         FklVMvalue *const *args,
         FklVM *prev,
         FklVM *next) {
-    FklVM *exe = vm_mem_region_alloc();
+    FklVM *exe = vm_mem_region_alloc(prev->gc);
     exe->gc = prev->gc;
     exe->prev = exe;
     exe->next = exe;

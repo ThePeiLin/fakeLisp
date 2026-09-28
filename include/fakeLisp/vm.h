@@ -966,6 +966,9 @@ FKL_API size_t fklVMgcReservedSize(void);
 FKL_API FklVMgc *fklCreateVMgc(const FklBuiltinDesc *builtins);
 FKL_API FklVMvalue *fklSetVMgcPath(FklVMgc *, FklVMvalue *path_vec);
 
+FKL_API size_t fklVMgcAllocatedInc(FklVMgc *, size_t s);
+FKL_API size_t fklVMgcAllocatedDec(FklVMgc *, size_t s);
+
 FKL_API void fklSetVMstackSize(FklVM *vm, size_t offset, size_t available);
 
 FKL_API size_t fklComputeVMstackSize(size_t offset, size_t available);
@@ -975,10 +978,12 @@ FKL_API void *fklCreateVMgcAt(size_t offset, const FklBuiltinDesc *builtins);
 #define FKL_CREATE_VM_GC_AT(TYPE, MEMBER, DESC)                                \
     ((TYPE *)fklCreateVMgcAt(offsetof(TYPE, MEMBER), DESC))
 
+FKL_DEPRECATED
 FKL_API
 FklVMvalue **
 fklAllocLocalVarSpaceFromGC(FklVMgc *, uint32_t llast, uint32_t *pllast);
 
+FKL_DEPRECATED
 FKL_API
 FklVMvalue **fklAllocLocalVarSpaceFromGCwithoutLock(FklVMgc *,
         uint32_t llast,

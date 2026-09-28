@@ -3,6 +3,7 @@
 #include <fakeLisp/vmem.h>
 #include <fakeLisp/zmalloc.h>
 
+#include <stdatomic.h>
 #include <uv.h>
 
 #include <string.h>
@@ -319,7 +320,7 @@ static void destroy_vm_value(FklVMgc *gc, FklVMvalue *cur) {
     FKL_UNREACHABLE();
     abort();
 done:
-    atomic_fetch_sub(&gc->alloced_size, fklZmallocSize(cur));
+    fklVMgcAllocatedDec(gc, fklZmallocSize(cur));
     fklZfree((void *)cur);
 }
 
@@ -477,6 +478,8 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
         gc->builtin_count = builtins->count(builtins->ctx);
         gc->builtin_refs = builtins->refs(&gc->gcvm, builtins->ctx);
     }
+
+    fklVMgcAllocatedInc(gc, fklMemRegionUsableSize(gc));
 }
 
 size_t fklVMgcReserveSize(void) { return fklVmemPageSize(); }
@@ -494,6 +497,14 @@ FklVMgc *fklCreateVMgc(const FklBuiltinDesc *desc) {
 
     fklInitVMgc(gc, desc);
     return gc;
+}
+
+size_t fklVMgcAllocatedInc(FklVMgc *gc, size_t s) {
+    return atomic_fetch_add(&gc->alloced_size, s);
+}
+
+size_t fklVMgcAllocatedDec(FklVMgc *gc, size_t s) {
+    return atomic_fetch_sub(&gc->alloced_size, s);
 }
 
 FklVMvalue **
@@ -580,7 +591,7 @@ void fklAddToGC(FklVMvalue *v, FklVM *vm) {
         vm->obj_head = v;
         if (!vm->obj_tail)
             vm->obj_tail = v;
-        atomic_fetch_add(&vm->gc->alloced_size, fklZmallocSize(v));
+        fklVMgcAllocatedInc(vm->gc, fklZmallocSize(v));
     }
 }
 
@@ -649,6 +660,7 @@ void fklVMclearExtraMarkFunc(FklVMgc *gc) {
 
 static void fklUninitVMgc(FklVMgc *gc) {
     fklMoveThreadObjectsToGc(&gc->gcvm, gc);
+
     gc->obarray = NULL;
     gc->keywords = NULL;
     uv_mutex_destroy(&gc->workq_lock);
@@ -664,6 +676,7 @@ static void fklUninitVMgc(FklVMgc *gc) {
     gc->head = NULL;
     uninit_vm_queue(&gc->q);
 
+    fklVMgcAllocatedDec(gc, fklMemRegionUsableSize(gc));
     if (gc->alloced_size) {
         fprintf(stderr,
                 "[WARNING %s: %d] still has %zu bytes not freed\n",

@@ -21,6 +21,8 @@ void *fklMemRegionReserve(size_t size) {
     // 总不能真有这么小的页吧
     FKL_ASSERT(page_size > HEADER_SIZE);
 
+    if (size > (SIZE_MAX - HEADER_SIZE))
+        return NULL;
     size_t total_size = size + HEADER_SIZE;
 
     total_size = fklVmemReserveSize(total_size);
@@ -66,13 +68,12 @@ int fklMemRegionGrow(void *data, size_t size) {
     return 0;
 }
 
-int fklMemRegionCommitFirstPage(void *data) {
-    // do nothing
-    return 0;
-}
-
 int fklMemRegionGrowTo(void *data, size_t size) {
+    if (size > (SIZE_MAX - HEADER_SIZE))
+        return -1;
+
     MemRegionHeader *header = FKL_CONTAINER_OF(data, MemRegionHeader, data);
+
     size = page_round_up(size + HEADER_SIZE);
     if (header->total < size)
         return -1;

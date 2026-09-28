@@ -1703,8 +1703,8 @@ FKL_API
 FKL_NODISCARD
 int fklVMstackReserve(FklVM *exe, uint32_t s);
 
-static inline void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
-    if (s->tp >= s->last)
+static FKL_ALWAYS_INLINE void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
+    if (FKL_UNLIKELY(s->tp >= s->last))
         fklVMstackReserve(s, s->tp + 1);
     s->base[s->tp++] = v;
 }

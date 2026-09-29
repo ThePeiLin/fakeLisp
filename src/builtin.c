@@ -1843,7 +1843,7 @@ static void *custom_parser_prod_action(FklProdActionArgs *action_ctx,
     FKL_VM_PUSH_VALUE(exe, proc);
     FKL_VM_PUSH_VALUE(exe, vect);
     FKL_VM_PUSH_VALUE(exe, line_value);
-    fklCallObj(exe, proc);
+    fklCallObjOrRaise(exe, proc);
     return NULL;
 }
 
@@ -2315,7 +2315,7 @@ static int builtin_make_parser(FKL_CPROC_ARGL) {
 
     FklGrammerNonterm nonterm = { 0 };
     if (fklCheckAndInitGrammerSymbols(grammer, &nonterm)) {
-        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_GRAMMER_CREATE_FAILED,
+        FKL_RAISE_BUILTIN_ERROR_FMT(FKL_ERR_UNRESOLVED_NOMTERM,
                 exe,
                 "unresolved non-terminal %S",
                 nonterm);
@@ -3045,6 +3045,10 @@ static int builtin_go(FKL_CPROC_ARGL) {
             &arg_base[1],
             exe,
             exe->next);
+    if (threadVM == NULL) {
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW_IN_SUB_THREAD, exe);
+    }
+
     FklVMvalue *chan = threadVM->chan;
     FKL_CPROC_RETURN(exe, ctx, chan);
     fklVMthreadStart(threadVM, &exe->gc->q);
@@ -3328,7 +3332,7 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
                 topFrame = topFrame->prev;
                 fklDestroyVMframe(cur, exe);
             }
-            fklTailCallObj(exe, err_handlers->cdr);
+            fklTailCallObjOrRaise(exe, err_handlers->cdr);
             return 1;
         }
     }
@@ -3355,7 +3359,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     if (argc == 1) {
         FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
         exe->tp -= 1;
-        fklTailCallObj(exe, proc);
+        fklTailCallObjOrRaise(exe, proc);
         return 1;
     }
     FklPairVector err_handlers;
@@ -3401,7 +3405,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     c->err_handlers = t;
     FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
     exe->tp -= argc;
-    fklCallObj(exe, proc);
+    fklCallObjOrRaise(exe, proc);
 #undef GET_PROC
 #undef GET_LIST
     return 1;
@@ -3424,7 +3428,7 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-        fklVMstackReserve(exe, exe->tp + 1);
+        fklVMstackReserveOrRaise(exe, exe->tp + 1);
         memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
                 &FKL_CPROC_GET_ARG(exe, ctx, 0),
                 argc * sizeof(FklVMvalue *));
@@ -3435,7 +3439,7 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         exe->bp += 2;
 
         exe->top_frame->errorCallBack = pcall_error_handler;
-        fklCallObj(exe, proc);
+        fklCallObjOrRaise(exe, proc);
         ctx->c[0].u32a = 1;
         return 1;
     } break;
@@ -3459,7 +3463,7 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-    fklVMstackReserve(exe, exe->tp + 1);
+    fklVMstackReserveOrRaise(exe, exe->tp + 1);
     memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
             &FKL_CPROC_GET_ARG(exe, ctx, 0),
             argc * sizeof(FklVMvalue *));
@@ -3468,7 +3472,7 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     // 函数idle与bp的值合计占用两个空间
     exe->bp += 2;
 
-    fklCallObj(exe, proc);
+    fklCallObjOrRaise(exe, proc);
     fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
     // 在这个函数中返回，令虚拟机重新设置longjmp的buf
     if (IDLE_CTX_STATE(ctx)) {
@@ -3565,7 +3569,7 @@ static int builtin_apply(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
-    fklTailCallObj(exe, proc);
+    fklTailCallObjOrRaise(exe, proc);
     return 1;
 }
 
@@ -3661,7 +3665,7 @@ static int builtin_member(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObj(exe, proc);
+            fklCallObjOrRaise(exe, proc);
             return 1;
         }
         FklVMvalue *r = list;
@@ -3690,7 +3694,7 @@ static int builtin_member(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObj(exe, proc);
+            fklCallObjOrRaise(exe, proc);
             return 1;
         }
     } break;
@@ -3715,7 +3719,7 @@ static int builtin_memp(FKL_CPROC_ARGL) {
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-        fklCallObj(exe, proc);
+        fklCallObjOrRaise(exe, proc);
         return 1;
     } break;
     case 1: {
@@ -3737,7 +3741,7 @@ static int builtin_memp(FKL_CPROC_ARGL) {
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObj(exe, proc);
+            fklCallObjOrRaise(exe, proc);
             return 1;
         }
     } break;
@@ -4505,7 +4509,7 @@ static int builtin_funcall(FKL_CPROC_ARGL) {
             &FKL_CPROC_GET_ARG(exe, ctx, 0),
             (argc - 1) * sizeof(FklVMvalue *));
     exe->tp -= 1;
-    fklTailCallObj(exe, proc);
+    fklTailCallObjOrRaise(exe, proc);
     return 1;
 }
 

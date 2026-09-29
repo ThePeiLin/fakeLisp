@@ -1,5 +1,4 @@
 #include <fakeLisp/base.h>
-#include <fakeLisp/builtin.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
 #include <fakeLisp/mem_region.h>
@@ -32,10 +31,15 @@
 #endif
 
 // call compound procedure
-static inline void call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
+static inline int call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
     FklVMframe *f = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
-    fklVMframeSetBp(exe, f, proc->local_count);
+    if (FKL_UNLIKELY(fklVMframeSetBp(exe, f, proc->local_count) != 0)) {
+        fklDestroyVMframe(f, exe);
+        return -1;
+    }
+
     fklPushVMframe(f, exe);
+    return 0;
 }
 
 void fklDBG_printLinkBacktrace(FklVMframe *t, FklStrBuilder *fp, FklVM *exe) {
@@ -112,10 +116,11 @@ typedef struct ImportPostProcessContext {
     FklVM *exe;
 } ImportPostProcessContext;
 
-static inline void call_cproc(FklVM *exe, FklVMvalue *cproc) {
+static inline int call_cproc(FklVM *exe, FklVMvalue *cproc) {
     FklVMframe *f = fklCreateOtherObjVMframe(exe, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
     fklPushVMframe(f, exe);
+    return 0;
 }
 
 static inline void B_dummy(FklVM *exe, const FklIns *ins) {
@@ -172,7 +177,23 @@ static inline void vm_stack_init(FklVM *exe) {
     exe->last = fklComputeVMstackSize(offsetof(FklVM, base), usable);
 }
 
-size_t fklVMreservedSize(void) { return 1 << 20; }
+#define DEFAULT_RESERVED_SIZE (1 << 20)
+
+static size_t g_reserved_size = DEFAULT_RESERVED_SIZE;
+
+FKL_API size_t fklVMconfigReservedSize(size_t size) {
+    size_t r = g_reserved_size;
+    g_reserved_size = size;
+    return r;
+}
+
+size_t fklVMresetReservedSize(void) {
+    size_t r = g_reserved_size;
+    g_reserved_size = DEFAULT_RESERVED_SIZE;
+    return r;
+}
+
+size_t fklVMreservedSize(void) { return g_reserved_size; }
 
 static inline FklVM *vm_mem_region_alloc(FklVMgc *gc) {
     size_t total_size = sizeof(FklVM) + fklVMreservedSize();
@@ -224,7 +245,13 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
-        fklCallObj(exe, proc);
+        if (FKL_UNLIKELY(fklCallObj(exe, proc) != 0)) {
+            fprintf(stderr,
+                    "[%s: %d] failed to call main function\n",
+                    __REL_FILE__,
+                    __LINE__);
+            abort();
+        }
     }
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
@@ -254,7 +281,13 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
         init_builtin_symbol_ref(exe, proc);
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
-        fklCallObj(exe, proc);
+        if (FKL_UNLIKELY(fklCallObj(exe, proc) != 0)) {
+            fprintf(stderr,
+                    "[%s: %d] failed to call main function\n",
+                    __REL_FILE__,
+                    __LINE__);
+            abort();
+        }
     }
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
@@ -378,22 +411,19 @@ void fklPopVMframe2(FklVM *exe, FklVMframe *const bottom) {
     }
 }
 
-void fklCallObj(FklVM *exe, FklVMvalue *proc) {
+int fklCallObj(FklVM *exe, FklVMvalue *proc) {
     switch (proc->type_) {
     case FKL_TYPE_PROC:
-        call_compound_procedure(exe, FKL_VM_PROC(proc));
-        return;
+        return call_compound_procedure(exe, FKL_VM_PROC(proc));
         break;
     case FKL_TYPE_CPROC:
-        call_cproc(exe, proc);
-        return;
+        return call_cproc(exe, proc);
         break;
     case FKL_TYPE_USERDATA:
         if (FKL_VM_UD(proc)->tp_->mt.call == NULL)
             FKL_UNREACHABLE();
 
-        FKL_VM_UD(proc)->tp_->mt.call(proc, exe);
-        return;
+        return FKL_VM_UD(proc)->tp_->mt.call(proc, exe);
         break;
 
     case FKL_TYPE_F64:
@@ -409,21 +439,32 @@ void fklCallObj(FklVM *exe, FklVMvalue *proc) {
     case FKL_TYPE_HASHTABLE:
         FKL_UNREACHABLE();
         abort();
-        return;
+        return -1;
         break;
     }
 
     FKL_UNREACHABLE();
     abort();
+    return -1;
 }
 
-void fklTailCallObj(FklVM *exe, FklVMvalue *proc) {
+void fklCallObjOrRaise(FklVM *exe, FklVMvalue *proc) {
+    if (FKL_UNLIKELY(fklCallObj(exe, proc) != 0))
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
+}
+
+int fklTailCallObj(FklVM *exe, FklVMvalue *proc) {
     FklVMframe *frame = exe->top_frame;
     if (frame->type == FKL_FRAME_OTHEROBJ) {
         exe->top_frame = frame->prev;
         do_finalize_obj_frame(exe, frame);
     }
-    fklCallObj(exe, proc);
+    return fklCallObj(exe, proc);
+}
+
+void fklTailCallObjOrRaise(FklVM *exe, FklVMvalue *proc) {
+    if (FKL_UNLIKELY(fklTailCallObj(exe, proc) != 0))
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
 }
 
 struct DefaultCbValueCreator {
@@ -457,9 +498,14 @@ FklVMcallResult fklVMcall3(FklRunVMcb cb,
 
     if (creator)
         creator(exe, args);
-    fklCallObj(exe, proc);
 
     FklVMcallResult result;
+
+    if (FKL_UNLIKELY(fklCallObj(exe, proc) != 0)) {
+        result.err = 1;
+        result.v = fklMakeBuiltinError(exe, FKL_ERR_STACK_OVERFLOW);
+        return result;
+    }
 
     result.err = cb(exe, re->exit_frame);
     result.v = FKL_VM_GET_TOP_VALUE(exe);
@@ -506,9 +552,13 @@ FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
     FKL_ASSERT(v >= 0 && v <= UINT32_MAX);
     set_recover(re, (uint32_t)v, re->bp - 1, exe->top_frame);
 
-    fklCallObj(exe, callee);
-
     FklVMcallResult result;
+
+    if (FKL_UNLIKELY(fklCallObj(exe, callee) != 0)) {
+        result.err = 1;
+        result.v = fklMakeBuiltinError(exe, FKL_ERR_STACK_OVERFLOW);
+        return result;
+    }
 
     result.err = cb(exe, re->exit_frame);
     result.v = FKL_VM_GET_TOP_VALUE(exe);
@@ -1432,6 +1482,11 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
     return r;
 }
 
+void fklVMstackReserveOrRaise(FklVM *exe, uint32_t s) {
+    if (FKL_UNLIKELY(fklVMstackReserve(exe, s) != 0))
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
+}
+
 void fklVMstackShrink(FklVM *exe) {
     uint32_t used = exe->tp;
 
@@ -1453,24 +1508,6 @@ void fklVMstackShrink(FklVM *exe) {
 
     fklVMgcAllocatedDec(exe->gc, old - usable);
     return;
-
-// FKL_DEPRECATED
-#if 0
-    uint32_t old_last = exe->last;
-    exe->last = fklNextPow2(exe->tp);
-    if (exe->last < FKL_VM_STACK_INC_NUM)
-        exe->last = FKL_VM_STACK_INC_NUM;
-    if (exe->last == old_last)
-        return;
-    FklVMvalue **nbase = fklAllocLocalVarSpaceFromGCwithoutLock(exe->gc,
-            exe->last,
-            &exe->last);
-    FklVMvalue **obase = exe->base;
-    memcpy(nbase, obase, exe->tp * sizeof(FklVMvalue *));
-    exe->base = nbase;
-    fklUpdateAllVarRef(exe, exe->top_frame);
-    push_old_locv(exe, old_last, obase);
-#endif
 }
 
 void fklDBG_printVMstack(FklVM *stack,
@@ -1511,7 +1548,14 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     if (proc != NULL) {
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
-        fklCallObj(exe, proc);
+
+        if (FKL_UNLIKELY(fklCallObj(exe, proc) != 0)) {
+            fprintf(stderr,
+                    "[%s: %d] failed to call main function\n",
+                    __REL_FILE__,
+                    __LINE__);
+            abort();
+        }
     }
     uv_mutex_init(&exe->lock);
     return exe;
@@ -1536,11 +1580,20 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     uv_mutex_init(&exe->lock);
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, nextCall);
-    fklVMstackReserve(exe, exe->tp + arg_num + 1);
+
+    insert_to_VM_chain(exe, prev, next);
+    if (FKL_UNLIKELY(fklVMstackReserve(exe, exe->tp + arg_num + 1) != 0)) {
+        exe->state = FKL_VM_EXIT;
+        return NULL;
+    }
+
     memcpy(&exe->base[exe->tp], args, arg_num * sizeof(FklVMvalue *));
     exe->tp += arg_num;
-    fklCallObj(exe, nextCall);
-    insert_to_VM_chain(exe, prev, next);
+
+    if (FKL_UNLIKELY(fklCallObj(exe, nextCall) != 0)) {
+        exe->state = FKL_VM_EXIT;
+        return NULL;
+    }
     return exe;
 }
 

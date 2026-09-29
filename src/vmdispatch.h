@@ -186,7 +186,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        fklCallObj(exe, proc);
+        fklCallObjOrRaise(exe, proc);
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
@@ -197,7 +197,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             frame->mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;
         }
-        fklTailCallObj(exe, proc);
+        fklTailCallObjOrRaise(exe, proc);
         return;
     } break;
     case FKL_OP_RET_IF_TRUE:

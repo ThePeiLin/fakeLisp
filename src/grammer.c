@@ -2957,7 +2957,7 @@ int fklGenerateLalrAnalyzeTable(FklVM *vm,
                     if (hasConflict) {
                         clear_analysis_table(grammer, idx);
                         fklStrBuilderFmt(&err,
-                                "conflict at state %lu with [[  ",
+                                "Conflict at state %lu with [[  ",
                                 idx);
                         print_lalr_item(vm,
                                 &il->k,

@@ -281,10 +281,18 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 #define FKL_VM_UDATA_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMud, data)
 
 FKL_API
-void fklCallObj(FklVM *exe, FklVMvalue *);
+FKL_NODISCARD
+int fklCallObj(FklVM *exe, FklVMvalue *);
 
 FKL_API
-void fklTailCallObj(FklVM *exe, FklVMvalue *);
+FKL_NODISCARD
+int fklTailCallObj(FklVM *exe, FklVMvalue *);
+
+FKL_API
+void fklCallObjOrRaise(FklVM *exe, FklVMvalue *);
+
+FKL_API
+void fklTailCallObjOrRaise(FklVM *exe, FklVMvalue *);
 
 typedef struct {
     uint32_t bp;
@@ -492,7 +500,7 @@ typedef struct FklVMudMetaTable {
     FklVMudPrintCb prin1;
     FklVMudFinalizer finalize;
     FklVMudEqualCb equal;
-    void (*call)(FklVMvalue *, FklVM *);
+    int (*call)(FklVMvalue *, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
     void (*write)(const FklVMvalue *, FklStrBuilder *);
     FklVMudAtomicCb atomic;
@@ -510,7 +518,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
 });
 
 FKL_API
-void fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
+int fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
 
 FKL_API
 void fklVMtypePrint(const FklVMvalue *, FklStrBuilder *, FklVM *);
@@ -537,54 +545,80 @@ typedef enum {
 #define FKL_VM_GC_THRESHOLD_SIZE (0x4000)
 
 #define FKL_BUILTIN_ERR_MAP                                                    \
-    X(FKL_ERR_DUMMY = 0, "dummy")                                              \
-    X(FKL_ERR_SYMUNDEFINE, "symbol-error")                                     \
-    X(FKL_ERR_SYNTAXERROR, "syntax-error")                                     \
-    X(FKL_ERR_INVALIDEXPR, "read-error")                                       \
-    X(FKL_ERR_CIRCULARLOAD, "load-error")                                      \
-    X(FKL_ERR_INVALIDPATTERN, "pattern-error")                                 \
-    X(FKL_ERR_INCORRECT_TYPE_VALUE, "type-error")                              \
-    X(FKL_ERR_STACKERROR, "stack-error")                                       \
-    X(FKL_ERR_TOOMANYARG, "arg-error")                                         \
-    X(FKL_ERR_TOOFEWARG, "arg-error")                                          \
-    X(FKL_ERR_CANTCREATETHREAD, "thread-error")                                \
-    X(FKL_ERR_THREADERROR, "thread-error")                                     \
-    X(FKL_ERR_MACROEXPANDFAILED, "macro-error")                                \
-    X(FKL_ERR_CALL_ERROR, "call-error")                                        \
-    X(FKL_ERR_LOADDLLFAILD, "load-error")                                      \
-    X(FKL_ERR_INVALIDSYMBOL, "symbol-error")                                   \
-    X(FKL_ERR_LIBUNDEFINED, "library-error")                                   \
-    X(FKL_ERR_UNEXPECTED_EOF, "eof-error")                                     \
-    X(FKL_ERR_DIVZEROERROR, "div-zero-error")                                  \
-    X(FKL_ERR_FILEFAILURE, "file-error")                                       \
-    X(FKL_ERR_INVALID_VALUE, "value-error")                                    \
-    X(FKL_ERR_INVALIDASSIGN, "access-error")                                   \
-    X(FKL_ERR_INVALIDACCESS, "access-error")                                   \
-    X(FKL_ERR_IMPORTFAILED, "import-error")                                    \
-    X(FKL_ERR_INVALID_MACRO_PATTERN, "macro-error")                            \
-    X(FKL_ERR_FAILD_TO_CREATE_BIGINT_FROM_MEM, "type-error")                   \
-    X(FKL_ERR_LIST_DIFFER_IN_LENGTH, "type-error")                             \
-    X(FKL_ERR_CROSS_C_CALL_CONTINUATION, "call-error")                         \
-    X(FKL_ERR_INVALIDRADIX_FOR_INTEGER, "value-error")                         \
-    X(FKL_ERR_NO_VALUE_FOR_KEY, "value-error")                                 \
-    X(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0, "value-error")                        \
-    X(FKL_ERR_UNSERIALIZABLE, "value-error")                                   \
-    X(FKL_ERR_UNSUPPORTED_OP, "operation-error")                               \
-    X(FKL_ERR_IMPORT_MISSING, "import-error")                                  \
-    X(FKL_ERR_EXPORT_ERROR, "export-error")                                    \
-    X(FKL_ERR_IMPORT_READER_MACRO_ERROR, "import-error")                       \
-    X(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED, "grammer-error")                 \
-    X(FKL_ERR_REGEX_COMPILE_FAILED, "grammer-error")                           \
-    X(FKL_ERR_GRAMMER_CREATE_FAILED, "grammer-error")                          \
-    X(FKL_ERR_INVALIDRADIX_FOR_FLOAT, "value-error")                           \
-    X(FKL_ERR_ASSIGN_CONSTANT, "symbol-error")                                 \
-    X(FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT, "symbol-error")                   \
-    X(FKL_ERR_EXP_HAS_NO_VALUE, "syntax-error")                                \
-    X(FKL_ERR_UNRESOLVED_NOMTERM, "grammer-error")                             \
-    X(FKL_ERR_REDUCE_CONFLICT, "grammer-error")
+    X(FKL_ERR_DUMMY = 0, "dummy", NULL)                                        \
+    X(FKL_ERR_SYMUNDEFINE, "symbol-error", "Symbol undefined")                 \
+    X(FKL_ERR_SYNTAXERROR, "syntax-error", "Syntax error")                     \
+    X(FKL_ERR_INVALIDEXPR, "read-error", "Invalid expression")                 \
+    X(FKL_ERR_CIRCULARLOAD, "load-error", "Circular load file")                \
+    X(FKL_ERR_INVALIDPATTERN, "pattern-error", "Invalid pattern ")             \
+    X(FKL_ERR_INCORRECT_TYPE_VALUE, "type-error", "Incorrect type of values")  \
+    X(FKL_ERR_STACKERROR, "stack-error", "Stack error")                        \
+    X(FKL_ERR_TOOMANYARG, "arg-error", "Too many arguements")                  \
+    X(FKL_ERR_TOOFEWARG, "arg-error", "Too few arguements")                    \
+    X(FKL_ERR_CANTCREATETHREAD, "thread-error", "Can't create thread")         \
+    X(FKL_ERR_THREADERROR, "thread-error", "Thread error")                     \
+    X(FKL_ERR_MACROEXPANDFAILED, "macro-error", "macro expand failed")         \
+    X(FKL_ERR_CALL_ERROR,                                                      \
+            "call-error",                                                      \
+            "Try to call an object that can't be call")                        \
+    X(FKL_ERR_LOADDLLFAILD, "load-error", "Faild to load dll")                 \
+    X(FKL_ERR_INVALIDSYMBOL, "symbol-error", "Invalid symbol")                 \
+    X(FKL_ERR_LIBUNDEFINED, "library-error", "Library undefined")              \
+    X(FKL_ERR_UNEXPECTED_EOF, "eof-error", "Unexpected eof")                   \
+    X(FKL_ERR_DIVZEROERROR, "div-zero-error", "Divided by zero")               \
+    X(FKL_ERR_FILEFAILURE, "file-error", "File failed")                        \
+    X(FKL_ERR_INVALID_VALUE, "value-error", "Invalid value")                   \
+    X(FKL_ERR_INVALIDASSIGN, "access-error", "Invalid assign")                 \
+    X(FKL_ERR_INVALIDACCESS, "access-error", "Invalid access")                 \
+    X(FKL_ERR_IMPORTFAILED, "import-error", "Failed to import dll")            \
+    X(FKL_ERR_INVALID_MACRO_PATTERN, "macro-error", "Invalid macro pattern")   \
+    X(FKL_ERR_FAILD_TO_CREATE_BIGINT_FROM_MEM,                                 \
+            "type-error",                                                      \
+            "Failed to create big-int from mem")                               \
+    X(FKL_ERR_LIST_DIFFER_IN_LENGTH, "type-error", "List differ in length")    \
+    X(FKL_ERR_CROSS_C_CALL_CONTINUATION,                                       \
+            "call-error",                                                      \
+            "Attempt to get a continuation cross C-call boundary")             \
+    X(FKL_ERR_INVALIDRADIX_FOR_INTEGER,                                        \
+            "value-error",                                                     \
+            "Radix for integer should be 8, 10 or 16")                         \
+    X(FKL_ERR_NO_VALUE_FOR_KEY, "value-error", "No value for key")             \
+    X(FKL_ERR_NUMBER_SHOULD_NOT_BE_LT_0,                                       \
+            "value-error",                                                     \
+            "Number should not be less than 0")                                \
+    X(FKL_ERR_UNSERIALIZABLE,                                                  \
+            "value-error",                                                     \
+            "It's unserializable to bytecode file")                            \
+    X(FKL_ERR_UNSUPPORTED_OP, "operation-error", "Unsupported operation")      \
+    X(FKL_ERR_IMPORT_MISSING, "import-error", "Import missing")                \
+    X(FKL_ERR_EXPORT_ERROR,                                                    \
+            "export-error",                                                    \
+            "Exporting production groups with reference to other group")       \
+    X(FKL_ERR_IMPORT_READER_MACRO_ERROR,                                       \
+            "import-error",                                                    \
+            "Failed to import reader macro")                                   \
+    X(FKL_ERR_ANALYSIS_TABLE_GENERATE_FAILED,                                  \
+            "grammer-error",                                                   \
+            "Analysis table generate failed")                                  \
+    X(FKL_ERR_REGEX_COMPILE_FAILED, "grammer-error", "Regex compile failed")   \
+    X(FKL_ERR_GRAMMER_CREATE_FAILED, "grammer-error", "Grammer create failed") \
+    X(FKL_ERR_INVALIDRADIX_FOR_FLOAT,                                          \
+            "value-error",                                                     \
+            "Radix for float should be 10 or 16 for float")                    \
+    X(FKL_ERR_ASSIGN_CONSTANT, "symbol-error", "Attempt to assign constant")   \
+    X(FKL_ERR_REDEFINE_VARIABLE_AS_CONSTANT,                                   \
+            "symbol-error",                                                    \
+            "Attempt to redefine variable as constant")                        \
+    X(FKL_ERR_EXP_HAS_NO_VALUE, "syntax-error", "Expression has no value")     \
+    X(FKL_ERR_UNRESOLVED_NOMTERM, "grammer-error", "Unresolved non-terminal")  \
+    X(FKL_ERR_REDUCE_CONFLICT, "grammer-error", "Conflict at state with [[  ") \
+    X(FKL_ERR_STACK_OVERFLOW, "stack-overflow-error", "Stack overflow!")       \
+    X(FKL_ERR_STACK_OVERFLOW_IN_SUB_THREAD,                                    \
+            "stack-overflow-error",                                            \
+            "Stack overflow in sub thread!")
 
 typedef enum {
-#define X(A, B) A,
+#define X(A, B, C) A,
     FKL_BUILTIN_ERR_MAP
 #undef X
             FKL_BUILTIN_ERR_NUM,
@@ -891,7 +925,10 @@ static FKL_ALWAYS_INLINE void fklVMgcCheckPoint(FklVM *exe, int forced) {
 
 FKL_API void fklVMthreadStart(FklVM *, FklVMqueue *q);
 
-/// 预留个 1 MiB
+FKL_API size_t fklVMconfigReservedSize(size_t size);
+FKL_API size_t fklVMresetReservedSize(void);
+
+/// 默认预留个 1 MiB
 FKL_API size_t fklVMreservedSize(void);
 
 FKL_API
@@ -1658,6 +1695,9 @@ FKL_API
 FKL_NODISCARD
 int fklVMstackReserve(FklVM *exe, uint32_t s);
 
+FKL_API
+void fklVMstackReserveOrRaise(FklVM *exe, uint32_t s);
+
 /// TODO: 处理 stackReserve 失败的情况
 static FKL_ALWAYS_INLINE void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (FKL_UNLIKELY(s->tp >= s->last)) {
@@ -1829,12 +1869,17 @@ void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
 FKL_API
 uintptr_t fklVMvalueEqualHashv(const FklVMvalue *v);
 
-noreturn static FKL_ALWAYS_INLINE void
-FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
+static FKL_ALWAYS_INLINE FklVMvalue *fklMakeBuiltinError(FklVM *exe,
+        FklBuiltinErrorType error_type) {
     FklVMvalue *errorMessage = fklGenErrorMessage(error_type, exe);
-    FklVMvalue *err = fklCreateVMvalueError(exe,
+    return fklCreateVMvalueError(exe,
             exe->gc->builtinErrorTypeId[error_type],
             errorMessage);
+}
+
+noreturn static FKL_ALWAYS_INLINE void
+FKL_RAISE_BUILTIN_ERROR(FklBuiltinErrorType error_type, FklVM *exe) {
+    FklVMvalue *err = fklMakeBuiltinError(exe, error_type);
     fklRaiseVMerror(err, exe);
 }
 
@@ -2122,23 +2167,26 @@ static inline FklVMvalue *fklCreateVMvalueBigIntWithOther2(FklVM *exe,
     return fklCreateVMvalueBigInt3(exe, &bi, size);
 }
 
-static inline void
+static inline FKL_NODISCARD int
 fklVMframeSetSp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
     frame->arg_num = exe->tp - frame->bp - 1;
     frame->sp = frame->bp + 1 + lcount;
-    fklVMstackReserve(exe, frame->sp + 1);
+    int r = fklVMstackReserve(exe, frame->sp + 1);
+    if (r != 0)
+        return r;
     if (frame->sp > exe->tp) {
         memset(&exe->base[exe->tp],
                 0,
                 (frame->sp - exe->tp) * sizeof(FklVMvalue *));
         exe->tp = frame->sp;
     }
+    return 0;
 }
 
-static inline void
+static FKL_ALWAYS_INLINE FKL_NODISCARD int
 fklVMframeSetBp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
     frame->bp = exe->bp;
-    fklVMframeSetSp(exe, frame, lcount);
+    return fklVMframeSetSp(exe, frame, lcount);
 }
 
 static FKL_ALWAYS_INLINE void fklSetBp(FklVM *s) {

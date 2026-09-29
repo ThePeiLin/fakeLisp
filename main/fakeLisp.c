@@ -1023,7 +1023,8 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
 
     f->bp = fctx->bp;
     f->ret_cb = repl_frame_ret_callback;
-    fklVMframeSetSp(exe, f, pt->local_count);
+    if (FKL_UNLIKELY(fklVMframeSetSp(exe, f, pt->local_count) != 0))
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
 
     FKL_VM_GET_ARG(exe, f, o_lcount) = NULL;
     alloc_more_space_for_var_ref(exe, f, o_lcount, f->lcount);
@@ -1324,7 +1325,11 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
     fklSetBp(exe);
     f_ctx->c->bp = exe->bp;
     f_ctx->c->sp = exe->bp + 1;
-    fklVMstackReserve(exe, f_ctx->c->sp + 1);
+    if (FKL_UNLIKELY(fklVMstackReserve(exe, f_ctx->c->sp + 1) != 0)) {
+        fprintf(stderr, "[%s: %d] init repl failed\n", __REL_FILE__, __LINE__);
+        abort();
+    }
+
     if (f_ctx->c->sp > exe->tp) {
         memset(&exe->base[exe->tp],
                 0,

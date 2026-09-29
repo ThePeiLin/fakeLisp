@@ -2376,7 +2376,7 @@ void fklVMtypePrint(const FklVMvalue *v, FklStrBuilder *b, FklVM *exe) {
     fklStrBuilderFmt(b, "#<type %s>", t->mt.name);
 }
 
-void fklVMtypeCall(FklVMvalue *v, FklVM *vm) { FKL_TODO(); }
+int fklVMtypeCall(FklVMvalue *v, FklVM *vm) { FKL_TODO(); }
 
 FKL_VM_TYPE_TYPE_ATTR
 FklVMvalueType FklVMtypeType = {

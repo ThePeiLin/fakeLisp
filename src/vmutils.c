@@ -246,48 +246,9 @@ FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t) {
 
 FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe) {
     static const char *builtinErrorMessages[FKL_BUILTIN_ERR_NUM] = {
-        NULL,
-        "Symbol undefined",
-        "Syntax error",
-        "Invalid expression",
-        "Circular load file",
-        "Invalid pattern ",
-        "Incorrect type of values",
-        "Stack error",
-        "Too many arguements",
-        "Too few arguements",
-        "Can't create thread",
-        "Thread error",
-        "macro expand failed",
-        "Try to call an object that can't be call",
-        "Faild to load dll",
-        "Invalid symbol",
-        "Library undefined",
-        "Unexpected eof",
-        "Divided by zero",
-        "File failed",
-        "Invalid value",
-        "Invalid assign",
-        "Invalid access",
-        "Failed to import dll",
-        "Invalid macro pattern",
-        "Failed to create big-int from mem",
-        "List differ in length",
-        "Attempt to get a continuation cross C-call boundary",
-        "Radix for integer should be 8, 10 or 16",
-        "No value for key",
-        "Number should not be less than 0",
-        "It's unserializable to bytecode file",
-        "Unsupported operation",
-        "Import missing",
-        "Exporting production groups with reference to other group",
-        "Failed to import reader macro",
-        "Analysis table generate failed",
-        "Regex compile failed",
-        "Grammer create failed",
-        "Radix for float should be 10 or 16 for float",
-        "attempt to assign constant",
-        "attempt to redefine variable as constant",
+#define X(A, B, C) C,
+        FKL_BUILTIN_ERR_MAP
+#undef X
     };
     const char *s = builtinErrorMessages[type];
     FKL_ASSERT(s);
@@ -1642,7 +1603,7 @@ void fklVMread(FklVM *exe, FILE *fp, FklStrBuf *buf, uint64_t len, int d) {
 void fklInitBuiltinErrorType(FklVMvalue *errorTypeId[FKL_BUILTIN_ERR_NUM],
         FklVMgc *gc) {
     static const char *builtInErrorType[FKL_BUILTIN_ERR_NUM] = {
-#define X(A, B) B,
+#define X(A, B, C) B,
         FKL_BUILTIN_ERR_MAP
 #undef X
     };

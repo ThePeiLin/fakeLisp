@@ -55,7 +55,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
         STORE_EXTRA_VALUE;
         fklSetBp(exe);
         FKL_VM_PUSH_VALUE(exe, proc);
-        fklVMstackReserve(exe, exe->tp + argc);
+        fklVMstackReserveOrRaise(exe, exe->tp + argc);
         arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue **const end = &arg_base[argc];
         FklVMvalue **plist = arg_base + 1;
@@ -63,7 +63,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*plist));
             *plist = FKL_VM_CDR(*plist);
         }
-        fklCallObj(exe, proc);
+        fklCallObjOrRaise(exe, proc);
         return 1;
     } break;
     case FOREACH_CALL_STATE_CONT: {
@@ -79,7 +79,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FklVMvalue *proc = arg_base[0];
             fklSetBp(exe);
             FKL_VM_PUSH_VALUE(exe, proc);
-            fklVMstackReserve(exe, exe->tp + arg_num);
+            fklVMstackReserveOrRaise(exe, exe->tp + arg_num);
             arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
             FklVMvalue **const end = &arg_base[arg_num];
             plist = arg_base + 1;
@@ -87,7 +87,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
                 FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*plist));
                 *plist = FKL_VM_CDR(*plist);
             }
-            fklCallObj(exe, proc);
+            fklCallObjOrRaise(exe, proc);
             return 1;
         }
     } break;

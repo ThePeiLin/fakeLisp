@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -287,6 +288,60 @@ int main(void) {
         size_t ga3 = atomic_load(&gc->alloced_size);
         CHECK(gu3 < gu2, "gcvm shrink released the region");
         CHECK(ga2 - ga3 == gu2 - gu3, "gcvm shrink accounts the released delta");
+    }
+
+    /* stack-overflow-error: standalone VM with a tiny reservation */
+    {
+        size_t old = fklVMconfigReservedSize(fklVmemPageSize());
+        FklVM *ov = fklCreateVM(NULL, gc);
+        CHECK(ov != NULL, "create a small-reservation vm");
+
+        jmp_buf jb;
+        jmp_buf *saved = ov->buf;
+        ov->buf = &jb;
+        volatile int caught = 0;
+        if (setjmp(jb) == 0)
+            fklVMstackReserveOrRaise(ov, 1u << 20);
+        else
+            caught = 1;
+        ov->buf = saved;
+
+        CHECK(caught, "vm stack reserve overflow raises");
+        FklVMvalue *ev = FKL_VM_GET_TOP_VALUE(ov);
+        CHECK(fklIsVMvalueError(ev), "vm overflow raised an error value");
+        CHECK(FKL_VM_ERR(ev)->type
+                      == gc->builtinErrorTypeId[FKL_ERR_STACK_OVERFLOW],
+                "vm overflow error type is stack-overflow-error");
+
+        fklDestroyAllVMs(ov);
+        fklVMconfigReservedSize(old);
+    }
+
+    /* stack-overflow-error: gcvm (bounded by the gc region) */
+    {
+        FklVM *gv = &gc->gcvm;
+        while (gv->tp)
+            (void)FKL_VM_POP_TOP_VALUE(gv);
+
+        jmp_buf jb;
+        jmp_buf *saved = gv->buf;
+        gv->buf = &jb;
+        volatile int caught = 0;
+        if (setjmp(jb) == 0)
+            fklVMstackReserveOrRaise(gv, 1u << 20);
+        else
+            caught = 1;
+        gv->buf = saved;
+
+        CHECK(caught, "gcvm stack reserve overflow raises");
+        FklVMvalue *ev = FKL_VM_GET_TOP_VALUE(gv);
+        CHECK(fklIsVMvalueError(ev), "gcvm overflow raised an error value");
+        CHECK(FKL_VM_ERR(ev)->type
+                      == gc->builtinErrorTypeId[FKL_ERR_STACK_OVERFLOW],
+                "gcvm overflow error type is stack-overflow-error");
+
+        while (gv->tp)
+            (void)FKL_VM_POP_TOP_VALUE(gv);
     }
 
     fklDestroyAllVMs(vm);

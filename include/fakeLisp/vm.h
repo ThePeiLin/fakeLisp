@@ -1703,8 +1703,9 @@ static FKL_ALWAYS_INLINE void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
     if (FKL_UNLIKELY(s->tp >= s->last)) {
         int r = fklVMstackReserve(s, s->tp + 1);
         (void)r;
-        if (r != 0)
-            abort();
+        if (r != 0) {
+            FKL_TODO();
+        }
     }
 
     s->base[s->tp++] = v;

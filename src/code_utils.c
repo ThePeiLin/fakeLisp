@@ -1103,8 +1103,8 @@ static inline FklVMframe *init_macro_expand_frame(FklVM *exe,
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, proc);
     if (fklCallObj(exe, proc) != 0) {
-		// TODO: 不应该直接 abort
-        abort();
+        // TODO: 不应该直接 abort
+        FKL_TODO();
     }
 
     init_macro_match_local_variable(exe,

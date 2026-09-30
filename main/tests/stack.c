@@ -307,11 +307,35 @@ int main(void) {
         ov->buf = saved;
 
         CHECK(caught, "vm stack reserve overflow raises");
-        FklVMvalue *ev = FKL_VM_GET_TOP_VALUE(ov);
+        CHECK(ov->tp == 0,
+                "raised error is not pushed onto the operand stack");
+        FklVMvalue *ev = ov->error;
         CHECK(fklIsVMvalueError(ev), "vm overflow raised an error value");
         CHECK(FKL_VM_ERR(ev)->type
                       == gc->builtinErrorTypeId[FKL_ERR_STACK_OVERFLOW],
                 "vm overflow error type is stack-overflow-error");
+        ov->error = NULL;
+
+        /* pushing past the capacity goes through FKL_VM_PUSH_VALUE and
+           reports the failure through FklVM::error too */
+        ov->buf = &jb;
+        caught = 0;
+        if (setjmp(jb) == 0) {
+            while (fklVMstackReserve(ov, ov->tp + 1) == 0)
+                FKL_VM_PUSH_VALUE(ov, FKL_MAKE_VM_FIX(0));
+            FKL_VM_PUSH_VALUE(ov, FKL_MAKE_VM_FIX(0));
+        } else {
+            caught = 1;
+        }
+        ov->buf = saved;
+
+        CHECK(caught, "pushing past capacity raises");
+        ev = ov->error;
+        CHECK(fklIsVMvalueError(ev), "push overflow raised an error value");
+        CHECK(FKL_VM_ERR(ev)->type
+                      == gc->builtinErrorTypeId[FKL_ERR_STACK_OVERFLOW],
+                "push overflow error type is stack-overflow-error");
+        ov->error = NULL;
 
         fklDestroyAllVMs(ov);
         fklVMconfigReservedSize(old);
@@ -334,11 +358,14 @@ int main(void) {
         gv->buf = saved;
 
         CHECK(caught, "gcvm stack reserve overflow raises");
-        FklVMvalue *ev = FKL_VM_GET_TOP_VALUE(gv);
+        CHECK(gv->tp == 0,
+                "gcvm raised error is not pushed onto the operand stack");
+        FklVMvalue *ev = gv->error;
         CHECK(fklIsVMvalueError(ev), "gcvm overflow raised an error value");
         CHECK(FKL_VM_ERR(ev)->type
                       == gc->builtinErrorTypeId[FKL_ERR_STACK_OVERFLOW],
                 "gcvm overflow error type is stack-overflow-error");
+        gv->error = NULL;
 
         while (gv->tp)
             (void)FKL_VM_POP_TOP_VALUE(gv);

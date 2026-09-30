@@ -62,6 +62,7 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
     for (FklVMframe *cur = exe->top_frame; cur; cur = cur->prev)
         do_atomic_frame(cur, gc);
 
+    fklVMgcToGray(exe->error, gc);
     FklVMvalue **base = exe->base;
     for (uint32_t i = 0; i < exe->tp; i++)
         fklVMgcToGray(base[i], gc);

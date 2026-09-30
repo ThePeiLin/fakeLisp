@@ -165,7 +165,10 @@ int isFuvLoop(const FklVMvalue *v);
 FklVMvalue *createFuvLoop(FklVM *, FklVMvalue *dll, int *err);
 FklVMvalueType *createFuvLoopType(FklVM *, FklVMvalue *dll);
 
-void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe);
+void startErrorHandle(uv_loop_t *loop,
+        FuvLoopData *ldata,
+        FklVM *exe,
+        FklVMvalue *err);
 void fuvLoopAddGcObj(FklVMvalue *looop, FklVMvalue *obj);
 
 static FKL_ALWAYS_INLINE FuvValueLoop *FUV_LOOP(const FklVMvalue *v) {

@@ -413,6 +413,7 @@ typedef struct FklVM {
 
     struct FklVMinterruptHandleList *int_list;
 
+    FklVMvalue *error;
     // op stack
     uint32_t last;
     uint32_t tp;
@@ -1675,7 +1676,7 @@ FKL_API FklVMvalue *fklCreateNilValue(void);
 
 #define FKL_VM_POP_TOP_VALUE(S) ((S)->base[--(S)->tp])
 
-#define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalue((S), (V))
+#define FKL_VM_PUSH_VALUE(S, V) fklPushVMvalueOrRaise((S), (V))
 
 static inline void fklUpdateAllVarRef(FklVM *exe, FklVMframe *f) {
     for (; f; f = f->prev)
@@ -1698,14 +1699,20 @@ int fklVMstackReserve(FklVM *exe, uint32_t s);
 FKL_API
 void fklVMstackReserveOrRaise(FklVM *exe, uint32_t s);
 
-/// TODO: 处理 stackReserve 失败的情况
-static FKL_ALWAYS_INLINE void fklPushVMvalue(FklVM *s, FklVMvalue *v) {
+static FKL_ALWAYS_INLINE FKL_NODISCARD int fklPushVMvalue(FklVM *s,
+        FklVMvalue *v) {
     if (FKL_UNLIKELY(s->tp >= s->last)) {
-        int r = fklVMstackReserve(s, s->tp + 1);
-        (void)r;
-        if (r != 0) {
-            FKL_TODO();
-        }
+        if (FKL_UNLIKELY(fklVMstackReserve(s, s->tp + 1) != 0))
+            return -1;
+    }
+
+    s->base[s->tp++] = v;
+    return 0;
+}
+
+static FKL_ALWAYS_INLINE void fklPushVMvalueOrRaise(FklVM *s, FklVMvalue *v) {
+    if (FKL_UNLIKELY(s->tp >= s->last)) {
+        fklVMstackReserveOrRaise(s, s->tp + 1);
     }
 
     s->base[s->tp++] = v;

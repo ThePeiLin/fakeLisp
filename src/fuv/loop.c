@@ -92,7 +92,11 @@ FklVMvalueType *createFuvLoopType(FklVM *vm, FklVMvalue *dll) {
     return fklCreateVMvalueType(vm, dll, &FuvLoopMt, &FuvLoopMt);
 }
 
-void startErrorHandle(uv_loop_t *loop, FuvLoopData *ldata, FklVM *exe) {
+void startErrorHandle(uv_loop_t *loop,
+        FuvLoopData *ldata,
+        FklVM *exe,
+        FklVMvalue *err) {
+    exe->error = err;
     ldata->error_occured = 1;
     uv_stop(loop);
 }

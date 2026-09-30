@@ -31,7 +31,8 @@
 #endif
 
 // call compound procedure
-static inline int call_compound_procedure(FklVM *exe, FklVMvalueProc *proc) {
+static inline FKL_NODISCARD int call_compound_procedure(FklVM *exe,
+        FklVMvalueProc *proc) {
     FklVMframe *f = fklCreateVMframeWithProc(exe, FKL_VM_VAL(proc));
     if (FKL_UNLIKELY(fklVMframeSetBp(exe, f, proc->local_count) != 0)) {
         fklDestroyVMframe(f, exe);
@@ -508,7 +509,12 @@ FklVMcallResult fklVMcall3(FklRunVMcb cb,
     }
 
     result.err = cb(exe, re->exit_frame);
-    result.v = FKL_VM_GET_TOP_VALUE(exe);
+    if (result.err != 0) {
+        result.v = exe->error;
+        exe->error = NULL;
+    } else {
+        result.v = FKL_VM_GET_TOP_VALUE(exe);
+    }
 
     return result;
 }
@@ -561,7 +567,12 @@ FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
     }
 
     result.err = cb(exe, re->exit_frame);
-    result.v = FKL_VM_GET_TOP_VALUE(exe);
+    if (result.err != 0) {
+        result.v = exe->error;
+        exe->error = NULL;
+    } else {
+        result.v = FKL_VM_GET_TOP_VALUE(exe);
+    }
 
     return result;
 }
@@ -733,7 +744,7 @@ static FKL_ALWAYS_INLINE int check_unbound_exported_symbol(FklVM *exe,
                 "The symbol %S is not exported in module %S",
                 name,
                 l->name);
-        FKL_VM_PUSH_VALUE(exe, err);
+        exe->error = err;
         return 1;
     }
 
@@ -748,17 +759,26 @@ static inline void load_lib(FklVM *exe, FklVMvalueLib *l) {
     FklVMframe *exit_frame = exe->top_frame;
     fklSetBp(exe);
     FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(l));
-    call_compound_procedure(exe, FKL_VM_PROC(l->proc));
+    int r = call_compound_procedure(exe, FKL_VM_PROC(l->proc));
+    if (r != 0) {
+        // 递归太深无法执行 import
+        // 我们不认为是库的错误
+        // 所以设置 FKL_VM_LIB_NONE
+        // 同时抛出 STACK_OVERFLOW
+        atomic_store(&l->import_state, FKL_VM_LIB_NONE);
+        fklUnlockVMlib(l);
+        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
+    }
 
-    int r = fklRunVM(exe, exit_frame);
+    r = fklRunVM(exe, exit_frame);
 
     r = r || check_unbound_exported_symbol(exe, l);
     int import_state = r ? FKL_VM_LIB_ERROR : FKL_VM_LIB_IMPORTED;
     atomic_store(&l->import_state, import_state);
     fklUnlockVMlib(l);
-
     if (r) {
-        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+        FKL_ASSERT(exe->error != NULL);
+        fklRaiseVMerror(exe->error, exe);
     }
 
     fklVMrecover(exe, &re);
@@ -804,7 +824,7 @@ static inline void load_dll(FklVM *exe, FklVMvalueLib *l) {
     fklUnlockVMlib(l);
 
     if (r) {
-        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+        fklRaiseVMerror(exe->error, exe);
     }
 }
 
@@ -957,20 +977,26 @@ int fklRunVM(FklVM *exe, FklVMframe *const exit_frame) {
         case FKL_VM_READY:
             exe->buf = &buf;
             if (setjmp(buf) == FKL_VM_ERR_RAISE) {
-                FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
-                FklVMframe *frame =
-                        fklIsVMvalueError(ev) ? exe->top_frame : exit_frame;
+                FklVMvalue *ev = exe->error;
+
+                FklVMframe *frame = fklIsVMvalueError(ev) //
+                                          ? exe->top_frame
+                                          : exit_frame;
+
                 for (; frame != exit_frame; frame = frame->prev)
                     if (frame->errorCallBack != NULL
                             && frame->errorCallBack(frame, ev, exe))
                         break;
                 if (frame == exit_frame) {
-                    if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE)
+                    if (fklVMinterrupt(exe, ev, &ev) == FKL_INT_DONE) {
+                        exe->error = NULL;
                         continue;
-                    FKL_VM_PUSH_VALUE(exe, ev);
+                    }
+                    exe->error = ev;
                     r = 1;
                     goto done;
                 }
+                exe->error = NULL;
             }
             exe->state = FKL_VM_RUNNING;
             continue;
@@ -997,7 +1023,7 @@ static void vm_thread_cb(void *arg) {
         exe->state = FKL_VM_EXIT;
         exe->buf = NULL;
         if (r) {
-            FklVMvalue *ev = FKL_VM_POP_TOP_VALUE(exe);
+            FklVMvalue *ev = exe->error;
             fklPrintErrBacktrace(ev, exe, NULL);
             if (exe->chan) {
                 fklChanlSend(FKL_VM_CHANL(exe->chan), ev, exe);
@@ -1005,6 +1031,7 @@ static void vm_thread_cb(void *arg) {
             } else {
                 exe->gc->exit_code = 255;
             }
+            exe->error = NULL;
         }
 
         do_vm_atexit(exe);

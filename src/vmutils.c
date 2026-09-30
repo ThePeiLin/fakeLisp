@@ -168,7 +168,7 @@ void fklPrintErrBacktrace(FklVMvalue *ev, FklVM *exe, FklStrBuilder *build_) {
 }
 
 void fklRaiseVMerror(FklVMvalue *ev, FklVM *exe) {
-    FKL_VM_PUSH_VALUE(exe, ev);
+    exe->error = ev;
     longjmp(*exe->buf, FKL_VM_ERR_RAISE);
 }
 

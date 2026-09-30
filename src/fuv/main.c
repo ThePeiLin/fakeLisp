@@ -296,7 +296,7 @@ static int fuv_loop_run(FKL_CPROC_ARGL) {
     if (r < 0) {
         fklRaiseVMerror(createUvError(r, exe, ctx->dll), exe);
     } else if (loop->data.error_occured) {
-        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
+        fklRaiseVMerror(exe->error, exe);
     }
 
     FKL_CPROC_RETURN(exe, ctx, loop_obj);
@@ -540,7 +540,7 @@ static inline void fuv_call_handle_callback_in_loop(uv_handle_t *handle,
             FklVMcallResult r = fklVMcall(exe, &recover_args, proc, 0, NULL);
 
             if (r.err) {
-                startErrorHandle(loop, loop_data, exe);
+                startErrorHandle(loop, loop_data, exe, r.v);
                 fuvHandleClose(fuv_handle, NULL);
             } else {
                 fklVMrecover(exe, &recover_args);
@@ -973,7 +973,8 @@ static inline void fuv_call_handle_callback_in_loop_with_value_creator(
                     arg);
 
             if (r.err) {
-                startErrorHandle(uv_handle_get_loop(handle), loop_data, exe);
+                uv_loop_t *l = uv_handle_get_loop(handle);
+                startErrorHandle(l, loop_data, exe, r.v);
                 fuvHandleClose(fuv_handle, NULL);
             } else {
                 fklVMrecover(exe, &recover_args);
@@ -1541,7 +1542,7 @@ static void fuv_call_req_callback_in_loop_with_value_creator(uv_req_t *req,
                 &args);
 
         if (r.err) {
-            startErrorHandle(&l->loop, ldata, exe);
+            startErrorHandle(&l->loop, ldata, exe, r.v);
         } else {
             fklVMrecover(exe, &recover_args);
         }

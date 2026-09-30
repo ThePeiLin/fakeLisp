@@ -876,6 +876,8 @@ static int execute_macro_expand_procedure(FklCgCtx *ctx,
             curline);
 
     int e = is_repl ? fklRunVM(exe, exit_frame) : fklRunVMidleLoop(exe);
+    exe->error = NULL;
+
     fklMoveThreadObjectsToGc(exe, gc);
 
     fklChdir(cwd);
@@ -884,8 +886,9 @@ static int execute_macro_expand_procedure(FklCgCtx *ctx,
 
     if (!is_repl) {
         fklDestroyAllVMs(exe);
-    } else
+    } else {
         exe->tp = bottom_tp;
+    }
 
     return e;
 }

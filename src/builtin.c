@@ -3476,9 +3476,10 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
     // 在这个函数中返回，令虚拟机重新设置longjmp的buf
     if (IDLE_CTX_STATE(ctx)) {
-        fklRaiseVMerror(FKL_VM_GET_TOP_VALUE(exe), exe);
-        return 1;
+        FKL_ASSERT(exe->error != NULL);
+        fklRaiseVMerror(exe->error, exe);
     }
+
     FklVMvalue *retval = FKL_VM_GET_TOP_VALUE(exe);
     FKL_CPROC_RETURN(exe, ctx, retval);
     return 0;

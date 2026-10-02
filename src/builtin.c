@@ -1568,7 +1568,7 @@ read_frame_print_backtrace(void *d, FklStrBuilder *build, FklVM *vm) {
     fklPrintCprocBacktrace(((ReadCtx *)d)->name, build);
 }
 
-static const FklVMframeContextMethodTable ReadContextMethodTable = {
+static const FklVMframeCtxMt ReadContextMethodTable = {
     .atomic = read_frame_atomic,
     .finalizer = read_frame_finalizer,
     .print_backtrace = read_frame_print_backtrace,
@@ -1791,7 +1791,7 @@ static int custom_read_frame_step(void *d, FklVM *exe) {
     return 1;
 }
 
-static const FklVMframeContextMethodTable CustomReadContextMethodTable = {
+static const FklVMframeCtxMt CustomReadContextMethodTable = {
     .atomic = read_frame_atomic,
     .finalizer = read_frame_finalizer,
     .print_backtrace = read_frame_print_backtrace,
@@ -1839,11 +1839,11 @@ static void *custom_parser_prod_action(FklProdActionArgs *action_ctx,
     FklVMvalueVec *vec = FKL_VM_VEC(vect);
     for (size_t i = 0; i < num; i++)
         vec->base[i] = asts[i].ast;
-    fklSetBp(exe);
+    FklVMframe *f = fklSetBp(exe, 1);
     FKL_VM_PUSH_VALUE(exe, proc);
     FKL_VM_PUSH_VALUE(exe, vect);
     FKL_VM_PUSH_VALUE(exe, line_value);
-    fklCallObjOrRaise(exe, proc);
+    fklCallObjOrRaise(exe, f, proc);
     return NULL;
 }
 
@@ -2449,7 +2449,7 @@ custom_parse_frame_print_backtrace(void *d, FklStrBuilder *build, FklVM *vm) {
     fklPrintCprocBacktrace(((CustomParseCtx *)d)->name, build);
 }
 
-static const FklVMframeContextMethodTable CustomParseContextMethodTable = {
+static const FklVMframeCtxMt CustomParseContextMethodTable = {
     .atomic = custom_parse_frame_atomic,
     .finalizer = custom_parse_frame_finalizer,
     .print_backtrace = custom_parse_frame_print_backtrace,
@@ -3294,7 +3294,7 @@ static void error_handler_frame_finalizer(void *data) {
 
 static int error_handler_frame_step(void *data, FklVM *exe) { return 0; }
 
-static const FklVMframeContextMethodTable ErrorHandlerContextMethodTable = {
+static const FklVMframeCtxMt ErrorHandlerContextMethodTable = {
     .atomic = error_handler_frame_atomic,
     .finalizer = error_handler_frame_finalizer,
     .print_backtrace = error_handler_frame_print_backtrace,
@@ -3330,9 +3330,9 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
             while (topFrame != f) {
                 FklVMframe *cur = topFrame;
                 topFrame = topFrame->prev;
-                fklDestroyVMframe(cur, exe);
+                fklUninitVMframe(exe, cur);
             }
-            fklTailCallObjOrRaise(exe, err_handlers->cdr);
+            fklTailCallObjOrRaise(exe, NULL, err_handlers->cdr);
             return 1;
         }
     }
@@ -3359,7 +3359,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     if (argc == 1) {
         FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
         exe->tp -= 1;
-        fklTailCallObjOrRaise(exe, proc);
+        fklTailCallObjOrRaise(exe, NULL, proc);
         return 1;
     }
     FklPairVector err_handlers;
@@ -3403,9 +3403,9 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
             err_handlers.size * sizeof(FklPair));
     FKL_ASSERT(t);
     c->err_handlers = t;
-    FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
-    exe->tp -= argc;
-    fklCallObjOrRaise(exe, proc);
+
+    FklVMframe *f = fklPrepCall(exe, exe->bp, 1, &proc);
+    fklCallObjOrRaise(exe, f, proc);
 #undef GET_PROC
 #undef GET_LIST
     return 1;
@@ -3428,6 +3428,11 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
 
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
+        FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+        uint32_t const at = exe->tp - argc - 1;
+        FklVMframe *f = fklSetBpAt(exe, at, 1, argc, argv);
+
+        /*
         fklVMstackReserveOrRaise(exe, exe->tp + 1);
         memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
                 &FKL_CPROC_GET_ARG(exe, ctx, 0),
@@ -3437,9 +3442,10 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
         // 函数pcall与bp的值合计占用两个空间
         exe->bp += 2;
+        */
 
         exe->top_frame->errorCallBack = pcall_error_handler;
-        fklCallObjOrRaise(exe, proc);
+        fklCallObjOrRaise(exe, f, proc);
         ctx->c[0].u32a = 1;
         return 1;
     } break;
@@ -3463,6 +3469,11 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
+    FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    uint32_t const at = exe->tp - argc - 1;
+    FklVMframe *f = fklSetBpAt(exe, at, 1, argc, argv);
+
+    /*
     fklVMstackReserveOrRaise(exe, exe->tp + 1);
     memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
             &FKL_CPROC_GET_ARG(exe, ctx, 0),
@@ -3471,8 +3482,9 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
     // 函数idle与bp的值合计占用两个空间
     exe->bp += 2;
+    */
 
-    fklCallObjOrRaise(exe, proc);
+    fklCallObjOrRaise(exe, f, proc);
     fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
     // 在这个函数中返回，令虚拟机重新设置longjmp的buf
     if (IDLE_CTX_STATE(ctx)) {
@@ -3570,7 +3582,7 @@ static int builtin_apply(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
-    fklTailCallObjOrRaise(exe, proc);
+    fklTailCallObjOrRaise(exe, NULL, proc);
     return 1;
 }
 
@@ -3662,11 +3674,11 @@ static int builtin_member(FKL_CPROC_ARGL) {
                 return 0;
             }
             ctx->c[0].uptr = 1;
-            fklSetBp(exe);
+            FklVMframe *f = fklSetBp(exe, 1);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObjOrRaise(exe, proc);
+            fklCallObjOrRaise(exe, f, proc);
             return 1;
         }
         FklVMvalue *r = list;
@@ -3691,11 +3703,11 @@ static int builtin_member(FKL_CPROC_ARGL) {
         else {
             FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 2);
             *plist = list;
-            fklSetBp(exe);
+            FklVMframe *f = fklSetBp(exe, 1);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObjOrRaise(exe, proc);
+            fklCallObjOrRaise(exe, f, proc);
             return 1;
         }
     } break;
@@ -3717,10 +3729,10 @@ static int builtin_memp(FKL_CPROC_ARGL) {
             return 0;
         }
         ctx->c[0].uptr = 1;
-        fklSetBp(exe);
+        FklVMframe *f = fklSetBp(exe, 1);
         FKL_VM_PUSH_VALUE(exe, proc);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-        fklCallObjOrRaise(exe, proc);
+        fklCallObjOrRaise(exe, f, proc);
         return 1;
     } break;
     case 1: {
@@ -3739,10 +3751,10 @@ static int builtin_memp(FKL_CPROC_ARGL) {
         else {
             *plist = list;
             FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
-            fklSetBp(exe);
+            FklVMframe *f = fklSetBp(exe, 1);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
-            fklCallObjOrRaise(exe, proc);
+            fklCallObjOrRaise(exe, f, proc);
             return 1;
         }
     } break;
@@ -4510,7 +4522,7 @@ static int builtin_funcall(FKL_CPROC_ARGL) {
             &FKL_CPROC_GET_ARG(exe, ctx, 0),
             (argc - 1) * sizeof(FklVMvalue *));
     exe->tp -= 1;
-    fklTailCallObjOrRaise(exe, proc);
+    fklTailCallObjOrRaise(exe, NULL, proc);
     return 1;
 }
 

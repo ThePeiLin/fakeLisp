@@ -42,6 +42,10 @@ FklVMvalue *fklCloneVMlist(FklVM *vm, const FklVMvalue *obj) {
         FKL_ASSERT((unsigned)tag < FKL_PTR_TAG_NUM);
 
         switch (tag) {
+        case FKL_TAG_SKIP:
+            FKL_PANIC("should not happen");
+            break;
+
         case FKL_TAG_NIL:
         case FKL_TAG_FIX:
         case FKL_TAG_CHR:
@@ -181,6 +185,10 @@ FklVMvalue *fklCopyVMvalue(FklVM *vm, const FklVMvalue *obj) {
         break;
     case FKL_TAG_PTR:
         return obj_copy(vm, obj);
+        break;
+
+    case FKL_TAG_SKIP:
+        FKL_PANIC("should not happen");
         break;
     }
 
@@ -368,6 +376,10 @@ FklVMvalue *fklAppendVMvalue(FklVM *vm,
     case FKL_TAG_PTR:
         return obj_copy_append(vm, v, argc, base);
         break;
+
+    case FKL_TAG_SKIP:
+        FKL_PANIC("should not happen");
+        break;
     }
 
     FKL_UNREACHABLE();
@@ -473,6 +485,10 @@ FklVMvalue *fklAppendVMvalue1(FklVM *vm,
 
     case FKL_TAG_PTR:
         return obj_append(vm, v, argc, base);
+        break;
+
+    case FKL_TAG_SKIP:
+        FKL_PANIC("should not happen");
         break;
     }
 
@@ -2376,7 +2392,7 @@ void fklVMtypePrint(const FklVMvalue *v, FklStrBuilder *b, FklVM *exe) {
     fklStrBuilderFmt(b, "#<type %s>", t->mt.name);
 }
 
-int fklVMtypeCall(FklVMvalue *v, FklVM *vm) { FKL_TODO(); }
+int fklVMtypeCall(FklVMvalue *v, FklVMframe *f, FklVM *vm) { FKL_TODO(); }
 
 FKL_VM_TYPE_TYPE_ATTR
 FklVMvalueType FklVMtypeType = {

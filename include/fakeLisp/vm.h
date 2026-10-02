@@ -12,6 +12,7 @@
 #include <math.h>
 #include <setjmp.h>
 #include <stdalign.h>
+#include <stdarg.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -51,9 +52,10 @@ typedef enum {
     FKL_TAG_NIL,
     FKL_TAG_FIX,
     FKL_TAG_CHR,
+    FKL_TAG_SKIP,
 } FklVMptrTag;
 
-#define FKL_PTR_TAG_NUM (FKL_TAG_CHR + 1)
+#define FKL_PTR_TAG_NUM (FKL_TAG_SKIP + 1)
 
 typedef struct FklVMvalue {
     FKL_VM_VALUE_COMMON_HEADER;
@@ -228,7 +230,7 @@ typedef struct {
     void (*atomic)(void *data, FklVMgc *);
     void (*finalizer)(void *data);
     FklBacktraceCb print_backtrace;
-} FklVMframeContextMethodTable;
+} FklVMframeCtxMt;
 
 struct FklVMframe;
 
@@ -263,11 +265,16 @@ typedef struct FklVMframe {
             uint32_t rcount;
         };
         struct {
-            const FklVMframeContextMethodTable *t;
+            const FklVMframeCtxMt *t;
             uint8_t data[1];
         };
     };
 } FklVMframe;
+
+static_assert(sizeof(FklVMframe) % sizeof(FklVMvalue *) == 0,
+        "invalid frame struct def");
+
+#define FKL_VM_FRAME_SIZE (sizeof(FklVMframe) / sizeof(FklVMvalue *))
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE)                                 \
     static_assert(                                                             \
@@ -280,19 +287,27 @@ FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(FklCprocFrameContext);
 #define FKL_VM_VALUE_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMvalue, data)
 #define FKL_VM_UDATA_OF(ptr) FKL_CONTAINER_OF(ptr, FklVMud, data)
 
-FKL_API
-FKL_NODISCARD
-int fklCallObj(FklVM *exe, FklVMvalue *);
+static FKL_ALWAYS_INLINE FklVMframe *FKL_SLOT_TO_FRAME(FklVMvalue **in) {
+    return FKL_TYPE_CAST(FklVMframe *, in);
+}
 
 FKL_API
 FKL_NODISCARD
-int fklTailCallObj(FklVM *exe, FklVMvalue *);
+int fklCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *);
+
+/// use the previous frame
+// XXX: 这个函数不应该接受一个 frame 作为参数
+FKL_API
+FKL_NODISCARD
+int fklTailCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *);
 
 FKL_API
-void fklCallObjOrRaise(FklVM *exe, FklVMvalue *);
+void fklCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *);
 
+/// use the previous frame
+// XXX: 这个函数不应该接受一个 frame 作为参数
 FKL_API
-void fklTailCallObjOrRaise(FklVM *exe, FklVMvalue *);
+void fklTailCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *);
 
 typedef struct {
     uint32_t bp;
@@ -387,11 +402,7 @@ typedef struct FklVM {
 
     FklVMstate volatile state;
 
-    FklVMframe inplace_frame;
     FklVMframe *top_frame;
-
-    FklVMframe *frame_cache_head;
-    FklVMframe **frame_cache_tail;
 
     struct FklVMvalue *chan;
     FklVMgc *gc;
@@ -501,7 +512,7 @@ typedef struct FklVMudMetaTable {
     FklVMudPrintCb prin1;
     FklVMudFinalizer finalize;
     FklVMudEqualCb equal;
-    int (*call)(FklVMvalue *, FklVM *);
+    int (*call)(FklVMvalue *, FklVMframe *f, FklVM *);
     int (*cmp)(const FklVMvalue *, const FklVMvalue *, int *);
     void (*write)(const FklVMvalue *, FklStrBuilder *);
     FklVMudAtomicCb atomic;
@@ -519,7 +530,7 @@ FKL_VM_DEF_UD_STRUCT(FklVMvalueType, {
 });
 
 FKL_API
-int fklVMtypeCall(FklVMvalue *tp, FklVM *exe);
+int fklVMtypeCall(FklVMvalue *tp, FklVMframe *, FklVM *exe);
 
 FKL_API
 void fklVMtypePrint(const FklVMvalue *, FklStrBuilder *, FklVM *);
@@ -1165,7 +1176,8 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
         }                                                                      \
     } while (0)
 
-#define FKL_CPROC_GET_ARG_NUM(S, CTX) ((S)->tp - FKL_VM_FRAME_OF(CTX)->bp - 1)
+#define FKL_CPROC_GET_ARG_NUM(S, CTX)                                          \
+    ((S)->tp - 1 - FKL_VM_FRAME_SIZE - 1 - FKL_VM_FRAME_OF(CTX)->bp)
 
 #define FKL_CPROC_CHECK_ARG_NUM(EXE, NUM, N)                                   \
     if (NUM > (N)) {                                                           \
@@ -1187,8 +1199,8 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
 
 #define FKL_CPROC_RETURN(EXE, CTX, V)                                          \
     do {                                                                       \
-        (EXE)->bp =                                                            \
-                (uint32_t)FKL_GET_FIX(FKL_CPROC_GET_ARG((EXE), (CTX), -2));    \
+        (EXE)->bp = (uint32_t)FKL_GET_FIX(                                     \
+                FKL_CPROC_GET_ARG((EXE), (CTX), FKL_VM_BP_IDX));               \
         (EXE)->tp = FKL_VM_FRAME_OF(CTX)->bp;                                  \
         FKL_VM_GET_TOP_VALUE((EXE)) = (V);                                     \
     } while (0)
@@ -1218,7 +1230,8 @@ FKL_API void fklPrintBacktrace(FklVM *, FklStrBuilder *fp);
 
 FKL_API void fklInitMainProcRefs(FklVM *exe, FklVMvalue *proc_obj);
 
-FKL_API FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *);
+FKL_API
+FklVMframe *fklInitVMframe(FklVM *exe, FklVMframe *f, FklVMvalueProc *proc);
 
 FKL_API
 void fklInitClosedVMvalueVarRef(FklVMvalueVarRef *ref, FklVMvalue *v);
@@ -1229,7 +1242,7 @@ FklVMvalue *fklCreateVMvalueVarRef(FklVM *exe, FklVMframe *f, uint32_t idx);
 FKL_API
 FklVMvalue *fklCreateClosedVMvalueVarRef(FklVM *exe, FklVMvalue *v);
 
-FKL_API void fklDestroyVMframe(FklVMframe *, FklVM *exe);
+FKL_API void fklUninitVMframe(FklVM *exe, FklVMframe *f);
 FKL_API FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe);
 
 FKL_API const char *fklGetVMhashTablePrefix(const FklVMvalueHash *);
@@ -1669,8 +1682,11 @@ FKL_API void fklAddToGC(FklVMvalue *, FklVM *);
 FKL_API FklVMvalue *fklCreateTrueValue(void);
 FKL_API FklVMvalue *fklCreateNilValue(void);
 
+#define FKL_VM_BP_IDX (-1 - (FKL_VM_FRAME_SIZE) - 1 - 1)
+
 // return the callee if I is -1
-#define FKL_VM_GET_ARG(S, F, I) ((S)->base[(F)->bp + 1 + (I)])
+#define FKL_VM_GET_ARG(S, F, I)                                                \
+    ((S)->base[(F)->bp + 1 + (FKL_VM_FRAME_SIZE) + 1 + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
 
@@ -1831,24 +1847,29 @@ FKL_API void fklInitVMargs(FklVMgc *gc, int argc, const char *const *argv);
 
 FKL_API int fklIsVMnumberLt0(const FklVMvalue *);
 
+FKL_DEPRECATED
 FKL_API
 void fklVMsetTpAndPushValue(FklVM *exe, uint32_t rtp, FklVMvalue *retval);
 
 FKL_API size_t fklVMlistLength(const FklVMvalue *);
 
-FKL_API void fklPushVMraiseErrorFrame(FklVM *exe, FklVMvalue *err);
-
-FKL_API void fklPushVMframe(FklVMframe *, FklVM *exe);
+static FKL_ALWAYS_INLINE FklVMframe *fklPushVMframe(FklVM *exe, FklVMframe *f) {
+    FKL_ASSERT(f > exe->top_frame //
+               && (uintptr_t)f > (uintptr_t)&exe->base[0]
+               && (uintptr_t)f < (uintptr_t)&exe->base[exe->tp]);
+    f->prev = exe->top_frame;
+    exe->top_frame = f;
+    return f;
+}
 
 FKL_API
-FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
-        const FklVMframeContextMethodTable *t);
+FklVMframe *fklInitVMraiseErrFrame(FklVM *exe, FklVMframe *f, FklVMvalue *err);
 
 FKL_API
-FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t);
+FklVMframe *
+fklInitVMframeExt(FklVM *exe, FklVMframe *f, const FklVMframeCtxMt *t);
 
 FKL_API void fklVMcompoundFrameReturn(FklVM *exe);
-FKL_API void fklDestroyVMframes(FklVMframe *h);
 
 FKL_API void fklLockVMlib(FklVMvalueLib *lib);
 FKL_API void fklUnlockVMlib(FklVMvalueLib *lib);
@@ -1977,6 +1998,14 @@ HASH_P(EQUAL);
                         << FKL_UNUSEDBITNUM)                                   \
                 | FKL_TAG_FIX))
 #endif
+
+static FKL_ALWAYS_INLINE FklVMvalue *FKL_MAKE_VM_SKIP(FklVMvalue **in) {
+    return (FklVMvalue *)(((uintptr_t)in) | FKL_TAG_SKIP);
+}
+
+static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_SKIP(FklVMvalue *in) {
+    return (FklVMvalue **)(((uintptr_t)(in)) & FKL_PTR_MASK);
+}
 
 static FKL_ALWAYS_INLINE int FKL_IS_TRUE(const void *P) {
     FKL_ASSERT(P != NULL);
@@ -2177,8 +2206,9 @@ static inline FklVMvalue *fklCreateVMvalueBigIntWithOther2(FklVM *exe,
 
 static inline FKL_NODISCARD int
 fklVMframeSetSp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
-    frame->arg_num = exe->tp - frame->bp - 1;
-    frame->sp = frame->bp + 1 + lcount;
+    uint32_t const callee_start = frame->bp + 1 + FKL_VM_FRAME_SIZE;
+    frame->arg_num = exe->tp - callee_start - 1;
+    frame->sp = callee_start + 1 + lcount;
     int r = fklVMstackReserve(exe, frame->sp + 1);
     if (r != 0)
         return r;
@@ -2197,9 +2227,39 @@ fklVMframeSetBp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
     return fklVMframeSetSp(exe, frame, lcount);
 }
 
-static FKL_ALWAYS_INLINE void fklSetBp(FklVM *s) {
-    FKL_VM_PUSH_VALUE(s, FKL_MAKE_VM_FIX(s->bp));
-    s->bp = s->tp;
+static FKL_ALWAYS_INLINE FklVMframe *
+fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
+    uint32_t const frame_tp = at + 1;
+    uint32_t const skip_tp = frame_tp + FKL_VM_FRAME_SIZE;
+    fklVMstackReserveOrRaise(exe, skip_tp + argc);
+
+    if (argc != 0) {
+        memmove(&exe->base[skip_tp], argv, argc * sizeof(FklVMvalue *));
+    }
+
+    FklVMvalue **const skip = &exe->base[skip_tp];
+    exe->base[at] = FKL_MAKE_VM_SKIP(skip);
+
+    exe->tp = skip_tp + argc;
+    return FKL_SLOT_TO_FRAME(&exe->base[frame_tp]);
+}
+
+static FKL_ALWAYS_INLINE FklVMframe *fklSetBp(FklVM *exe, int prep_call) {
+    FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(exe->bp));
+    exe->bp = exe->tp;
+    return prep_call ? fklPrepCall(exe, exe->tp, 0, NULL) : NULL;
+}
+
+static FKL_ALWAYS_INLINE FklVMframe *fklSetBpAt(FklVM *s,
+        uint32_t at,
+        int prep_call,
+        uint32_t argc,
+        FklVMvalue *const *argv) {
+    fklVMstackReserveOrRaise(s, at + 1);
+    s->base[at] = FKL_MAKE_VM_FIX(s->bp);
+    s->tp = at + 1;
+    s->bp = at + 1;
+    return prep_call ? fklPrepCall(s, s->tp, argc, argv) : NULL;
 }
 
 static FKL_ALWAYS_INLINE int fklIsVMint(const FklVMvalue *p) {
@@ -2309,6 +2369,12 @@ FklVMvalue *fklVMpathVecToString(FklVM *vm, FklVMvalue *path_vec);
 
 FKL_API
 FklVMvalue *fklVMpathStrToVec(FklVM *vm, const char *p);
+
+#define FKL_PANIC(FMT, ...)                                                           \
+    do {                                                                              \
+        fprintf(stderr, "[%s: %d] " FMT "\n", __REL_FILE__, __LINE__, ##__VA_ARGS__); \
+        abort();                                                                      \
+    } while (0)
 
 #ifdef __cplusplus
 }

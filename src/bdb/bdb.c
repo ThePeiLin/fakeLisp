@@ -894,7 +894,8 @@ FklVMvalue *bdbCreateInsVec(FklVM *exe,
     case FKL_OP_STR:
     case FKL_OP_BYTES:
     case FKL_OP_BOX:
-    case FKL_OP_HASH: {
+    case FKL_OP_HASH:
+    case FKL_OP_SET_BP: {
         FklStrBuf buf = { 0 };
         fklInitStrBuf(&buf);
         fklStrBufPuts(&buf, fklGetOpcodeName(op));

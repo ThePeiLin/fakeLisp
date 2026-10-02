@@ -53,7 +53,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
         FOREACH_CTX_STATE(ctx) = FOREACH_CALL_STATE_CONT;
         FOREACH_CTX_ARG_NUM(ctx) = argc;
         STORE_EXTRA_VALUE;
-        fklSetBp(exe);
+        FklVMframe *f = fklSetBp(exe, 1);
         FKL_VM_PUSH_VALUE(exe, proc);
         fklVMstackReserveOrRaise(exe, exe->tp + argc);
         arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -63,7 +63,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*plist));
             *plist = FKL_VM_CDR(*plist);
         }
-        fklCallObjOrRaise(exe, proc);
+        fklCallObjOrRaise(exe, f, proc);
         return 1;
     } break;
     case FOREACH_CALL_STATE_CONT: {
@@ -77,7 +77,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FKL_CPROC_RETURN(exe, ctx, r);
         } else {
             FklVMvalue *proc = arg_base[0];
-            fklSetBp(exe);
+            FklVMframe *f = fklSetBp(exe, 1);
             FKL_VM_PUSH_VALUE(exe, proc);
             fklVMstackReserveOrRaise(exe, exe->tp + arg_num);
             arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
@@ -87,7 +87,7 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
                 FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(*plist));
                 *plist = FKL_VM_CDR(*plist);
             }
-            fklCallObjOrRaise(exe, proc);
+            fklCallObjOrRaise(exe, f, proc);
             return 1;
         }
     } break;

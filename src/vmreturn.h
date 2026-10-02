@@ -21,12 +21,12 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
 
     switch (F->mark) {
     case FKL_VM_COMPOUND_FRAME_MARK_RET: {
-        VM->bp = (uint32_t)FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, -2));
+        VM->bp = (uint32_t)FKL_GET_FIX(FKL_VM_GET_ARG(VM, F, FKL_VM_BP_IDX));
         // copy stack values
         uint32_t const value_count = (VM->tp - F->sp);
         if (value_count > 1 || value_count < 1)
             goto return_value_err;
-        memmove(&FKL_VM_GET_ARG(VM, F, -2),
+        memmove(&FKL_VM_GET_ARG(VM, F, FKL_VM_BP_IDX),
                 &VM->base[F->sp],
                 value_count * sizeof(FklVMvalue *));
         VM->tp = F->bp - 1 + value_count;
@@ -48,6 +48,8 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
         close_all_var_ref(F);
         // copy stack values
+        // TODO: copy frame
+        FKL_TODO();
         uint32_t const value_count = (VM->tp - VM->bp);
         memmove(&FKL_VM_GET_ARG(VM, F, -1),
                 &VM->base[VM->bp],

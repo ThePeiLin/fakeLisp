@@ -57,6 +57,7 @@ static inline int print_single_ins(FklVM *vm,
     case FKL_OP_BYTES:
     case FKL_OP_BOX:
     case FKL_OP_HASH:
+    case FKL_OP_SET_BP:
         SB_FMT("::%s", fklGetSubOpcodeName(op, (int8_t)ins_arg.ix));
         break;
     case FKL_OP_LOAD_LIB:

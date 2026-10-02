@@ -10,34 +10,37 @@ extern "C" {
 #endif
 
 // clang-format off
-#define FKL_SUBOP_BOX_UNBOX       (1)
-#define FKL_SUBOP_BOX_SET         (2)
+#define FKL_SUBOP_BOX_UNBOX         (1)
+#define FKL_SUBOP_BOX_SET           (2)
 
-#define FKL_SUBOP_HASH_REF_2      (1)
-#define FKL_SUBOP_HASH_REF_3      (2)
-#define FKL_SUBOP_HASH_SET        (3)
+#define FKL_SUBOP_HASH_REF_2        (1)
+#define FKL_SUBOP_HASH_REF_3        (2)
+#define FKL_SUBOP_HASH_SET          (3)
 
-#define FKL_SUBOP_VEC_LAST        (-1)
-#define FKL_SUBOP_VEC_FIRST       (0)
-#define FKL_SUBOP_VEC_REF         (1)
-#define FKL_SUBOP_VEC_SET         (2)
+#define FKL_SUBOP_VEC_LAST          (-1)
+#define FKL_SUBOP_VEC_FIRST         (0)
+#define FKL_SUBOP_VEC_REF           (1)
+#define FKL_SUBOP_VEC_SET           (2)
 
-#define FKL_SUBOP_STR_REF         (0)
-#define FKL_SUBOP_STR_SET         (1)
+#define FKL_SUBOP_STR_REF           (0)
+#define FKL_SUBOP_STR_SET           (1)
 
-#define FKL_SUBOP_BYTES_REF        (0)
-#define FKL_SUBOP_BYTES_SET        (1)
+#define FKL_SUBOP_BYTES_REF         (0)
+#define FKL_SUBOP_BYTES_SET         (1)
 
-#define FKL_SUBOP_PAIR_CAR        (0)
-#define FKL_SUBOP_PAIR_CDR        (1)
-#define FKL_SUBOP_PAIR_NTH        (2)
-#define FKL_SUBOP_PAIR_CAR_SET    (4)
-#define FKL_SUBOP_PAIR_CDR_SET    (5)
-#define FKL_SUBOP_PAIR_APPEND     (6)
-#define FKL_SUBOP_PAIR_UNPACK     (7)
+#define FKL_SUBOP_PAIR_CAR          (0)
+#define FKL_SUBOP_PAIR_CDR          (1)
+#define FKL_SUBOP_PAIR_NTH          (2)
+#define FKL_SUBOP_PAIR_CAR_SET      (4)
+#define FKL_SUBOP_PAIR_CDR_SET      (5)
+#define FKL_SUBOP_PAIR_APPEND       (6)
+#define FKL_SUBOP_PAIR_UNPACK       (7)
 
-#define FKL_SUBOP_DROP_1          (0)
-#define FKL_SUBOP_DROP_ALL        (1)
+#define FKL_SUBOP_DROP_1            (0)
+#define FKL_SUBOP_DROP_ALL          (1)
+
+#define FKL_SUBOP_SET_BP            (0)
+#define FKL_SUBOP_SET_BP_PREP_CALL  (1)
 
 #define FKL_OPCODE_X                                                      \
     X(FKL_OP_DUMMY = 0,        "dummy",            FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
@@ -61,7 +64,7 @@ extern "C" {
     X(FKL_OP_DUP,              "dup",              FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_DROP,             "drop",             FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_CHECK_ARG,        "check-arg",        FKL_OP_MODE_IsAuB,    FKL_OP_DUMMY          )\
-    X(FKL_OP_SET_BP,           "set-bp",           FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
+    X(FKL_OP_SET_BP,           "set-bp",           FKL_OP_MODE_IsA,      FKL_OP_DUMMY          )\
     X(FKL_OP_CALL,             "call",             FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_TAIL_CALL,        "tail-call",        FKL_OP_MODE_I,        FKL_OP_DUMMY          )\
     X(FKL_OP_RET_IF_TRUE,      "ret-if-true",      FKL_OP_MODE_I,        FKL_OP_DUMMY          )\

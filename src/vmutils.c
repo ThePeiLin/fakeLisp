@@ -181,19 +181,8 @@ static inline void init_frame_var_ref(FklVMframe *f) {
     f->rcount = 0;
 }
 
-FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
-    FklVMvalueProc *code = FKL_VM_PROC(proc);
-    FklVMframe *f;
-    if (exe->frame_cache_head) {
-        f = exe->frame_cache_head;
-        exe->frame_cache_head = f->prev;
-        if (f->prev == NULL)
-            exe->frame_cache_tail = &exe->frame_cache_head;
-        memset(f, 0, sizeof(FklVMframe));
-    } else {
-        f = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
-        FKL_ASSERT(f);
-    }
+FklVMframe *fklInitVMframe(FklVM *exe, FklVMframe *f, FklVMvalueProc *p) {
+    memset(f, 0, sizeof(FklVMframe));
     f->type = FKL_FRAME_COMPOUND;
 
     f->konsts = NULL;
@@ -203,40 +192,30 @@ FklVMframe *fklCreateVMframeWithProc(FklVM *exe, FklVMvalue *proc) {
     f->proc = NULL;
     f->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     init_frame_var_ref(f);
-    if (code) {
-        f->ref = code->closure;
-        f->rcount = code->ref_count;
-        f->lcount = code->local_count;
-        f->pc = code->spc;
-        f->spc = code->spc;
-        f->end = code->end;
-        f->konsts = fklVMvalueProtoConsts(code->proto);
-        f->libs = fklVMvalueProtoUsedLibs(code->proto);
-        f->proc = proc;
+    if (p) {
+        f->ref = p->closure;
+        f->rcount = p->ref_count;
+        f->lcount = p->local_count;
+        f->pc = p->spc;
+        f->spc = p->spc;
+        f->end = p->end;
+        f->konsts = fklVMvalueProtoConsts(p->proto);
+        f->libs = fklVMvalueProtoUsedLibs(p->proto);
+        f->proc = FKL_VM_VAL(p);
     }
     return f;
 }
 
-FklVMframe *fklCreateOtherObjVMframe(FklVM *exe,
-        const FklVMframeContextMethodTable *t) {
-    FklVMframe *r;
-    if (exe->frame_cache_head) {
-        r = exe->frame_cache_head;
-        exe->frame_cache_head = r->prev;
-        if (r->prev == NULL)
-            exe->frame_cache_tail = &exe->frame_cache_head;
-        memset(r, 0, sizeof(FklVMframe));
-    } else {
-        r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
-        FKL_ASSERT(r);
-    }
+FklVMframe *
+fklInitVMframeExt(FklVM *exe, FklVMframe *r, const FklVMframeCtxMt *t) {
+    memset(r, 0, sizeof(FklVMframe));
     r->bp = exe->bp;
     r->type = FKL_FRAME_OTHEROBJ;
     r->t = t;
     return r;
 }
 
-FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeContextMethodTable *t) {
+FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeCtxMt *t) {
     FklVMframe *r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
     FKL_ASSERT(r);
     r->type = FKL_FRAME_OTHEROBJ;
@@ -839,6 +818,9 @@ static void vmvalue_chr_princ(VMVALUE_PRINTER_ARGS) {
 static FKL_ALWAYS_INLINE void
 printVMatom(VMVALUE_PRINTER_ARGS, ObjPrinter obj_prt, ObjPrinter chr_prt) {
     switch ((FklVMptrTag)FKL_GET_TAG(v)) {
+    case FKL_TAG_SKIP:
+        FKL_PANIC("should not happen");
+        break;
     case FKL_TAG_PTR:
         obj_prt(v, build, exe);
         return;

@@ -677,7 +677,7 @@ static FklVMvalue *_funcall_exp_bc_process(const FklCgActCbArgs *args) {
                 fklCodeLntConcat(FKL_VM_CO(retval), FKL_VM_CO(cur));
             }
             bcl_vec->size = 0;
-            FklIns setBp = FKL_MAKE_INS_I(FKL_OP_SET_BP);
+            FklIns setBp = FKL_MAKE_INS_IsA(FKL_OP_SET_BP, 1);
             FklIns call = FKL_MAKE_INS_I(FKL_OP_CALL);
 
             FklByteCodelnt *rco = FKL_VM_CO(retval);

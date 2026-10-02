@@ -1049,7 +1049,7 @@ macro_expand_frame_backtrace(void *data, FklStrBuilder *build, FklVM *vm) {
     fklStrBuilderPuts(build, "<macroexpand>");
 }
 
-static const FklVMframeContextMethodTable MacroExpandMethodTable = {
+static const FklVMframeCtxMt MacroExpandMt = {
     .step = macro_expand_frame_step,
     .finalizer = NULL,
     .print_backtrace = macro_expand_frame_backtrace,
@@ -1061,13 +1061,14 @@ static void push_macro_expand_frame(FklVM *exe,
         FklVMvalueLnt *lnt,
         uint64_t curline,
         FklCgErrorState *error_state) {
-    FklVMframe *f = fklCreateOtherObjVMframe(exe, &MacroExpandMethodTable);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
+    fklInitVMframeExt(exe, f, &MacroExpandMt);
     MacroExpandCtx *ctx = (MacroExpandCtx *)f->data;
     ctx->retval = ptr;
     ctx->lnt = lnt;
     ctx->curline = curline;
     ctx->error_state = error_state;
-    fklPushVMframe(f, exe);
+    fklPushVMframe(exe, f);
 }
 
 static void init_macro_match_local_variable(FklVM *exe,
@@ -1103,9 +1104,9 @@ static inline FklVMframe *init_macro_expand_frame(FklVM *exe,
 
     push_macro_expand_frame(exe, pr, lnt, curline, error_state);
 
-    fklSetBp(exe);
+    FklVMframe *f = fklSetBp(exe, 1);
     FKL_VM_PUSH_VALUE(exe, proc);
-    if (fklCallObj(exe, proc) != 0) {
+    if (fklCallObj(exe, f, proc) != 0) {
         // TODO: 不应该直接 abort
         FKL_TODO();
     }

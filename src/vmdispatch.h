@@ -180,13 +180,15 @@ void fklVMexecuteInstruction(FklVM *exe,
         }
     } break;
     case FKL_OP_SET_BP:
-        fklSetBp(exe);
+        FKL_ASSERT(sA(ins) == FKL_SUBOP_SET_BP
+                   || sA(ins) == FKL_SUBOP_SET_BP_PREP_CALL);
+        fklSetBp(exe, sA(ins));
         break;
     case FKL_OP_CALL: {
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        fklCallObjOrRaise(exe, proc);
+        fklCallObjOrRaise(exe, FKL_SLOT_TO_FRAME(&exe->base[exe->bp]), proc);
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
@@ -197,7 +199,9 @@ void fklVMexecuteInstruction(FklVM *exe,
             frame->mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;
         }
-        fklTailCallObjOrRaise(exe, proc);
+        fklTailCallObjOrRaise(exe,
+                FKL_SLOT_TO_FRAME(&exe->base[exe->bp]),
+                proc);
         return;
     } break;
     case FKL_OP_RET_IF_TRUE:

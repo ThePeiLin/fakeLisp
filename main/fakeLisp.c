@@ -1015,9 +1015,9 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     fctx->lcount = pt->local_count;
     fctx->new_var_count = fctx->lcount - o_lcount;
 
-    exe->base[1] = fctx->main_proc;
-    FklVMframe *f = fklCreateVMframeWithProc(exe, fctx->main_proc);
-    fklPushVMframe(f, exe);
+    FklVMframe *f = fklSetBpAt(exe, fctx->bp, 1, 1, &fctx->main_proc);
+    fklInitVMframe(exe, f, FKL_VM_PROC(fctx->main_proc));
+    fklPushVMframe(exe, f);
     f->lrefl = fctx->lrefl;
     f->lref = fctx->lref;
 
@@ -1148,7 +1148,7 @@ static void repl_frame_finalizer(void *data) {
     fklZfree(cc);
 }
 
-static const FklVMframeContextMethodTable ReplContextMethodTable = {
+static const FklVMframeCtxMt ReplCtxMt = {
     .atomic = repl_frame_atomic,
     .finalizer = repl_frame_finalizer,
     .print_backtrace = repl_frame_print_backtrace,
@@ -1176,7 +1176,7 @@ static int replErrorCallBack(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
         while (exe->top_frame->prev) {
             FklVMframe *cur = exe->top_frame;
             exe->top_frame = cur->prev;
-            fklDestroyVMframe(cur, exe);
+            fklUninitVMframe(exe, cur);
         }
 
         ReplCtx *c = FKL_TYPE_CAST(ReplFrameCtx *, exe->top_frame->data)->c;
@@ -1262,7 +1262,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
         execute_repl_compile_result(exe, c, main_bc);
         if (c->interactive) {
             repl_frame->errorCallBack = replErrorCallBack;
-            repl_frame->t = &ReplContextMethodTable;
+            repl_frame->t = &ReplCtxMt;
         }
     } else {
         fklClearCgPreDef(main_env);
@@ -1273,7 +1273,7 @@ static int eval_frame_step(void *data, FklVM *exe) {
     return 1;
 }
 
-static const FklVMframeContextMethodTable EvalContextMethodTable = {
+static const FklVMframeCtxMt EvalContextMethodTable = {
     .atomic = repl_frame_atomic,
     .finalizer = repl_frame_finalizer,
     .print_backtrace = repl_frame_print_backtrace,
@@ -1287,7 +1287,8 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         FklStrBuilder *build,
         const char *eval_expression,
         int8_t interactive) {
-    FklVMframe *frame = fklCreateNewOtherObjVMframe(&ReplContextMethodTable);
+    FklVMframe *frame = fklPrepCall(exe, 0, 0, NULL);
+    fklInitVMframeExt(exe, frame, &ReplCtxMt);
     frame->errorCallBack = replErrorCallBack;
     exe->top_frame = frame;
     ReplFrameCtx *f_ctx = FKL_TYPE_CAST(ReplFrameCtx *, frame->data);
@@ -1322,7 +1323,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         frame->t = &EvalContextMethodTable;
         fklStrBufConcatWithCstr(&f_ctx->c->buf, eval_expression);
     }
-    fklSetBp(exe);
+    fklSetBp(exe, 0);
     f_ctx->c->bp = exe->bp;
     f_ctx->c->sp = exe->bp + 1;
     if (FKL_UNLIKELY(fklVMstackReserve(exe, f_ctx->c->sp + 1) != 0)) {

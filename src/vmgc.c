@@ -53,6 +53,31 @@ static inline void do_atomic_frame(FklVMframe *f, FklVMgc *gc) {
     }
 }
 
+typedef struct FklVMforeachCtx FklVMforeachCtx;
+
+static inline void fklVMforeachStack(FklVM *exe,
+        FklVMforeachCtx *ctx,
+        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv)) {
+    FklVMvalue **const end = &exe->base[exe->tp];
+
+    for (FklVMvalue *const *cur = exe->base; cur < end;) {
+        FklVMvalue *v = *cur;
+
+        if ((FklVMptrTag)FKL_GET_TAG(v) != FKL_TAG_SKIP) {
+            if (cb(ctx, v))
+                return;
+            ++cur;
+        } else {
+            cur = FKL_VM_SKIP(v);
+        }
+    }
+}
+
+static int mark_stack_cb(FklVMforeachCtx *gc, FklVMvalue *v) {
+    fklVMgcToGray(v, (FklVMgc *)gc);
+    return 0;
+}
+
 static inline void gc_mark_root_to_gray(FklVM *exe) {
     remove_closed_var_ref(exe);
     mark_atexit(exe);
@@ -63,9 +88,9 @@ static inline void gc_mark_root_to_gray(FklVM *exe) {
         do_atomic_frame(cur, gc);
 
     fklVMgcToGray(exe->error, gc);
-    FklVMvalue **base = exe->base;
-    for (uint32_t i = 0; i < exe->tp; i++)
-        fklVMgcToGray(base[i], gc);
+
+    fklVMforeachStack(exe, (FklVMforeachCtx *)gc, mark_stack_cb);
+
     fklVMgcToGray(exe->chan, gc);
 }
 

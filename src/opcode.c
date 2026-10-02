@@ -190,6 +190,22 @@ static inline const char *get_hash_subop(int8_t subop) {
     return NULL;
 }
 
+static inline const char *get_set_bp_subop(int8_t subop) {
+    switch (subop) {
+    case FKL_SUBOP_SET_BP:
+        return "0";
+        break;
+
+    case FKL_SUBOP_SET_BP_PREP_CALL:
+        return "prep-call";
+        break;
+    default:
+        FKL_UNREACHABLE();
+        break;
+    }
+    return NULL;
+}
+
 const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop) {
     switch (op) {
     case FKL_OP_DROP:
@@ -213,6 +229,11 @@ const char *fklGetSubOpcodeName(FklOpcode op, int8_t subop) {
     case FKL_OP_HASH:
         return get_hash_subop(subop);
         break;
+
+    case FKL_OP_SET_BP:
+        return get_set_bp_subop(subop);
+        break;
+
     default:
         FKL_UNREACHABLE();
         break;

@@ -1,3 +1,4 @@
+#include "fakeLisp/vm.h"
 #ifndef RETURN_INCLUDE
 #include "vmrun.c"
 #endif
@@ -32,7 +33,8 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         VM->tp = F->bp - 1 + value_count;
         do_finalize_compound_frame(VM, popFrame(VM));
         return;
-    return_value_err: {
+
+    return_value_err:;
         FklStrBuilder builder = { 0 };
         fklInitStrBuilderFp(&builder, stderr, NULL);
         fklStrBuilderFmt(&builder,
@@ -43,29 +45,23 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
                 value_count);
         fklPrintBacktrace(VM, &builder);
         abort();
-    }
     } break;
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
         close_all_var_ref(F);
         // copy stack values
-        // TODO: copy frame
-        FKL_TODO();
-        uint32_t const value_count = (VM->tp - VM->bp);
-        memmove(&FKL_VM_GET_ARG(VM, F, -1),
-                &VM->base[VM->bp],
-                value_count * sizeof(FklVMvalue *));
+        FklVMvalue **const v_start = &VM->base[VM->bp + 1 + FKL_VM_FRAME_SIZE];
+        uint32_t const v_count = &VM->base[VM->tp] - v_start;
         VM->bp = F->bp;
-        VM->tp = VM->bp + value_count;
+        VM->tp = VM->bp + v_count + FKL_VM_FRAME_SIZE + 1;
 
+        FklVMframe *ff = fklPrepCall(VM, VM->bp, v_count, v_start);
+        FKL_ASSERT(ff == (F));
         if (FKL_UNLIKELY(fklVMframeSetSp(VM, F, F->lcount) != 0)) {
             F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
         }
 
-        if (F->lrefl) {
-            F->lrefl = NULL;
-            memset(F->lref, 0, sizeof(FklVMvalue *) * F->lcount);
-        }
+        F->lref = FKL_VM_NIL;
         F->pc = F->spc;
         F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
     } break;

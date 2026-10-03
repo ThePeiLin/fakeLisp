@@ -215,14 +215,6 @@ fklInitVMframeExt(FklVM *exe, FklVMframe *r, const FklVMframeCtxMt *t) {
     return r;
 }
 
-FklVMframe *fklCreateNewOtherObjVMframe(const FklVMframeCtxMt *t) {
-    FklVMframe *r = (FklVMframe *)fklZcalloc(1, sizeof(FklVMframe));
-    FKL_ASSERT(r);
-    r->type = FKL_FRAME_OTHEROBJ;
-    r->t = t;
-    return r;
-}
-
 FklVMvalue *fklGenErrorMessage(FklBuiltinErrorType type, FklVM *exe) {
     static const char *builtinErrorMessages[FKL_BUILTIN_ERR_NUM] = {
 #define X(A, B, C) C,

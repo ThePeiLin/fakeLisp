@@ -188,20 +188,22 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        fklCallObjOrRaise(exe, FKL_SLOT_TO_FRAME(&exe->base[exe->bp]), proc);
+        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp + 1]);
+        fklCallObjOrRaise(exe, f, proc);
         return;
     } break;
     case FKL_OP_TAIL_CALL: {
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
+        // FIXME:
+        // proc->ty[e == FKL_TYPE_PROC
         if (proc->type_ == FKL_TYPE_CPROC && frame->proc == proc) {
             frame->mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;
         }
-        fklTailCallObjOrRaise(exe,
-                FKL_SLOT_TO_FRAME(&exe->base[exe->bp]),
-                proc);
+        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp + 1]);
+        fklTailCallObjOrRaise(exe, f, proc);
         return;
     } break;
     case FKL_OP_RET_IF_TRUE:

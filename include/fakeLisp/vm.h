@@ -2004,6 +2004,7 @@ static FKL_ALWAYS_INLINE FklVMvalue *FKL_MAKE_VM_SKIP(FklVMvalue **in) {
 }
 
 static FKL_ALWAYS_INLINE FklVMvalue **FKL_VM_SKIP(FklVMvalue *in) {
+    FKL_ASSERT(FKL_GET_TAG(in) == FKL_TAG_SKIP);
     return (FklVMvalue **)(((uintptr_t)(in)) & FKL_PTR_MASK);
 }
 

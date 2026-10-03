@@ -182,7 +182,7 @@ static inline void init_frame_var_ref(FklVMframe *f) {
 }
 
 FklVMframe *fklInitVMframe(FklVM *exe, FklVMframe *f, FklVMvalueProc *p) {
-    memset(f, 0, sizeof(FklVMframe));
+    fklVMframeClear(f);
     f->type = FKL_FRAME_COMPOUND;
 
     f->konsts = NULL;
@@ -208,7 +208,7 @@ FklVMframe *fklInitVMframe(FklVM *exe, FklVMframe *f, FklVMvalueProc *p) {
 
 FklVMframe *
 fklInitVMframeExt(FklVM *exe, FklVMframe *r, const FklVMframeCtxMt *t) {
-    memset(r, 0, sizeof(FklVMframe));
+    fklVMframeClear(r);
     r->bp = exe->bp;
     r->type = FKL_FRAME_OTHEROBJ;
     r->t = t;
@@ -1984,7 +1984,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         case 'd':
         case 'i':
             base = 10;
-        print_integer: {
+        print_integer:;
             if (cur_val >= val_end) {
                 err = FKL_ERR_TOOFEWARG;
                 goto exit;
@@ -2013,7 +2013,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
                 err = FKL_ERR_INCORRECT_TYPE_VALUE;
                 goto exit;
             }
-        } break;
+            break;
         case 'f':
         case 'F':
         case 'G':

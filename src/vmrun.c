@@ -448,7 +448,7 @@ int fklTailCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
     if (frame->type == FKL_FRAME_OTHEROBJ) {
         exe->top_frame = frame->prev;
         do_finalize_obj_frame(exe, frame);
-        memset(frame, 0, sizeof(FklVMframe));
+        fklVMframeClear(frame);
         return fklCallObj(exe, frame, proc);
     }
     return fklCallObj(exe, f, proc);

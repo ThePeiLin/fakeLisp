@@ -49,10 +49,10 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
         close_all_var_ref(F);
         // copy stack values
-        FklVMvalue **const v_start = &VM->base[VM->bp + 1 + FKL_VM_FRAME_SIZE];
+        FklVMvalue **const v_start = &VM->base[VM->bp + FKL_VM_FRAME_SIZE];
         uint32_t const v_count = &VM->base[VM->tp] - v_start;
         VM->bp = F->bp;
-        VM->tp = VM->bp + v_count + FKL_VM_FRAME_SIZE + 1;
+        VM->tp = VM->bp + v_count + FKL_VM_FRAME_SIZE;
 
         FklVMframe *ff = fklPrepCall(VM, VM->bp, v_count, v_start);
         FKL_ASSERT(ff == (F));

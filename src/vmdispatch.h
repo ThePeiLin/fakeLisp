@@ -188,7 +188,7 @@ void fklVMexecuteInstruction(FklVM *exe,
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);
         if (!fklIsCallable(proc))
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_CALL_ERROR, exe);
-        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp + 1]);
+        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp]);
         fklCallObjOrRaise(exe, f, proc);
         return;
     } break;
@@ -200,7 +200,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             frame->mark = FKL_VM_COMPOUND_FRAME_MARK_CALL;
             return;
         }
-        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp + 1]);
+        FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp]);
         fklTailCallObjOrRaise(exe, f, proc);
         return;
     } break;

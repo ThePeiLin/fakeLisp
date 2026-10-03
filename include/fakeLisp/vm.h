@@ -247,6 +247,7 @@ typedef int (*FklVMerrorCallBack)(struct FklVMframe *f, //
 typedef int (*FklVMretCallBack)(FklVM *vm, struct FklVMframe *f);
 
 typedef struct FklVMframe {
+    FklVMvalue *skip;
     FklFrameType type;
     uint32_t bp;
     FklVMerrorCallBack errorCallBack;
@@ -275,12 +276,28 @@ typedef struct FklVMframe {
             uint8_t data[1];
         };
     };
+    FklVMvalue *skip_back;
 } FklVMframe;
 
 static_assert(sizeof(FklVMframe) % sizeof(FklVMvalue *) == 0,
         "invalid frame struct def");
 
+static_assert(offsetof(FklVMframe, skip) == 0, "skip must be first");
+static_assert(offsetof(FklVMframe, skip_back) + sizeof(FklVMvalue *)
+                      == sizeof(FklVMframe),
+        "skip_back must be last");
+static_assert(offsetof(FklVMframe, type)
+                      == offsetof(FklVMframe, skip) + sizeof(FklVMvalue *),
+        "type must immediately follow skip");
+
 #define FKL_VM_FRAME_SIZE (sizeof(FklVMframe) / sizeof(FklVMvalue *))
+
+#define FKL_VM_FRAME_CONTENT_SIZE                                              \
+    (offsetof(FklVMframe, skip_back) - offsetof(FklVMframe, type))
+
+static FKL_ALWAYS_INLINE void fklVMframeClear(FklVMframe *f) {
+    memset(&f->type, 0, FKL_VM_FRAME_CONTENT_SIZE);
+}
 
 #define FKL_CHECK_OTHER_OBJ_CONTEXT_SIZE(TYPE)                                 \
     static_assert(                                                             \
@@ -1185,7 +1202,7 @@ FklVMvalue *fklProcessVMnumIdivResult(FklVM *exe,
     } while (0)
 
 #define FKL_CPROC_GET_ARG_NUM(S, CTX)                                          \
-    ((S)->tp - 1 - FKL_VM_FRAME_SIZE - 1 - FKL_VM_FRAME_OF(CTX)->bp)
+    ((S)->tp - 1 - FKL_VM_FRAME_SIZE - FKL_VM_FRAME_OF(CTX)->bp)
 
 #define FKL_CPROC_CHECK_ARG_NUM(EXE, NUM, N)                                   \
     if (NUM > (N)) {                                                           \
@@ -1690,11 +1707,11 @@ FKL_API void fklAddToGC(FklVMvalue *, FklVM *);
 FKL_API FklVMvalue *fklCreateTrueValue(void);
 FKL_API FklVMvalue *fklCreateNilValue(void);
 
-#define FKL_VM_BP_IDX (-1 - (FKL_VM_FRAME_SIZE) - 1 - 1)
+#define FKL_VM_BP_IDX (-1 - (FKL_VM_FRAME_SIZE) - 1)
 
 // return the callee if I is -1
 #define FKL_VM_GET_ARG(S, F, I)                                                \
-    ((S)->base[(F)->bp + 1 + (FKL_VM_FRAME_SIZE) + 1 + (I)])
+    ((S)->base[(F)->bp + 1 + (FKL_VM_FRAME_SIZE) + (I)])
 
 #define FKL_VM_GET_TOP_VALUE(S) ((S)->base[(S)->tp - 1])
 
@@ -1863,7 +1880,7 @@ FKL_API size_t fklVMlistLength(const FklVMvalue *);
 
 static FKL_ALWAYS_INLINE FklVMframe *fklPushVMframe(FklVM *exe, FklVMframe *f) {
     FKL_ASSERT(f > exe->top_frame //
-               && (uintptr_t)f > (uintptr_t)&exe->base[0]
+               && (uintptr_t)f >= (uintptr_t)&exe->base[0]
                && (uintptr_t)f < (uintptr_t)&exe->base[exe->tp]);
     f->prev = exe->top_frame;
     exe->top_frame = f;
@@ -2215,7 +2232,7 @@ static inline FklVMvalue *fklCreateVMvalueBigIntWithOther2(FklVM *exe,
 
 static inline FKL_NODISCARD int
 fklVMframeSetSp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
-    uint32_t const callee_start = frame->bp + 1 + FKL_VM_FRAME_SIZE;
+    uint32_t const callee_start = frame->bp + FKL_VM_FRAME_SIZE;
     frame->arg_num = exe->tp - callee_start - 1;
     frame->sp = callee_start + 1 + lcount;
     int r = fklVMstackReserve(exe, frame->sp + 1);
@@ -2238,8 +2255,7 @@ fklVMframeSetBp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
 
 static FKL_ALWAYS_INLINE FklVMframe *
 fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
-    uint32_t const frame_tp = at + 1;
-    uint32_t const skip_tp = frame_tp + FKL_VM_FRAME_SIZE;
+    uint32_t const skip_tp = at + FKL_VM_FRAME_SIZE;
     fklVMstackReserveOrRaise(exe, skip_tp + argc);
 
     if (argc != 0) {
@@ -2247,10 +2263,11 @@ fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
     }
 
     FklVMvalue **const skip = &exe->base[skip_tp];
-    exe->base[at] = FKL_MAKE_VM_SKIP(skip);
-
+    FklVMframe *f = FKL_SLOT_TO_FRAME(&exe->base[at]);
+    f->skip = FKL_MAKE_VM_SKIP(skip);
     exe->tp = skip_tp + argc;
-    return FKL_SLOT_TO_FRAME(&exe->base[frame_tp]);
+
+    return f;
 }
 
 static FKL_ALWAYS_INLINE FklVMframe *fklSetBp(FklVM *exe, int prep_call) {

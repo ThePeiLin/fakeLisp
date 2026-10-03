@@ -32,13 +32,19 @@ typedef FklVMvalue *(*FklBuiltinInliner)(FklVM *exe,
         size_t line,
         uint32_t scope);
 
+typedef struct FklBuiltinDescCtx FklBuiltinDescCtx;
 typedef struct {
-    void *ctx;
-    size_t (*count)(void *ctx);
-    FklBuiltinInliner (*inliner_get)(void *ctx, size_t idx, size_t arg_count);
-    const char *(*name_get)(void *ctx, size_t idx);
-    FklVMvalue **(*refs)(void *ctx, FklVM *vm);
-    FklVMvalue *(*stdin_get)(void *ctx, FklVM *vm);
+    FklBuiltinDescCtx *ctx;
+    size_t (*count)(FklBuiltinDescCtx *ctx);
+    FklBuiltinInliner (*inliner_get)(FklBuiltinDescCtx *ctx, //
+            size_t idx,
+            size_t arg_count);
+    const char *(*name_get)(FklBuiltinDescCtx *ctx, size_t idx);
+    FklVMvalue **(*refs)(FklBuiltinDescCtx *ctx, FklVM *vm);
+
+    // refs 可能使用动态内存分配了
+    void (*refs_dtor)(FklBuiltinDescCtx *ctx, FklVM *vm, FklVMvalue **refs);
+    FklVMvalue *(*stdin_get)(FklBuiltinDescCtx *ctx, FklVM *vm);
 } FklBuiltinDesc;
 
 struct FklCprocFrameContext;
@@ -711,8 +717,10 @@ typedef struct FklVMgc {
 
     FklVMextraMarkHashMap extra_marks;
 
+    FklBuiltinDescCtx *builtin_ctx;
     size_t builtin_count;
     FklVMvalue **builtin_refs;
+    void (*refs_dtor)(FklBuiltinDescCtx *ctx, FklVM *, FklVMvalue **refs);
 
     FklStrBuilder err_out;
     uv_mutex_t print_backtrace_lock;

@@ -434,10 +434,14 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     fklInitStrBuilderFp(&gc->err_out, stderr, NULL);
 
     gc->builtin_count = 0;
-    gc->builtin_refs = 0;
+    gc->builtin_ctx = NULL;
+    gc->builtin_refs = NULL;
+    gc->refs_dtor = NULL;
     if (builtins != NULL) {
+        gc->builtin_ctx = builtins->ctx;
         gc->builtin_count = builtins->count(builtins->ctx);
-        gc->builtin_refs = builtins->refs(&gc->gcvm, builtins->ctx);
+        gc->builtin_refs = builtins->refs(builtins->ctx, &gc->gcvm);
+        gc->refs_dtor = builtins->refs_dtor;
     }
 
     fklVMgcAllocatedInc(gc, fklMemRegionUsableSize(gc));
@@ -540,6 +544,14 @@ static void fklUninitVMgc(FklVMgc *gc) {
     fklVMgcSweep(gc, gc->head);
     gc->head = NULL;
     uninit_vm_queue(&gc->q);
+
+    if (gc->refs_dtor != NULL) {
+        gc->refs_dtor(gc->builtin_ctx, &gc->gcvm, gc->builtin_refs);
+    }
+    gc->builtin_ctx = NULL;
+    gc->builtin_count = 0;
+    gc->builtin_refs = NULL;
+    gc->refs_dtor = NULL;
 
     fklVMgcAllocatedDec(gc, fklMemRegionUsableSize(gc));
     if (gc->alloced_size) {

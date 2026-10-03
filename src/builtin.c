@@ -5230,28 +5230,31 @@ static inline FklVMvalue **init_builtin_refs(void) {
     return builtin_refs;
 }
 
-static FklVMvalue **default_builtins_refs(void *ctx, FklVM *vm) {
+static FklVMvalue **default_builtins_refs(FklBuiltinDescCtx *ctx, FklVM *vm) {
     return init_builtin_refs();
 }
 
-static size_t default_builtins_count(void *ctx) {
+static size_t default_builtins_count(FklBuiltinDescCtx *ctx) {
     return FKL_BUILTIN_SYMBOL_NUM;
 }
 
-static const char *default_builtins_name_get(void *ctx, size_t idx) {
+static const char *default_builtins_name_get(FklBuiltinDescCtx *ctx,
+        size_t idx) {
     if (idx < FKL_BUILTIN_SYMBOL_NUM)
         return builtInSymbolList[idx].name;
     return NULL;
 }
 
-static FklBuiltinInliner
-default_builtins_inliner_get(void *ctx, size_t idx, size_t arg_count) {
+static FklBuiltinInliner default_builtins_inliner_get(FklBuiltinDescCtx *ctx,
+        size_t idx,
+        size_t arg_count) {
     if (idx < FKL_BUILTIN_SYMBOL_NUM && arg_count < 4)
         return builtInSymbolList[idx].inlfunc[arg_count];
     return NULL;
 }
 
-static FklVMvalue *default_builtins_stdin_get(void *ctx, FklVM *vm) {
+static FklVMvalue *default_builtins_stdin_get(FklBuiltinDescCtx *ctx,
+        FklVM *vm) {
     return default_builtins_refs(ctx, vm)[FKL_VM_STDIN_IDX];
 }
 

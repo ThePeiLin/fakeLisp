@@ -76,20 +76,19 @@ int main(void) {
         };
         FklVMframe *f = fklPrepCall(vm, at, 3, args);
 
-        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 1]),
-                "prepCall embeds the frame right after the marker slot");
-        CHECK(vm->tp == at + 1 + FKL_VM_FRAME_SIZE + 3,
+        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at]),
+                "prepCall embeds the frame at the base slot");
+        CHECK(vm->tp == at + FKL_VM_FRAME_SIZE + 3,
                 "prepCall advances tp past frame and args");
         CHECK(FKL_GET_TAG(vm->base[at]) == FKL_TAG_SKIP,
-                "prepCall writes the skip marker at the base slot");
-        CHECK(FKL_VM_SKIP(vm->base[at])
-                        == &vm->base[at + 1 + FKL_VM_FRAME_SIZE],
-                "skip marker points just past the embedded frame");
-        CHECK(vm->base[at + 1 + FKL_VM_FRAME_SIZE] == args[0],
+                "prepCall writes the skip pointer into the frame");
+        CHECK(FKL_VM_SKIP(vm->base[at]) == &vm->base[at + FKL_VM_FRAME_SIZE],
+                "skip pointer points just past the embedded frame");
+        CHECK(vm->base[at + FKL_VM_FRAME_SIZE] == args[0],
                 "callee slot holds the first argument value");
-        CHECK(vm->base[at + 1 + FKL_VM_FRAME_SIZE + 1] == args[1],
+        CHECK(vm->base[at + FKL_VM_FRAME_SIZE + 1] == args[1],
                 "first arg slot holds the second argument value");
-        CHECK(vm->base[at + 1 + FKL_VM_FRAME_SIZE + 2] == args[2],
+        CHECK(vm->base[at + FKL_VM_FRAME_SIZE + 2] == args[2],
                 "second arg slot holds the third argument value");
 
         /* FKL_VM_GET_ARG indexes from the frame bp: -1 is the callee */
@@ -134,15 +133,15 @@ int main(void) {
         clear_vm_stack(vm);
         FklVMframe *f = fklSetBp(vm, 1);
         CHECK(f != NULL, "setBp with prep returns a frame");
-        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[vm->bp + 1]),
-                "prep frame sits right after bp");
+        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[vm->bp]),
+                "prep frame sits at bp");
         CHECK(FKL_GET_TAG(vm->base[vm->bp]) == FKL_TAG_SKIP,
-                "prep marker sits at bp");
-        CHECK(vm->tp == vm->bp + 1 + FKL_VM_FRAME_SIZE,
+                "prep skip pointer sits at bp");
+        CHECK(vm->tp == vm->bp + FKL_VM_FRAME_SIZE,
                 "setBp prep advances tp past the frame");
         CHECK(FKL_VM_SKIP(vm->base[vm->bp])
-                        == &vm->base[vm->bp + 1 + FKL_VM_FRAME_SIZE],
-                "prep marker points past the embedded frame");
+                        == &vm->base[vm->bp + FKL_VM_FRAME_SIZE],
+                "prep skip pointer points past the embedded frame");
         clear_vm_stack(vm);
     }
 
@@ -153,14 +152,14 @@ int main(void) {
         uint32_t const old_bp = vm->bp;
         FklVMvalue *arg0 = FKL_MAKE_VM_FIX(7);
         FklVMframe *f = fklSetBpAt(vm, at, 1, 1, &arg0);
-        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 2]),
-                "setBpAt embeds the frame at at+2");
-        CHECK(vm->bp == at + 1, "setBpAt sets bp to the marker slot");
+        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 1]),
+                "setBpAt embeds the frame at at+1");
+        CHECK(vm->bp == at + 1, "setBpAt sets bp to the frame slot");
         CHECK(FKL_GET_FIX(vm->base[at]) == (int64_t)old_bp,
                 "setBpAt stores the old bp at slot at");
         CHECK(FKL_GET_TAG(vm->base[at + 1]) == FKL_TAG_SKIP,
-                "setBpAt writes the skip marker at bp");
-        CHECK(vm->base[at + 1 + 1 + FKL_VM_FRAME_SIZE] == arg0,
+                "setBpAt writes the skip pointer into the frame");
+        CHECK(vm->base[at + 1 + FKL_VM_FRAME_SIZE] == arg0,
                 "setBpAt places the callee arg after the frame");
         clear_vm_stack(vm);
     }
@@ -169,7 +168,7 @@ int main(void) {
     {
         clear_vm_stack(vm);
         vm->top_frame = NULL;
-        FklVMframe *f1 = fklPrepCall(vm, 0, 0, NULL);
+        FklVMframe *f1 = fklPrepCall(vm, 1, 0, NULL);
         FklVMframe *f2 = fklPrepCall(vm, vm->tp, 0, NULL);
         fklPushVMframe(vm, f1);
         CHECK(vm->top_frame == f1 && f1->prev == NULL,
@@ -185,7 +184,7 @@ int main(void) {
     {
         FklVM *gv = &gc->gcvm;
         clear_vm_stack(gv);
-        FklVMframe *f = fklPrepCall(gv, 0, 0, NULL);
+        FklVMframe *f = fklPrepCall(gv, 1, 0, NULL);
         FklVMframe *r = fklInitVMframeExt(gv, f, &TestFrameMt);
         CHECK(r == f, "initExt returns the same embedded slot");
         CHECK(f->type == FKL_FRAME_OTHEROBJ, "initExt marks an OTHEROBJ frame");
@@ -205,7 +204,7 @@ int main(void) {
         g_frame_root = fklCreateVMvalueStr1(gv, "frame-root-string");
         FklVMvalue *stack_keep = fklCreateVMvalueStr1(gv, "stack-keep-string");
 
-        FklVMframe *f = fklPrepCall(gv, 0, 1, &stack_keep);
+        FklVMframe *f = fklPrepCall(gv, 1, 1, &stack_keep);
         fklInitVMframeExt(gv, f, &TestFrameMt);
         fklPushVMframe(gv, f);
 
@@ -235,7 +234,7 @@ int main(void) {
 
         FklVMvalue *a = fklCreateVMvalueStr1(gv, "after-frame-a");
         FklVMvalue *b = fklCreateVMvalueStr1(gv, "after-frame-b");
-        FklVMframe *f = fklPrepCall(gv, 0, 2, (FklVMvalue *[]){ a, b });
+        FklVMframe *f = fklPrepCall(gv, 1, 2, (FklVMvalue *[]){ a, b });
         fklInitVMframeExt(gv, f, &TestFrameMt);
 
         fklVMgcCheck(gv, 1);
@@ -254,6 +253,33 @@ int main(void) {
 
         gv->top_frame = old_top;
         clear_vm_stack(gv);
+    }
+
+    /* --- fklVMframeClear preserves the links and zeroes the content --- */
+    {
+        clear_vm_stack(vm);
+        FklVMvalue **skip_target = &vm->base[42];
+        FklVMvalue *const skip = FKL_MAKE_VM_SKIP(skip_target);
+        FklVMvalue *const skip_back = FKL_MAKE_VM_FIX(0x55);
+
+        FklVMframe *f = fklPrepCall(vm, 1, 0, NULL);
+        f->skip = skip;
+        f->skip_back = skip_back;
+        f->type = FKL_FRAME_OTHEROBJ;
+        f->bp = 42;
+        f->sp = 7;
+        f->prev = f;
+        f->proc = FKL_MAKE_VM_FIX(1);
+
+        fklVMframeClear(f);
+
+        CHECK(f->skip == skip, "frameClear preserves the skip link");
+        CHECK(f->skip_back == skip_back, "frameClear preserves skip_back");
+        CHECK(f->type == 0 && f->bp == 0 && f->sp == 0,
+                "frameClear zeroes the frame header and content");
+        CHECK(f->prev == NULL && f->proc == NULL,
+                "frameClear zeroes frame links and value fields");
+        clear_vm_stack(vm);
     }
 
     fklDestroyAllVMs(vm);

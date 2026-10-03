@@ -235,6 +235,10 @@ add_executable(test-frame "main/tests/frame.c")
 target_link_libraries(test-frame grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-frame)
 
+add_executable(test-tailcall "main/tests/tailcall.c")
+target_link_libraries(test-tailcall ${LIBFKL_STATIC_TARGET_NAME} ${LINK_TARGET})
+target_define_relative_file(test-tailcall)
+
 add_executable(test-parser-grammer "main/tests/parser-grammer.c")
 add_dependencies(test-parser-grammer lisp.g)
 target_link_libraries(test-parser-grammer grammer_lib ${LINK_TARGET})
@@ -556,6 +560,9 @@ add_test(NAME test-stack
 
 add_test(NAME test-frame
 	COMMAND $<TARGET_FILE:test-frame>)
+
+add_test(NAME test-tailcall
+	COMMAND $<TARGET_FILE:test-tailcall>)
 
 add_test(NAME test-script
 	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json

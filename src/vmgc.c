@@ -53,26 +53,6 @@ static inline void do_atomic_frame(FklVMframe *f, FklVMgc *gc) {
     }
 }
 
-typedef struct FklVMforeachCtx FklVMforeachCtx;
-
-static inline void fklVMforeachStack(FklVM *exe,
-        FklVMforeachCtx *ctx,
-        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv)) {
-    FklVMvalue **const end = &exe->base[exe->tp];
-
-    for (FklVMvalue *const *cur = exe->base; cur < end;) {
-        FklVMvalue *v = *cur;
-
-        if ((FklVMptrTag)FKL_GET_TAG(v) != FKL_TAG_SKIP) {
-            if (cb(ctx, v))
-                return;
-            ++cur;
-        } else {
-            cur = FKL_VM_SKIP(v);
-        }
-    }
-}
-
 static int mark_stack_cb(FklVMforeachCtx *gc, FklVMvalue *v) {
     fklVMgcToGray(v, (FklVMgc *)gc);
     return 0;

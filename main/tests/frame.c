@@ -36,6 +36,31 @@ static void clear_vm_stack(FklVM *vm) {
     vm->bp = 0;
 }
 
+typedef struct {
+    int64_t items[16];
+    size_t len;
+    size_t stop_after;
+} TraverseCtx;
+
+static int collect_fix_cb(FklVMforeachCtx *ctx_, FklVMvalue *v) {
+    TraverseCtx *ctx = (TraverseCtx *)ctx_;
+    if (ctx->len < 16)
+        ctx->items[ctx->len] = FKL_GET_FIX(v);
+    ++ctx->len;
+    if (ctx->stop_after != 0 && ctx->len >= ctx->stop_after)
+        return 1;
+    return 0;
+}
+
+static int seq_eq(const TraverseCtx *got, const int64_t *want, size_t n) {
+    if (got->len != n)
+        return 0;
+    for (size_t i = 0; i < n; ++i)
+        if (got->items[i] != want[i])
+            return 0;
+    return 1;
+}
+
 int main(void) {
     FklVMgc *gc = fklCreateVMgc(NULL);
     CHECK(gc != NULL, "create gc");
@@ -279,6 +304,120 @@ int main(void) {
                 "frameClear zeroes the frame header and content");
         CHECK(f->prev == NULL && f->proc == NULL,
                 "frameClear zeroes frame links and value fields");
+        clear_vm_stack(vm);
+    }
+
+    /* --- fklVMforeachStack / fklVMforeachStackReverse --- */
+    {
+        /* values before, after and between two embedded frames */
+        clear_vm_stack(vm);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(1));
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(2));
+        FklVMvalue *arg_a = FKL_MAKE_VM_FIX(3);
+        fklPrepCall(vm, 2, 1, &arg_a);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(4));
+        FklVMvalue *args_b[2] = { FKL_MAKE_VM_FIX(5), FKL_MAKE_VM_FIX(6) };
+        fklPrepCall(vm, vm->tp, 2, args_b);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(7));
+
+        TraverseCtx fwd = { 0 };
+        TraverseCtx rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(seq_eq(&fwd, (int64_t[]){ 1, 2, 3, 4, 5, 6, 7 }, 7),
+                "foreachStack visits values in order, skipping frames");
+        CHECK(seq_eq(&rev, (int64_t[]){ 7, 6, 5, 4, 3, 2, 1 }, 7),
+                "foreachStackReverse is the exact reverse");
+
+        TraverseCtx stop_f = { .stop_after = 3 };
+        TraverseCtx stop_r = { .stop_after = 3 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&stop_f, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&stop_r, collect_fix_cb);
+        CHECK(seq_eq(&stop_f, (int64_t[]){ 1, 2, 3 }, 3),
+                "foreachStack stops when the callback returns non-zero");
+        CHECK(seq_eq(&stop_r, (int64_t[]){ 7, 6, 5 }, 3),
+                "foreachStackReverse stops when the callback returns non-zero");
+
+        clear_vm_stack(vm);
+    }
+
+    /* --- traversal of an empty stack --- */
+    {
+        clear_vm_stack(vm);
+        TraverseCtx fwd = { 0 }, rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(fwd.len == 0 && rev.len == 0,
+                "empty stack yields nothing in both directions");
+    }
+
+    /* --- traversal with adjacent frames (nothing between them) --- */
+    {
+        clear_vm_stack(vm);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(11));
+        fklPrepCall(vm, vm->tp, 0, NULL);
+        fklPrepCall(vm, vm->tp, 0, NULL);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(12));
+
+        TraverseCtx fwd = { 0 }, rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(seq_eq(&fwd, (int64_t[]){ 11, 12 }, 2),
+                "adjacent empty frames are skipped going forward");
+        CHECK(seq_eq(&rev, (int64_t[]){ 12, 11 }, 2),
+                "adjacent empty frames are skipped going backward");
+
+        clear_vm_stack(vm);
+    }
+
+    /* --- traversal when a frame sits at the top of the stack --- */
+    {
+        clear_vm_stack(vm);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(21));
+        FklVMvalue *arg = FKL_MAKE_VM_FIX(22);
+        fklPrepCall(vm, vm->tp, 1, &arg);
+
+        TraverseCtx fwd = { 0 }, rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(seq_eq(&fwd, (int64_t[]){ 21, 22 }, 2),
+                "top-of-stack frame traverses forward");
+        CHECK(seq_eq(&rev, (int64_t[]){ 22, 21 }, 2),
+                "top-of-stack frame traverses backward");
+
+        clear_vm_stack(vm);
+    }
+
+    /* --- a frame may live at base[0] (e.g. push_macro_expand_frame);
+     * reverse traversal jumps to &base[0] and ends, which is expected --- */
+    {
+        clear_vm_stack(vm);
+        FklVMvalue *arg = FKL_MAKE_VM_FIX(100);
+        fklPrepCall(vm, 0, 1, &arg);
+        FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(200));
+
+        TraverseCtx fwd = { 0 }, rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(seq_eq(&fwd, (int64_t[]){ 100, 200 }, 2),
+                "frame at base[0] traverses forward");
+        CHECK(seq_eq(&rev, (int64_t[]){ 200, 100 }, 2),
+                "reverse terminates at a frame sitting at base[0]");
+
+        clear_vm_stack(vm);
+    }
+
+    /* --- a bare frame at base[0] with nothing else --- */
+    {
+        clear_vm_stack(vm);
+        fklPrepCall(vm, 0, 0, NULL);
+
+        TraverseCtx fwd = { 0 }, rev = { 0 };
+        fklVMforeachStack(vm, (FklVMforeachCtx *)&fwd, collect_fix_cb);
+        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&rev, collect_fix_cb);
+        CHECK(fwd.len == 0 && rev.len == 0,
+                "a bare frame at base[0] yields nothing either way");
+
         clear_vm_stack(vm);
     }
 

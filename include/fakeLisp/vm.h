@@ -988,6 +988,16 @@ FklVM *fklCreateThreadVM(FklVMvalue *,
         FklVM *prev,
         FklVM *next);
 
+typedef struct FklVMforeachCtx FklVMforeachCtx;
+
+FKL_API void fklVMforeachStack(FklVM *exe,
+        FklVMforeachCtx *ctx,
+        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv));
+
+FKL_API void fklVMforeachStackReverse(FklVM *exe,
+        FklVMforeachCtx *ctx,
+        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv));
+
 FKL_API void fklMoveThreadObjectsToGc(FklVM *vm, FklVMgc *gc);
 
 FKL_API void fklVMstackShrink(FklVM *);
@@ -2265,6 +2275,8 @@ fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
     FklVMvalue **const skip = &exe->base[skip_tp];
     FklVMframe *f = FKL_SLOT_TO_FRAME(&exe->base[at]);
     f->skip = FKL_MAKE_VM_SKIP(skip);
+    f->skip_back = FKL_MAKE_VM_SKIP(&exe->base[at]);
+
     exe->tp = skip_tp + argc;
 
     return f;

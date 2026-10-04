@@ -2393,3 +2393,41 @@ void fklSetVMstackSize(FklVM *vm, size_t offset, size_t available) {
     size_t s = fklComputeVMstackSize(offset, available);
     vm->last = s;
 }
+
+void fklVMforeachStack(FklVM *exe,
+        FklVMforeachCtx *ctx,
+        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv)) {
+    FklVMvalue **const end = &exe->base[exe->tp];
+
+    for (FklVMvalue *const *cur = exe->base; cur < end;) {
+        FklVMvalue *v = *cur;
+
+        if ((FklVMptrTag)FKL_GET_TAG(v) != FKL_TAG_SKIP) {
+            if (cb(ctx, v))
+                return;
+            ++cur;
+        } else {
+            cur = FKL_VM_SKIP(v);
+        }
+    }
+}
+
+void fklVMforeachStackReverse(FklVM *exe,
+        FklVMforeachCtx *ctx,
+        int (*cb)(FklVMforeachCtx *ctx, FklVMvalue *curv)) {
+
+    FklVMvalue *const *const base = exe->base;
+    FklVMvalue *const *cur = &exe->base[exe->tp];
+
+    for (; cur > base;) {
+        FklVMvalue *v = cur[-1];
+
+        if ((FklVMptrTag)FKL_GET_TAG(v) != FKL_TAG_SKIP) {
+            if (cb(ctx, v))
+                return;
+            --cur;
+        } else {
+            cur = FKL_VM_SKIP(v);
+        }
+    }
+}

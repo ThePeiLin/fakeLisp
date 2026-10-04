@@ -102,7 +102,7 @@ static void monitor_desc_refs_dtor(FklBuiltinDescCtx *ctx,
     (void)ctx;
     (void)vm;
     ++g_refs_dtor_calls;
-    free(refs);
+    fklZfree(refs);
     g_combined_refs = NULL;
 }
 
@@ -112,7 +112,7 @@ static FklVMvalue **monitor_desc_refs(FklBuiltinDescCtx *ctx, FklVM *vm) {
 
     if (g_combined_refs == NULL) {
         size_t const n = base->count(base->ctx);
-        g_combined_refs = (FklVMvalue **)malloc((n + 1) * sizeof(FklVMvalue *));
+        g_combined_refs = (FklVMvalue **)fklZmalloc((n + 1) * sizeof(FklVMvalue *));
         FKL_ASSERT(g_combined_refs);
 
         FklVMvalue **base_refs = base->refs(base->ctx, vm);

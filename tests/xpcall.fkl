@@ -1,0 +1,13 @@
+(import (only utils/m assert))
+
+(xpcall (lambda () (+ :foo))
+        '() (lambda (e) (printf "%S be handled\n" e)))
+
+; the body runs and its value is returned when nothing is raised
+(assert (eqv 42 (println (xpcall (lambda () 42) nil (lambda (e) 0)))))
+
+; when the body raises, the handler runs and its value is returned
+(assert (eqv 99 (println (xpcall (lambda () (+ :foo)) nil (lambda (e) 99)))))
+
+; the body must run (observable side effect)
+(assert (eqv 7 (println (xpcall (lambda () (let [(x 3) (y 4)] (+ x y))) nil (lambda (e) 0)))))

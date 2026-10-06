@@ -1,2 +1,17 @@
+(import (only utils/m assert))
 (define (add a b) (+ a b))
-(println (apply add '(1 2)))
+
+(assert (eqv 3 (println (apply add '(1 2)))))
+(assert (eqv 6 (println (apply funcall + '(1 2 3)))))
+
+; apply: leading fixed arguments followed by a list
+(assert (eqv 10 (apply + 1 2 '(3 4))))
+; apply: empty argument list
+(assert (eqv 0 (apply + '())))
+; apply: only a list
+(assert (eqv 6 (apply + '(1 2 3))))
+
+; funcall must forward every argument (regression: it used to drop the last one)
+(assert (eqv 6 (funcall + 1 2 3)))
+(assert (eqv 6 (funcall (lambda (a b) (- a b)) 10 4)))
+(assert (eqv 42 (funcall (lambda () 42))))

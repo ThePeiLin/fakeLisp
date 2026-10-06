@@ -7,6 +7,8 @@
 
 (define msg-pair
   (make-test
+    xpcall
+    apply
     tail-call
     ascii-art
     bf

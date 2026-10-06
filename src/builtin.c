@@ -3292,9 +3292,13 @@ static void error_handler_frame_finalizer(void *data) {
     fklZfree(c->err_handlers);
 }
 
-static int error_handler_frame_step(void *data, FklVM *exe) { return 0; }
+static int error_handler_frame_step(void *data, FklVM *exe) {
+    FklVMvalue *v = FKL_VM_GET_TOP_VALUE(exe);
+    FKL_CPROC_RETURN(exe, data, v);
+    return 0;
+}
 
-static const FklVMframeCtxMt ErrorHandlerContextMethodTable = {
+static const FklVMframeCtxMt ErrorHandlerContextMt = {
     .atomic = error_handler_frame_atomic,
     .finalizer = error_handler_frame_finalizer,
     .print_backtrace = error_handler_frame_print_backtrace,
@@ -3321,18 +3325,19 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
     FklVMvalueError *err = FKL_VM_ERR(errValue);
     for (; err_handlers < end; ++err_handlers) {
         if (isShouldBeHandle(err_handlers->car, err->type)) {
+            FklVMvalue *values[] = { err_handlers->cdr, errValue };
             exe->bp = FKL_VM_FRAME_OF(c)->bp;
-            exe->tp = exe->bp;
-            FKL_VM_PUSH_VALUE(exe, err_handlers->cdr);
-            FKL_VM_PUSH_VALUE(exe, errValue);
+            FklVMframe *f1 = fklPrepCall(exe, exe->bp, 2, values);
+            FKL_ASSERT(f1 == f);
+
             FklVMframe *topFrame = exe->top_frame;
-            exe->top_frame = f;
+            exe->top_frame = f1;
             while (topFrame != f) {
                 FklVMframe *cur = topFrame;
                 topFrame = topFrame->prev;
                 fklUninitVMframe(exe, cur);
             }
-            fklCallObjOrRaise(exe, exe->top_frame, err_handlers->cdr);
+            fklCallObjOrRaise(exe, exe->top_frame, values[0]);
             return 1;
         }
     }
@@ -3348,6 +3353,16 @@ static inline int is_symbol_list(const FklVMvalue *p) {
     return 1;
 }
 
+static FKL_ALWAYS_INLINE FklPair *move_pair_array(FklPairVector *v) {
+    FklPair *t = (FklPair *)fklZrealloc(v->base, v->size * sizeof(FklPair));
+    FKL_ASSERT(t);
+
+    v->base = NULL;
+    v->size = 0;
+    v->capacity = 0;
+    return t;
+}
+
 static int builtin_xpcall(FKL_CPROC_ARGL) {
 #define GET_LIST (0)
 #define GET_PROC (1)
@@ -3357,8 +3372,8 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
     if (argc == 1) {
-        FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
-        exe->tp -= 1;
+        FklVMframe *f = fklPrepCall(exe, exe->bp, 1, &proc);
+        FKL_ASSERT(f == exe->top_frame);
         fklCallObjOrRaise(exe, exe->top_frame, proc);
         return 1;
     }
@@ -3396,15 +3411,15 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     }
     FklVMframe *top_frame = exe->top_frame;
     top_frame->errorCallBack = errorCallBackWithErrorHandler;
-    top_frame->t = &ErrorHandlerContextMethodTable;
+    top_frame->t = &ErrorHandlerContextMt;
     EhFrameContext *c = FKL_TYPE_CAST(EhFrameContext *, top_frame->data);
     c->num = err_handlers.size;
-    FklPair *t = (FklPair *)fklZrealloc(err_handlers.base,
-            err_handlers.size * sizeof(FklPair));
-    FKL_ASSERT(t);
-    c->err_handlers = t;
 
-    FklVMframe *f = fklPrepCall(exe, exe->bp, 1, &proc);
+    // move err_handlers
+    c->err_handlers = move_pair_array(&err_handlers);
+
+    FklVMframe *f = fklSetBp(exe, 1);
+    FKL_VM_PUSH_VALUE(exe, proc);
     fklCallObjOrRaise(exe, f, proc);
 #undef GET_PROC
 #undef GET_LIST
@@ -3541,16 +3556,12 @@ static int builtin_apply(FKL_CPROC_ARGL) {
 
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
 
-    // 将被调用的函数与除参数列表外的参数移动到覆盖原apply函数的位置
-    memmove(&FKL_CPROC_GET_ARG(exe, ctx, -1),
-            &FKL_CPROC_GET_ARG(exe, ctx, 0),
-            (argc - 1) * sizeof(FklVMvalue *));
-    // 由于没有apply函数和参数列表，因而栈顶减二
-    exe->tp -= 2;
-
     if (!FKL_IS_PAIR(arg_list) && arg_list != FKL_VM_NIL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
+
+    // 弹出栈顶的参数列表
+    exe->tp -= 1;
 
     // 将参数列表入栈
     for (; FKL_IS_PAIR(arg_list); arg_list = FKL_VM_CDR(arg_list))
@@ -3559,7 +3570,13 @@ static int builtin_apply(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
-    fklCallObjOrRaise(exe, exe->top_frame, proc);
+    FklVMvalue **const value_start = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    uint32_t const count = (uint32_t)(&exe->base[exe->tp] - value_start);
+
+    FklVMframe *f = fklPrepCall(exe, exe->bp, count, value_start);
+    FKL_ASSERT(f == exe->top_frame);
+    fklCallObjOrRaise(exe, f, proc);
+
     return 1;
 }
 
@@ -4495,11 +4512,10 @@ static int builtin_funcall(FKL_CPROC_ARGL) {
     FKL_CPROC_CHECK_ARG_NUM2(exe, argc, 1, argc);
     FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
-    memmove(&FKL_CPROC_GET_ARG(exe, ctx, -1),
-            &FKL_CPROC_GET_ARG(exe, ctx, 0),
-            (argc - 1) * sizeof(FklVMvalue *));
-    exe->tp -= 1;
-    fklCallObjOrRaise(exe, exe->top_frame, proc);
+    FklVMvalue **const value_start = &FKL_CPROC_GET_ARG(exe, ctx, 0);
+    FklVMframe *f = fklPrepCall(exe, exe->bp, argc, value_start);
+    FKL_ASSERT(f == exe->top_frame);
+    fklCallObjOrRaise(exe, f, proc);
     return 1;
 }
 

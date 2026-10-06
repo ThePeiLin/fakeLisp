@@ -201,7 +201,7 @@ void fklVMexecuteInstruction(FklVM *exe,
             return;
         }
         FklVMframe *const f = FKL_SLOT_TO_FRAME(&exe->base[exe->bp]);
-        fklTailCallObjOrRaise(exe, f, proc);
+        fklCallObjOrRaise(exe, f, proc);
         return;
     } break;
     case FKL_OP_RET_IF_TRUE:

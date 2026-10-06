@@ -248,11 +248,11 @@ typedef int (*FklVMretCallBack)(FklVM *vm, struct FklVMframe *f);
 
 typedef struct FklVMframe {
     FklVMvalue *skip;
+    struct FklVMframe *prev;
     FklFrameType type;
     uint32_t bp;
     FklVMerrorCallBack errorCallBack;
     FklVMretCallBack ret_cb;
-    struct FklVMframe *prev;
     union {
         struct {
             FklVMvalue *proc;
@@ -286,9 +286,14 @@ static_assert(offsetof(FklVMframe, skip) == 0, "skip must be first");
 static_assert(offsetof(FklVMframe, skip_back) + sizeof(FklVMvalue *)
                       == sizeof(FklVMframe),
         "skip_back must be last");
-static_assert(offsetof(FklVMframe, type)
+
+static_assert(offsetof(FklVMframe, prev)
                       == offsetof(FklVMframe, skip) + sizeof(FklVMvalue *),
-        "type must immediately follow skip");
+        "prev must immediately follow skip");
+
+static_assert(offsetof(FklVMframe, type)
+                      == offsetof(FklVMframe, prev) + sizeof(FklVMframe *),
+        "type must immediately follow prev");
 
 #define FKL_VM_FRAME_SIZE (sizeof(FklVMframe) / sizeof(FklVMvalue *))
 
@@ -318,19 +323,8 @@ FKL_API
 FKL_NODISCARD
 int fklCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *);
 
-/// use the previous frame
-// XXX: 这个函数不应该接受一个 frame 作为参数
-FKL_API
-FKL_NODISCARD
-int fklTailCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *);
-
 FKL_API
 void fklCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *);
-
-/// use the previous frame
-// XXX: 这个函数不应该接受一个 frame 作为参数
-FKL_API
-void fklTailCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *);
 
 typedef struct {
     uint32_t bp;
@@ -1892,6 +1886,7 @@ static FKL_ALWAYS_INLINE FklVMframe *fklPushVMframe(FklVM *exe, FklVMframe *f) {
     FKL_ASSERT(f > exe->top_frame //
                && (uintptr_t)f >= (uintptr_t)&exe->base[0]
                && (uintptr_t)f < (uintptr_t)&exe->base[exe->tp]);
+
     f->prev = exe->top_frame;
     exe->top_frame = f;
     return f;
@@ -2279,6 +2274,13 @@ fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
 
     exe->tp = skip_tp + argc;
 
+    if (f <= exe->top_frame) {
+        fklUninitVMframe(exe, f);
+    } else {
+        fklVMframeClear(f);
+        f->prev = exe->top_frame;
+    }
+
     return f;
 }
 
@@ -2290,11 +2292,12 @@ static FKL_ALWAYS_INLINE FklVMframe *fklSetBp(FklVM *exe, int prep_call) {
 
 static FKL_ALWAYS_INLINE FklVMframe *fklSetBpAt(FklVM *s,
         uint32_t at,
+        uint32_t prev_bp,
         int prep_call,
         uint32_t argc,
         FklVMvalue *const *argv) {
     fklVMstackReserveOrRaise(s, at + 1);
-    s->base[at] = FKL_MAKE_VM_FIX(s->bp);
+    s->base[at] = FKL_MAKE_VM_FIX(prev_bp);
     s->tp = at + 1;
     s->bp = at + 1;
     return prep_call ? fklPrepCall(s, s->tp, argc, argv) : NULL;

@@ -3332,7 +3332,7 @@ errorCallBackWithErrorHandler(FklVMframe *f, FklVMvalue *errValue, FklVM *exe) {
                 topFrame = topFrame->prev;
                 fklUninitVMframe(exe, cur);
             }
-            fklTailCallObjOrRaise(exe, NULL, err_handlers->cdr);
+            fklCallObjOrRaise(exe, exe->top_frame, err_handlers->cdr);
             return 1;
         }
     }
@@ -3359,7 +3359,7 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     if (argc == 1) {
         FKL_CPROC_GET_ARG(exe, ctx, -1) = proc;
         exe->tp -= 1;
-        fklTailCallObjOrRaise(exe, NULL, proc);
+        fklCallObjOrRaise(exe, exe->top_frame, proc);
         return 1;
     }
     FklPairVector err_handlers;
@@ -3430,19 +3430,7 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         uint32_t const at = exe->tp - argc - 1;
-        FklVMframe *f = fklSetBpAt(exe, at, 1, argc, argv);
-
-        /*
-        fklVMstackReserveOrRaise(exe, exe->tp + 1);
-        memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
-                &FKL_CPROC_GET_ARG(exe, ctx, 0),
-                argc * sizeof(FklVMvalue *));
-        exe->tp += 1;
-
-        FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
-        // 函数pcall与bp的值合计占用两个空间
-        exe->bp += 2;
-        */
+        FklVMframe *f = fklSetBpAt(exe, at, exe->bp, 1, argc, argv);
 
         exe->top_frame->errorCallBack = pcall_error_handler;
         fklCallObjOrRaise(exe, f, proc);
@@ -3471,18 +3459,7 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
     FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint32_t const at = exe->tp - argc - 1;
-    FklVMframe *f = fklSetBpAt(exe, at, 1, argc, argv);
-
-    /*
-    fklVMstackReserveOrRaise(exe, exe->tp + 1);
-    memmove(&FKL_CPROC_GET_ARG(exe, ctx, 1),
-            &FKL_CPROC_GET_ARG(exe, ctx, 0),
-            argc * sizeof(FklVMvalue *));
-    exe->tp += 1;
-    FKL_CPROC_GET_ARG(exe, ctx, 0) = FKL_MAKE_VM_FIX(exe->bp);
-    // 函数idle与bp的值合计占用两个空间
-    exe->bp += 2;
-    */
+    FklVMframe *f = fklSetBpAt(exe, at, exe->bp, 1, argc, argv);
 
     fklCallObjOrRaise(exe, f, proc);
     fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
@@ -3582,7 +3559,7 @@ static int builtin_apply(FKL_CPROC_ARGL) {
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_INCORRECT_TYPE_VALUE, exe);
     }
 
-    fklTailCallObjOrRaise(exe, NULL, proc);
+    fklCallObjOrRaise(exe, exe->top_frame, proc);
     return 1;
 }
 
@@ -4522,7 +4499,7 @@ static int builtin_funcall(FKL_CPROC_ARGL) {
             &FKL_CPROC_GET_ARG(exe, ctx, 0),
             (argc - 1) * sizeof(FklVMvalue *));
     exe->tp -= 1;
-    fklTailCallObjOrRaise(exe, NULL, proc);
+    fklCallObjOrRaise(exe, exe->top_frame, proc);
     return 1;
 }
 

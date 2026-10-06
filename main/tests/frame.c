@@ -80,13 +80,15 @@ int main(void) {
     CHECK(FKL_VM_FRAME_SIZE * sizeof(FklVMvalue *) == sizeof(FklVMframe),
             "FKL_VM_FRAME_SIZE matches the frame struct");
     CHECK(FKL_VM_FRAME_SIZE > 0, "frame occupies at least one slot");
-    CHECK(FKL_TAG_SKIP < FKL_PTR_TAG_NUM, "skip tag fits in the pointer tag set");
+    CHECK(FKL_TAG_SKIP < FKL_PTR_TAG_NUM,
+            "skip tag fits in the pointer tag set");
 
     /* --- skip marker round trip --- */
     {
         FklVMvalue **p = &vm->base[8];
         FklVMvalue *skip = FKL_MAKE_VM_SKIP(p);
-        CHECK(FKL_GET_TAG(skip) == FKL_TAG_SKIP, "skip marker carries SKIP tag");
+        CHECK(FKL_GET_TAG(skip) == FKL_TAG_SKIP,
+                "skip marker carries SKIP tag");
         CHECK(FKL_VM_SKIP(skip) == p, "skip marker round trips its target");
     }
 
@@ -120,7 +122,8 @@ int main(void) {
         f->bp = at;
         CHECK(FKL_VM_GET_ARG(vm, f, -1) == args[0],
                 "GET_ARG(-1) is the callee");
-        CHECK(FKL_VM_GET_ARG(vm, f, 0) == args[1], "GET_ARG(0) is the first arg");
+        CHECK(FKL_VM_GET_ARG(vm, f, 0) == args[1],
+                "GET_ARG(0) is the first arg");
         CHECK(FKL_VM_GET_ARG(vm, f, 1) == args[2],
                 "GET_ARG(1) is the second arg");
         clear_vm_stack(vm);
@@ -176,7 +179,7 @@ int main(void) {
         uint32_t const at = 4;
         uint32_t const old_bp = vm->bp;
         FklVMvalue *arg0 = FKL_MAKE_VM_FIX(7);
-        FklVMframe *f = fklSetBpAt(vm, at, 1, 1, &arg0);
+        FklVMframe *f = fklSetBpAt(vm, at, old_bp, 1, 1, &arg0);
         CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 1]),
                 "setBpAt embeds the frame at at+1");
         CHECK(vm->bp == at + 1, "setBpAt sets bp to the frame slot");
@@ -250,7 +253,8 @@ int main(void) {
         clear_vm_stack(gv);
     }
 
-    /* --- walking a stack with a frame followed by values still roots them --- */
+    /* --- walking a stack with a frame followed by values still roots them ---
+     */
     {
         FklVM *gv = &gc->gcvm;
         clear_vm_stack(gv);
@@ -265,14 +269,16 @@ int main(void) {
         fklVMgcCheck(gv, 1);
 
         CHECK(FKL_IS_STR(gv->base[1 + FKL_VM_FRAME_SIZE])
-                        && strcmp(FKL_VM_STR(gv->base[1 + FKL_VM_FRAME_SIZE])->str,
-                                          "after-frame-a")
+                        && strcmp(FKL_VM_STR(gv->base[1 + FKL_VM_FRAME_SIZE])
+                                           ->str,
+                                   "after-frame-a")
                                    == 0,
                 "first value after a frame survives the stack walk");
         CHECK(FKL_IS_STR(gv->base[1 + FKL_VM_FRAME_SIZE + 1])
-                        && strcmp(FKL_VM_STR(gv->base[1 + FKL_VM_FRAME_SIZE + 1])
-                                                  ->str,
-                                          "after-frame-b")
+                        && strcmp(FKL_VM_STR(
+                                          gv->base[1 + FKL_VM_FRAME_SIZE + 1])
+                                           ->str,
+                                   "after-frame-b")
                                    == 0,
                 "second value after a frame survives the stack walk");
 
@@ -302,8 +308,8 @@ int main(void) {
         CHECK(f->skip_back == skip_back, "frameClear preserves skip_back");
         CHECK(f->type == 0 && f->bp == 0 && f->sp == 0,
                 "frameClear zeroes the frame header and content");
-        CHECK(f->prev == NULL && f->proc == NULL,
-                "frameClear zeroes frame links and value fields");
+        CHECK(f->prev == f && f->proc == NULL,
+                "frameClear preserves prev and zeroes value fields");
         clear_vm_stack(vm);
     }
 
@@ -332,7 +338,9 @@ int main(void) {
         TraverseCtx stop_f = { .stop_after = 3 };
         TraverseCtx stop_r = { .stop_after = 3 };
         fklVMforeachStack(vm, (FklVMforeachCtx *)&stop_f, collect_fix_cb);
-        fklVMforeachStackReverse(vm, (FklVMforeachCtx *)&stop_r, collect_fix_cb);
+        fklVMforeachStackReverse(vm,
+                (FklVMforeachCtx *)&stop_r,
+                collect_fix_cb);
         CHECK(seq_eq(&stop_f, (int64_t[]){ 1, 2, 3 }, 3),
                 "foreachStack stops when the callback returns non-zero");
         CHECK(seq_eq(&stop_r, (int64_t[]){ 7, 6, 5 }, 3),

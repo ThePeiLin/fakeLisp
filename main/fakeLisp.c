@@ -1015,7 +1015,7 @@ execute_repl_compile_result(FklVM *exe, ReplCtx *fctx, FklVMvalue *main_bc) {
     fctx->lcount = pt->local_count;
     fctx->new_var_count = fctx->lcount - o_lcount;
 
-    FklVMframe *f = fklSetBpAt(exe, fctx->bp, 1, 1, &fctx->main_proc);
+    FklVMframe *f = fklSetBpAt(exe, fctx->bp, fctx->bp, 1, 1, &fctx->main_proc);
     fklInitVMframe(exe, f, FKL_VM_PROC(fctx->main_proc));
     fklPushVMframe(exe, f);
     f->lrefl = fctx->lrefl;

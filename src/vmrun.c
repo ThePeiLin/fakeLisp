@@ -38,8 +38,6 @@ call_compound_procedure(FklVM *exe, FklVMframe *f, FklVMvalueProc *proc) {
         fklUninitVMframe(exe, f);
         return -1;
     }
-
-    fklPushVMframe(exe, f);
     return 0;
 }
 
@@ -120,7 +118,6 @@ typedef struct ImportPostProcessContext {
 static inline int call_cproc(FklVM *exe, FklVMframe *f, FklVMvalue *cproc) {
     f = fklInitVMframeExt(exe, f, &CprocContextMethodTable);
     initCprocFrameContext(f->data, cproc, exe);
-    fklPushVMframe(exe, f);
     return 0;
 }
 
@@ -297,7 +294,6 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
 static inline void do_finalize_obj_frame(FklVM *vm, FklVMframe *f) {
     if (f->t->finalizer)
         f->t->finalizer((void *)f->data);
-    f->prev = NULL;
 }
 
 static inline void close_var_ref(FklVMvalue *ref) {
@@ -314,6 +310,9 @@ int fklIsClosedVMvalueVarRef(FklVMvalue *ref) {
 }
 
 static inline void close_all_var_ref(FklVMframe *f) {
+    if (f->lrefl == NULL)
+        return;
+
     for (FklVMvalue *l = f->lrefl; FKL_IS_PAIR(l); l = FKL_VM_CDR(l)) {
         close_var_ref(FKL_VM_CAR(l));
     }
@@ -326,15 +325,16 @@ static inline void do_finalize_compound_frame(FklVM *exe, FklVMframe *f) {
     f->lref = FKL_VM_NIL;
     f->lrefl = FKL_VM_NIL;
     f->ref = NULL;
-
-    f->prev = NULL;
 }
 
 void fklUninitVMframe(FklVM *exe, FklVMframe *f) {
-    if (f->type == FKL_FRAME_OTHEROBJ) {
+    switch (f->type) {
+    case FKL_FRAME_OTHEROBJ:
         do_finalize_obj_frame(exe, f);
-    } else {
+        break;
+    case FKL_FRAME_COMPOUND:
         do_finalize_compound_frame(exe, f);
+        break;
     }
 }
 
@@ -402,18 +402,25 @@ void fklPopVMframe2(FklVM *exe, FklVMframe *const bottom) {
 }
 
 int fklCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
+    FKL_ASSERT((uintptr_t)f >= (uintptr_t)exe->base
+               && (uintptr_t)f < (uintptr_t)&exe->base[exe->tp]);
+
+    int r = 0;
     switch (proc->type_) {
     case FKL_TYPE_PROC:
-        return call_compound_procedure(exe, f, FKL_VM_PROC(proc));
+        r = call_compound_procedure(exe, f, FKL_VM_PROC(proc));
+        goto set_top;
         break;
     case FKL_TYPE_CPROC:
-        return call_cproc(exe, f, proc);
+        r = call_cproc(exe, f, proc);
+        goto set_top;
         break;
     case FKL_TYPE_USERDATA:
         if (FKL_VM_UD(proc)->tp_->mt.call == NULL)
             FKL_UNREACHABLE();
 
-        return FKL_VM_UD(proc)->tp_->mt.call(proc, f, exe);
+        r = FKL_VM_UD(proc)->tp_->mt.call(proc, f, exe);
+        goto set_top;
         break;
 
     case FKL_TYPE_F64:
@@ -436,26 +443,15 @@ int fklCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
     FKL_UNREACHABLE();
     abort();
     return -1;
+set_top:
+    if (r != 0)
+        return r;
+    exe->top_frame = f;
+    return r;
 }
 
 void fklCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
     if (FKL_UNLIKELY(fklCallObj(exe, f, proc) != 0))
-        FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
-}
-
-int fklTailCallObj(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
-    FklVMframe *frame = exe->top_frame;
-    if (frame->type == FKL_FRAME_OTHEROBJ) {
-        exe->top_frame = frame->prev;
-        do_finalize_obj_frame(exe, frame);
-        fklVMframeClear(frame);
-        return fklCallObj(exe, frame, proc);
-    }
-    return fklCallObj(exe, f, proc);
-}
-
-void fklTailCallObjOrRaise(FklVM *exe, FklVMframe *f, FklVMvalue *proc) {
-    if (FKL_UNLIKELY(fklTailCallObj(exe, f, proc) != 0))
         FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);
 }
 
@@ -751,7 +747,7 @@ static inline void load_lib(FklVM *exe, FklVMvalueLib *l) {
     FklVMframe *exit_frame = exe->top_frame;
     FklVMframe *f = fklSetBp(exe, 1);
     FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(l));
-    int r = call_compound_procedure(exe, f, FKL_VM_PROC(l->proc));
+    int r = fklCallObj(exe, f, l->proc);
     if (r != 0) {
         // 递归太深无法执行 import
         // 我们不认为是库的错误

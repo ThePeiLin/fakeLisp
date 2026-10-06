@@ -54,8 +54,15 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
         VM->bp = F->bp;
         VM->tp = VM->bp + v_count + FKL_VM_FRAME_SIZE;
 
+        FklVMframe old = *F;
         FklVMframe *ff = fklPrepCall(VM, VM->bp, v_count, v_start);
+
         FKL_ASSERT(ff == (F));
+        FKL_ASSERT(ff->skip == old.skip);
+        FKL_ASSERT(ff->prev == old.prev);
+        FKL_ASSERT(ff->skip_back == old.skip_back);
+
+        *ff = old;
         if (FKL_UNLIKELY(fklVMframeSetSp(VM, F, F->lcount) != 0)) {
             F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);

@@ -10,8 +10,6 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
-typedef intptr_t ssize_t;
-
 #define FKL_MASK1(T, S, P) (((((T)1) << (S)) - 1) << (P))
 #define FKL_MASK0(T, S, P) (~FKL_MASK1(T, S, P))
 
@@ -84,11 +82,21 @@ static_assert(FKL_MASK0(uint32_t, 24, 4) == 0xF000000F, "what the fuck?");
 
 #elif defined(_MSC_VER)
 
+#include <sal.h>
+
+#if !defined(_SSIZE_T_) && !defined(_SSIZE_T_DEFINED)
+typedef intptr_t ssize_t;
+
+#define SSIZE_MAX INTPTR_MAX
+#define _SSIZE_T_
+#define _SSIZE_T_DEFINED
+#endif
+
 #define FKL_FMT_ATTR(A, B)
 #define FKL_DEPRECATED __declspec(deprecated)
 #define FKL_ALWAYS_INLINE __forceinline
 #define FKL_UNREACHABLE_() __assume(0)
-#define FKL_NODISCARD
+#define FKL_NODISCARD _Check_return_
 #define FKL_UNUSED
 
 #else

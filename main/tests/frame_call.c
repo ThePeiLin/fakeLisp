@@ -142,6 +142,51 @@ int main(void) {
         reset_vm(vm);
     }
 
+    /* --- fklPrepCallVa: variadic argument preparation --- */
+    {
+        reset_vm(vm);
+        uint32_t const at = 3;
+        uint32_t const arg_base = at + FKL_VM_FRAME_SIZE;
+        FklVMframe *f = fklPrepCallVa(vm,
+                at,
+                3,
+                FKL_MAKE_VM_FIX(11),
+                FKL_MAKE_VM_FIX(22),
+                FKL_MAKE_VM_FIX(33));
+        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at]),
+                "fklPrepCallVa embeds the frame at at");
+        CHECK(vm->tp == arg_base + 3,
+                "fklPrepCallVa advances tp past the arguments");
+        CHECK(FKL_GET_TAG(vm->base[at]) == FKL_TAG_SKIP,
+                "fklPrepCallVa writes the skip pointer");
+        CHECK(FKL_VM_SKIP(vm->base[at]) == &vm->base[arg_base],
+                "skip pointer points at the argument region");
+        CHECK(vm->base[arg_base] == FKL_MAKE_VM_FIX(11),
+                "fklPrepCallVa stores arg 0");
+        CHECK(vm->base[arg_base + 1] == FKL_MAKE_VM_FIX(22),
+                "fklPrepCallVa stores arg 1");
+        CHECK(vm->base[arg_base + 2] == FKL_MAKE_VM_FIX(33),
+                "fklPrepCallVa stores arg 2");
+        reset_vm(vm);
+    }
+
+    /* --- fklPrepCall with argv == NULL leaves the argument region alone --- */
+    {
+        reset_vm(vm);
+        uint32_t const at = 3;
+        uint32_t const arg_base = at + FKL_VM_FRAME_SIZE;
+        vm->tp = arg_base;
+        vm->base[arg_base] = FKL_MAKE_VM_FIX(44); /* pre-filled by the caller */
+        FklVMframe *f = fklPrepCall(vm, at, 1, NULL);
+        CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at]),
+                "fklPrepCall(NULL) embeds the frame");
+        CHECK(vm->tp == arg_base + 1,
+                "fklPrepCall(NULL) reserves the argument region");
+        CHECK(vm->base[arg_base] == FKL_MAKE_VM_FIX(44),
+                "fklPrepCall(NULL) does not overwrite the argument region");
+        reset_vm(vm);
+    }
+
     /* --- fklCallObj: compound proc --- */
     {
         reset_vm(vm);

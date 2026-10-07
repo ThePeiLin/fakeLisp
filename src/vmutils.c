@@ -2434,33 +2434,20 @@ void fklVMforeachStackReverse(FklVM *exe,
 }
 
 FKL_API FklVMframe *fklPrepCallVa(FklVM *exe, uint32_t at, uint32_t argc, ...) {
-    uint32_t const skip_tp = at + FKL_VM_FRAME_SIZE;
-    fklVMstackReserveOrRaise(exe, skip_tp + argc);
+    FklVMframe *f = fklPrepCall(exe, at, argc, NULL);
 
     if (argc != 0) {
         va_list ap;
         va_start(ap, argc);
 
-        for (uint32_t i = 0; i < argc; ++i) {
-            FklVMvalue *cur = va_arg(ap, FklVMvalue *);
-            exe->base[skip_tp + i] = cur;
+        FklVMvalue **cur = FKL_VM_SKIP(f->skip);
+        FklVMvalue **const end = &cur[argc];
+        for (; cur < end; ++cur) {
+            FklVMvalue *v = va_arg(ap, FklVMvalue *);
+            *cur = v;
         }
 
         va_end(ap);
-    }
-
-    FklVMvalue **const skip = &exe->base[skip_tp];
-    FklVMframe *f = FKL_SLOT_TO_FRAME(&exe->base[at]);
-    f->skip = FKL_MAKE_VM_SKIP(skip);
-    f->skip_back = FKL_MAKE_VM_SKIP(&exe->base[at]);
-
-    exe->tp = skip_tp + argc;
-
-    if (f <= exe->top_frame) {
-        fklUninitVMframe(exe, f);
-    } else {
-        fklVMframeClear(f);
-        f->prev = exe->top_frame;
     }
 
     return f;

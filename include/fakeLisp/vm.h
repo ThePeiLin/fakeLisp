@@ -2258,12 +2258,15 @@ fklVMframeSetBp(FklVM *exe, FklVMframe *frame, uint32_t lcount) {
     return fklVMframeSetSp(exe, frame, lcount);
 }
 
+/// @param argv the arguments placed after the frame; may be NULL, in which case
+///             nothing is copied and the argument region is left for the caller
+///             to fill (see fklPrepCallVa)
 static FKL_ALWAYS_INLINE FklVMframe *
 fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
     uint32_t const skip_tp = at + FKL_VM_FRAME_SIZE;
     fklVMstackReserveOrRaise(exe, skip_tp + argc);
 
-    if (argc != 0) {
+    if (argc != 0 && argv != NULL) {
         memmove(&exe->base[skip_tp], argv, argc * sizeof(FklVMvalue *));
     }
 

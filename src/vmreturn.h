@@ -49,20 +49,14 @@ void fklVMcompoundFrameReturn(FklVM *VM) {
     case FKL_VM_COMPOUND_FRAME_MARK_CALL: {
         close_all_var_ref(F);
         // copy stack values
-        FklVMvalue **const v_start = &VM->base[VM->bp + FKL_VM_FRAME_SIZE];
-        uint32_t const v_count = (uint32_t)(&VM->base[VM->tp] - v_start);
+        FklVMvalue **const from = &VM->base[VM->bp + FKL_VM_FRAME_SIZE];
+        uint32_t const v_count = (uint32_t)(&VM->base[VM->tp] - from);
         VM->bp = F->bp;
         VM->tp = VM->bp + v_count + FKL_VM_FRAME_SIZE;
 
-        FklVMframe old = *F;
-        FklVMframe *ff = fklPrepCall(VM, VM->bp, v_count, v_start);
+        FklVMvalue **const to = &VM->base[VM->bp + FKL_VM_FRAME_SIZE];
+        memmove(to, from, v_count * sizeof(FklVMvalue *));
 
-        FKL_ASSERT(ff == (F));
-        FKL_ASSERT(ff->skip == old.skip);
-        FKL_ASSERT(ff->prev == old.prev);
-        FKL_ASSERT(ff->skip_back == old.skip_back);
-
-        *ff = old;
         if (FKL_UNLIKELY(fklVMframeSetSp(VM, F, F->lcount) != 0)) {
             F->mark = FKL_VM_COMPOUND_FRAME_MARK_RET;
             FKL_RAISE_BUILTIN_ERROR(FKL_ERR_STACK_OVERFLOW, exe);

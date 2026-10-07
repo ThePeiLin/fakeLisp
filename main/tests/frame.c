@@ -146,8 +146,8 @@ int main(void) {
         clear_vm_stack(vm);
         uint32_t saved_tp = vm->tp;
         uint32_t saved_bp = vm->bp;
-        FklVMframe *f = fklSetBp(vm, 0);
-        CHECK(f == NULL, "setBp without prep returns no frame");
+
+        fklSetBp(vm);
         CHECK(vm->tp == saved_tp + 1, "setBp pushes exactly one marker");
         CHECK(vm->bp == saved_tp + 1, "setBp moves bp past the marker");
         CHECK(FKL_GET_FIX(vm->base[saved_tp]) == (int64_t)saved_bp,
@@ -159,7 +159,10 @@ int main(void) {
     /* --- fklSetBp with prep embeds a call frame --- */
     {
         clear_vm_stack(vm);
-        FklVMframe *f = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 0, NULL);
+
         CHECK(f != NULL, "setBp with prep returns a frame");
         CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[vm->bp]),
                 "prep frame sits at bp");
@@ -179,7 +182,10 @@ int main(void) {
         uint32_t const at = 4;
         uint32_t const old_bp = vm->bp;
         FklVMvalue *arg0 = FKL_MAKE_VM_FIX(7);
-        FklVMframe *f = fklSetBpAt(vm, at, old_bp, 1, 1, &arg0);
+
+        fklSetBpAt(vm, at, old_bp);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 1, &arg0);
+
         CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 1]),
                 "setBpAt embeds the frame at at+1");
         CHECK(vm->bp == at + 1, "setBpAt sets bp to the frame slot");

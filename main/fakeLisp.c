@@ -1322,7 +1322,7 @@ static inline void init_frame_to_repl_frame(FklVM *exe,
         frame->t = &EvalContextMethodTable;
         fklStrBufConcatWithCstr(&f_ctx->c->buf, eval_expression);
     }
-    fklSetBp(exe, 0);
+    fklSetBp(exe);
     f_ctx->c->bp = exe->bp;
     f_ctx->c->sp = exe->bp + 1;
     if (FKL_UNLIKELY(fklVMstackReserve(exe, f_ctx->c->sp + 1) != 0)) {

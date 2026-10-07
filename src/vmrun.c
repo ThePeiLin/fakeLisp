@@ -239,7 +239,10 @@ FklVM *fklCreateVMwithByteCode(FklVMvalue *co,
                 co,
                 pt);
         init_builtin_symbol_ref(exe, proc);
-        FklVMframe *f = fklSetBp(exe, 1);
+
+        fklSetBp(exe);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
+
         FKL_ASSERT(f != NULL);
         FKL_VM_PUSH_VALUE(exe, proc);
         if (FKL_UNLIKELY(fklCallObj(exe, f, proc) != 0)) {
@@ -274,7 +277,10 @@ FklVM *fklCreateVMwithByteCode2(FklVMvalue *co,
                 co,
                 pt);
         init_builtin_symbol_ref(exe, proc);
-        FklVMframe *f = fklSetBp(exe, 1);
+
+        fklSetBp(exe);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
+
         FKL_ASSERT(f != NULL);
         FKL_VM_PUSH_VALUE(exe, proc);
         if (FKL_UNLIKELY(fklCallObj(exe, f, proc) != 0)) {
@@ -481,8 +487,8 @@ FklVMcallResult fklVMcall3(FklRunVMcb cb,
     FKL_ASSERT(fklIsCallable(proc));
     fklVMsetRecover(exe, re);
 
-    FklVMframe *f = fklSetBp(exe, 1);
-    FKL_VM_PUSH_VALUE(exe, proc);
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
 
     if (creator)
         creator(exe, args);
@@ -547,7 +553,9 @@ FklVMcallResult fklVMcall0(FklRunVMcb cb, FklVM *exe, FklVMrecoverArgs *re) {
 
     FklVMcallResult result;
 
-    FklVMframe *f = fklSetBp(exe, 1);
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &callee);
+
     if (FKL_UNLIKELY(fklCallObj(exe, f, callee) != 0)) {
         result.err = 1;
         result.v = fklMakeBuiltinError(exe, FKL_ERR_STACK_OVERFLOW);
@@ -745,8 +753,11 @@ static inline void load_lib(FklVM *exe, FklVMvalueLib *l) {
     fklVMsetRecover(exe, &re);
 
     FklVMframe *exit_frame = exe->top_frame;
-    FklVMframe *f = fklSetBp(exe, 1);
+
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
     FKL_VM_PUSH_VALUE(exe, FKL_VM_VAL(l));
+
     int r = fklCallObj(exe, f, l->proc);
     if (r != 0) {
         // 递归太深无法执行 import
@@ -1539,8 +1550,8 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     exe->state = FKL_VM_READY;
     exe->dummy_ins_func = B_dummy;
     if (proc != NULL) {
-        FklVMframe *f = fklSetBp(exe, 1);
-        FKL_VM_PUSH_VALUE(exe, proc);
+        fklSetBp(exe);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
 
         if (FKL_UNLIKELY(fklCallObj(exe, f, proc) != 0)) {
             fprintf(stderr,
@@ -1554,7 +1565,7 @@ FklVM *fklCreateVM(FklVMvalue *proc, FklVMgc *gc) {
     return exe;
 }
 
-FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
+FklVM *fklCreateThreadVM(FklVMvalue *callee,
         uint32_t arg_num,
         FklVMvalue *const *args,
         FklVM *prev,
@@ -1569,8 +1580,9 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     memcpy(exe->rand_state, prev->rand_state, sizeof(uint64_t[4]));
     exe->dummy_ins_func = prev->dummy_ins_func;
     uv_mutex_init(&exe->lock);
-    FklVMframe *f = fklSetBp(exe, 1);
-    FKL_VM_PUSH_VALUE(exe, nextCall);
+
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &callee);
 
     insert_to_VM_chain(exe, prev, next);
     if (FKL_UNLIKELY(fklVMstackReserve(exe, exe->tp + arg_num + 1) != 0)) {
@@ -1581,7 +1593,7 @@ FklVM *fklCreateThreadVM(FklVMvalue *nextCall,
     memcpy(&exe->base[exe->tp], args, arg_num * sizeof(FklVMvalue *));
     exe->tp += arg_num;
 
-    if (FKL_UNLIKELY(fklCallObj(exe, f, nextCall) != 0)) {
+    if (FKL_UNLIKELY(fklCallObj(exe, f, callee) != 0)) {
         exe->state = FKL_VM_EXIT;
         return NULL;
     }

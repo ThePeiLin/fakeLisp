@@ -2284,23 +2284,19 @@ fklPrepCall(FklVM *exe, uint32_t at, uint32_t argc, FklVMvalue *const *argv) {
     return f;
 }
 
-static FKL_ALWAYS_INLINE FklVMframe *fklSetBp(FklVM *exe, int prep_call) {
+FKL_API FklVMframe *fklPrepCallVa(FklVM *exe, uint32_t at, uint32_t argc, ...);
+
+static FKL_ALWAYS_INLINE void fklSetBp(FklVM *exe) {
     FKL_VM_PUSH_VALUE(exe, FKL_MAKE_VM_FIX(exe->bp));
     exe->bp = exe->tp;
-    return prep_call ? fklPrepCall(exe, exe->tp, 0, NULL) : NULL;
 }
 
-static FKL_ALWAYS_INLINE FklVMframe *fklSetBpAt(FklVM *s,
-        uint32_t at,
-        uint32_t prev_bp,
-        int prep_call,
-        uint32_t argc,
-        FklVMvalue *const *argv) {
+static FKL_ALWAYS_INLINE void
+fklSetBpAt(FklVM *s, uint32_t at, uint32_t prev_bp) {
     fklVMstackReserveOrRaise(s, at + 1);
     s->base[at] = FKL_MAKE_VM_FIX(prev_bp);
     s->tp = at + 1;
     s->bp = at + 1;
-    return prep_call ? fklPrepCall(s, s->tp, argc, argv) : NULL;
 }
 
 static FKL_ALWAYS_INLINE int fklIsVMint(const FklVMvalue *p) {

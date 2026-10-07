@@ -1839,7 +1839,10 @@ static void *custom_parser_prod_action(FklProdActionArgs *action_ctx,
     FklVMvalueVec *vec = FKL_VM_VEC(vect);
     for (size_t i = 0; i < num; i++)
         vec->base[i] = asts[i].ast;
-    FklVMframe *f = fklSetBp(exe, 1);
+
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
+
     FKL_VM_PUSH_VALUE(exe, proc);
     FKL_VM_PUSH_VALUE(exe, vect);
     FKL_VM_PUSH_VALUE(exe, line_value);
@@ -3418,8 +3421,8 @@ static int builtin_xpcall(FKL_CPROC_ARGL) {
     // move err_handlers
     c->err_handlers = move_pair_array(&err_handlers);
 
-    FklVMframe *f = fklSetBp(exe, 1);
-    FKL_VM_PUSH_VALUE(exe, proc);
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
     fklCallObjOrRaise(exe, f, proc);
 #undef GET_PROC
 #undef GET_LIST
@@ -3445,7 +3448,9 @@ static int builtin_pcall(FKL_CPROC_ARGL) {
         FKL_CHECK_TYPE(proc, fklIsCallable, exe);
         FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         uint32_t const at = exe->tp - argc - 1;
-        FklVMframe *f = fklSetBpAt(exe, at, exe->bp, 1, argc, argv);
+
+        fklSetBpAt(exe, at, exe->bp);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, argc, argv);
 
         exe->top_frame->errorCallBack = pcall_error_handler;
         fklCallObjOrRaise(exe, f, proc);
@@ -3474,7 +3479,9 @@ static int builtin_idle(FKL_CPROC_ARGL) {
     FKL_CHECK_TYPE(proc, fklIsCallable, exe);
     FklVMvalue *const *argv = &FKL_CPROC_GET_ARG(exe, ctx, 0);
     uint32_t const at = exe->tp - argc - 1;
-    FklVMframe *f = fklSetBpAt(exe, at, exe->bp, 1, argc, argv);
+
+    fklSetBpAt(exe, at, exe->bp);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, argc, argv);
 
     fklCallObjOrRaise(exe, f, proc);
     fklQueueWorkInIdleThread(exe, idle_queue_work_cb, ctx);
@@ -3668,7 +3675,9 @@ static int builtin_member(FKL_CPROC_ARGL) {
                 return 0;
             }
             ctx->c[0].uptr = 1;
-            FklVMframe *f = fklSetBp(exe, 1);
+
+            fklSetBp(exe);
+            FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
@@ -3697,7 +3706,9 @@ static int builtin_member(FKL_CPROC_ARGL) {
         else {
             FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 2);
             *plist = list;
-            FklVMframe *f = fklSetBp(exe, 1);
+
+            fklSetBp(exe);
+            FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, obj);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
@@ -3723,7 +3734,9 @@ static int builtin_memp(FKL_CPROC_ARGL) {
             return 0;
         }
         ctx->c[0].uptr = 1;
-        FklVMframe *f = fklSetBp(exe, 1);
+
+        fklSetBp(exe);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
         FKL_VM_PUSH_VALUE(exe, proc);
         FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
         fklCallObjOrRaise(exe, f, proc);
@@ -3745,7 +3758,10 @@ static int builtin_memp(FKL_CPROC_ARGL) {
         else {
             *plist = list;
             FklVMvalue *proc = FKL_CPROC_GET_ARG(exe, ctx, 0);
-            FklVMframe *f = fklSetBp(exe, 1);
+
+            fklSetBp(exe);
+            FklVMframe *f = fklPrepCall(exe, exe->tp, 0, NULL);
+
             FKL_VM_PUSH_VALUE(exe, proc);
             FKL_VM_PUSH_VALUE(exe, FKL_VM_CAR(list));
             fklCallObjOrRaise(exe, f, proc);

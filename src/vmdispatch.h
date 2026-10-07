@@ -182,7 +182,10 @@ void fklVMexecuteInstruction(FklVM *exe,
     case FKL_OP_SET_BP:
         FKL_ASSERT(sA(ins) == FKL_SUBOP_SET_BP
                    || sA(ins) == FKL_SUBOP_SET_BP_PREP_CALL);
-        fklSetBp(exe, sA(ins));
+        fklSetBp(exe);
+        if (sA(ins) != 0) {
+            fklPrepCall(exe, exe->tp, 0, NULL);
+        }
         break;
     case FKL_OP_CALL: {
         FklVMvalue *proc = FKL_VM_GET_ARG(exe, exe, -1);

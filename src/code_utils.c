@@ -1104,8 +1104,9 @@ static inline FklVMframe *init_macro_expand_frame(FklVM *exe,
 
     push_macro_expand_frame(exe, pr, lnt, curline, error_state);
 
-    FklVMframe *f = fklSetBp(exe, 1);
-    FKL_VM_PUSH_VALUE(exe, proc);
+    fklSetBp(exe);
+    FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
+
     if (fklCallObj(exe, f, proc) != 0) {
         // TODO: 不应该直接 abort
         FKL_TODO();

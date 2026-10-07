@@ -53,8 +53,10 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
         FOREACH_CTX_STATE(ctx) = FOREACH_CALL_STATE_CONT;
         FOREACH_CTX_ARG_NUM(ctx) = argc;
         STORE_EXTRA_VALUE;
-        FklVMframe *f = fklSetBp(exe, 1);
-        FKL_VM_PUSH_VALUE(exe, proc);
+
+        fklSetBp(exe);
+        FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
+
         fklVMstackReserveOrRaise(exe, exe->tp + argc);
         arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
         FklVMvalue **const end = &arg_base[argc];
@@ -77,8 +79,10 @@ static int builtin_foreach(FKL_CPROC_ARGL) {
             FKL_CPROC_RETURN(exe, ctx, r);
         } else {
             FklVMvalue *proc = arg_base[0];
-            FklVMframe *f = fklSetBp(exe, 1);
-            FKL_VM_PUSH_VALUE(exe, proc);
+
+            fklSetBp(exe);
+            FklVMframe *f = fklPrepCall(exe, exe->tp, 1, &proc);
+
             fklVMstackReserveOrRaise(exe, exe->tp + arg_num);
             arg_base = &FKL_CPROC_GET_ARG(exe, ctx, 0);
             FklVMvalue **const end = &arg_base[arg_num];

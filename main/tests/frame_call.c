@@ -96,7 +96,8 @@ int main(void) {
     }
 
     FklVMvalue *proc = make_proc(vm, 2);
-    FklVMvalue *cproc = fklCreateVMvalueCproc(vm, test_cfunc, NULL, "test-cproc");
+    FklVMvalue *cproc =
+            fklCreateVMvalueCproc(vm, test_cfunc, NULL, "test-cproc");
     FklVMvalueType *udt =
             fklCreateVMvalueType(vm, NULL, &g_ud_token, &TestUdMt);
     FklVMvalue *ud = fklCreateVMvalueUd(vm, udt);
@@ -144,8 +145,11 @@ int main(void) {
     /* --- fklCallObj: compound proc --- */
     {
         reset_vm(vm);
-        FklVMframe *f = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 0, NULL);
         FKL_VM_PUSH_VALUE(vm, proc);
+
         int r = fklCallObj(vm, f, proc);
         CHECK(r == 0, "fklCallObj(proc) returns 0");
         CHECK(vm->top_frame == f, "fklCallObj(proc) pushes the frame");
@@ -157,10 +161,14 @@ int main(void) {
     /* --- fklCallObj: cproc --- */
     {
         reset_vm(vm);
-        FklVMframe *f = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 0, NULL);
+
         FKL_VM_PUSH_VALUE(vm, cproc);
         FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(1));
         FKL_VM_PUSH_VALUE(vm, FKL_MAKE_VM_FIX(2));
+
         int r = fklCallObj(vm, f, cproc);
         CHECK(r == 0, "fklCallObj(cproc) returns 0");
         CHECK(vm->top_frame == f, "fklCallObj(cproc) pushes the frame");
@@ -177,7 +185,10 @@ int main(void) {
     {
         reset_vm(vm);
         g_ud_calls = 0;
-        FklVMframe *f = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 1, &ud);
+
         int r = fklCallObj(vm, f, ud);
         CHECK(r == 0, "fklCallObj(userdata) returns 0");
         CHECK(g_ud_calls == 1, "the userdata call method was invoked once");
@@ -189,7 +200,9 @@ int main(void) {
     /* --- fklCallObjOrRaise success path --- */
     {
         reset_vm(vm);
-        FklVMframe *f = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 0, NULL);
         FKL_VM_PUSH_VALUE(vm, proc);
         fklCallObjOrRaise(vm, f, proc);
         CHECK(vm->top_frame == f && f->type == FKL_FRAME_COMPOUND,
@@ -200,12 +213,19 @@ int main(void) {
     /* --- fklPrepCall links a new frame to the previous top --- */
     {
         reset_vm(vm);
-        FklVMframe *f0 = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f0 = fklPrepCall(vm, vm->tp, 0, NULL);
         FKL_VM_PUSH_VALUE(vm, proc);
+
         setup_call(vm, f0, proc); /* top = f0 */
         CHECK(vm->top_frame == f0, "setup: f0 is on top");
 
-        FklVMframe *f1 = fklSetBp(vm, 1); /* a new frame above f0 */
+        fklSetBp(vm);
+
+        /* a new frame above f0 */
+        FklVMframe *f1 = fklPrepCall(vm, vm->tp, 0, NULL);
+
         CHECK(f1->prev == f0,
                 "a new prep-call frame links prev to the old top");
         reset_vm(vm);
@@ -214,7 +234,9 @@ int main(void) {
     /* --- explicit-frame tail call: reuse the given frame --- */
     {
         reset_vm(vm);
-        FklVMframe *f0 = fklSetBp(vm, 1);
+
+        fklSetBp(vm);
+        FklVMframe *f0 = fklPrepCall(vm, vm->tp, 0, NULL);
         FKL_VM_PUSH_VALUE(vm, proc);
         fklCallObjOrRaise(vm, f0, proc);
         FklVMframe *saved_prev = f0->prev;
@@ -223,8 +245,7 @@ int main(void) {
         fklCallObjOrRaise(vm, vm->top_frame, proc2);
         CHECK(vm->top_frame == f0, "explicit-frame tail call reuses the frame");
         CHECK(f0->proc == proc2, "the reused frame runs the new proc");
-        CHECK(f0->lcount == 3,
-                "the reused frame adopts the new local count");
+        CHECK(f0->lcount == 3, "the reused frame adopts the new local count");
         CHECK(f0->prev == saved_prev, "the reused frame keeps its prev");
         reset_vm(vm);
     }
@@ -236,7 +257,10 @@ int main(void) {
         uint32_t const prev_bp = 3;
         vm->bp = 20; /* at < exe->bp: exe->bp must not be used as prev_bp */
         FklVMvalue *arg0 = FKL_MAKE_VM_FIX(7);
-        FklVMframe *f = fklSetBpAt(vm, at, prev_bp, 1, 1, &arg0);
+
+        fklSetBpAt(vm, at, prev_bp);
+        FklVMframe *f = fklPrepCall(vm, vm->tp, 1, &arg0);
+
         CHECK(f == FKL_SLOT_TO_FRAME(&vm->base[at + 1]),
                 "setBpAt embeds the frame at at+1");
         CHECK(FKL_GET_FIX(vm->base[at]) == (int64_t)prev_bp,
@@ -257,8 +281,9 @@ int main(void) {
         uint32_t const at = 6;
         uint32_t const prev_bp = 2;
         vm->bp = 30;
-        FklVMframe *f = fklSetBpAt(vm, at, prev_bp, 0, 0, NULL);
-        CHECK(f == NULL, "setBpAt without prep returns no frame");
+
+        fklSetBpAt(vm, at, prev_bp);
+
         CHECK(FKL_GET_FIX(vm->base[at]) == (int64_t)prev_bp,
                 "setBpAt without prep stores the explicit prev_bp");
         CHECK(vm->bp == at + 1, "setBpAt without prep sets bp to at+1");

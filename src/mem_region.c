@@ -6,6 +6,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#ifdef FKL_USING_WIN32
+// 傻逼微软
+typedef uint64_t max_align_t;
+#endif
+
 typedef struct {
     uint64_t total;
     uint64_t committed;

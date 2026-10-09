@@ -172,7 +172,8 @@ static inline void vm_stack_init(FklVM *exe) {
     exe->bp = 0;
 
     size_t usable = fklMemRegionUsableSize(exe->region);
-    exe->last = fklComputeVMstackSize(offsetof(FklVM, base), usable);
+    size_t offset = offsetof(FklVM, base);
+    exe->last = (uint32_t)fklComputeVMstackSize(offset, usable);
 }
 
 #define DEFAULT_RESERVED_SIZE (1 << 20)
@@ -1481,7 +1482,7 @@ int fklVMstackReserve(FklVM *exe, uint32_t s) {
     size_t usable = fklMemRegionUsableSize(exe->region);
     size_t offset = ((char *)exe->base) - ((char *)exe->region);
 
-    exe->last = fklComputeVMstackSize(offset, usable);
+    exe->last = (uint32_t)fklComputeVMstackSize(offset, usable);
 
     fklVMgcAllocatedInc(exe->gc, usable - old);
 
@@ -1510,7 +1511,7 @@ void fklVMstackShrink(FklVM *exe) {
     if (fklMemRegionShrinkTo(exe->region, target) != 0)
         return;
     size_t usable = fklMemRegionUsableSize(exe->region);
-    exe->last = fklComputeVMstackSize(offset, usable);
+    exe->last = (uint32_t)fklComputeVMstackSize(offset, usable);
 
     fklVMgcAllocatedDec(exe->gc, old - usable);
     return;

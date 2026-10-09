@@ -2392,7 +2392,7 @@ size_t fklComputeVMstackSize(size_t offset, size_t available) {
 
 void fklSetVMstackSize(FklVM *vm, size_t offset, size_t available) {
     size_t s = fklComputeVMstackSize(offset, available);
-    vm->last = s;
+    vm->last = (uint32_t)s;
 }
 
 void fklVMforeachStack(FklVM *exe,

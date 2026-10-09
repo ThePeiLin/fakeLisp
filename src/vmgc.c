@@ -386,7 +386,8 @@ static void fklInitVMgc(FklVMgc *gc, const FklBuiltinDesc *builtins) {
     gc->gcvm.region = (void *)gc;
 
     size_t usable = fklMemRegionUsableSize(gc);
-    gc->gcvm.last = fklComputeVMstackSize(offsetof(FklVMgc, gcvm.base), usable);
+    size_t const offset = offsetof(FklVMgc, gcvm.base);
+    gc->gcvm.last = (uint32_t)fklComputeVMstackSize(offset, usable);
 
     gc->gcvm.next = &gc->gcvm;
     gc->gcvm.prev = &gc->gcvm;

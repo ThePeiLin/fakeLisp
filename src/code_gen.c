@@ -2,6 +2,7 @@
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/code.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/optimizer.h>
@@ -17,7 +18,6 @@
 
 #include <fakeLisp/ins_helper.h>
 
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -3300,7 +3300,7 @@ static inline int is_module_path_char(char c, int is_rel) {
     if (c == '\0')
         return 0;
 
-    return isalpha(c) || isdigit(c) //
+    return fklIsAlpha(c) || fklIsDigit(c) //
         || (is_rel && strchr(".-_+/", c) != NULL)
         || (strchr("-_+/", c) != NULL);
 }

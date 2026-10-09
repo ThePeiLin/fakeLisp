@@ -1,12 +1,12 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/parser_grammer.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <ctype.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -76,7 +76,7 @@ static inline const char *
 skip_ignore(size_t *line, const char *buf, const char *const end) {
     const char *start = buf;
     while (buf < end) {
-        if (isspace(*buf))
+        if (fklIsSpace(*buf))
             ++buf;
         else if (is_comment(buf, end)) {
             buf = skip_comment(buf, end);
@@ -200,7 +200,7 @@ get_identifier_token(Token *t, const char *buf, const char *const end) {
     const char *start = buf;
     size_t len = 0;
     while (buf < end) {
-        if (isspace(*buf))
+        if (fklIsSpace(*buf))
             break;
         else if (match_delims(buf, end))
             break;

@@ -1,11 +1,11 @@
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/readline.h>
 #include <fakeLisp/symbol.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -113,30 +113,30 @@ int fklPower(int first, int second) {
 int fklIsValidCharBuf(const char *str, size_t len) {
     if (len == 0)
         return 0;
-    if (isalpha(str[0]) && len > 1)
+    if (fklIsAlpha(str[0]) && len > 1)
         return 0;
     if (str[0] == '\\') {
         if (len < 2)
             return 1;
-        if (toupper(str[1]) == 'X') {
+        if (fklToUpper(str[1]) == 'X') {
             if (len < 3 || len > 4)
                 return 0;
             for (size_t i = 2; i < len; i++)
-                if (!isxdigit(str[i]))
+                if (!fklIsXDigit(str[i]))
                     return 0;
         } else if (str[1] == '0') {
             if (len > 5)
                 return 0;
             if (len > 2) {
                 for (size_t i = 2; i < len; i++)
-                    if (!isdigit(str[i]) || str[i] > '7')
+                    if (!fklIsDigit(str[i]) || str[i] > '7')
                         return 0;
             }
-        } else if (isdigit(str[1])) {
+        } else if (fklIsDigit(str[1])) {
             if (len > 4)
                 return 0;
             for (size_t i = 1; i < len; i++)
-                if (!isdigit(str[i]))
+                if (!fklIsDigit(str[i]))
                     return 0;
         }
     }
@@ -150,27 +150,28 @@ int fklCharBufToChar(const char *buf, size_t len) {
     if (!(--len))
         return '\\';
     buf++;
-    if (toupper(buf[0]) == 'X' && isxdigit(buf[1])) {
-        for (size_t i = 1; i < len && isxdigit(buf[i]); i++)
+    if (fklToUpper(buf[0]) == 'X' && fklIsXDigit(buf[1])) {
+        for (size_t i = 1; i < len && fklIsXDigit(buf[i]); i++)
             ch = ch * 16
-               + (isdigit(buf[i]) ? buf[i] - '0'
-                                  : (toupper(buf[i]) - 'A' + 10));
+               + (fklIsDigit(buf[i]) ? buf[i] - '0'
+                                     : (fklToUpper(buf[i]) - 'A' + 10));
     } else if (fklIsNumberCharBuf(buf, len)) {
         if (fklIsHexInt(buf, len))
-            for (size_t i = 2; i < len && isxdigit(buf[i]); i++)
+            for (size_t i = 2; i < len && fklIsXDigit(buf[i]); i++)
                 ch = ch * 16
-                   + (isdigit(buf[i]) ? buf[i] - '0'
-                                      : (toupper(buf[i]) - 'A' + 10));
+                   + (fklIsDigit(buf[i]) ? buf[i] - '0'
+                                         : (fklToUpper(buf[i]) - 'A' + 10));
         else if (fklIsOctInt(buf, len))
-            for (size_t i = 1; i < len && isdigit(buf[i]) && buf[i] < '8'; i++)
+            for (size_t i = 1; i < len && fklIsDigit(buf[i]) && buf[i] < '8';
+                    i++)
                 ch = ch * 8 + buf[i] - '0';
         else
-            for (size_t i = 0; i < len && isdigit(buf[i]); i++)
+            for (size_t i = 0; i < len && fklIsDigit(buf[i]); i++)
                 ch = ch * 10 + buf[i] - '0';
     } else {
         static const char *escapeChars = FKL_ESCAPE_CHARS;
         static const char *escapeCharsTo = FKL_ESCAPE_CHARS_TO;
-        int ch = toupper(*(buf));
+        int ch = fklToUpper(*(buf));
         for (size_t i = 0; escapeChars[i]; i++) {
             if (ch == escapeChars[i]) {
                 return escapeCharsTo[i];
@@ -198,7 +199,7 @@ int fklIsNumberCstr(const char *objStr) {
     size_t i = (*objStr == '-' || *objStr == '+') ? 1 : 0;
     int hasDot = 0;
     int hasExp = 0;
-    if (i && !isdigit(objStr[1])) {
+    if (i && !fklIsDigit(objStr[1])) {
         return 0;
     } else {
         if (!strncmp(objStr + i, "0x", 2) || !strncmp(objStr + i, "0X", 2)) {
@@ -209,8 +210,8 @@ int fklIsNumberCstr(const char *objStr) {
                     } else {
                         hasDot = 1;
                     }
-                } else if (!isxdigit(objStr[i])) {
-                    if (toupper(objStr[i]) == 'P') {
+                } else if (!fklIsXDigit(objStr[i])) {
+                    if (fklToUpper(objStr[i]) == 'P') {
                         if (i < 3 || hasExp || i > (len - 2))
                             return 0;
                         hasExp = 1;
@@ -225,8 +226,8 @@ int fklIsNumberCstr(const char *objStr) {
                         return 0;
                     else
                         hasDot = 1;
-                } else if (!isdigit(objStr[i])) {
-                    if (toupper(objStr[i]) == 'E') {
+                } else if (!fklIsDigit(objStr[i])) {
+                    if (fklToUpper(objStr[i]) == 'E') {
                         if (i < 1 || hasExp || i > (len - 2))
                             return 0;
                         hasExp = 1;
@@ -328,7 +329,7 @@ void fklPrintCharLiteral2(int chr, FklStrBuilder *build) {
         fklStrBuilderPuts(build, "\\0");
     else if (fklStrBuilderPutEscSeq(build, chr))
         ;
-    else if (isgraph(chr)) {
+    else if (fklIsGraph(chr)) {
         if (chr == '\\')
             fklStrBuilderPuts(build, "\\");
         else
@@ -446,13 +447,13 @@ char *fklRelpath(const char *start, const char *path) {
         char *start_drive = start_parts[0];
         char *path_drive = path_parts[0];
 
-        while (*start_drive && isspace(*start_drive))
+        while (*start_drive && fklIsSpace(*start_drive))
             start_drive++;
 
-        while (*path_drive && isspace(*path_drive))
+        while (*path_drive && fklIsSpace(*path_drive))
             path_drive++;
 
-        if (toupper(*start_drive) != toupper(*path_drive))
+        if (fklToUpper(*start_drive) != fklToUpper(*path_drive))
             goto exit;
     }
     if (!common_prefix_len)
@@ -505,11 +506,11 @@ char *fklStrTok(char *str, const char *divstr, char **context) {
 }
 
 char *fklTrim(char *str) {
-    for (; *str && isspace(*str); str++)
+    for (; *str && fklIsSpace(*str); str++)
         ;
     char *end = &str[strlen(str) - 1];
     for (; *end && end >= str; end--)
-        if (isspace(*end))
+        if (fklIsSpace(*end))
             *end = '\0';
     return str;
 }
@@ -681,24 +682,24 @@ char *fklCastEscapeCharBuf(const char *str, size_t size, size_t *psize) {
         if (str[i] == '\\') {
             const char *backSlashStr = str + i;
             size_t len = 1;
-            if (isdigit(backSlashStr[len])) {
+            if (fklIsDigit(backSlashStr[len])) {
                 if (backSlashStr[len] == '0') {
-                    if (toupper(backSlashStr[len + 1]) == 'X') {
-                        for (len++; isxdigit(backSlashStr[len]) && len < 5;
+                    if (fklToUpper(backSlashStr[len + 1]) == 'X') {
+                        for (len++; fklIsXDigit(backSlashStr[len]) && len < 5;
                                 len++)
                             ;
                     } else {
-                        for (; isdigit(backSlashStr[len])
+                        for (; fklIsDigit(backSlashStr[len])
                                 && backSlashStr[len] < '8' && len < 5;
                                 len++)
                             ;
                     }
                 } else {
-                    for (; isdigit(backSlashStr[len]) && len < 4; len++)
+                    for (; fklIsDigit(backSlashStr[len]) && len < 4; len++)
                         ;
                 }
-            } else if (toupper(backSlashStr[len]) == 'X') {
-                for (len++; isxdigit(backSlashStr[len]) && len < 4; len++)
+            } else if (fklToUpper(backSlashStr[len]) == 'X') {
+                for (len++; fklIsXDigit(backSlashStr[len]) && len < 4; len++)
                     ;
             } else {
                 len++;
@@ -768,12 +769,12 @@ int fklIsDecInt(const char *cstr, size_t maxLen) {
         else
             return 0;
     }
-    if (isdigit(cstr[idx]) && cstr[idx] != '0')
+    if (fklIsDigit(cstr[idx]) && cstr[idx] != '0')
         idx++;
     else
         return 0;
     for (; idx < maxLen; idx++)
-        if (!isdigit(cstr[idx]))
+        if (!fklIsDigit(cstr[idx]))
             return 0;
     return 1;
 }
@@ -815,7 +816,7 @@ int fklIsHexInt(const char *cstr, size_t maxLen) {
     else
         return 0;
     for (; idx < maxLen; idx++)
-        if (!isxdigit(cstr[idx]))
+        if (!fklIsXDigit(cstr[idx]))
             return 0;
     return 1;
 }
@@ -837,7 +838,7 @@ int fklIsDecFloat(const char *cstr, size_t maxLen) {
     } else {
         size_t old_idx = idx;
         for (; idx < maxLen; idx++)
-            if (!isdigit(cstr[idx]))
+            if (!fklIsDigit(cstr[idx]))
                 break;
         if (idx == maxLen || idx == old_idx)
             return 0;
@@ -845,7 +846,7 @@ int fklIsDecFloat(const char *cstr, size_t maxLen) {
             idx++;
         after_dot:
             for (; idx < maxLen; idx++)
-                if (!isdigit(cstr[idx]))
+                if (!fklIsDigit(cstr[idx]))
                     break;
             if (idx == maxLen)
                 return 1;
@@ -861,7 +862,7 @@ int fklIsDecFloat(const char *cstr, size_t maxLen) {
             if (maxLen - idx < 1)
                 return 0;
             for (; idx < maxLen; idx++)
-                if (!isdigit(cstr[idx]))
+                if (!fklIsDigit(cstr[idx]))
                     return 0;
         } else
             return 0;
@@ -893,7 +894,7 @@ int fklIsHexFloat(const char *cstr, size_t maxLen) {
         goto after_dot;
     } else {
         for (; idx < maxLen; idx++)
-            if (!isxdigit(cstr[idx]))
+            if (!fklIsXDigit(cstr[idx]))
                 break;
         if (idx == maxLen)
             return 0;
@@ -901,7 +902,7 @@ int fklIsHexFloat(const char *cstr, size_t maxLen) {
             idx++;
         after_dot:
             for (; idx < maxLen; idx++)
-                if (!isxdigit(cstr[idx]))
+                if (!fklIsXDigit(cstr[idx]))
                     break;
             if (idx == maxLen)
                 return 0;
@@ -917,7 +918,7 @@ int fklIsHexFloat(const char *cstr, size_t maxLen) {
             if (maxLen - idx < 1)
                 return 0;
             for (; idx < maxLen; idx++)
-                if (!isxdigit(cstr[idx]))
+                if (!fklIsXDigit(cstr[idx]))
                     return 0;
         } else
             return 0;
@@ -927,7 +928,7 @@ int fklIsHexFloat(const char *cstr, size_t maxLen) {
 
 int fklIsAllDigit(const char *cstr, size_t len) {
     for (const char *end = cstr + len; cstr < end; cstr++)
-        if (!isdigit(*cstr))
+        if (!fklIsDigit(*cstr))
             return 0;
     return 1;
 }

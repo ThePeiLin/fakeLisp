@@ -1,5 +1,6 @@
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/opcode.h>
 #include <fakeLisp/parser.h>
 #include <fakeLisp/pattern.h>
@@ -9,7 +10,6 @@
 #include <fakeLisp/vm.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <ctype.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdalign.h>
@@ -1775,12 +1775,12 @@ static inline uint64_t format_f64(FklStrBuf *buf,
         void (*outc)(void *, int),
         void *buffer) {
     if (isnan(value)) {
-        out_cstr(outc, buffer, isupper(ch) ? "NAN" : "nan");
+        out_cstr(outc, buffer, fklIsUpper(ch) ? "NAN" : "nan");
         return 3;
     }
     int neg = signbit(value);
     if (isinf(value)) {
-        if (isupper(ch)) {
+        if (fklIsUpper(ch)) {
             if (neg)
                 out_cstr(outc, buffer, "-inf");
             else if (flags & FLAGS_PLUS)
@@ -1920,7 +1920,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         }
     break_loop:
         width = 0;
-        if (isdigit(*fmt)) {
+        if (fklIsDigit(*fmt)) {
             width = strtol(fmt, (char **)&fmt, 10);
         } else if (*fmt == '*') {
             if (cur_val >= val_end) {
@@ -1947,7 +1947,7 @@ static inline FklBuiltinErrorType vm_format_to_buf(FklVM *exe,
         if (*fmt == '.') {
             flags |= FLAGS_PRECISION;
             fmt++;
-            if (isdigit(*fmt))
+            if (fklIsDigit(*fmt))
                 precision = strtol(fmt, (char **)&fmt, 10);
             else if (*fmt == '*') {
                 if (cur_val >= val_end) {

@@ -1,10 +1,10 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <ctype.h>
 #include <limits.h>
 #include <string.h>
 
@@ -341,7 +341,7 @@ void fklInitBigIntWithDecCharBuf(FklBigInt *b, const char *buf, size_t len) {
     *b = FKL_BIGINT_0;
     int neg = buf[0] == '-';
     size_t offset = neg || buf[0] == '+';
-    for (size_t i = offset; i < len && isdigit(buf[i]); i++) {
+    for (size_t i = offset; i < len && fklIsDigit(buf[i]); i++) {
         fklMulBigIntI(b, 10);
         fklAddBigIntI(b, DigitValue[(unsigned char)buf[i]]);
     }

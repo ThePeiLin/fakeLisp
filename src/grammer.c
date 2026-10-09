@@ -1,6 +1,7 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/dis.h>
 #include <fakeLisp/grammer.h>
 #include <fakeLisp/parser.h>
@@ -13,7 +14,6 @@
 
 #include <fakeLisp/sb_helper.h>
 
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdalign.h>
 #include <stdio.h>
@@ -1256,7 +1256,7 @@ print_string_as_dot(const char *str, char se, size_t size, FklStrBuilder *out) {
                 fklStrBuilderPuts(out, "\\'");
             else if (str[i] == '\\')
                 fklStrBuilderPuts(out, "\\\\");
-            else if (isgraph(str[i]))
+            else if (fklIsGraph(str[i]))
                 fklStrBuilderPutc(out, str[i]);
             else if (fklStrBuilderPutEscSeq(out, str[i]))
                 ;
@@ -3196,7 +3196,7 @@ static inline void print_symbol_for_grapheasy(const FklString *stri,
                 fklStrBuilderPuts(fp, "\\|");
             else if (str[i] == ']')
                 fklStrBuilderPuts(fp, "\\]");
-            else if (isgraph(str[i]))
+            else if (fklIsGraph(str[i]))
                 fklStrBuilderPutc(fp, str[i]);
             else if (fklStrBuilderPutEscSeq(fp, str[i]))
                 ;
@@ -3235,7 +3235,7 @@ static inline void print_string_for_grapheasy(const FklString *stri,
                 fklStrBuilderPuts(fp, "\\|");
             else if (str[i] == ']')
                 fklStrBuilderPuts(fp, "\\]");
-            else if (isgraph(str[i]))
+            else if (fklIsGraph(str[i]))
                 fklStrBuilderPutc(fp, str[i]);
             else if (fklStrBuilderPutEscSeq(fp, str[i]))
                 ;
@@ -5189,9 +5189,9 @@ int fklParseBuiltinTermSrc(FklBuiltinTermSrcHashMap *maps,
             const char *name_cur = name_pos;
 
             // skip space
-            for (; *name_cur != '\0' && isspace(*name_cur); ++name_cur)
+            for (; *name_cur != '\0' && fklIsSpace(*name_cur); ++name_cur)
                 ;
-            for (; *name_cur != '\0' && *name_cur != ')' && !isspace(*name_cur);
+            for (; *name_cur != '\0' && *name_cur != ')' && !fklIsSpace(*name_cur);
                     ++name_cur) {
                 name_len++;
             }

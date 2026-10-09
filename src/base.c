@@ -2,12 +2,12 @@
 #include <fakeLisp/bigint.h>
 #include <fakeLisp/bytecode.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/str_buf.h>
 #include <fakeLisp/str_builder.h>
 #include <fakeLisp/utils.h>
 #include <fakeLisp/zmalloc.h>
 
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -218,7 +218,7 @@ void fklPrintBufLiteralExt(size_t size,
                 fklStrBuilderPutc(b, se);
             } else if (str[i] == '\\')
                 fklStrBuilderPuts(b, "\\\\");
-            else if (isgraph(str[i]))
+            else if (fklIsGraph(str[i]))
                 fklStrBuilderPutc(b, str[i]);
             else if (fklStrBuilderPutEscSeq(b, str[i]))
                 ;
@@ -333,7 +333,7 @@ void fklPrintBytesLiteral2(const FklBytes *bytes, FklStrBuilder *b) {
             fklStrBuilderPutc(b, SE);
         } else if (ch == '\\')
             fklStrBuilderPuts(b, "\\\\");
-        else if (isgraph(ch))
+        else if (fklIsGraph(ch))
             fklStrBuilderPutc(b, ch);
         else if (fklStrBuilderPutEscSeq(b, ch))
             ;

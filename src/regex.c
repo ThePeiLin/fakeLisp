@@ -1,5 +1,6 @@
 #include <fakeLisp/base.h>
 #include <fakeLisp/common.h>
+#include <fakeLisp/ctype.h>
 #include <fakeLisp/regex.h>
 #include <fakeLisp/str_builder.h>
 #include <fakeLisp/utils.h>
@@ -7,7 +8,6 @@
 
 #include <fakeLisp/sb_helper.h>
 
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,12 +28,13 @@ struct ReCompileCtx {
     uint32_t stcnt;
 };
 
-static inline size_t count_number_esc_char(const char *pat, size_t len) {
-    if (toupper(*pat) == 'X') {
+static inline size_t count_number_esc_char(const char *pat_signed, size_t len) {
+    const uint8_t *pat = (const uint8_t *)pat_signed;
+    if (fklToUpper(*pat) == 'X') {
         size_t i = 1;
-        if (i < len && isxdigit(pat[i]))
+        if (i < len && fklIsXDigit(pat[i]))
             i++;
-        if (i < len && isxdigit(pat[i]))
+        if (i < len && fklIsXDigit(pat[i]))
             i++;
         return i;
     } else if (*pat >= '0' && *pat < '9') {
@@ -51,7 +52,7 @@ static inline int esc_char_to_char(const char *pat, size_t len) {
     char tmp[4];
     memcpy(tmp, pat, len > 3 ? 3 : len);
     tmp[3] = '\0';
-    if (toupper(*pat) == 'X' && len > 1)
+    if (fklToUpper(*pat) == 'X' && len > 1)
         return strtol(&tmp[1], NULL, 16);
     else if (*pat >= '0' && *pat < '9')
         return strtol(tmp, NULL, 8);
@@ -412,7 +413,7 @@ static inline void print_char(int ch, FILE *fp) {
         fputs("\\[", fp);
     else if (ch == ']')
         fputs("\\]", fp);
-    else if (isgraph(ch))
+    else if (fklIsGraph(ch))
         fprintf(fp, "%c", ch);
     else
         fprintf(fp, "\\x%X", (uint8_t)ch);
@@ -556,22 +557,22 @@ matchone(const FklRegexObj *cur, const uint8_t *patrns, uint8_t c) {
         return match_inv_char_class(c, &patrns[cur->ccl]);
         break;
     case FKL_REGEX_DIGITS:
-        return isdigit(c);
+        return fklIsDigit(c);
         break;
     case FKL_REGEX_NOT_DIGITS:
-        return !isdigit(c);
+        return !fklIsDigit(c);
         break;
     case FKL_REGEX_ALPHA:
-        return isalnum(c);
+        return fklIsAlnum(c);
         break;
     case FKL_REGEX_NOT_ALPHA:
-        return !isalnum(c);
+        return !fklIsAlnum(c);
         break;
     case FKL_REGEX_WHITESPACE:
-        return isspace(c);
+        return fklIsSpace(c);
         break;
     case FKL_REGEX_NOT_WHITESPACE:
-        return !isspace(c);
+        return !fklIsSpace(c);
         break;
     case FKL_REGEX_CHAR:
         return cur->ch == c;

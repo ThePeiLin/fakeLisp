@@ -96,9 +96,8 @@ monitor_desc_inliner_get(FklBuiltinDescCtx *ctx, size_t idx, size_t arg_count) {
 static FklVMvalue **g_combined_refs = NULL;
 static size_t g_refs_dtor_calls = 0;
 
-static void monitor_desc_refs_dtor(FklBuiltinDescCtx *ctx,
-        FklVM *vm,
-        FklVMvalue **refs) {
+static void
+monitor_desc_refs_dtor(FklBuiltinDescCtx *ctx, FklVM *vm, FklVMvalue **refs) {
     (void)ctx;
     (void)vm;
     ++g_refs_dtor_calls;
@@ -112,7 +111,8 @@ static FklVMvalue **monitor_desc_refs(FklBuiltinDescCtx *ctx, FklVM *vm) {
 
     if (g_combined_refs == NULL) {
         size_t const n = base->count(base->ctx);
-        g_combined_refs = (FklVMvalue **)fklZmalloc((n + 1) * sizeof(FklVMvalue *));
+        g_combined_refs =
+                (FklVMvalue **)fklZmalloc((n + 1) * sizeof(FklVMvalue *));
         FKL_ASSERT(g_combined_refs);
 
         FklVMvalue **base_refs = base->refs(base->ctx, vm);
@@ -120,8 +120,7 @@ static FklVMvalue **monitor_desc_refs(FklBuiltinDescCtx *ctx, FklVM *vm) {
             g_combined_refs[i] = base_refs[i];
 
         g_monitor_builtin.cproc =
-                (FklVMvalueCproc)FKL_VM_CPROC_STATIC_INIT("vm-monitor",
-                        monitor_fn);
+                FKL_VM_CPROC_STATIC_INIT("vm-monitor", monitor_fn);
         fklInitClosedVMvalueVarRef(&g_monitor_builtin.ref,
                 FKL_VM_VAL(&g_monitor_builtin.cproc));
         g_combined_refs[n] = FKL_VM_VAL(&g_monitor_builtin.ref);

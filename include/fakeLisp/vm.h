@@ -2410,10 +2410,14 @@ FklVMvalue *fklVMpathVecToString(FklVM *vm, FklVMvalue *path_vec);
 FKL_API
 FklVMvalue *fklVMpathStrToVec(FklVM *vm, const char *p);
 
-#define FKL_PANIC(FMT, ...)                                                           \
-    do {                                                                              \
-        fprintf(stderr, "[%s: %d] " FMT "\n", __REL_FILE__, __LINE__, ##__VA_ARGS__); \
-        abort();                                                                      \
+#define FKL_PANIC(FMT, ...)                                                    \
+    do {                                                                       \
+        fprintf(stderr,                                                        \
+                "[%s: %d] " FMT "\n",                                          \
+                __REL_FILE__,                                                  \
+                __LINE__,                                                      \
+                ##__VA_ARGS__);                                                \
+        abort();                                                               \
     } while (0)
 
 #ifdef __cplusplus

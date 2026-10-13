@@ -5,11 +5,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-		"CMAKE_BUILD_TYPE is not set, use release as default CMAKE_BUILD_TYPE" FORCE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "CMAKE_BUILD_TYPE is not set, use release as default CMAKE_BUILD_TYPE" FORCE)
 endif()
 option(GPROF "enable gprof" OFF)
 option(ASAN "enable asan" OFF)
@@ -17,20 +18,20 @@ option(TSAN "enable tsan" OFF)
 option(FANALYZER "enable fanalyzer" OFF)
 
 if(GPROF)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 endif()
 
 if(ASAN)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
 endif()
 
 if(TSAN)
-	list(APPEND LINK_TARGET tsan)
-	add_compile_options(-fsanitize=thread)
+    list(APPEND LINK_TARGET tsan)
+    add_compile_options(-fsanitize=thread)
 endif()
 
 #target names
@@ -49,11 +50,11 @@ set(BIN2H bin2h)
 project(${INTERPRETER_TARGET_NAME})
 
 if((CMAKE_C_COMPILER_ID STREQUAL "GNU")
-	OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
-	set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-	list(APPEND LINK_TARGET m dl)
+    OR (CMAKE_C_COMPILER_ID STREQUAL "Clang"))
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
+    set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+    list(APPEND LINK_TARGET m dl)
 endif()
 
 #argtable3
@@ -73,70 +74,75 @@ set(GENERATED_HEADER_DIR "${PROJECT_BINARY_DIR}/generated-header")
 include(CMakePrintHelpers)
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
+if(MSVC)
+    # MSVC: /W0 表示关闭所有警告，/wdXXXX 可屏蔽特定警告
+    target_compile_options(${FKL_LIBUV} PRIVATE /W0)
+endif()
+
 set(LIB_PATH "${PROJECT_BINARY_DIR}/lib/")
 #copy lib/*.fkl
 add_custom_target(COPY_LIB ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ ${LIB_PATH}
-	BYPRODUCTS ${LIB_PATH}
-	VERBATIM)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/lib/ ${LIB_PATH}
+    BYPRODUCTS ${LIB_PATH}
+    VERBATIM)
 
 #copy tests/*.fkl
 add_custom_target(COPY_TEST ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/tests/ ${PROJECT_BINARY_DIR}/tests/
-	BYPRODUCTS ${PROJECT_BINARY_DIR}/tests/
-	VERBATIM)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/tests/ ${PROJECT_BINARY_DIR}/tests/
+    BYPRODUCTS ${PROJECT_BINARY_DIR}/tests/
+    VERBATIM)
 
 #warnnig setting
 if(MSVC)
-	add_compile_options(/W4 /experimental:c11atomics /utf-8)
-	add_compile_options(/D_SCL_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS)
-	add_compile_options(/wd4100 /wd4702 /wd4456)
-	add_compile_options(/wd4457 /wd4459)
-	add_compile_options(/we4013)
+    add_compile_options(/W4 /experimental:c11atomics /utf-8)
+    add_compile_options(/D_SCL_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(/wd4100 /wd4702 /wd4456)
+    add_compile_options(/wd4457 /wd4459)
+    add_compile_options(/we4013)
 elseif(("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
-	include(CheckCCompilerFlag)
-	set(GCC_OPTIONS)
-	list(APPEND GCC_OPTIONS -Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
-	list(APPEND GCC_OPTIONS -Wno-format-zero-length)
-	list(APPEND GCC_OPTIONS -Werror=return-type)
-	list(APPEND GCC_OPTIONS -Werror=incompatible-pointer-types)
-	list(APPEND GCC_OPTIONS -Werror=implicit-function-declaration)
-	list(APPEND GCC_OPTIONS -Werror=int-conversion)
-	list(APPEND GCC_OPTIONS -Werror=switch)
-	list(APPEND GCC_OPTIONS -Werror=pointer-to-int-cast)
-	list(APPEND GCC_OPTIONS -Werror=compare-distinct-pointer-types)
+    include(CheckCCompilerFlag)
+    set(GCC_OPTIONS)
+    list(APPEND GCC_OPTIONS -Wall -Wextra -Wno-unused-parameter -Wpointer-arith)
+    list(APPEND GCC_OPTIONS -Wno-format-zero-length)
+    list(APPEND GCC_OPTIONS -Werror=return-type)
+    list(APPEND GCC_OPTIONS -Werror=incompatible-pointer-types)
+    list(APPEND GCC_OPTIONS -Werror=implicit-function-declaration)
+    list(APPEND GCC_OPTIONS -Werror=int-conversion)
+    list(APPEND GCC_OPTIONS -Werror=switch)
+    list(APPEND GCC_OPTIONS -Werror=pointer-to-int-cast)
+    list(APPEND GCC_OPTIONS -Werror=compare-distinct-pointer-types)
 
-	foreach(flag ${GCC_OPTIONS})
-		string(REPLACE "=" "_" var_name "HAVE_${flag}")   # 生成变量名，例如 HAVE_-Wformat_2
-		check_c_compiler_flag(${flag} ${var_name})
-		if(${var_name})
-		    add_compile_options(${flag})
-		endif()
-	endforeach()
+    foreach(flag ${GCC_OPTIONS})
+        string(REPLACE "=" "_" var_name "HAVE_${flag}") # 生成变量名，例如 HAVE_-Wformat_2
+        check_c_compiler_flag(${flag} ${var_name})
+        if(${var_name})
+            add_compile_options(${flag})
+        endif()
+    endforeach()
 
-# add_compile_options(-Wfatal-errors)
+    # add_compile_options(-Wfatal-errors)
 endif()
 
 # steal from: https://www.rayalto.org/2024/03/21/cmake-relative-file-macro/
 # Add a relative path version of the __FILE__ macro named __REL_FILE__ to all source files of the target.
 include(CheckSymbolExists)
 function(target_define_relative_file target_name)
-	get_target_property(target_srcs "${target_name}" SOURCES)
-	foreach(target_src ${target_srcs})
-		if(IS_ABSOLUTE ${target_src})
-			file(RELATIVE_PATH target_src_relpath ${PROJECT_SOURCE_DIR} ${target_src})
-		else()
-			set(target_src_relpath ${target_src})
-		endif()
-		set_property(SOURCE ${target_src} APPEND PROPERTY COMPILE_DEFINITIONS "__REL_FILE__=\"${target_src_relpath}\"")
-	endforeach()
+    get_target_property(target_srcs "${target_name}" SOURCES)
+    foreach(target_src ${target_srcs})
+        if(IS_ABSOLUTE ${target_src})
+            file(RELATIVE_PATH target_src_relpath ${PROJECT_SOURCE_DIR} ${target_src})
+        else()
+            set(target_src_relpath ${target_src})
+        endif()
+        set_property(SOURCE ${target_src} APPEND PROPERTY COMPILE_DEFINITIONS "__REL_FILE__=\"${target_src_relpath}\"")
+    endforeach()
 endfunction()
 
 file(GLOB LIBFKL_SOURCE "src/*.c")
 
 add_library(grammer_lib
-	OBJECT
-	${LIBFKL_SOURCE})
+    OBJECT
+    ${LIBFKL_SOURCE})
 add_dependencies(grammer_lib lisp.g)
 target_compile_definitions(grammer_lib PRIVATE DEFINE_PUSH_STATE0)
 target_link_libraries(grammer_lib $<LINK_LIBRARY:WHOLE_ARCHIVE,uv_a>)
@@ -177,13 +183,13 @@ target_define_relative_file(test-ins)
 add_executable(test-path "main/tests/path.c")
 target_link_libraries(test-path grammer_lib ${LINK_TARGET})
 target_compile_definitions(test-path PRIVATE
-	TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
+    TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
 target_define_relative_file(test-path)
 
 add_executable(test-abspath "main/tests/abspath.c")
 target_link_libraries(test-abspath grammer_lib ${LINK_TARGET})
 target_compile_definitions(test-abspath PRIVATE
-	TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
+    TEST_DIR_PATH="${PROJECT_SOURCE_DIR}/tests")
 target_define_relative_file(test-abspath)
 
 # print some struct size
@@ -193,7 +199,7 @@ target_define_relative_file(psssize)
 
 #grammer
 file(GLOB GRAMMER_GEN_SOURCE
-	"main/grammer.c"
+    "main/grammer.c"
 )
 
 add_executable(${GRAMMER_GEN} ${GRAMMER_GEN_SOURCE})
@@ -203,8 +209,8 @@ target_define_relative_file(${GRAMMER_GEN})
 add_executable(test-lexer3 "main/tests/lexer3.c")
 target_link_libraries(test-lexer3 grammer_lib ${LINK_TARGET})
 target_compile_definitions(test-lexer3 PRIVATE
-	ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
-	BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
+    ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
+    BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
 )
 target_define_relative_file(test-lexer3)
 
@@ -215,8 +221,8 @@ target_define_relative_file(test-lexer4)
 add_executable(test-lexer5 "main/tests/lexer5.c")
 target_link_libraries(test-lexer5 grammer_lib ${LINK_TARGET})
 target_compile_definitions(test-lexer5 PRIVATE
-	ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
-	BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
+    ACTION_FILE_PATH="${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c"
+    BUILTIN_TERM_PATH="${PROJECT_SOURCE_DIR}/src/grammer/builtin.c"
 )
 target_define_relative_file(test-lexer5)
 
@@ -248,17 +254,17 @@ add_executable(test-parser-grammer "main/tests/parser-grammer.c")
 add_dependencies(test-parser-grammer lisp.g)
 target_link_libraries(test-parser-grammer grammer_lib ${LINK_TARGET})
 target_define_relative_file(test-parser-grammer)
- 
+
 add_executable(test-dns "main/tests/dns.c")
 add_executable(test-fs-event "main/tests/fs_event.c")
 target_define_relative_file(test-fs-event)
 
 if(MSVC)
-	target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
-	target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
+    target_link_libraries(test-dns $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
+    target_link_libraries(test-fs-event $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 else()
-	target_link_libraries(test-dns ${FKL_LIBUV} ${LINK_TARGET})
-	target_link_libraries(test-fs-event ${FKL_LIBUV} ${LINK_TARGET})
+    target_link_libraries(test-dns ${FKL_LIBUV} ${LINK_TARGET})
+    target_link_libraries(test-fs-event ${FKL_LIBUV} ${LINK_TARGET})
 endif()
 
 #generated-header
@@ -273,37 +279,37 @@ file(GLOB BYTECODE_PRINTER_SOURCE "main/fakeLispp.c")
 
 #vmparser.o
 add_library(${VMPARSE}
-	OBJECT
-	"vmparse.c")
+    OBJECT
+    "vmparse.c")
 set_target_properties(${VMPARSE} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_define_relative_file(${VMPARSE})
 target_compile_definitions(${VMPARSE} PRIVATE FKL_BUILDING_DLL=1)
 
 if(ASAN)
-	set_target_properties(${VMPARSE} PROPERTIES
-		POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(${VMPARSE} PROPERTIES
+        POSITION_INDEPENDENT_CODE ON)
 endif()
 
 #libfkl_a.a
 add_library(${LIBFKL_STATIC_TARGET_NAME}
-	STATIC
-	${LIBFKL_SOURCE})
+    STATIC
+    ${LIBFKL_SOURCE})
 add_dependencies(${LIBFKL_STATIC_TARGET_NAME} lisp.g)
 set_target_properties(${LIBFKL_STATIC_TARGET_NAME} PROPERTIES
-	POSITION_INDEPENDENT_CODE ON)
+    POSITION_INDEPENDENT_CODE ON)
 target_define_relative_file(${LIBFKL_STATIC_TARGET_NAME})
 
 #libfkl.so
 add_library(${LIBFKL_TARGET_NAME}
-	SHARED
-	${LIBFKL_SOURCE})
+    SHARED
+    ${LIBFKL_SOURCE})
 add_dependencies(${LIBFKL_TARGET_NAME} lisp.g)
 target_compile_definitions(${LIBFKL_TARGET_NAME}
-	INTERFACE
-		FKL_USING_DLL=1
-		USING_UV_SHARED=1
-	PRIVATE
-		FKL_BUILDING_DLL=1)
+    INTERFACE
+    FKL_USING_DLL=1
+    USING_UV_SHARED=1
+    PRIVATE
+    FKL_BUILDING_DLL=1)
 target_define_relative_file(${LIBFKL_TARGET_NAME})
 
 #fakeLisp, fakeLispc, fakeLispp
@@ -323,144 +329,144 @@ target_link_libraries(${BIN2H} argtable3 ${LINK_TARGET})
 target_define_relative_file(${BIN2H})
 
 function(add_fkl_native_module name)
-	set(options)
-	set(oneValueArgs OUTPUT_DIR)
-	set(multiValueArgs SRC LIB)
-	cmake_parse_arguments(MOD "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-	message(STATUS "module name: ${name}")
-	list(APPEND CMAKE_MESSAGE_INDENT "	")
-	cmake_print_variables(MOD_OUTPUT_DIR)
-	message(STATUS "sources:")
-	list(APPEND CMAKE_MESSAGE_INDENT "	")
-	foreach(src ${MOD_SRC})
-		message(STATUS "${src}")
-	endforeach()
-	list(POP_BACK CMAKE_MESSAGE_INDENT)
+    set(options)
+    set(oneValueArgs OUTPUT_DIR)
+    set(multiValueArgs SRC LIB)
+    cmake_parse_arguments(MOD "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    message(STATUS "module name: ${name}")
+    list(APPEND CMAKE_MESSAGE_INDENT "	")
+    cmake_print_variables(MOD_OUTPUT_DIR)
+    message(STATUS "sources:")
+    list(APPEND CMAKE_MESSAGE_INDENT "	")
+    foreach(src ${MOD_SRC})
+        message(STATUS "${src}")
+    endforeach()
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
 
-	message(STATUS "link libraries:")
-	list(APPEND CMAKE_MESSAGE_INDENT "	")
-	foreach(lib ${MOD_LIB})
-		message(STATUS "${lib}")
-	endforeach()
-	list(POP_BACK CMAKE_MESSAGE_INDENT)
-	message("")
-	list(POP_BACK CMAKE_MESSAGE_INDENT)
-	add_library(${name} SHARED ${MOD_SRC})
-	set_target_properties(${name} PROPERTIES PREFIX "")
-	target_define_relative_file(${name})
-	target_link_libraries(${name} PRIVATE ${LIBFKL_TARGET_NAME} ${MOD_LIB})
-	if(MSVC)
-		add_custom_command(TARGET ${name} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
-			COMMENT "Copying ${name}"
-			VERBATIM)
-	else()
-		set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
-	endif()
+    message(STATUS "link libraries:")
+    list(APPEND CMAKE_MESSAGE_INDENT "	")
+    foreach(lib ${MOD_LIB})
+        message(STATUS "${lib}")
+    endforeach()
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    message("")
+    list(POP_BACK CMAKE_MESSAGE_INDENT)
+    add_library(${name} SHARED ${MOD_SRC})
+    set_target_properties(${name} PROPERTIES PREFIX "")
+    target_define_relative_file(${name})
+    target_link_libraries(${name} PRIVATE ${LIBFKL_TARGET_NAME} ${MOD_LIB})
+    if(MSVC)
+        add_custom_command(TARGET ${name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${name}> "${MOD_OUTPUT_DIR}"
+            COMMENT "Copying ${name}"
+            VERBATIM)
+    else()
+        set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MOD_OUTPUT_DIR}")
+    endif()
 endfunction()
 
 #ht.so
 add_fkl_native_module(ht
-	SRC "src/ht/ht.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/ht/ht.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #os.so
 add_fkl_native_module(os
-	SRC "src/os/os.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/os/os.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #math.so
 add_fkl_native_module(math
-	SRC "src/math/math.c"
-	LIB ${LINK_TARGET}
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/math/math.c"
+    LIB ${LINK_TARGET}
+    OUTPUT_DIR ${LIB_PATH})
 
 #sync.so
 add_fkl_native_module(sync
-	SRC "src/sync/sync.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/sync/sync.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #fs.so
 add_fkl_native_module(fs
-	SRC "src/fs/fs.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/fs/fs.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #bdb.so
 file(GLOB BDB_SOURCE "src/bdb/*.c")
 add_fkl_native_module(bdb
-	 SRC ${BDB_SOURCE}
-	 OUTPUT_DIR ${LIB_PATH})
+    SRC ${BDB_SOURCE}
+    OUTPUT_DIR ${LIB_PATH})
 
 # fuv-header
 set(FUV_HEADER fuv-header)
 set(FUV_MACRO_HEADER "${GENERATED_HEADER_DIR}/fuv-macros.h")
 file(GLOB FUV_HEADER_SOURCE
-	"main/fuv-header.c")
+    "main/fuv-header.c")
 
 add_executable(${FUV_HEADER} ${FUV_HEADER_SOURCE})
 target_link_libraries(${FUV_HEADER} argtable3 grammer_lib ${LINK_TARGET})
 
 add_custom_command(OUTPUT ${FUV_MACRO_HEADER}
-	COMMAND $<TARGET_FILE:${FUV_HEADER}>
-	"-o" ${FUV_MACRO_HEADER}
-	DEPENDS ${FUV_HEADER} ${GENERATED_HEADER_DIR}
-	VERBATIM)
+    COMMAND $<TARGET_FILE:${FUV_HEADER}>
+    "-o" ${FUV_MACRO_HEADER}
+    DEPENDS ${FUV_HEADER} ${GENERATED_HEADER_DIR}
+    VERBATIM)
 
 #fuv.so
 file(GLOB FUV_SOURCE "src/fuv/*.c")
 add_fkl_native_module(fuv
-	SRC ${FUV_SOURCE} ${FUV_MACRO_HEADER}
-	LIB $<$<BOOL:${MSVC}>:ws2_32>
-	OUTPUT_DIR ${LIB_PATH})
+    SRC ${FUV_SOURCE} ${FUV_MACRO_HEADER}
+    LIB $<$<BOOL:${MSVC}>:ws2_32>
+    OUTPUT_DIR ${LIB_PATH})
 
 #buf.so
 add_fkl_native_module(buf
-	SRC "src/buf/buf.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/buf/buf.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #dvec.so
 add_fkl_native_module(dvec
-	SRC "src/dvec/dvec.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/dvec/dvec.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 #bvec.so
 add_fkl_native_module(bvec
-	SRC "src/bvec/bvec.c"
-	OUTPUT_DIR ${LIB_PATH})
+    SRC "src/bvec/bvec.c"
+    OUTPUT_DIR ${LIB_PATH})
 
 if(FANALYZER)
-	set(FANALYZER_OPTIONS "-fanalyzer"
-		"-Wno-analyzer-malloc-leak"
-		"-Wno-analyzer-tainted-allocation-size"
-		"-Wno-analyzer-tainted-size"
-		"-Wno-analyzer-allocation-size"
-	)
-	target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${COMPILER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(${VMPARSE} PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(ht PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(os PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(math PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(sync PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(fs PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(bdb PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(fuv PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(buf PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(dvec PRIVATE ${FANALYZER_OPTIONS})
-	target_compile_options(bvec PRIVATE ${FANALYZER_OPTIONS})
+    set(FANALYZER_OPTIONS "-fanalyzer"
+        "-Wno-analyzer-malloc-leak"
+        "-Wno-analyzer-tainted-allocation-size"
+        "-Wno-analyzer-tainted-size"
+        "-Wno-analyzer-allocation-size"
+    )
+    target_compile_options(${LIBFKL_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(${LIBFKL_STATIC_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(${INTERPRETER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(${COMPILER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(${BYTECODE_PRINTER_TARGET_NAME} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(${VMPARSE} PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(ht PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(os PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(math PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(sync PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(fs PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(bdb PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(fuv PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(buf PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(dvec PRIVATE ${FANALYZER_OPTIONS})
+    target_compile_options(bvec PRIVATE ${FANALYZER_OPTIONS})
 endif()
 
 #linking
 target_link_libraries(${LIBFKL_STATIC_TARGET_NAME}
-	PUBLIC ${VMPARSE}
-	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
+    PUBLIC ${VMPARSE}
+    PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 
 target_link_libraries(${LIBFKL_TARGET_NAME}
-	PUBLIC ${VMPARSE}
-	PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
+    PUBLIC ${VMPARSE}
+    PRIVATE ${LINK_TARGET} $<LINK_LIBRARY:WHOLE_ARCHIVE,${FKL_LIBUV}>)
 
 target_link_libraries(${INTERPRETER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
 target_link_libraries(${COMPILER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argtable3 ${LINK_TARGET})
@@ -468,31 +474,31 @@ target_link_libraries(${BYTECODE_PRINTER_TARGET_NAME} ${LIBFKL_TARGET_NAME} argt
 
 #test-dll
 add_fkl_native_module(test-dll
-	SRC "main/tests/dll.c"
-	OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
+    SRC "main/tests/dll.c"
+    OUTPUT_DIR "${PROJECT_BINARY_DIR}/tests")
 
 add_custom_command(OUTPUT "vmparse.c"
-	COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
-	"vmparse.c"
-	${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
-	"fklVMvalueTerminalCreate"
-	"fklVMvalueTerminalDestroy"
-	"fklVMvaluePushState0ToStack"
-	${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
+    COMMAND $<TARGET_FILE:${GRAMMER_GEN}>
+    "vmparse.c"
+    ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
+    "fklVMvalueTerminalCreate"
+    "fklVMvalueTerminalDestroy"
+    "fklVMvaluePushState0ToStack"
+    ${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
 
     DEPENDS ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/vmaction.c
-	        ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
-	VERBATIM)
+    ${GRAMMER_GEN} ${PROJECT_SOURCE_DIR}/src/grammer/builtin.c
+    VERBATIM)
 
 # 清理
 if(MSVC)
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${LIB_PATH})
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${LIB_PATH})
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES "${PROJECT_BINARY_DIR}/tests/")
 endif()
 
 add_custom_target(MAKE_GENERATED_HEADER_DIR ALL
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
-	BYPRODUCTS ${GENERATED_HEADER_DIR})
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
+    BYPRODUCTS ${GENERATED_HEADER_DIR})
 
 function(add_bin2h target_name dir name)
     set(INPUT_FILE ${dir}/${name})
@@ -501,8 +507,8 @@ function(add_bin2h target_name dir name)
     add_custom_command(OUTPUT ${OUTPUT_FILE}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${GENERATED_HEADER_DIR}
         COMMAND $<TARGET_FILE:${BIN2H}>
-                -o ${OUTPUT_FILE}
-                -i ${INPUT_FILE}
+        -o ${OUTPUT_FILE}
+        -i ${INPUT_FILE}
         DEPENDS ${BIN2H} ${INPUT_FILE}
         VERBATIM)
 
@@ -516,103 +522,103 @@ add_bin2h(lisp.g ${PROJECT_SOURCE_DIR} "lisp.g")
 
 enable_testing()
 add_test(NAME test-lexer
-	COMMAND $<TARGET_FILE:test-lexer>)
+    COMMAND $<TARGET_FILE:test-lexer>)
 
 add_test(NAME test-lexer2
-	COMMAND $<TARGET_FILE:test-lexer2>)
+    COMMAND $<TARGET_FILE:test-lexer2>)
 
 add_test(NAME test-lexer3
-	COMMAND $<TARGET_FILE:test-lexer3>)
+    COMMAND $<TARGET_FILE:test-lexer3>)
 
 add_test(NAME test-lexer4
-	COMMAND $<TARGET_FILE:test-lexer4>)
+    COMMAND $<TARGET_FILE:test-lexer4>)
 
 add_test(NAME test-parser-grammer
-	COMMAND $<TARGET_FILE:test-parser-grammer>)
+    COMMAND $<TARGET_FILE:test-parser-grammer>)
 
 add_test(NAME test-lexer5
-	COMMAND $<TARGET_FILE:test-lexer5>)
+    COMMAND $<TARGET_FILE:test-lexer5>)
 
 add_test(NAME test-bigint
-	COMMAND $<TARGET_FILE:test-bigint>)
+    COMMAND $<TARGET_FILE:test-bigint>)
 
 add_test(NAME test-parser
-	COMMAND $<TARGET_FILE:test-parser>)
+    COMMAND $<TARGET_FILE:test-parser>)
 
 add_test(NAME test-regex
-	COMMAND $<TARGET_FILE:test-regex>)
+    COMMAND $<TARGET_FILE:test-regex>)
 
 add_test(NAME test-ins
-	COMMAND $<TARGET_FILE:test-ins>)
+    COMMAND $<TARGET_FILE:test-ins>)
 
 add_test(NAME test-no-lalr
-	COMMAND $<TARGET_FILE:test-not-lalr>)
+    COMMAND $<TARGET_FILE:test-not-lalr>)
 
 add_test(NAME test-path
-	COMMAND $<TARGET_FILE:test-path>)
+    COMMAND $<TARGET_FILE:test-path>)
 
 add_test(NAME test-abspath
-	COMMAND $<TARGET_FILE:test-abspath>)
+    COMMAND $<TARGET_FILE:test-abspath>)
 
 add_test(NAME test-vmem
-	COMMAND $<TARGET_FILE:test-vmem>)
+    COMMAND $<TARGET_FILE:test-vmem>)
 
 add_test(NAME test-mem-region
-	COMMAND $<TARGET_FILE:test-mem-region>)
+    COMMAND $<TARGET_FILE:test-mem-region>)
 
 add_test(NAME test-stack
-	COMMAND $<TARGET_FILE:test-stack>)
+    COMMAND $<TARGET_FILE:test-stack>)
 
 add_test(NAME test-frame
-	COMMAND $<TARGET_FILE:test-frame>)
+    COMMAND $<TARGET_FILE:test-frame>)
 
 add_test(NAME test-frame-call
-	COMMAND $<TARGET_FILE:test-frame-call>)
+    COMMAND $<TARGET_FILE:test-frame-call>)
 
 add_test(NAME test-tailcall
-	COMMAND $<TARGET_FILE:test-tailcall>)
+    COMMAND $<TARGET_FILE:test-tailcall>)
 
 add_test(NAME test-script
-	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests ${PROJECT_SOURCE_DIR}/tests/test.json
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-script PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 add_test(NAME test-pre-compile
-	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests -d tests-pre
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-pre-compile PROPERTIES ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 add_test(NAME test-bytecode-compile
-	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -o test-main tests/main.fkl
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -o test-main tests/main.fkl
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-bytecode-compile PROPERTIES
-	ENVIRONMENT "FKL_PATH=${LIB_PATH}")
+    ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 add_test(NAME test-bytecode-run
-	COMMAND ${INTERPRETER_TARGET_NAME} test-main.fklc ${PROJECT_SOURCE_DIR}/tests/test.json
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND ${INTERPRETER_TARGET_NAME} test-main.fklc ${PROJECT_SOURCE_DIR}/tests/test.json
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-bytecode-run PROPERTIES
-	ENVIRONMENT "FKL_PATH=${LIB_PATH}"
-	DEPENDS test-bytecode-compile)
+    ENVIRONMENT "FKL_PATH=${LIB_PATH}"
+    DEPENDS test-bytecode-compile)
 
 add_test(NAME test-pre-compile-run-compile
-	COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND $<TARGET_FILE:${COMPILER_TARGET_NAME}> -p tests
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-pre-compile-run-compile PROPERTIES
-	ENVIRONMENT "FKL_PATH=${LIB_PATH}")
+    ENVIRONMENT "FKL_PATH=${LIB_PATH}")
 
 add_test(NAME test-pre-compile-run
-	COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests/main.fklp ${PROJECT_SOURCE_DIR}/tests/test.json
-	WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    COMMAND ${INTERPRETER_TARGET_NAME} ${PROJECT_BINARY_DIR}/tests/main.fklp ${PROJECT_SOURCE_DIR}/tests/test.json
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 )
 set_tests_properties(test-pre-compile-run PROPERTIES
-	ENVIRONMENT "FKL_PATH=${LIB_PATH}"
-	DEPENDS test-pre-compile-run-compile)
+    ENVIRONMENT "FKL_PATH=${LIB_PATH}"
+    DEPENDS test-pre-compile-run-compile)
 
 message(STATUS "options")
 list(APPEND CMAKE_MESSAGE_INDENT "	")
